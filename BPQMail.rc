@@ -1,0 +1,1475 @@
+//Microsoft Developer Studio generated resource script.
+//
+#include "BPQMailrc.h"
+
+// Generated Help ID header file
+#define APSTUDIO_HIDDEN_SYMBOLS
+#include "BPQMailrc.hm"
+#undef APSTUDIO_HIDDEN_SYMBOLS
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#define APSTUDIO_HIDDEN_SYMBOLS
+#include "AFXRES.h"
+#undef APSTUDIO_HIDDEN_SYMBOLS
+#define MAILCHAT
+#include "..\CommonSource\Versions.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_PROPPAGE_LARGE DIALOG DISCARDABLE  0, 0, 235, 156
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Property Page"
+FONT 8, "MS Sans Serif"
+BEGIN
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO MOVEABLE PURE 
+BEGIN
+    IDD_PROPPAGE_LARGE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 149
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.K.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENG)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+BPQMAIL DIALOG DISCARDABLE  120, 50, 294, 165
+STYLE DS_3DLOOK | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | 
+    WS_THICKFRAME
+CAPTION "G8BPQ Mail and Chat Server 1.0.0.10 Beta July 2009"
+CLASS "BPQMail"
+FONT 8, "FixedSys"
+BEGIN
+    LTEXT           " User      Callsign Stream Conf      Queue",101,3,4,184,
+                    10
+    LTEXT           "UTC",IDC_STATIC,197,3,15,10
+    LTEXT           "Local",IDC_STATIC,241,3,21,10
+    LTEXT           "",IDC_UTC,215,3,25,10
+    LTEXT           "",IDC_LOCAL,269,3,25,10
+    LISTBOX         100,2,16,190,130,WS_VSCROLL
+    LTEXT           "Msgs",IDC_STATIC,197,21,40,10
+    LTEXT           "",IDC_MSGS,243,21,20,8
+    LTEXT           "Sysop Msgs",IDC_STATIC,197,32,40,10
+    LTEXT           "Held Msgs",IDC_STATIC,197,43,40,10
+    LTEXT           "",IDC_SYSOPMSGS,243,32,20,8
+    LTEXT           "",IDC_HELD,243,43,20,8
+    LTEXT           "SMTP Msgs",IDC_STATIC,197,54,40,10
+    LTEXT           "",IDC_SMTP,243,54,20,8
+    LTEXT           "Msg SEM Clashes",IDC_STATIC,197,70,63,10
+    LTEXT           "Alloc SEM Clashes",IDC_STATIC,197,81,68,10
+    LTEXT           "0",IDC_MSGSEM,274,70,20,10
+    LTEXT           "0",IDC_ALLOCSEM,274,81,20,10
+    LTEXT           "Con SEM Clashes",IDC_STATIC,197,92,68,10
+    LTEXT           "0",IDC_CONSEM,274,92,20,10
+END
+
+CONSOLEWINDOW DIALOG DISCARDABLE  17, 25, 400, 301
+STYLE DS_3DLOOK | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | 
+    WS_THICKFRAME
+CAPTION "Mail Console"
+MENU CONSOLEMENU
+CLASS "CONSOLEWINDOW"
+FONT 8, "FixedSys"
+BEGIN
+    EDITTEXT        118,24,228,348,15,ES_AUTOHSCROLL | ES_NOHIDESEL
+END
+
+BPQMONWINDOW DIALOG DISCARDABLE  17, 25, 400, 300
+STYLE DS_3DLOOK | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | 
+    WS_THICKFRAME
+CAPTION "Mail Monitor"
+MENU MENU_2
+CLASS "BPQMONWINDOW"
+FONT 8, "FixedSys"
+BEGIN
+    LISTBOX         121,6,25,290,109,LBS_MULTIPLESEL | LBS_NOINTEGRALHEIGHT | 
+                    WS_VSCROLL | WS_HSCROLL
+END
+
+BPQMCWINDOW DIALOG DISCARDABLE  17, 25, 500, 300
+STYLE DS_3DLOOK | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | 
+    WS_THICKFRAME
+CAPTION "Multicast Monitor"
+MENU MENU_1
+CLASS "BPQMCWINDOW"
+FONT 8, "FixedSys"
+BEGIN
+END
+
+BPQDEBUGWINDOW DIALOG DISCARDABLE  17, 25, 400, 300
+STYLE DS_3DLOOK | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | 
+    WS_THICKFRAME
+CAPTION "Mail Debug Window"
+MENU MENU_3
+CLASS "BPQDEBUGWINDOW"
+FONT 8, "FixedSys"
+BEGIN
+    LISTBOX         122,5,156,290,109,LBS_MULTIPLESEL | LBS_NOINTEGRALHEIGHT | 
+                    WS_VSCROLL | WS_HSCROLL
+END
+
+102 DIALOG DISCARDABLE  0, 0, 385, 301
+STYLE WS_POPUP | WS_CAPTION | WS_VSCROLL | WS_HSCROLL | WS_SYSMENU | 
+    WS_THICKFRAME
+CAPTION "Configuration"
+FONT 8, "System"
+BEGIN
+END
+
+BBS_CONFIG DIALOG DISCARDABLE  0, 0, 381, 306
+STYLE WS_CHILD
+FONT 8, "System"
+BEGIN
+    LTEXT           "BBS Call is the base callsign, without SSID. This is not necessarily the same as the Application Callsign defined in the BPQ32 configuration. SYSOP Call is the callsign used by the local console.",
+                    IDC_STATIC,10,4,354,23
+    LTEXT           "The Application Number defines which BPQ32 Application gives access to the BBS. Note this is the APPLNumber (1-32) not an Application Mask, as used in many BPQ32 programs.",
+                    IDC_STATIC,10,27,353,18
+    LTEXT           "The eMail Server Params configure the NNTP, SMTP and POP3 Servers, which allow  normal Internet email and News clients to get messages from, and post mesages to the BBS. If you don't want to use this, set them to zero.. ",
+                    IDC_STATIC,8,52,357,27
+    LTEXT           "Enable UI System activates FBB compatible UI broadcasting of Message Headers",
+                    IDC_STATIC,8,80,357,15
+    LTEXT           "BBS Call",IDC_STATIC,7,105,37,12
+    EDITTEXT        IDC_BBSCall,83,103,47,14,ES_UPPERCASE
+    LTEXT           "SYSOP Call",IDC_STATIC,138,105,42,12
+    EDITTEXT        IDC_SYSOPCALL,184,103,42,14,ES_UPPERCASE
+    CONTROL         "Send SYSTEM Msgs to SYSOP call",IDC_SYSTOSYSOPCALL,
+                    "Button",BS_AUTOCHECKBOX | BS_LEFTTEXT | WS_TABSTOP,231,
+                    104,129,12
+    LTEXT           "H Route",IDC_STATIC,7,122,37,12
+    EDITTEXT        IDC_HRoute,83,120,119,13,ES_UPPERCASE
+    LTEXT           "BBS Appl Number",IDC_STATIC,7,138,61,10
+    EDITTEXT        IDC_BBSAppl,83,136,29,12
+    LTEXT           "Streams",IDC_STATIC,130,138,32,10
+    EDITTEXT        IDC_BBSStreams,168,136,29,12
+    CONTROL         "Refuse Bulls",IDC_REFUSEBULLS,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFTTEXT | WS_TABSTOP,211,138,53,10
+    CONTROL         "Enable FBB UI System",IDC_ENABLEUI,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFTTEXT | WS_TABSTOP,6,157,87,10
+    LTEXT           "Send Mail For Beacons Every",IDC_STATIC,102,157,100,12
+    EDITTEXT        MAILFOR_MINS,205,156,22,12,ES_UPPERCASE
+    LTEXT           "Minutes",IDC_STATIC,232,157,30,12
+    PUSHBUTTON      "Config UI Ports and Digis",IDC_UICONFIG,273,155,91,13
+    LTEXT           "eMail Server Params:",IDC_STATIC,7,227,135,10
+    LTEXT           "NNTP Port",IDC_STATIC,7,243,39,12
+    EDITTEXT        IDC_NNTPPort,47,241,29,14
+    LTEXT           "POP3 Port",IDC_STATIC,90,243,37,12
+    EDITTEXT        IDC_POP3Port,130,241,29,14
+    LTEXT           "SMTP Port",IDC_STATIC,170,243,37,12
+    EDITTEXT        IDC_SMTPPort,210,241,29,14
+    CONTROL         "Enable Remote Access",1009,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,249,240,91,14
+    PUSHBUTTON      "Save",IDC_BBSSAVE,159,281,50,14,BS_CENTER | BS_VCENTER
+    CONTROL         "Don't hold messages from new users",IDC_DONTHOLDNEW,
+                    "Button",BS_AUTOCHECKBOX | BS_LEFTTEXT | WS_TABSTOP,5,
+                    189,134,12
+    CONTROL         "Forward Messages to BBS Call",IDC_FORWARDTOBBS,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFTTEXT | WS_TABSTOP,145,189,114,
+                    12
+    CONTROL         "Redirect msgs to BBS Call to SYSOP Call",
+                    IDC_BBSTOSYSOPCALL,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFTTEXT | WS_TABSTOP,213,120,146,12
+    CONTROL         "Don't Request Home BBS",IDC_NOHOMEBBS,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFTTEXT | WS_TABSTOP,260,174,99,12
+    CONTROL         "Don't Request Name",IDC_NONAME,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFTTEXT | WS_TABSTOP,176,174,79,12
+    EDITTEXT        IDC_AMPR,72,258,119,13
+    LTEXT           "AMPR Address",IDC_STATIC,6,260,60,12
+    CONTROL         "Send ampr.org mail to AMPR host",IDC_FORWARDAMPR,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,201,258,124,14
+    CONTROL         "Allow users to kill T msgs",IDC_USERRKILLT,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFTTEXT | WS_TABSTOP,264,189,95,12
+    CONTROL         "Set Don't add WINLINK.ORG flag on new users",
+                    IDC_DEFAULTNOWINLINK,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFTTEXT | WS_TABSTOP,5,174,162,12
+    CONTROL         "Don't allow unknown users",IDC_KNOWNUSERS,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFTTEXT | WS_TABSTOP,277,138,98,10
+    CONTROL         "Don't Check From Calls",IDC_DONTCHECKFROM,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFTTEXT | WS_TABSTOP,5,204,95,12
+END
+
+CHAT_CONFIG DIALOG DISCARDABLE  0, 0, 381, 266
+STYLE WS_CHILD
+FONT 8, "System"
+BEGIN
+    LTEXT           "Chat Appl Number",-1,115,109,61,8
+    EDITTEXT        2001,185,106,29,14
+    LTEXT           "Nodes to link to",-1,115,129,53,8
+    EDITTEXT        2002,185,125,87,88,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_WANTRETURN
+    DEFPUSHBUTTON   "Save",2100,172,226,50,14,BS_CENTER | BS_VCENTER
+    LTEXT           "The Application Number defines which BPQ32 Application gives access to the Chat Server. Note this is the APPLNumber (1-32) not an Application Mask, as uses in many BPQ32 programs.",
+                    -1,10,10,353,18
+    LTEXT           "The Nodes to link to box defines which other Chat Nodes should be connected to, or from which connections may be accepted. The format is ALIAS:CALL, eg BPQCHT:G8BPQ-4. Note these must be directly connectable - ie in your NODES table.",
+                    -1,10,30,355,25
+    LTEXT           "The Callsign of the Chat Node is not defined here - It is obtained from the BPQ32 APPLCALL parameter corresponding to the Chat Appl Number.",
+                    -1,10,60,360,25
+END
+
+IDD_USEREDIT DIALOGEX 20, 20, 293, 281
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Edit User"
+FONT 8, "System"
+BEGIN
+    COMBOBOX        5000,7,10,57,123,CBS_SIMPLE | CBS_SORT | CBS_UPPERCASE | 
+                    WS_VSCROLL | WS_TABSTOP
+    CONTROL         "BBS",IDC_BBSFLAG,"Button",BS_AUTOCHECKBOX | BS_LEFT | 
+                    WS_TABSTOP,72,9,57,10
+    CONTROL         "PMS",IDC_PMSFLAG,"Button",BS_AUTOCHECKBOX | BS_LEFT | 
+                    WS_TABSTOP,72,22,57,10
+    CONTROL         "Sysop",IDC_SYSOP,"Button",BS_AUTOCHECKBOX | BS_LEFT | 
+                    WS_TABSTOP,72,35,57,10
+    CONTROL         "Expert",IDC_EXPERT,"Button",BS_AUTOCHECKBOX | BS_LEFT | 
+                    WS_TABSTOP,72,48,57,10
+    CONTROL         "Excluded",IDC_EXCLUDED,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFT | WS_TABSTOP,72,61,57,10
+    CONTROL         "Hold Messages",IDC_HOLDMAIL,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFT | WS_TABSTOP,72,74,65,10
+    CONTROL         "NTS MPS",IDC_NTSMPS,"Button",BS_AUTOCHECKBOX | BS_LEFT | 
+                    WS_TABSTOP,72,87,69,10
+    CONTROL         "Permit Email",IDC_EMAIL,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFT | WS_TABSTOP,163,9,57,10
+    CONTROL         "Poll RMS for  SSID's",IDC_POLLRMS,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFT | WS_TABSTOP,163,23,78,8,0,
+                    HIDC_POLLRMS
+    EDITTEXT        RMS_SSID1,244,21,13,12,ES_AUTOHSCROLL
+    EDITTEXT        RMS_SSID2,258,21,13,12,ES_AUTOHSCROLL
+    EDITTEXT        RMS_SSID3,272,21,13,12,ES_AUTOHSCROLL
+    CONTROL         "RMS Express User",RMS_EXPRESS_USER,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFT | WS_TABSTOP,163,35,77,10
+    LTEXT           "Last Listed",IDC_STATIC,163,87,38,12
+    EDITTEXT        IDC_LASTLISTED,248,85,29,12,ES_AUTOHSCROLL
+    LTEXT           "Name",IDC_STATIC,7,184,35,14
+    EDITTEXT        IDC_NAME,55,182,96,14,ES_AUTOHSCROLL
+    LTEXT           "Password",IDC_STATIC,7,202,35,14
+    EDITTEXT        IDC_PASSWORD,55,200,89,14,ES_AUTOHSCROLL
+    LTEXT           "QTH",IDC_STATIC,7,220,35,14
+    EDITTEXT        IDC_QTH,55,218,130,14,ES_AUTOHSCROLL
+    LTEXT           "Home BBS",IDC_STATIC,7,238,40,14
+    EDITTEXT        IDC_HOMEBBS,55,236,162,14,ES_UPPERCASE | ES_AUTOHSCROLL
+    PUSHBUTTON      "Add user",IDC_ADDUSER,79,257,42,14,BS_CENTER | 
+                    BS_VCENTER
+    PUSHBUTTON      "Delete user",5101,124,257,42,14,BS_CENTER | BS_VCENTER
+    PUSHBUTTON      "Save",5102,169,257,42,14,BS_CENTER | BS_VCENTER
+    LTEXT           "Connects in",IDC_STATIC,10,131,45,10
+    LTEXT           "Connects out",IDC_STATIC,10,142,45,10
+    LTEXT           "0",CONN_IN,57,131,26,10,0,WS_EX_RIGHT
+    LTEXT           "0",CONN_OUT,57,142,26,10,0,WS_EX_RIGHT
+    LTEXT           "Msgs in",IDC_STATIC,87,131,35,10
+    LTEXT           "Msgs out",IDC_STATIC,87,142,35,10
+    LTEXT           "0",MSGS_IN,125,131,26,10,0,WS_EX_RIGHT
+    LTEXT           "0",MSGS_OUT,125,142,26,10,0,WS_EX_RIGHT
+    LTEXT           "Rejects in",IDC_STATIC,159,131,35,10
+    LTEXT           "Rejects out",IDC_STATIC,159,142,40,10
+    LTEXT           "0",REJECTS_IN,201,131,26,10,0,WS_EX_RIGHT
+    LTEXT           "0",REJECTS_OUT,201,142,26,10,0,WS_EX_RIGHT
+    LTEXT           "Bytes out",IDC_STATIC,10,164,35,10
+    LTEXT           "",BYTES_OUT,45,164,38,10,0,WS_EX_RIGHT
+    LTEXT           "Bytes in",IDC_STATIC,10,153,35,10
+    LTEXT           "0",BYTES_IN,45,153,38,10,0,WS_EX_RIGHT
+    LTEXT           "Last Connect",IDC_STATIC,87,153,45,10
+    LTEXT           "Never",LASTCONNECT,134,153,93,10
+    CONTROL         "Don't add @winlink.org",NO_WINLINKdotORG,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFT | WS_TABSTOP,163,47,100,10
+    LTEXT           "ZIP",IDC_STATIC,189,221,12,11
+    EDITTEXT        IDC_UZIP,207,219,38,12,ES_AUTOHSCROLL
+    CONTROL         "Allow sending Bulls",ALLOW_BULLS,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFT | WS_TABSTOP,163,61,100,10
+    CONTROL         "Include SYSOP msgs in LM",IDC_SYSOP_IN_LM,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFT | WS_DISABLED | WS_TABSTOP,163,
+                    74,100,10
+    EDITTEXT        IDC_CMSPASS,187,201,88,14,ES_PASSWORD
+    CONTROL         "CMS Pass",IDC_STATIC,"Static",SS_LEFTNOWORDWRAP | 
+                    WS_GROUP,149,203,34,14
+    CONTROL         "Send Mail For to APRS ssid",IDC_APRSMFOR,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFT | WS_TABSTOP,72,113,108,10
+    EDITTEXT        IDC_APRSSSID,182,112,16,12,ES_AUTOHSCROLL
+    CONTROL         "Redirect to RMS",IDC_RMSREDIRECT,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFT | WS_TABSTOP,72,100,69,10
+END
+
+ISP_CONFIG DIALOG DISCARDABLE  26, 5, 381, 284
+STYLE WS_CHILD | WS_VISIBLE
+FONT 8, "System"
+BEGIN
+    EDITTEXT        3001,95,110,100,15
+    LTEXT           "SMTP Server",-1,10,130,53,13
+    LTEXT           "The system relies on having an email domain which supports forwarding of all email addresses to a fixed mailbox. For example, I could register domain mycall.org.uk, and have any mail sent to anyone@mycall.org.uk forwarded to  mymailbox@myisp.com",
+                    1,10,34,349,25
+    LTEXT           "POP3 Server",-1,10,146,61,13
+    LTEXT           "ISP Account Name",-1,10,163,63,13
+    EDITTEXT        IDC_ISPSMTPName,95,127,148,15
+    EDITTEXT        3004,95,144,147,15
+    EDITTEXT        3006,95,161,147,15
+    LTEXT           "Port",-1,250,147,18,13
+    LTEXT           "Port",-1,250,130,19,13
+    EDITTEXT        3005,275,144,29,15
+    EDITTEXT        3003,275,127,29,15
+    LTEXT           "This page configures the BBS <> Internet Mail Gateway. The Gateway allows local users to send messages to Internet email addresses, and get replies from those messages",
+                    -1,10,10,353,20
+    LTEXT           "My Domain",-1,10,112,51,8
+    LTEXT           "ISP Account Password",-1,10,180,80,13
+    EDITTEXT        3007,95,178,147,15,ES_PASSWORD
+    LTEXT           "POP3 Poll Interval (Seconds)",-1,10,216,80,18
+    EDITTEXT        3008,95,219,29,12
+    LTEXT           "WARNING This feature my be illegal in some administrations. Make sure your authorities permit forwarding mail from the Amateur Service before enabling it",
+                    -1,10,64,348,15
+    CONTROL         "Enable Internet Gateway",3000,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFTTEXT | BS_LEFT | WS_TABSTOP,10,90,90,15
+    DEFPUSHBUTTON   "Save",3100,165,261,57,17,BS_CENTER | BS_VCENTER
+    CONTROL         "SMTP Server Requires Authentication",ISP_SMTP_AUTH,
+                    "Button",BS_AUTOCHECKBOX | BS_LEFTTEXT | BS_LEFT | 
+                    BS_MULTILINE | WS_TABSTOP,250,159,69,32
+    EDITTEXT        SMTP_EHELO,95,196,100,15
+    LTEXT           "SMTP ""EHELO"" Domain",-1,10,198,80,8
+END
+
+IDD_FORWARDING DIALOG DISCARDABLE  20, 20, 457, 327
+STYLE WS_POPUP | WS_CAPTION | WS_VSCROLL | WS_HSCROLL | WS_SYSMENU | 
+    WS_THICKFRAME
+CAPTION "Manage Forwarding"
+FONT 8, "System"
+BEGIN
+    LTEXT           "Forwarding Rules are define here. BBS Records are created by setting the BBS flag on a User Record.",
+                    IDC_STATIC,5,7,368,10
+    LTEXT           "The Enable Forwarding flag allows you to disable forwarding without losing the messages to be forwarded. ",
+                    IDC_STATIC,5,20,373,8
+    GROUPBOX        "Global Params",IDC_STATIC,2,33,114,263
+    LTEXT           "Max Size to Send",IDC_STATIC,5,50,58,12
+    EDITTEXT        IDC_MAXSEND,66,49,26,12,ES_AUTOHSCROLL
+    LTEXT           "Max Size to Recv",IDC_STATIC,5,68,58,12
+    EDITTEXT        IDC_MAXRECV,66,66,26,12,ES_AUTOHSCROLL
+    CONTROL         "Warn if no route for P or T",IDC_WARNNOROUTE,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFTTEXT | BS_MULTILINE | 
+                    WS_TABSTOP,5,101,103,8
+    LTEXT           "Aliases",IDC_STATIC,5,144,57,13
+    EDITTEXT        IDC_ALIAS,4,162,99,81,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | 
+                    WS_VSCROLL
+    CONTROL         "Readdress Locally Input",IDC_READDRESSLOCAL,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFTTEXT | BS_MULTILINE | 
+                    WS_DISABLED | WS_TABSTOP,4,246,97,8
+    CONTROL         "Readdress Received",IDC_READDRESSRXED,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFTTEXT | BS_MULTILINE | 
+                    WS_DISABLED | WS_TABSTOP,4,260,97,8
+    GROUPBOX        "Per-BBS Params",IDC_STATIC,121,33,326,263
+    LTEXT           "BBS",IDC_STATIC,128,46,57,10
+    COMBOBOX        IDC_BBS,122,59,50,60,CBS_SIMPLE | CBS_OEMCONVERT | 
+                    CBS_SORT | CBS_NOINTEGRALHEIGHT | WS_VSCROLL
+    LTEXT           "To Calls:",IDC_STATIC,186,46,40,10
+    EDITTEXT        IDC_TOCALLS,177,59,50,60,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | 
+                    WS_VSCROLL
+    LTEXT           "AT Calls:",IDC_STATIC,242,46,43,10
+    EDITTEXT        IDC_ATCALLS,233,59,50,60,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | 
+                    WS_VSCROLL
+    LTEXT           "Times",IDC_STATIC,299,46,30,13
+    EDITTEXT        IDC_FWDTIMES,288,59,50,60,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | 
+                    WS_VSCROLL
+    LTEXT           "Connect Script",IDC_STATIC,348,46,57,13
+    EDITTEXT        IDC_CALL,343,59,92,60,ES_MULTILINE | ES_AUTOVSCROLL | 
+                    ES_AUTOHSCROLL | ES_WANTRETURN | WS_VSCROLL
+    LTEXT           "Hierarchical Routes (Flood Bulls)",IDC_STATIC,141,126,
+                    114,12
+    EDITTEXT        IDC_HROUTES,122,140,148,60,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | 
+                    WS_VSCROLL | WS_HSCROLL
+    LTEXT           "HR  (Personals and Directed Bulls)",IDC_STATIC,281,126,
+                    125,12
+    EDITTEXT        IDC_HROUTESP,280,141,151,60,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | 
+                    WS_VSCROLL | WS_HSCROLL
+    LTEXT           "Interval (Secs)",IDC_STATIC,359,205,48,8
+    EDITTEXT        IDC_FWDINT,253,204,22,12,ES_AUTOHSCROLL
+    CONTROL         "Enable Forwarding",4000,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFTTEXT | BS_LEFT | WS_TABSTOP,122,206,72,8
+    CONTROL         "Request Reverse",4006,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFTTEXT | BS_LEFT | WS_TABSTOP,286,206,67,8
+    CONTROL         "Send new messages without waiting for poll timer",
+                    IDC_SENDNEW,"Button",BS_AUTOCHECKBOX | BS_LEFTTEXT | 
+                    BS_MULTILINE | WS_TABSTOP,122,221,182,8
+    LTEXT           "BBS HA",IDC_STATIC,125,242,30,12
+    EDITTEXT        IDC_BBSHA,162,240,134,12,ES_UPPERCASE | ES_AUTOHSCROLL
+    LTEXT           "Max Block",IDC_STATIC,368,241,37,12
+    EDITTEXT        IDC_MAXBLOCK,407,240,26,12,ES_AUTOHSCROLL
+    CONTROL         "Send Personal Mail Only",IDC_PERSONALONLY,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFTTEXT | BS_MULTILINE | 
+                    WS_TABSTOP,321,221,108,8
+    CONTROL         "Allow Binary",IDC_ALLOWCOMP,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFTTEXT | BS_MULTILINE | WS_TABSTOP,125,260,58,8
+    CONTROL         "Use B1 Protocol",IDC_USEB1,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFTTEXT | BS_MULTILINE | WS_TABSTOP,185,260,72,8
+    CONTROL         "Use B2 Protocol",IDC_USEB2,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFTTEXT | BS_MULTILINE | WS_TABSTOP,261,260,67,8
+    DEFPUSHBUTTON   "? Help",IDC_HRHELP,381,6,33,11,BS_CENTER | BS_VCENTER | 
+                    NOT WS_TABSTOP
+    DEFPUSHBUTTON   "Save",4100,352,303,57,17,BS_CENTER | BS_VCENTER
+    LTEXT           "Interval (Secs)",IDC_STATIC,198,206,48,8
+    EDITTEXT        IDC_REVFWDINT,407,205,23,12,ES_AUTOHSCROLL
+    CONTROL         "Use Local Time ",IDC_USELOCALTIME,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFTTEXT | BS_MULTILINE | 
+                    WS_TABSTOP,5,116,103,8
+    CONTROL         "Send ctrl/Z instead of /ex",IDC_CTRLZ,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFTTEXT | BS_MULTILINE | 
+                    WS_TABSTOP,333,260,100,8
+    LTEXT           "Max Bull Age",IDC_STATIC,5,86,58,12
+    EDITTEXT        IDC_MAXAGE,66,84,26,12,ES_AUTOHSCROLL
+    CONTROL         "FBB Blocked",IDC_BLOCKED,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFTTEXT | BS_MULTILINE | WS_TABSTOP,301,241,61,8
+    PUSHBUTTON      "Copy From BBS",COPYCONFIG,160,303,57,17,BS_CENTER | 
+                    BS_VCENTER
+    EDITTEXT        COPYFROMCALL,227,303,35,17,ES_UPPERCASE | ES_AUTOHSCROLL
+    CONTROL         "Send P to more than 1 BBS",IDC_MULTIP,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFTTEXT | BS_MULTILINE | 
+                    WS_TABSTOP,5,130,103,8
+    LTEXT           "Incoming Connect Timeout",IDC_STATIC,125,278,95,12
+    EDITTEXT        IDC_CONTIMEOUT,219,276,22,12,ES_AUTOHSCROLL
+END
+
+IDD_USERADDED_BOX DIALOG DISCARDABLE  176, 132, 129, 68
+STYLE DS_FIXEDSYS | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_THICKFRAME
+FONT 8, "System"
+BEGIN
+    DEFPUSHBUTTON   "Ok",0,47,48,36,17,BS_CENTER | BS_VCENTER
+    LTEXT           "Label0",5050,5,10,117,32
+END
+
+IDD_MSGEDIT DIALOGEX 20, 20, 421, 298
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Edit Message"
+FONT 8, "System", 0, 0, 0x1
+BEGIN
+    RTEXT           "Msg",IDC_STATIC,7,7,19,8
+    LISTBOX         0,33,7,65,81,LBS_NOINTEGRALHEIGHT | LBS_EXTENDEDSEL | 
+                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_MSGTYPE,125,9,25,55,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    COMBOBOX        IDC_MSGSTATUS,185,9,25,55,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    RTEXT           "From",IDC_STATIC,7,98,19,8
+    EDITTEXT        6001,33,95,65,14,ES_UPPERCASE | ES_AUTOHSCROLL
+    RTEXT           "BID",IDC_STATIC,7,114,19,8
+    EDITTEXT        6002,33,111,65,14,ES_AUTOHSCROLL
+    RTEXT           "To",IDC_STATIC,7,132,19,8
+    EDITTEXT        6003,33,128,65,14,ES_UPPERCASE | ES_AUTOHSCROLL
+    RTEXT           "Via",IDC_STATIC,4,190,25,8
+    EDITTEXT        6004,33,186,177,14,ES_UPPERCASE | ES_AUTOHSCROLL
+    RTEXT           "Subject",IDC_STATIC,4,206,25,8
+    EDITTEXT        6005,33,203,177,14,ES_AUTOHSCROLL
+    LTEXT           "Status",IDC_STATIC,160,10,20,8
+    RTEXT           "Sent",IDC_STATIC,116,96,32,8
+    EDITTEXT        6018,153,95,57,14,ES_AUTOHSCROLL
+    RTEXT           "Received",IDC_STATIC,116,113,32,8
+    EDITTEXT        6019,153,111,57,14,ES_AUTOHSCROLL
+    RTEXT           "Last Changed",IDC_STATIC,103,130,45,8
+    EDITTEXT        6021,153,128,57,14,ES_AUTOHSCROLL
+    RTEXT           "Size",IDC_STATIC,116,147,32,8
+    EDITTEXT        6020,153,145,55,14,ES_AUTOHSCROLL
+    LTEXT           "Type",IDC_STATIC,105,10,17,8
+    CONTROL         "",25,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,7,35,10
+    CONTROL         "",26,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,17,35,10
+    CONTROL         "",27,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,27,35,10
+    CONTROL         "",28,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,37,35,10
+    CONTROL         "",29,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,47,35,10
+    CONTROL         "",30,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,57,35,10
+    CONTROL         "",31,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,67,35,10
+    CONTROL         "",32,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,77,35,10
+    CONTROL         "",33,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,87,35,10
+    CONTROL         "",34,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,97,35,10
+    CONTROL         "",35,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,107,35,10
+    CONTROL         "",36,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,117,35,10
+    CONTROL         "",37,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,127,35,10
+    CONTROL         "",38,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,137,35,10
+    CONTROL         "",39,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,147,35,10
+    CONTROL         "",40,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,157,35,10
+    CONTROL         "",41,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,167,35,10
+    CONTROL         "",42,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,177,35,10
+    CONTROL         "",43,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,187,35,10
+    CONTROL         "",44,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,197,35,10
+    CONTROL         "",45,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,208,35,10
+    CONTROL         "",46,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,218,35,10
+    CONTROL         "",47,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,228,35,10
+    CONTROL         "",48,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,238,35,10
+    CONTROL         "",49,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,221,248,35,10
+    CONTROL         "",50,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,7,35,10
+    CONTROL         "",51,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,17,35,10
+    CONTROL         "",52,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,27,35,10
+    CONTROL         "",53,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,37,35,10
+    CONTROL         "",54,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,47,35,10
+    CONTROL         "",55,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,57,35,10
+    CONTROL         "",56,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,67,35,10
+    CONTROL         "",57,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,77,35,10
+    CONTROL         "",58,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,87,35,10
+    CONTROL         "",59,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,97,35,10
+    CONTROL         "",60,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,107,35,10
+    CONTROL         "",61,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,117,35,10
+    CONTROL         "",62,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,127,35,10
+    CONTROL         "",63,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,137,35,10
+    CONTROL         "",64,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,147,35,10
+    CONTROL         "",65,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,157,35,10
+    CONTROL         "",66,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,167,35,10
+    CONTROL         "",67,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,177,35,10
+    CONTROL         "",68,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,187,35,10
+    CONTROL         "",69,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,197,35,10
+    CONTROL         "",70,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,207,35,10
+    CONTROL         "",71,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,217,35,10
+    CONTROL         "",72,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,227,35,10
+    CONTROL         "",73,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,237,35,10
+    CONTROL         "",74,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,260,247,35,10
+    CONTROL         "",75,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,7,35,10
+    CONTROL         "",76,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,17,35,10
+    CONTROL         "",77,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,27,35,10
+    CONTROL         "",78,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,37,35,10
+    CONTROL         "",79,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,47,35,10
+    CONTROL         "",80,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,57,35,10
+    CONTROL         "",81,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,67,35,10
+    CONTROL         "",82,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,77,35,10
+    CONTROL         "",83,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,87,35,10
+    CONTROL         "",84,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,97,35,10
+    CONTROL         "",85,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,107,35,10
+    CONTROL         "",86,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,117,35,10
+    CONTROL         "",87,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,127,35,10
+    CONTROL         "",88,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,137,35,10
+    CONTROL         "",89,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,147,35,10
+    CONTROL         "",90,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,157,35,10
+    CONTROL         "",91,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,167,35,10
+    CONTROL         "",92,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,177,35,10
+    CONTROL         "",93,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,187,35,10
+    CONTROL         "",94,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,197,35,10
+    CONTROL         "",95,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,207,35,10
+    CONTROL         "",96,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,217,35,10
+    CONTROL         "",97,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,227,35,10
+    CONTROL         "",98,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,237,35,10
+    CONTROL         "",99,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,299,247,35,10
+    CONTROL         "",100,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,7,35,10
+    CONTROL         "",101,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,18,35,10
+    CONTROL         "",102,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,27,35,10
+    CONTROL         "",103,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,37,35,10
+    CONTROL         "",104,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,47,35,10
+    LTEXT           "Key",IDC_STATIC,317,267,35,9
+    CONTROL         "Dont Send",205,"Button",BS_3STATE | BS_CENTER | 
+                    BS_PUSHLIKE,262,281,43,10
+    CONTROL         "Send",206,"Button",BS_3STATE | BS_CENTER | BS_PUSHLIKE,
+                    311,280,35,10
+    CONTROL         "Sent",207,"Button",BS_3STATE | BS_CENTER | BS_PUSHLIKE,
+                    353,280,35,10
+    DEFPUSHBUTTON   "Edit Text",IDC_EDITTEXT,24,275,38,15,BS_CENTER | 
+                    BS_VCENTER
+    DEFPUSHBUTTON   "Print",IDC_PRINTMSG,150,275,24,15,BS_CENTER | 
+                    BS_VCENTER
+    RTEXT           "Filter From",IDC_STATIC,104,30,38,8
+    EDITTEXT        FILTER_FROM,147,28,62,14,ES_UPPERCASE | ES_AUTOHSCROLL
+    EDITTEXT        FILTER_TO,147,44,62,14,ES_UPPERCASE | ES_AUTOHSCROLL
+    EDITTEXT        FILTER_VIA,147,60,62,14,ES_UPPERCASE | ES_AUTOHSCROLL,0,
+                    HFILTER_VIA
+    RTEXT           "Filter To",IDC_STATIC,104,46,38,8
+    RTEXT           "Filter Via",IDC_STATIC,104,62,38,8
+    DEFPUSHBUTTON   "Save",IDC_SAVEMSG,67,275,24,15,BS_CENTER | BS_VCENTER
+    DEFPUSHBUTTON   "Save to File",IDC_SAVETOFILE,96,275,49,15,BS_CENTER | 
+                    BS_VCENTER
+    DEFPUSHBUTTON   "Export",IDC_EXPORT,179,275,32,15,BS_CENTER | BS_VCENTER
+    EDITTEXT        EMAILFROM,33,169,177,14,ES_UPPERCASE | ES_AUTOHSCROLL
+    RTEXT           "Email From",IDC_STATIC,4,168,25,17
+    CONTROL         "",105,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,57,35,10
+    CONTROL         "",106,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,67,35,10
+    CONTROL         "",107,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,77,35,10
+    CONTROL         "",108,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,87,35,10
+    CONTROL         "",109,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,97,35,10
+    CONTROL         "",110,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,107,35,10
+    CONTROL         "",111,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,118,35,10
+    CONTROL         "",112,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,127,35,10
+    CONTROL         "",113,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,137,35,10
+    CONTROL         "",114,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,147,35,10
+    CONTROL         "",115,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,157,35,10
+    CONTROL         "",116,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,167,35,10
+    CONTROL         "",117,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,177,35,10
+    CONTROL         "",118,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,187,35,10
+    CONTROL         "",119,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,197,35,10
+    CONTROL         "",120,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,207,35,10
+    CONTROL         "",121,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,217,35,10
+    CONTROL         "",122,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,227,35,10
+    CONTROL         "",123,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,237,35,10
+    CONTROL         "",124,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,337,247,35,10
+    CONTROL         "",148,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,237,35,10
+    CONTROL         "",125,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,8,35,10
+    CONTROL         "",126,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,17,35,10
+    CONTROL         "",127,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,27,35,10
+    CONTROL         "",128,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,37,35,10
+    CONTROL         "",129,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,47,35,10
+    CONTROL         "",130,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,57,35,10
+    CONTROL         "",131,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,67,35,10
+    CONTROL         "",132,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,77,35,10
+    CONTROL         "",133,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,87,35,10
+    CONTROL         "",134,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,97,35,10
+    CONTROL         "",135,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,108,35,10
+    CONTROL         "",136,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,117,35,10
+    CONTROL         "",137,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,127,35,10
+    CONTROL         "",138,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,137,35,10
+    CONTROL         "",139,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,147,35,10
+    CONTROL         "",140,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,157,35,10
+    CONTROL         "",141,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,167,35,10
+    CONTROL         "",150,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,247,35,10
+    CONTROL         "",142,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,177,35,10
+    CONTROL         "",143,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,187,35,10
+    CONTROL         "",144,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,197,35,10
+    CONTROL         "",145,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,207,35,10
+    CONTROL         "",146,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,217,35,10
+    CONTROL         "",147,"Button",BS_AUTO3STATE | BS_LEFT | BS_PUSHLIKE | 
+                    WS_TABSTOP,377,227,35,10
+    EDITTEXT        FILTER_BID,147,76,62,14,ES_UPPERCASE | ES_AUTOHSCROLL,0,
+                    HFILTER_BID
+    RTEXT           "Filter BID",IDC_STATIC,104,78,38,8
+END
+
+WELCOMEMSG DIALOG DISCARDABLE  26, 5, 365, 281
+STYLE WS_CHILD | WS_VISIBLE
+FONT 8, "System"
+BEGIN
+    LTEXT           "Normal User Welcome Message",IDC_STATIC,5,7,130,8
+    EDITTEXT        IDM_USERMSG,5,20,340,50,ES_MULTILINE | ES_AUTOVSCROLL | 
+                    ES_AUTOHSCROLL | ES_WANTRETURN
+    LTEXT           "New User Welcome Message",IDC_STATIC,5,75,130,8
+    EDITTEXT        IDM_NEWUSERMSG,5,89,340,65,ES_MULTILINE | ES_AUTOVSCROLL | 
+                    ES_AUTOHSCROLL | ES_WANTRETURN
+    LTEXT           "Expert User Welcome Message",IDC_STATIC,5,159,130,8
+    EDITTEXT        IDM_EXPERTUSERMSG,5,172,340,12,ES_MULTILINE | 
+                    ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN
+    DEFPUSHBUTTON   "Save",IDM_MSGSAVE,166,264,50,14,BS_CENTER | BS_VCENTER
+    LTEXT           "$U : Callsign of the user      $I : First name of the user      $X Messages for user       $x Unread messages",
+                    IDC_STATIC,0,222,365,8
+    LTEXT           "$L : Number of the latest message    $N : Number of active messages.    $Z : Last message read by user",
+                    IDC_STATIC,0,234,365,10
+    LTEXT           "Signoff Message",IDC_STATIC,5,190,130,8
+    EDITTEXT        IDM_SIGNOFF,5,202,340,12,ES_MULTILINE | ES_AUTOVSCROLL | 
+                    ES_AUTOHSCROLL | ES_WANTRETURN
+    LTEXT           "$F : Number of mesages to be forwarded to user (if a BBS)",
+                    IDC_STATIC,0,246,365,10
+END
+
+BBSPROMPTS DIALOG DISCARDABLE  26, 5, 381, 266
+STYLE WS_CHILD | WS_VISIBLE
+FONT 8, "System"
+BEGIN
+    LTEXT           "Normal User Prompt",IDC_STATIC,5,7,130,8
+    EDITTEXT        IDM_USERMSG,5,20,340,35,ES_MULTILINE | ES_AUTOVSCROLL | 
+                    ES_AUTOHSCROLL | ES_WANTRETURN
+    LTEXT           "New User Prompt",IDC_STATIC,5,59,130,8
+    EDITTEXT        IDM_NEWUSERMSG,5,70,340,35,ES_MULTILINE | ES_AUTOVSCROLL | 
+                    ES_AUTOHSCROLL | ES_WANTRETURN
+    LTEXT           "Expert User Prompt",IDC_STATIC,5,110,130,8
+    EDITTEXT        IDM_EXPERTUSERMSG,5,120,340,35,ES_MULTILINE | 
+                    ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN
+    DEFPUSHBUTTON   "Save",IDM_PROMPTSAVE,166,250,50,14,BS_CENTER | 
+                    BS_VCENTER
+    LTEXT           "$U : Callsign of the user      $I : First name of the user      $X Messages for user       $x Unread messages",
+                    IDC_STATIC,2,165,353,8
+    LTEXT           "$L : Number of the latest message    $N : Number of active messages.    $Z : Last message read by user",
+                    IDC_STATIC,3,175,347,10
+END
+
+IDD_MAINTRESULTS DIALOG DISCARDABLE  0, 0, 181, 114
+STYLE DS_FIXEDSYS | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_THICKFRAME
+CAPTION "Maintenance Results"
+FONT 8, "System"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,66,91,50,14
+    LTEXT           "Killed Messsages Removed",IDC_STATIC,11,10,103,10
+    LTEXT           "Messages Killed",IDC_STATIC,11,21,103,10
+    LTEXT           "Live Messages",IDC_STATIC,11,32,104,10
+    LTEXT           "Total Messages",IDC_STATIC,11,43,103,10
+    LTEXT           "BIDs Removed",IDC_STATIC,11,58,103,10
+    LTEXT           "BIDs Left",IDC_STATIC,11,70,103,10
+    LTEXT           "Static",IDC_REMOVED,146,10,30,10
+    LTEXT           "Static",IDC_KILLED,146,21,30,10
+    LTEXT           "Static",IDC_LIVE,146,32,30,10
+    LTEXT           "Static",IDC_TOTAL,146,43,30,10
+    LTEXT           "Static",IDC_BIDSREMOVED,146,58,30,10
+    LTEXT           "Static",IDC_BIDSLEFT,146,69,30,10
+END
+
+IDD_EDITWP DIALOG DISCARDABLE  0, 0, 398, 265
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "EDIT WP Record"
+FONT 8, "MS Sans Serif"
+BEGIN
+    COMBOBOX        IDC_WP,9,9,76,190,CBS_SIMPLE | CBS_SORT | CBS_UPPERCASE | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Name",-1,100,11,47,10
+    EDITTEXT        IDC_WPNAME,165,10,128,12,ES_AUTOHSCROLL
+    LTEXT           "Home BBS 1",-1,100,26,53,10
+    EDITTEXT        IDC_HOMEBBS1,165,25,216,12,ES_UPPERCASE | ES_AUTOHSCROLL
+    LTEXT           "Home BBS 2",-1,100,41,53,10
+    EDITTEXT        IDC_HOMEBBS2,165,40,216,12,ES_UPPERCASE | ES_AUTOHSCROLL
+    LTEXT           "QTH 1",-1,100,56,47,10
+    EDITTEXT        IDC_QTH1,165,55,215,12,ES_AUTOHSCROLL
+    LTEXT           "QTH 2",-1,100,71,47,10
+    EDITTEXT        IDC_QTH2,165,70,215,12,ES_AUTOHSCROLL
+    LTEXT           "ZIP 1",-1,100,86,47,12
+    EDITTEXT        IDC_ZIP1,165,85,128,12,ES_AUTOHSCROLL
+    LTEXT           "ZIP 2",-1,100,101,47,12
+    EDITTEXT        IDC_ZIP2,165,100,128,12,ES_AUTOHSCROLL
+    LTEXT           "Last Seen",-1,100,121,47,12
+    EDITTEXT        IDC_LASTSEEN,165,120,128,12,ES_AUTOHSCROLL
+    LTEXT           "Last Modified",-1,100,136,47,12
+    EDITTEXT        IDC_LASTMODIFIED,165,135,128,12,ES_AUTOHSCROLL
+    LTEXT           "Type",-1,100,156,47,12
+    EDITTEXT        IDC_TYPE,165,155,59,12,ES_AUTOHSCROLL
+    LTEXT           "Changed",-1,100,171,47,12
+    LTEXT           "Seen",-1,100,186,47,12
+    EDITTEXT        IDC_CHANGED,165,170,59,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_SEEN,165,185,59,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "Delete",IDC_DELETEWP,106,215,56,17,BS_CENTER | 
+                    BS_VCENTER
+    PUSHBUTTON      "Save",IDC_SAVEWP,171,216,56,17,BS_CENTER | BS_VCENTER
+END
+
+IDD_UICONFIG DIALOG DISCARDABLE  0, 0, 400, 151
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "UI Configuration"
+FONT 8, "System"
+BEGIN
+    DEFPUSHBUTTON   "Save",IDOK,7,98,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,342,98,50,14
+    LTEXT           "Mailfor Header",IDC_STATIC,5,5,50,10
+    EDITTEXT        IDC_MAILFOR,61,3,331,12,ES_AUTOHSCROLL
+    LTEXT           "Send: Mail For  Headers  Null Mailfor",IDC_STATIC,242,
+                    25,127,10
+    LTEXT           "(use \\r to insert newline in message)",IDC_STATIC,62,
+                    16,125,10
+END
+
+IDD_CHATCOLCONFIG DIALOG DISCARDABLE  0, 0, 224, 120
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Chat Colour Configuration"
+FONT 8, "System"
+BEGIN
+    DEFPUSHBUTTON   "Save",IDOK,50,95,50,14
+    PUSHBUTTON      "Close",IDCANCEL,120,95,50,14
+    COMBOBOX        IDC_CHATCALLS,10,5,100,60,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CHATCOLOURS,115,5,100,60,CBS_DROPDOWNLIST | 
+                    CBS_OWNERDRAWFIXED | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_UPDATECHATMAP DIALOG DISCARDABLE  0, 0, 274, 146
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Update Chat Map"
+FONT 8, "System"
+BEGIN
+    LTEXT           "Click Help for full information about the Chat Network Map",
+                    IDC_STATIC,5,10,195,15
+    DEFPUSHBUTTON   "? Help",IDC_MAPHELP,220,10,33,11,BS_CENTER | BS_VCENTER
+    LTEXT           "Position",IDC_STATIC,5,30,35,10
+    EDITTEXT        IDC_MAPPOSITION,5,45,145,15,ES_AUTOHSCROLL
+    LTEXT           "Popup Box Text. ",IDC_STATIC,5,65,70,9
+    EDITTEXT        IDC_POPUPTEXT,5,80,200,35,ES_MULTILINE | ES_AUTOHSCROLL | 
+                    WS_HSCROLL
+    LTEXT           "Popup Mode",IDC_STATIC,215,80,49,10
+    CONTROL         "Hover",IDC_HOVER,"Button",BS_AUTORADIOBUTTON,219,92,45,
+                    10
+    CONTROL         "Click",IDC_CLICK,"Button",BS_AUTORADIOBUTTON,219,104,45,
+                    10
+    DEFPUSHBUTTON   "Send to Map System",IDSENDTOMAP,5,125,90,14
+    DEFPUSHBUTTON   "Save",IDOK,100,125,35,14
+    PUSHBUTTON      "Cancel",IDCANCEL,140,125,40,14
+END
+
+IDD_MSGFROMCLIPBOARD DIALOGEX 0, 0, 442, 306
+STYLE WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Send Message"
+FONT 8, "System", 0, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Send",IDSEND,333,5,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,333,25,50,14
+    EDITTEXT        IDC_EDIT1,4,57,431,245,ES_MULTILINE | ES_AUTOVSCROLL | 
+                    ES_AUTOHSCROLL | ES_WANTRETURN | WS_VSCROLL | WS_HSCROLL,
+                    WS_EX_ACCEPTFILES
+    LTEXT           "To:",IDC_STATIC,66,8,12,8
+    EDITTEXT        IDC_MSGTO,83,7,147,12,ES_UPPERCASE | ES_AUTOHSCROLL
+    LTEXT           "Title:",IDC_STATIC,8,26,22,8
+    EDITTEXT        IDC_MSGTITLE,50,24,277,12,ES_AUTOHSCROLL
+    LTEXT           "BID:",IDC_STATIC,240,8,20,8
+    EDITTEXT        IDC_MSGBID,262,7,65,12,ES_UPPERCASE | ES_AUTOHSCROLL
+    LTEXT           "Type",IDC_STATIC,8,8,20,8
+    COMBOBOX        IDC_MSGTYPE,34,7,25,55,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    PUSHBUTTON      "Select",IDSelectFiles,333,42,50,14
+    LTEXT           "Attachments",IDC_STATIC,8,43,42,8
+    EDITTEXT        IDC_ATTACHMENTS,50,41,277,12,ES_AUTOHSCROLL
+END
+
+IDD_HRHELP DIALOG DISCARDABLE  0, 0, 415, 182
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Hierarchical Forwarding Help"
+FONT 8, "System"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,182,158,50,14
+    EDITTEXT        IDC_HRTEXT,4,4,405,150,ES_MULTILINE | ES_AUTOVSCROLL | 
+                    ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL | WS_HSCROLL
+END
+
+IDD_EDITMSGTEXT DIALOGEX 0, 0, 492, 356
+STYLE WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Edit Message"
+FONT 8, "Fixedsys", 0, 0, 0x1
+BEGIN
+    EDITTEXT        IDC_MESSAGE,4,25,480,327,ES_MULTILINE | ES_AUTOVSCROLL | 
+                    ES_AUTOHSCROLL | ES_WANTRETURN | WS_VSCROLL | WS_HSCROLL,
+                    WS_EX_ACCEPTFILES
+    PUSHBUTTON      "Save",IDSAVE,5,5,40,17
+    PUSHBUTTON      "Cancel",IDCANCEL,125,5,40,17
+    PUSHBUTTON      "Save Attachments",IDC_SAVEATTACHMENTS,50,5,70,17,
+                    WS_DISABLED
+END
+
+MAINT DIALOG DISCARDABLE  26, 5, 382, 298
+STYLE WS_CHILD | WS_VISIBLE
+FONT 8, "System"
+BEGIN
+    LTEXT           "This sets the parameters for deleting old messages. Specify length of time (in days) for messages to be kept before being deleted",
+                    IDC_STATIC,149,13,226,22
+    LTEXT           "Read",IDC_STATIC,159,46,46,10
+    EDITTEXT        IDM_PR,224,46,20,12,ES_CENTER | ES_AUTOHSCROLL
+    LTEXT           "Unread",IDC_STATIC,159,61,46,10
+    EDITTEXT        IDM_PUR,224,61,20,12,ES_CENTER | ES_AUTOHSCROLL
+    LTEXT           "Forwarded",IDC_STATIC,159,76,46,10
+    EDITTEXT        IDM_PF,224,76,20,12,ES_CENTER | ES_AUTOHSCROLL
+    LTEXT           "Not Forwarded",IDC_STATIC,159,91,49,10
+    EDITTEXT        IDM_PNF,224,91,20,12,ES_CENTER | ES_AUTOHSCROLL
+    LTEXT           "Forwarded",IDC_STATIC,264,46,49,10
+    EDITTEXT        IDM_BF,324,46,20,12,ES_CENTER | ES_AUTOHSCROLL
+    LTEXT           "Not Forwarded",IDC_STATIC,264,61,49,10
+    EDITTEXT        IDM_BNF,324,61,20,12,ES_CENTER | ES_AUTOHSCROLL
+    GROUPBOX        "Personals",IDC_STATIC,149,36,108,107
+    GROUPBOX        "Bulletins",IDC_STATIC,259,36,103,44
+    LTEXT           "The following boxes allow you to specify different values for different Bulletin origins and destinations. Normally these apply to Sent Messages, to apply to unsent,  check box below",
+                    IDC_STATIC,151,148,214,27
+    LTEXT           "Specify Call, Lifetime, eg ALL, 10",IDC_STATIC,151,176,
+                    154,8
+    LTEXT           "From",IDC_STATIC,176,189,28,9
+    EDITTEXT        IDM_LTFROM,151,202,64,55,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_WANTRETURN
+    LTEXT           "To",IDC_STATIC,247,189,27,10
+    EDITTEXT        IDM_LTTO,221,202,64,55,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_WANTRETURN
+    LTEXT           "At",IDC_STATIC,316,189,15,8
+    EDITTEXT        IDM_LTAT,289,202,64,55,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_WANTRETURN
+    DEFPUSHBUTTON   "Save",IDM_MAINTSAVE,166,279,50,14,BS_CENTER | 
+                    BS_VCENTER
+    GROUPBOX        "Lifetimes",IDC_STATIC,144,0,231,275
+    GROUPBOX        "Parameters",IDC_STATIC,3,3,133,275
+    LTEXT           "Max Message Number",IDC_STATIC,7,68,77,10
+    LTEXT           "BID Lifetime (Days)",IDC_STATIC,7,87,77,10
+    LTEXT           "Maintenance Time (UTC)   Enter as HHMM",IDC_STATIC,7,21,
+                    83,25
+    EDITTEXT        IDC_MAXMSG,102,67,25,12,ES_CENTER
+    EDITTEXT        IDC_BIDLIFETIME,102,86,25,12,ES_CENTER | ES_AUTOHSCROLL
+    EDITTEXT        IDC_MAINTTIME,102,23,25,12,ES_CENTER | ES_AUTOHSCROLL
+    LTEXT           "Log File Lifetime (Days)",IDC_STATIC,7,107,80,10
+    EDITTEXT        IDC_LOGLIFETIME,102,105,25,12,ES_CENTER | ES_AUTOHSCROLL
+    CONTROL         "Delete Log and Message Files to Recycle Bin",
+                    IDC_DELETETORECYCLE,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFTTEXT | BS_MULTILINE | WS_TABSTOP,5,142,115,20
+    CONTROL         "Supress Mailing of Housekeeping Results",
+                    IDC_MAINTNOMAIL,"Button",BS_AUTOCHECKBOX | BS_LEFTTEXT | 
+                    BS_MULTILINE | WS_TABSTOP,5,182,115,20
+    CONTROL         "Generate Traffic Report",IDC_MAINTTRAFFIC,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFTTEXT | BS_MULTILINE | 
+                    WS_TABSTOP,5,204,115,10
+    CONTROL         "Send Non-delivery Notifications for P and T messages",
+                    IDC_MAINTNONDELIVERY,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFTTEXT | BS_MULTILINE | WS_TABSTOP,5,162,115,20
+    CONTROL         "Apply Overrides to Unsent Bulls",IDC_OVERRIDEUNSENT,
+                    "Button",BS_AUTOCHECKBOX | BS_LEFTTEXT | BS_MULTILINE | 
+                    WS_TABSTOP,153,261,195,10
+    LTEXT           "Delete Inactive Users (Days)",IDC_STATIC,7,127,93,10
+    EDITTEXT        IDC_USERLIFETIME,102,125,25,12,ES_CENTER | 
+                    ES_AUTOHSCROLL
+    GROUPBOX        "NTS",IDC_STATIC,259,80,102,62
+    LTEXT           "Forwarded",IDC_STATIC,264,109,49,10
+    EDITTEXT        IDM_NTSF,324,108,20,12,ES_CENTER | ES_AUTOHSCROLL
+    LTEXT           "Not Forwarded",IDC_STATIC,264,124,49,10
+    EDITTEXT        IDM_NTSU,324,123,20,12,ES_CENTER | ES_AUTOHSCROLL
+    LTEXT           "Delivered",IDC_STATIC,264,94,49,10
+    EDITTEXT        IDM_NTSD,324,94,20,12,ES_CENTER | ES_AUTOHSCROLL
+    CONTROL         "Save Registry",IDC_MAINTSAVEREG2,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFTTEXT | BS_MULTILINE | 
+                    WS_TABSTOP,5,222,115,10
+    LTEXT           "Maintenance Interval (Hrs)",IDC_STATIC,7,47,93,10
+    EDITTEXT        IDC_MAINTINTERVAL,102,45,25,12,ES_CENTER | 
+                    ES_AUTOHSCROLL
+END
+
+FILTERS DIALOG DISCARDABLE  26, 5, 382, 287
+STYLE WS_CHILD | WS_VISIBLE
+FONT 8, "System"
+BEGIN
+    LTEXT           "Reject Messages:",IDC_STATIC,162,29,70,10
+    LTEXT           "From",IDC_STATIC,83,155,28,10
+    EDITTEXT        IDC_HOLDFROM,58,167,64,83,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_WANTRETURN
+    LTEXT           "To",IDC_STATIC,152,155,27,10
+    EDITTEXT        IDC_HOLDTO,126,167,64,83,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_WANTRETURN
+    LTEXT           "At",IDC_STATIC,223,155,15,10
+    EDITTEXT        IDC_HOLDAT,194,167,64,83,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_WANTRETURN
+    DEFPUSHBUTTON   "Save",IDC_FILTERSAVE,171,266,50,14,BS_CENTER | 
+                    BS_VCENTER
+    LTEXT           "From",IDC_STATIC,83,40,28,10
+    EDITTEXT        IDC_REJFROM,58,52,64,83,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_WANTRETURN
+    LTEXT           "To",IDC_STATIC,154,40,27,10
+    EDITTEXT        IDC_REJTO,126,52,64,83,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_WANTRETURN
+    LTEXT           "At",IDC_STATIC,223,40,15,10
+    EDITTEXT        IDC_REJAT,194,52,64,83,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_WANTRETURN
+    LTEXT           "Message Filtering Setup.",IDC_STATIC,152,10,95,15
+    LTEXT           "Hold Messages:",IDC_STATIC,166,143,60,9
+    EDITTEXT        IDC_REJBID,262,52,64,83,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_WANTRETURN
+    EDITTEXT        IDC_HOLDBID,262,167,64,83,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_WANTRETURN
+    LTEXT           "BID",IDC_STATIC,289,155,15,10
+    LTEXT           "BID",IDC_STATIC,289,41,15,10
+END
+
+WPUPDATE DIALOG DISCARDABLE  26, 5, 382, 287
+STYLE WS_CHILD | WS_VISIBLE
+FONT 8, "System"
+BEGIN
+    CONTROL         "Send WP Updates",IDC_SENDWP,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFTTEXT | WS_TABSTOP,90,18,71,10
+    EDITTEXT        IDC_WPTO,112,82,154,113,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | 
+                    WS_VSCROLL
+    COMBOBOX        IDC_WPTYPE,193,17,19,55,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    LTEXT           "Type",IDC_STATIC,172,18,21,10
+    DEFPUSHBUTTON   "Save",IDC_WPSAVE,165,204,50,14,BS_CENTER | BS_VCENTER
+    CONTROL         "Reject WP Bulls",IDC_FILTERWPB,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFTTEXT | WS_TABSTOP,222,18,71,10
+    LTEXT           "Send To.\rBPQMail only automatically processes  messages with TO of WP, so for P messages format should be WP@BBSCALL. ",
+                    IDC_STATIC,98,38,176,35
+END
+
+IDD_RMSBULLDLG DIALOG DISCARDABLE  0, 0, 277, 258
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "RMS Express Bull Configuration"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,66,237,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,164,237,50,14
+    EDITTEXT        IDC_TOCALLS,82,76,54,112,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | 
+                    WS_VSCROLL
+    EDITTEXT        IDC_TOCALLS2,144,76,54,112,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | 
+                    WS_VSCROLL
+    EDITTEXT        IDC_TOCALLS3,208,76,54,112,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | 
+                    WS_VSCROLL
+    EDITTEXT        IDC_TOCALLS4,18,76,54,112,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | 
+                    WS_VSCROLL
+    LTEXT           "Common",IDC_STATIC,63,47,48,8
+    LTEXT           "User Specific",IDC_STATIC,174,47,48,8
+    LTEXT           "TO                            AT",IDC_STATIC,39,62,79,8
+    LTEXT           "TO                            AT",IDC_STATIC,163,62,79,
+                    8
+    LTEXT           "This defines Bulls that will be downloaded to RMS Express Users. There are two lists, one for all RMS Express users and one per User. The lists will be combined, Updating the Common list will affect all users.",
+                    IDC_STATIC,7,7,242,37
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO MOVEABLE PURE 
+BEGIN
+    102, DIALOG
+    BEGIN
+        TOPMARGIN, 47
+    END
+
+    "BBS_CONFIG", DIALOG
+    BEGIN
+        BOTTOMMARGIN, 303
+        HORZGUIDE, 87
+    END
+
+    IDD_USEREDIT, DIALOG
+    BEGIN
+        RIGHTMARGIN, 292
+        BOTTOMMARGIN, 280
+    END
+
+    IDD_FORWARDING, DIALOG
+    BEGIN
+        RIGHTMARGIN, 444
+        BOTTOMMARGIN, 314
+    END
+
+    IDD_USERADDED_BOX, DIALOG
+    BEGIN
+        BOTTOMMARGIN, 65
+    END
+
+    IDD_MSGEDIT, DIALOG
+    BEGIN
+        RIGHTMARGIN, 415
+        BOTTOMMARGIN, 266
+    END
+
+    "WELCOMEMSG", DIALOG
+    BEGIN
+        BOTTOMMARGIN, 266
+    END
+
+    IDD_MAINTRESULTS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 176
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 106
+    END
+
+    IDD_EDITWP, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 391
+        TOPMARGIN, 9
+        BOTTOMMARGIN, 258
+    END
+
+    IDD_UICONFIG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 392
+        TOPMARGIN, 2
+        BOTTOMMARGIN, 144
+    END
+
+    IDD_MSGFROMCLIPBOARD, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 435
+        TOPMARGIN, 7
+    END
+
+    IDD_HRHELP, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 408
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 175
+    END
+
+    IDD_EDITMSGTEXT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 485
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 349
+    END
+
+    "MAINT", DIALOG
+    BEGIN
+        RIGHTMARGIN, 381
+        BOTTOMMARGIN, 266
+    END
+
+    "FILTERS", DIALOG
+    BEGIN
+        RIGHTMARGIN, 377
+    END
+
+    IDD_RMSBULLDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 267
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 251
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDC_BPQMailChat MENU DISCARDABLE 
+BEGIN
+    POPUP "Actions"
+    BEGIN
+        POPUP "Start Forwarding"
+        BEGIN
+            MENUITEM "All",                         IDM_FORWARD_ALL
+        END
+        POPUP "Logging Options"
+        BEGIN
+            MENUITEM "Log BBS Traffic",             IDM_LOGBBS
+            MENUITEM "Log TCP Traffic",             IDM_LOGTCP
+        END
+        POPUP "Disconnect User"
+        BEGIN
+            MENUITEM ".",                           IDM_DISCONNECT
+        END
+        MENUITEM "Housekeeping",                IDM_HOUSEKEEPING
+        MENUITEM "Send Message",                ID_ACTIONS_SENDMESSAGE
+        MENUITEM "Send Msg from Clipboard",     ID_ACTIONS_SENDMSGFROMCLIPBOARD
+
+        MENUITEM "Rerun Message Routing",       RESCANMSGS
+        MENUITEM "Import Messages",             IDM_IMPORT
+    END
+    POPUP "&Configuration"
+    BEGIN
+        MENUITEM "Main &Configuration",         IDM_CONFIG
+        MENUITEM "Manage &Users",               IDM_USERS
+        MENUITEM "Manage &Forwarding",          IDM_FWD
+        MENUITEM "Manage &Messages",            IDM_MESSAGES
+        MENUITEM "Manage &White Pages",         IDM_WP
+    END
+    POPUP "Windows"
+    BEGIN
+        MENUITEM "BBS Console (F2)",            IDM_CONSOLE
+        MENUITEM "Multicast Monitor (F3)",      IDM_MCMONITOR
+        MENUITEM "Monitor (F4)",                IDM_MONITOR
+    END
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "&About ...",                  IDM_ABOUT
+        MENUITEM "Online Documentation",        ID_HELP_ONLINEHELP
+    END
+END
+
+CONSOLEMENU MENU DISCARDABLE 
+BEGIN
+    POPUP "Options"
+    BEGIN
+        MENUITEM "Enable Bells",                BPQBELLS
+        MENUITEM "Flash instead of Beep on Bell", BPQFLASHONBELL
+        MENUITEM "Strip Linefeeds",             BPQStripLF
+        MENUITEM "Wrap Input  ",                IDM_WRAPTEXT
+        MENUITEM "Beep if Input too long",      IDM_WARNINPUT
+        MENUITEM "Close Window on exit",        IDM_CLOSEWINDOW
+    END
+    POPUP "Edit"
+    BEGIN
+        MENUITEM "Copy Output Window",          BPQCOPYOUT
+        MENUITEM "Clear Output Window",         BPQCLEAROUT
+    END
+    POPUP "Actions"
+    BEGIN
+        POPUP "Chat to user"
+        BEGIN
+            MENUITEM ".",                           BBSUSERCHAT
+        END
+        MENUITEM "End user chat",               ENDUSERCHAT
+    END
+END
+
+MENU_2 MENU DISCARDABLE 
+BEGIN
+    POPUP "Monitor"
+    BEGIN
+        MENUITEM "Monitor BBS",                 MONBBS
+        MENUITEM "Monitor TCP",                 MONTCP
+    END
+    POPUP "Edit"
+    BEGIN
+        MENUITEM "Copy Monitor Window",         BPQCOPYOUT
+        MENUITEM "Clear Monitor Window",        BPQCLEAROUT
+    END
+END
+
+MENU_3 MENU DISCARDABLE 
+BEGIN
+    POPUP "Edit"
+    BEGIN
+        MENUITEM "Copy Monitor Window",         BPQCOPYOUT
+        MENUITEM "Clear Monitor Window",        BPQCLEAROUT
+    END
+END
+
+MENU_1 MENU DISCARDABLE 
+BEGIN
+    POPUP "Edit"
+    BEGIN
+        MENUITEM "Copy",                        ID_EDIT_COPY
+        MENUITEM "Clear",                       ID_EDIT_CLEAR
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+IDC_TELNETSERVER ACCELERATORS MOVEABLE PURE 
+BEGIN
+    "?",            IDM_ABOUT,              ASCII,  ALT
+    "/",            IDM_ABOUT,              ASCII,  ALT
+END
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE MOVEABLE PURE 
+BEGIN
+    "BPQMailrc.h\0"
+END
+
+2 TEXTINCLUDE MOVEABLE PURE 
+BEGIN
+    "#define APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "#include ""AFXRES.h""\r\n"
+    "#undef APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "#define MAILCHAT\r\n"
+    "#include ""..\\CommonSource\\Versions.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE MOVEABLE PURE 
+BEGIN
+    "#define MAIL\r\n"
+    "#include ""Versions.h""\r\n"
+    "#include ""StdVer.inc""\r\n"
+    "\0"
+END
+
+1 TEXTINCLUDE MOVEABLE PURE 
+BEGIN
+    "resource.h\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_USEREDIT AFX_DIALOG_LAYOUT MOVEABLE PURE 
+BEGIN
+    0x0000
+END
+
+IDD_FORWARDING AFX_DIALOG_LAYOUT MOVEABLE PURE 
+BEGIN
+    0x0000
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_APP_TITLE           "BPQMail"
+    IDC_BPQMailChat         "BPQMail"
+END
+
+#endif    // English (U.K.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define MAIL
+#include "Versions.h"
+#include "StdVer.inc"
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

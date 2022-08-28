@@ -1,0 +1,339 @@
+//Microsoft Developer Studio generated resource script.
+//
+#include "kernelresource.h"
+
+#define CKernel
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+#include "bpqtermmdi.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.K.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENG)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+BPQMAINWINDOW DIALOG DISCARDABLE  17, 25, 382, 300
+STYLE DS_3DLOOK | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | 
+    WS_THICKFRAME
+CAPTION "BPQ32 Console"
+CLASS "BPQMAINWINDOW"
+FONT 8, "Fixedsys"
+BEGIN
+    LTEXT           "",IDC_BACKGROUND,22,20,337,273
+    CONTROL         "",IDC_ENIGATE,"Button",BS_AUTOCHECKBOX | BS_LEFTTEXT | 
+                    WS_TABSTOP,57,0,8,12
+    LTEXT           "IGate State - Disconnected",IGATESTATE,69,0,110,12,
+                    SS_CENTERIMAGE
+    LTEXT           "IGATE Stats - Msgs 0   Local Stns 0",IGATESTATS,180,0,
+                    152,12,SS_CENTERIMAGE
+    LISTBOX         BPQCONSOLE,1,17,359,262,LBS_NOINTEGRALHEIGHT | 
+                    LBS_DISABLENOSCROLL | LBS_NOSEL | WS_VSCROLL | 
+                    WS_HSCROLL
+    LTEXT           "GPS Off",IDC_GPS,332,0,40,12,SS_CENTERIMAGE
+    LTEXT           "Enable IGate",IDC_STATIC,5,2,49,10
+END
+
+CONFIG DIALOGEX 249, 200, 160, 118
+STYLE DS_MODALFRAME | DS_3DLOOK | WS_POPUP | WS_CAPTION
+EXSTYLE WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE
+CAPTION "Configuration"
+CLASS "CONFIG"
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    EDITTEXT        1001,50,5,43,14,ES_AUTOHSCROLL | NOT WS_BORDER,
+                    WS_EX_NOPARENTNOTIFY | WS_EX_CLIENTEDGE
+    EDITTEXT        1002,50,25,100,14,ES_AUTOHSCROLL | NOT WS_BORDER,
+                    WS_EX_NOPARENTNOTIFY | WS_EX_CLIENTEDGE
+    EDITTEXT        1003,50,65,43,14,ES_AUTOHSCROLL | NOT WS_BORDER,
+                    WS_EX_NOPARENTNOTIFY | WS_EX_CLIENTEDGE
+    LTEXT           "Call",1,10,5,21,18,0,WS_EX_NOPARENTNOTIFY
+    LTEXT           "Host",2,10,25,30,20,0,WS_EX_NOPARENTNOTIFY
+    LTEXT           "UDP Port",3,10,65,32,15,0,WS_EX_NOPARENTNOTIFY
+    PUSHBUTTON      "Cancel",ID_CANCEL,15,95,35,14,0,WS_EX_NOPARENTNOTIFY
+    PUSHBUTTON      "Apply",ID_SAVE,55,95,35,14,0,WS_EX_NOPARENTNOTIFY
+    CONTROL         "UDP Flag  ",1004,"Button",BS_AUTOCHECKBOX | BS_LEFT | 
+                    WS_TABSTOP,8,45,50,14,WS_EX_RIGHT
+    CONTROL         "Broadcast Flag  ",1005,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFT | WS_TABSTOP,68,45,70,14,WS_EX_RIGHT
+END
+
+IDD_WL2KSYSOP DIALOGEX 0, 0, 277, 355
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "WL2K Sysop Record Update"
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "Name",3,5,31,28,10,0,WS_EX_NOPARENTNOTIFY
+    EDITTEXT        NAME,60,30,64,12,ES_AUTOHSCROLL | NOT WS_BORDER,
+                    WS_EX_NOPARENTNOTIFY | WS_EX_CLIENTEDGE
+    LTEXT           "Address Line 1",6,5,72,50,9,0,WS_EX_NOPARENTNOTIFY
+    EDITTEXT        ADDR1,60,71,133,14,ES_AUTOHSCROLL | NOT WS_BORDER,
+                    WS_EX_NOPARENTNOTIFY | WS_EX_CLIENTEDGE
+    LTEXT           "Address Line 2",7,5,92,50,9,0,WS_EX_NOPARENTNOTIFY
+    EDITTEXT        ADDR2,60,91,133,14,ES_AUTOHSCROLL | NOT WS_BORDER,
+                    WS_EX_NOPARENTNOTIFY | WS_EX_CLIENTEDGE
+    LTEXT           "City",4,5,112,40,9,0,WS_EX_NOPARENTNOTIFY
+    EDITTEXT        CITY,60,111,133,14,ES_AUTOHSCROLL | NOT WS_BORDER,
+                    WS_EX_NOPARENTNOTIFY | WS_EX_CLIENTEDGE
+    LTEXT           "State",8,5,132,40,9,0,WS_EX_NOPARENTNOTIFY
+    EDITTEXT        STATE,60,131,133,14,ES_AUTOHSCROLL | NOT WS_BORDER,
+                    WS_EX_NOPARENTNOTIFY | WS_EX_CLIENTEDGE
+    LTEXT           "Country",9,5,152,40,9,0,WS_EX_NOPARENTNOTIFY
+    EDITTEXT        COUNTRY,60,151,133,14,ES_AUTOHSCROLL | NOT WS_BORDER,
+                    WS_EX_NOPARENTNOTIFY | WS_EX_CLIENTEDGE
+    PUSHBUTTON      "Cancel",ID_CANCEL,115,311,47,17,0,WS_EX_NOPARENTNOTIFY
+    PUSHBUTTON      "Apply",ID_SAVE,55,311,47,17,0,WS_EX_NOPARENTNOTIFY
+    LTEXT           "PostCode",10,5,172,40,9,0,WS_EX_NOPARENTNOTIFY
+    EDITTEXT        POSTCODE,60,171,133,14,ES_AUTOHSCROLL | NOT WS_BORDER,
+                    WS_EX_NOPARENTNOTIFY | WS_EX_CLIENTEDGE
+    LTEXT           "Email",11,5,192,40,9,0,WS_EX_NOPARENTNOTIFY
+    EDITTEXT        EMAIL,60,191,133,14,ES_AUTOHSCROLL | NOT WS_BORDER,
+                    WS_EX_NOPARENTNOTIFY | WS_EX_CLIENTEDGE
+    LTEXT           "Website",12,5,212,40,9,0,WS_EX_NOPARENTNOTIFY
+    EDITTEXT        WEBSITE,60,209,133,14,ES_AUTOHSCROLL | NOT WS_BORDER,
+                    WS_EX_NOPARENTNOTIFY | WS_EX_CLIENTEDGE
+    LTEXT           "Phone",13,6,232,40,9,0,WS_EX_NOPARENTNOTIFY
+    EDITTEXT        PHONE,60,231,133,14,ES_AUTOHSCROLL | NOT WS_BORDER,
+                    WS_EX_NOPARENTNOTIFY | WS_EX_CLIENTEDGE
+    LTEXT           "Addiitional Data",14,5,252,50,9,0,WS_EX_NOPARENTNOTIFY
+    EDITTEXT        ADDITIONALDATA,60,251,205,14,ES_AUTOHSCROLL | NOT 
+                    WS_BORDER,WS_EX_NOPARENTNOTIFY | WS_EX_CLIENTEDGE
+    LTEXT           "Password",15,5,13,50,9,0,WS_EX_NOPARENTNOTIFY
+    EDITTEXT        IDC_Password,60,12,133,14,ES_AUTOHSCROLL | NOT WS_BORDER,
+                    WS_EX_NOPARENTNOTIFY | WS_EX_CLIENTEDGE
+    LTEXT           "Locator",16,5,49,50,9,0,WS_EX_NOPARENTNOTIFY
+    EDITTEXT        IDC_Locator,60,48,133,14,ES_AUTOHSCROLL | NOT WS_BORDER,
+                    WS_EX_NOPARENTNOTIFY | WS_EX_CLIENTEDGE
+END
+
+UIMAINWINDOW DIALOG DISCARDABLE  100, 100, 323, 304
+STYLE WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "BPQ32 UI Utility"
+CLASS "UIMAINWINDOW"
+FONT 8, "FixedSys"
+BEGIN
+END
+
+PORTPAGE DIALOG DISCARDABLE  26, 5, 366, 186
+STYLE WS_CHILD | WS_VISIBLE
+FONT 8, "FixedSys"
+BEGIN
+    LTEXT           "Send Beacon Every",IDC_STATIC,17,25,68,14,
+                    SS_CENTERIMAGE
+    EDITTEXT        IDC_INTERVAL,90,26,20,12,ES_AUTOHSCROLL
+    LTEXT           "Minutes to ",IDC_STATIC,117,25,55,14,SS_CENTERIMAGE
+    EDITTEXT        IDC_UIDEST,175,26,59,12,ES_UPPERCASE | ES_AUTOHSCROLL
+    CONTROL         "Send From File",IDC_FROMFILE,"Button",BS_AUTOCHECKBOX | 
+                    BS_VCENTER | WS_TABSTOP,17,59,68,13
+    EDITTEXT        IDC_FILENAME,89,58,223,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "Find File",IDC_FILE,316,58,40,12
+    DEFPUSHBUTTON   "Save",IDOK,122,142,40,12
+    DEFPUSHBUTTON   "Test",ID_TEST,205,142,40,12
+    EDITTEXT        IDC_MESSAGE,20,84,294,52,ES_MULTILINE | ES_AUTOVSCROLL | 
+                    ES_AUTOHSCROLL | ES_WANTRETURN
+    LTEXT           "",IDC_PORTNAME,12,9,139,14,SS_CENTERIMAGE
+    LTEXT           "Path",IDC_STATIC,17,42,57,14,SS_CENTERIMAGE
+    EDITTEXT        IDC_UIDIGIS,90,42,223,12,ES_UPPERCASE | ES_AUTOHSCROLL
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MAINFRAME_MENU MENU DISCARDABLE 
+BEGIN
+    POPUP "Window"
+    BEGIN
+        MENUITEM "New Terminal Window",         ID_NEWWINDOW
+        MENUITEM "Cascade",                     ID_WINDOWS_CASCADE
+        MENUITEM "Tile",                        ID_WINDOWS_TILE
+        MENUITEM "Beacon Config",               BPQUICONFIG
+        MENUITEM "Close all BPQ32 Programs",    BPQCLOSEALL
+    END
+END
+
+CONS_MENU MENU DISCARDABLE 
+BEGIN
+    POPUP "Window"
+    BEGIN
+        MENUITEM "New Terminal Window",         ID_NEWWINDOW
+        MENUITEM "Cascade",                     ID_WINDOWS_CASCADE
+        MENUITEM "Tile",                        ID_WINDOWS_TILE
+        MENUITEM "Beacon Config",               BPQUICONFIG
+        MENUITEM "Close all BPQ32 Programs",    BPQCLOSEALL
+    END
+    POPUP "Actions"
+    BEGIN
+        MENUITEM "Save Nodes to file BPQNODES.DAT", BPQSAVENODES
+        MENUITEM "Save Registry Configuration", BPQSAVEREG
+        MENUITEM "Diagnostic Dump to file BPQDUMP", BPQDUMP
+        MENUITEM "Re-read Rigcontrol Config",   SCANRECONFIG
+        MENUITEM "Re-read APRS Config",         APRSRECONFIG
+        MENUITEM "Start Minimized",             BPQSTARTMIN
+        MENUITEM "Minimize to Notification Area (System Tray)", BPQMINTOTRAY
+        MENUITEM "Update WL2K Sysop Record",    IDD_WL2KSYSOP
+    END
+END
+
+TERM_MENU MENU DISCARDABLE 
+BEGIN
+    POPUP "Window"
+    BEGIN
+        MENUITEM "New Terminal Window",         ID_NEWWINDOW
+        MENUITEM "Cascade",                     ID_WINDOWS_CASCADE
+        MENUITEM "Tile",                        ID_WINDOWS_TILE
+        MENUITEM "Beacon Config",               BPQUICONFIG
+        MENUITEM "Close all BPQ32 Programs",    BPQCLOSEALL
+    END
+    POPUP "Action"
+    BEGIN
+        MENUITEM "Connect",                     BPQCONNECT
+        MENUITEM "Disconnect",                  BPQDISCONNECT, GRAYED
+    END
+    POPUP "Config"
+    BEGIN
+        MENUITEM "Font",                        ID_SETUP_FONT
+        MENUITEM "Enable Bells",                BPQBELLS
+        MENUITEM "Strip Linefeeds",             BPQStripLF
+        MENUITEM "Log Output",                  BPQLogOutput
+        MENUITEM "Send Disconnected",           BPQSendDisconnected
+        MENUITEM "Chat Terminal Mode",          CHATTERM
+        MENUITEM "Restore Windows on load",     ID_WINDOWS_RESTORE
+        MENUITEM "Beep if input too long",      ID_WARNWRAP
+        MENUITEM "Wrap Input",                  ID_WRAP
+        MENUITEM "Flash instead of Beep on Bell", ID_FLASHONBELL
+    END
+    POPUP "Edit"
+    BEGIN
+        MENUITEM "Copy Output Window",          BPQCOPYOUT
+        MENUITEM "Clear Output Window",         BPQCLEAROUT
+    END
+    MENUITEM "Help",                        BPQHELP
+END
+
+MON_MENU MENU DISCARDABLE 
+BEGIN
+    POPUP "Window"
+    BEGIN
+        MENUITEM "New Window",                  ID_NEWWINDOW
+        MENUITEM "Cascade",                     ID_WINDOWS_CASCADE
+        MENUITEM "Tile",                        ID_WINDOWS_TILE
+        MENUITEM "Beacon Config",               BPQUICONFIG
+        MENUITEM "Close all BPQ32 Programs",    BPQCLOSEALL
+    END
+    POPUP "Monitor"
+    BEGIN
+        MENUITEM "Monitor TX",                  BPQMTX
+        MENUITEM "Monitor Supervisory",         BPQMCOM
+        MENUITEM "Monitor UI Only",             MON_UI_ONLY
+        MENUITEM "Monitor NODES",               BPQMNODES
+        MENUITEM "Enable Colour",               MONCOLOUR
+        MENUITEM "Log Monitor",                 BPQLogMonitor
+        MENUITEM "Trace APRS-IS",               MONITORAPRS
+        MENUITEM "Clear all port flags",        StopALLMon
+    END
+    POPUP "Edit"
+    BEGIN
+        MENUITEM "Copy Monitor Window",         BPQCOPYMON
+        MENUITEM "Clear Monitor Window",        BPQCLEARMON
+    END
+    MENUITEM "Help",                        BPQHELP
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// WAVE
+//
+
+INCOMINGCALL            WAVE    MOVEABLE PURE   "Ring.wav"
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "kernelresource.h\0"
+    """\r\n"
+    "bpqtermmdi.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "#include ""bpqtermmdi.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""..\\CommonSource\\Versions.h""\r\n"
+    "#include ""..\\CommonSource\\StdVer.inc""\r\n"
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    "BPQMAINWINDOW", DIALOG
+    BEGIN
+        RIGHTMARGIN, 360
+    END
+
+    IDD_WL2KSYSOP, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 270
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 348
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+#endif    // English (U.K.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#include "..\CommonSource\Versions.h"
+#include "..\StdVer.inc"
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
