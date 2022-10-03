@@ -80,7 +80,7 @@ static int RestartTNC(struct TNCINFO * TNC);
 VOID ProcessFLDigiPacket(struct TNCINFO * TNC, char * Message, int Len);
 VOID ProcessFLDigiKISSPacket(struct TNCINFO * TNC, char * Message, int Len);
 struct TNCINFO * GetSessionKey(char * key, struct TNCINFO * TNC);
-VOID SendARQData(struct TNCINFO * TNC, UINT * Buffer);
+VOID SendARQData(struct TNCINFO * TNC, PMSGWITHLEN Buffer);
 static VOID DoMonitorHddr(struct TNCINFO * TNC, struct AGWHEADER * RXHeader, UCHAR * Msg);
 VOID SendRPBeacon(struct TNCINFO * TNC);
 VOID FLReleaseTNC(struct TNCINFO * TNC);
@@ -101,6 +101,7 @@ VOID SendKISSCommand(struct TNCINFO * TNC, char * Msg);
 int DoScanLine(struct TNCINFO * TNC, char * Buff, int Len);
 VOID SuspendOtherPorts(struct TNCINFO * ThisTNC);
 VOID ReleaseOtherPorts(struct TNCINFO * ThisTNC);
+VOID WritetoTrace(struct TNCINFO * TNC, char * Msg, int Len);
 
 char * strlop(char * buf, char delim);
 
@@ -168,6 +169,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 	int Stream = 0;
 	struct STREAMINFO * STREAM;
 	int TNCOK;
+	size_t Param;
 
 	if (TNC == NULL)
 		return 0;					// Port not defined
@@ -264,11 +266,11 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				{
 					// Timed out - Send Error Response
 
-					UINT * buffptr = GetBuff();
+					PMSGWITHLEN buffptr = GetBuff();
 
 					if (buffptr == 0) return (0);			// No buffers, so ignore
 
-					buffptr[1]=39;
+					buffptr->Len=39;
 					memcpy(buffptr+2,"Sorry, Can't Connect - Channel is busy\r", 39);
 
 					C_Q_ADD(&TNC->Streams[0].PACTORtoBPQ_Q, buffptr);
@@ -321,7 +323,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 					lasttime[port]=ltime;
 				}
 			}
-		
+pollloop:	
 			FD_ZERO(&readfs);
 			
 			if (TNC->CONNECTED)
@@ -354,7 +356,8 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				{
 					// data available
 			
-					ProcessReceivedData(port);			
+					ProcessReceivedData(port);	
+					goto pollloop;
 				}
 
 				if (FD_ISSET(TNC->TCPSock,&readfs))
@@ -444,10 +447,11 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				buff->PORT = Stream;						// Compatibility with Kam Driver
 				buff->PID = 0xf0;
 				memcpy(&buff->L2DATA, &buffptr->Data[0], datalen);		// Data goes to + 7, but we have an extra byte
-				datalen += sizeof(void *) + 4;
+				datalen += (MSGHDDRLEN + 1);
 
 				PutLengthinBuffer(buff, datalen);
 
+				WritetoTrace(TNC, &buffptr->Data[0], datalen - (MSGHDDRLEN + 1));
 				ReleaseBuffer(buffptr);
 	
 				return (1);
@@ -492,7 +496,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 //		txlen=(buff[6]<<8) + buff[5] - 8;	
 
-		txlen = GetLengthfromBuffer((PDATAMESSAGE)buff) - 8;
+		txlen = GetLengthfromBuffer((PDATAMESSAGE)buff) - (MSGHDDRLEN + 1);		// 1 as no PID;
 				
 		if (STREAM->Connected)
 		{
@@ -502,7 +506,9 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 		
 			buffptr->Len = txlen;
 			memcpy(buffptr->Data, buff->L2DATA, txlen);
-		
+
+			WritetoTrace(TNC, buffptr->Data, txlen);
+
 			C_Q_ADD(&TNC->Streams[Stream].BPQtoPACTOR_Q, buffptr);
 
 			return (0);
@@ -669,11 +675,11 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 			if (_memicmp(&buff->L2DATA[0], "MCAST", 5) == 0)
 			{
-				UINT * buffptr = GetBuff();
+				PMSGWITHLEN buffptr = GetBuff();
 
 				TNC->FLInfo->MCASTMODE = TRUE;
 
-				buffptr[1] = sprintf((UCHAR *)&buffptr[2], "FLDigi} Ok\r");
+				buffptr->Len = sprintf(buffptr->Data, "FLDigi} Ok\r");
 				C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 			
 				return 1;
@@ -683,7 +689,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			{
 				// Return Error if in use, OK if not
 
-				UINT * buffptr = GetBuff();
+				PMSGWITHLEN buffptr = GetBuff();
 				int s = 0;
 
 				while(s <= 1)
@@ -692,14 +698,14 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 					{		
 						if (TNC->PortRecord->ATTACHEDSESSIONS[s])
 						{
-							buffptr[1] = sprintf((UCHAR *)&buffptr[2], "FLDig} Error - In use\r");
+							buffptr->Len = sprintf(buffptr->Data, "FLDig} Error - In use\r");
 							C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 							return 1;							// Busy
 						}
 					}
 					s++;
 				}
-				buffptr[1] = sprintf((UCHAR *)&buffptr[2], "FLDigi} Ok - Not in use\r");
+				buffptr->Len = sprintf(buffptr->Data, "FLDigi} Ok - Not in use\r");
 				C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 			
 				return 1;
@@ -728,6 +734,23 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				memset(STREAM->RemoteCall, 0, 10);
 
 				ptr = strtok_s(&buff->L2DATA[2], " ,\r", &context);
+
+				if (ptr == 0)
+				{
+					PMSGWITHLEN buffptr = (PMSGWITHLEN)GetBuff();
+
+					if (buffptr)
+					{
+						buffptr->Len = sprintf(buffptr->Data,
+							"FLDigi} Error - Call missing from C command\r");
+
+						C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
+					}
+
+					STREAM->DiscWhenAllSent = 10;
+					return 0;
+				}
+
 				strcpy(STREAM->RemoteCall, ptr);
 
 				// See if Busy
@@ -762,6 +785,8 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 				ARQ->ARQTimerState = ARQ_CONNECTING;
 				SaveAndSend(TNC, ARQ, TNC->TCPDataSock, Reply, SendLen);
+
+				Debugprintf("FLDIGI Connection %s", Reply);
 
 				STREAM->Connecting = TRUE;	
 
@@ -862,6 +887,47 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 		}
 
 		return 0;
+
+	case 6:				// Scan Stop Interface
+
+		Param = (size_t)buff;
+
+		if (Param == 2)		// Check  Permission (shouldn't happen)
+		{
+			Debugprintf("Scan Check Permission called on FLDIGI");
+			return 1;		// OK to change
+		}
+
+		if (!TNC->CONNECTED)
+			return 0;		// No connection so no interlock
+	
+		if (Param == 1)		// Request Permission
+		{
+			if (TNC->ConnectPending == 0)
+			{
+				TNC->FLInfo->CONOK = FALSE;
+				TNC->GavePermission = TRUE;
+				return 0;	// OK to Change
+			}
+
+			if (TNC->ConnectPending)
+				TNC->ConnectPending--;		// Time out if set too long
+
+			if (!TNC->ConnectPending)
+				return 0;	// OK to Change
+
+			return TRUE;
+		}
+
+		if (Param == 3)		// Release  Permission
+		{
+			if (TNC->GavePermission)
+			{
+				TNC->FLInfo->CONOK = TRUE;
+				TNC->GavePermission = FALSE;
+			}
+			return 0;
+		}
 	}
 
 	return 0;
@@ -1126,12 +1192,14 @@ VOID * FLDigiExtInit(EXTPORTDATA * PortEntry)
 	PortEntry->PERMITGATEWAY = TRUE;					// Can change ax.25 call on each stream
 	PortEntry->PORTCONTROL.UICAPABLE = 1;				// Can send beacons
 	PortEntry->PORTCONTROL.PORTQUALITY = 0;
-	PortEntry->SCANCAPABILITIES = NONE;					// Scan Control - None
+	PortEntry->SCANCAPABILITIES = SIMPLE;
+
+		// Scan Control - None
 
 	TNC->FLInfo->CONOK = TRUE;
 
-	if (PortEntry->PORTCONTROL.PORTPACLEN == 0 || PortEntry->PORTCONTROL.PORTPACLEN > 128)
-		PortEntry->PORTCONTROL.PORTPACLEN = 64;
+	if (PortEntry->PORTCONTROL.PORTPACLEN == 0)
+		PortEntry->PORTCONTROL.PORTPACLEN = 250;
 
 	TNC->SuspendPortProc = FLDIGISuspendPort;
 	TNC->ReleasePortProc = FLDIGIReleasePort;
@@ -1769,13 +1837,13 @@ static int ProcessReceivedData(int port)
 
 				if (TNC->InternalCmd)
 				{
-					ULONG * buffptr = GetBuff();
+					PMSGWITHLEN buffptr = GetBuff();
 	
 					TNC->InternalCmd = FALSE;
 
 					if (buffptr)
 					{
-						buffptr[1] = sprintf((UCHAR *)&buffptr[2], "FLDIGI} Ok %s\r", &Message[2]);
+						buffptr->Len = sprintf(buffptr->Data, "FLDIGI} Ok %s\r", &Message[2]);
 						C_Q_ADD(&TNC->Streams[0].PACTORtoBPQ_Q, buffptr);
 					}
 
@@ -1865,6 +1933,8 @@ static int ProcessReceivedData(int port)
 						ptr1[19] = 0;
 
 					strcpy(TNC->FLInfo->CurrentMode, ptr1);
+
+					TNC->ConnectPending = 3;				// Lock Scan for 3
 				}
 
 				if (memcmp(&Message[2], "MODEM:", 6) == 0)
@@ -1896,11 +1966,14 @@ static int ProcessReceivedData(int port)
 			{
 				// "RAW" Mode. Just process as if received from TCP Socket Interface
 
+//				Debugprintf("7 %d %s", TNC->PortRecord->PORTCONTROL.PORTNUMBER, &Message[2]);
 				ProcessFLDigiPacket(TNC, &Message[2] , bytes - 3);	// Data may be for another port
 				continue;
 			}
 
 			bytes -= 3;					// Two FEND and Control
+			
+//			Debugprintf("0 %d %s", TNC->PortRecord->PORTCONTROL.PORTNUMBER, &Message[2]);
 
 			// Undo KISS
 
@@ -1924,6 +1997,7 @@ static int ProcessReceivedData(int port)
 			}
 			ProcessFLDigiData(TNC, &Message[3], (int)(out - &Message[3]), Message[2], FALSE);	// KISS not RAW
 		}
+
 		return 0;
 	}
 
@@ -2020,7 +2094,7 @@ VOID ProcessFLDigiPacket(struct TNCINFO * TNC, char * Message, int Len)
 						{
 							// Got a packet
 
-							UINT * buffptr;
+							PMSGWITHLEN buffptr;
 							int Stream = 0;
 							struct STREAMINFO * STREAM = &TNC->Streams[0];
 		
@@ -2030,7 +2104,7 @@ VOID ProcessFLDigiPacket(struct TNCINFO * TNC, char * Message, int Len)
 							{
 								TNC->DataBuffer[TNC->DataLen++] = 13;  // Keep Tidy
 
-								buffptr[1]  = TNC->DataLen;
+								buffptr->Len  = TNC->DataLen;
 								memcpy(&buffptr[2], &TNC->DataBuffer[0], TNC->DataLen);
 				
 								C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
@@ -2362,7 +2436,7 @@ F0F2<SOH>
 */
 VOID ProcessFLDigiData(struct TNCINFO * TNC, UCHAR * Input, int Len, char Channel, BOOL RAW)
 {
-	UINT * buffptr;
+	PMSGWITHLEN buffptr;
 	int Stream = 0;
 	struct STREAMINFO * STREAM = &TNC->Streams[0];
 	char CTRL = Input[0];
@@ -2400,6 +2474,8 @@ VOID ProcessFLDigiData(struct TNCINFO * TNC, UCHAR * Input, int Len, char Channe
 		struct WL2KInfo * WL2K = TNC->WL2K;
 		TRANSPORTENTRY * SESS;
 
+		TNC->ConnectPending = 0;
+
 		if (FL->CONOK == FALSE)
 			return;
 
@@ -2408,6 +2484,7 @@ VOID ProcessFLDigiData(struct TNCINFO * TNC, UCHAR * Input, int Len, char Channe
 
 		port1 = strlop(call1, ':');
 		port2 = strlop(call2, ':');
+
 
 		// See if for us
 
@@ -2443,7 +2520,7 @@ VOID ProcessFLDigiData(struct TNCINFO * TNC, UCHAR * Input, int Len, char Channe
 
 		SuspendOtherPorts(TNC);
 
-		ProcessIncommingConnect(TNC, call1, 0, FALSE);
+		ProcessIncommingConnect(TNC, call1, 0, TRUE);
 				
 		SESS = TNC->PortRecord->ATTACHEDSESSIONS[0];
 
@@ -2515,8 +2592,8 @@ VOID ProcessFLDigiData(struct TNCINFO * TNC, UCHAR * Input, int Len, char Channe
 					return;			// No buffers, so ignore
 				}
 
-				buffptr[1] = MsgLen;
-				memcpy(buffptr+2, Buffer, MsgLen);
+				buffptr->Len = MsgLen;
+				memcpy(buffptr->Data, Buffer, MsgLen);
 
 				C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 
@@ -2541,22 +2618,6 @@ VOID ProcessFLDigiData(struct TNCINFO * TNC, UCHAR * Input, int Len, char Channe
 
 		ARQ->ARQTimer = 10;			// To force CTEXT to be Queued
 		
-		if (App == 32)
-		{
-			// Connect to Node - send CTEXT
-
-			if (HFCTEXTLEN > 1)
-			{
-				buffptr = GetBuff();
-				if (buffptr)
-				{
-					buffptr[1] = HFCTEXTLEN;
-					memcpy(&buffptr[2], HFCTEXT, HFCTEXTLEN);
-					SendARQData(TNC, buffptr);
-				}
-			}
-		}
-
 		if (STREAM->NeedDisc)
 		{
 			// Send Not Avail 
@@ -2564,7 +2625,7 @@ VOID ProcessFLDigiData(struct TNCINFO * TNC, UCHAR * Input, int Len, char Channe
 			buffptr = GetBuff();
 			if (buffptr)
 			{
-				buffptr[1] = sprintf((char *)&buffptr[2], "Application Not Available\n"); 
+				buffptr->Len = sprintf(buffptr->Data, "Application Not Available\n"); 
 				SendARQData(TNC, buffptr);
 			}
 		}
@@ -2654,8 +2715,8 @@ AckConnectRequest:
 		{
 			ReplyLen = sprintf(Reply, "*** Connected to %s\r", STREAM->RemoteCall);
 
-			buffptr[1] = ReplyLen;
-			memcpy(buffptr+2, Reply, ReplyLen);
+			buffptr->Len = ReplyLen;
+			memcpy(buffptr->Data, Reply, ReplyLen);
 
 			C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 		}
@@ -2821,7 +2882,7 @@ SendKReply:
 		STREAM->Connecting = FALSE;
 		STREAM->ReportDISC = TRUE;
 
-		strcpy(TNC->WEB_PROTOSTATE, "Disconncted");
+		strcpy(TNC->WEB_PROTOSTATE, "Disconnected");
 		SetWindowText(TNC->xIDC_PROTOSTATE, TNC->WEB_PROTOSTATE);
 	
 		ARQ->ARQState = 0;
@@ -2883,7 +2944,7 @@ SendKReply:
 
 		STREAM->Disconnecting = FALSE;
 
-		strcpy(TNC->WEB_PROTOSTATE, "Disconncted");
+		strcpy(TNC->WEB_PROTOSTATE, "Disconnected");
 		SetWindowText(TNC->xIDC_PROTOSTATE, TNC->WEB_PROTOSTATE);
 
 		return;
@@ -2923,7 +2984,7 @@ SendKReply:
 			buffptr = GetBuff();
 	
 			if (buffptr == NULL)
-				return;				// Sould never run out, but cant do much else
+				return;				// Should never run out, but cant do much else
 
 			// Remove any DLE transparency
 
@@ -2932,8 +2993,8 @@ SendKReply:
 			else
 				Len = UnStuff(&Input[1], Len - 1);
 
-			buffptr[1]  = Len;
-			memcpy(&buffptr[2], &Input[1], Len);
+			buffptr->Len = Len;
+			memcpy(buffptr->Data, &Input[1], Len);
 			STREAM->BytesRXed += Len;
 
 			UpdateStatsLine(TNC, STREAM);
@@ -2972,7 +3033,6 @@ SendKReply:
 				// We have it
 
 				C_Q_ADD(&STREAM->PACTORtoBPQ_Q, ARQ->RXHOLDQ[Work]);
-//				ReleaseBuffer(ARQ->RXHOLDQ[Work]);
 
 				ARQ->RXHOLDQ[Work] = NULL;
 //				Debugprintf("Processing %d from Q", Work);
@@ -2988,7 +3048,7 @@ SendKReply:
 }
 
 
-VOID SendARQData(struct TNCINFO * TNC, UINT * Buffer)
+VOID SendARQData(struct TNCINFO * TNC, PMSGWITHLEN Buffer)
 {
 	// Send Data, saving a copy until acked.
 
@@ -3001,7 +3061,7 @@ VOID SendARQData(struct TNCINFO * TNC, UINT * Buffer)
 	SOCKET sock = TNC->TCPDataSock;
 	int SendLen;
 	UCHAR * ptr;
-	int Origlen = Buffer[1];
+	int Origlen = Buffer->Len;
 	int Stuffedlen;
 	
 	ARQ->TXSeq++;
@@ -3009,9 +3069,9 @@ VOID SendARQData(struct TNCINFO * TNC, UINT * Buffer)
 	
 	SendLen = sprintf(TXBuffer, "%c", ARQ->TXSeq + 32);
 
-	ptr = (UCHAR *)&Buffer[2];			// Start of data;
+	ptr = (UCHAR *)&Buffer->Data;			// Start of data;
 
-	ptr[Buffer[1]] = 0;
+	ptr[Buffer->Len] = 0;
 
 	if (memcmp(ptr, "ARQ:", 4) == 0)
 	{
@@ -3035,12 +3095,12 @@ VOID SendARQData(struct TNCINFO * TNC, UINT * Buffer)
 
 	if (TNC->FLInfo->KISSMODE)
 	{
-		memcpy(&TXBuffer[SendLen], (UCHAR *)&Buffer[2], Origlen);
+		memcpy(&TXBuffer[SendLen], (UCHAR *)&Buffer->Data, Origlen);
 		SendLen += Origlen;
 	}
 	else
 	{
-		Stuffedlen = Stuff((UCHAR *)&Buffer[2], &TXBuffer[SendLen], Origlen);
+		Stuffedlen = Stuff((UCHAR *)&Buffer->Data, &TXBuffer[SendLen], Origlen);
 		SendLen += Stuffedlen;
 	}
 
@@ -3081,7 +3141,7 @@ VOID TidyClose(struct TNCINFO * TNC, int Stream)
 	SaveAndSend(TNC, ARQ, TNC->TCPDataSock, Reply, SendLen);
 	ARQ->ARQTimerState = ARQ_DISC;
 
-	strcpy(TNC->WEB_PROTOSTATE, "Disconncting");
+	strcpy(TNC->WEB_PROTOSTATE, "Disconnecting");
 	SetWindowText(TNC->xIDC_PROTOSTATE, TNC->WEB_PROTOSTATE);
 }
 
@@ -3159,7 +3219,7 @@ VOID SaveAndSend(struct TNCINFO * TNC, struct ARQINFO * ARQ, SOCKET sock, char *
 VOID ARQTimer(struct TNCINFO * TNC)
 {
 	struct ARQINFO * ARQ = TNC->ARQInfo;
-	UINT * buffptr;
+	PMSGWITHLEN buffptr;
 	struct STREAMINFO * STREAM = &TNC->Streams[0];
 	int SendLen;
 	char Reply[80];
@@ -3275,6 +3335,12 @@ VOID ARQTimer(struct TNCINFO * TNC)
 	{
 		while (STREAM->BPQtoPACTOR_Q)
 		{
+			if (ARQ->ARQState != ARQ_ACTIVE)
+				break;
+
+			if (ARQ->ARQTimerState == ARQ_CONNECTACK)
+				break;
+
 			Outstanding = ARQ->TXSeq - ARQ->TXLastACK;
 		
 			if (Outstanding < 0)
@@ -3353,7 +3419,7 @@ VOID ARQTimer(struct TNCINFO * TNC)
 
 			if (buffptr)
 			{
-				buffptr[1] = sprintf((UCHAR *)&buffptr[2], "FLDigi} Failure with %s\r", STREAM->RemoteCall);
+				buffptr->Len = sprintf(buffptr->Data, "FLDigi} Failure with %s\r", STREAM->RemoteCall);
 				C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 			}
 	
@@ -3403,7 +3469,7 @@ VOID ProcessARQStatus(struct TNCINFO * TNC, struct ARQINFO * ARQ, char * Input)
 	char * ptr;
 	int NexttoResend;
 	int First, Last, Outstanding;
-	UINT * Buffer;
+	PMSGWITHLEN Buffer;
 	struct STREAMINFO * STREAM = &TNC->Streams[0];
 	int Acked = 0;
 
@@ -3431,7 +3497,7 @@ VOID ProcessARQStatus(struct TNCINFO * TNC, struct ARQINFO * ARQ, char * Input)
 		if (Buffer)
 		{
 //			Debugprintf("Acked %d", FirstUnAcked);
-			STREAM->BytesAcked += Buffer[1];
+			STREAM->BytesAcked += Buffer->Len;
 			ReleaseBuffer(Buffer);
 			ARQ->TXHOLDQ[FirstUnAcked] = NULL;
 			Acked++;
@@ -3475,7 +3541,7 @@ VOID ProcessARQStatus(struct TNCINFO * TNC, struct ARQINFO * ARQ, char * Input)
 			if (Buffer)
 			{
 //				Debugprintf("Acked %d", FirstUnAcked);
-				STREAM->BytesAcked += Buffer[1];
+				STREAM->BytesAcked += Buffer->Len;
 				ReleaseBuffer(Buffer);
 				ARQ->TXHOLDQ[FirstUnAcked] = NULL;
 				Acked++;
@@ -3502,7 +3568,7 @@ VOID ProcessARQStatus(struct TNCINFO * TNC, struct ARQINFO * ARQ, char * Input)
 		if (Buffer)
 		{
 //			Debugprintf("Acked %d", FirstUnAcked);
-			STREAM->BytesAcked += Buffer[1];
+			STREAM->BytesAcked += Buffer->Len;
 			ReleaseBuffer(Buffer);
 			ARQ->TXHOLDQ[FirstUnAcked] = NULL;
 			Acked++;
@@ -3523,24 +3589,24 @@ VOID ProcessARQStatus(struct TNCINFO * TNC, struct ARQINFO * ARQ, char * Input)
 			
 		if(ARQ->TXHOLDQ[First])
 		{
-			UINT * Buffer = ARQ->TXHOLDQ[First];
+			PMSGWITHLEN Buffer = ARQ->TXHOLDQ[First];
 			UCHAR TXBuffer[300];
 			SOCKET sock = TNC->TCPDataSock;
 			int SendLen;
 
 //			Debugprintf("Resend %d", First);
 
-			STREAM->BytesResent += Buffer[1];
+			STREAM->BytesResent += Buffer->Len;
 		
 			SendLen = sprintf(TXBuffer, "%c", First + 32);
 
 			if (TNC->FLInfo->KISSMODE)
 			{
-				memcpy(&TXBuffer[SendLen], (UCHAR *)&Buffer[2], Buffer[1]);
-				SendLen += Buffer[1];
+				memcpy(&TXBuffer[SendLen], (UCHAR *)&Buffer->Data, Buffer->Len);
+				SendLen += Buffer->Len;
 			}
 			else
-				SendLen += Stuff((UCHAR *)&Buffer[2], &TXBuffer[SendLen], Buffer[1]);
+				SendLen += Stuff((UCHAR *)&Buffer->Data, &TXBuffer[SendLen], Buffer->Len);
 
 			TXBuffer[SendLen] = 0;
 
@@ -3661,7 +3727,7 @@ static int ProcessXMLData(int port)
 
 	if (TNC->InternalCmd)
 	{
-		ULONG * buffptr = GetBuff();
+		PMSGWITHLEN buffptr = GetBuff();
 	
 		TNC->InternalCmd = FALSE;
 
@@ -3684,7 +3750,7 @@ static int ProcessXMLData(int port)
 
 			if (buffptr)
 			{
-				buffptr[1] = sprintf((UCHAR *)&buffptr[2], "FLDIGI} Ok Was %s\r", ptr1);
+				buffptr->Len = sprintf(buffptr->Data, "FLDIGI} Ok Was %s\r", ptr1);
 				C_Q_ADD(&TNC->Streams[0].PACTORtoBPQ_Q, buffptr);
 			}
 		}

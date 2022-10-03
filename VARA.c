@@ -2134,7 +2134,7 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 
 		WritetoTrace(TNC, Buffer, MsgLen - 1);
 
-		// Release Session3
+		// Release Session
 
 		if (TNC->Streams[0].Connected)
 		{
@@ -2435,7 +2435,7 @@ VOID VARASendCommand(struct TNCINFO * TNC, char * Buff, BOOL Queue)
 	if (TNC->CONNECTED == 0)
 		return;
 
-	if(TNC->TCPSock)
+	if (TNC->TCPSock)
 	{
 		SentLen = send(TNC->TCPSock, Buff, (int)strlen(Buff), 0);
 		

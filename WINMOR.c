@@ -1211,7 +1211,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 		if (Param == 2)		// Check  Permission (shouldn't happen)
 		{
-			Debugprintf("Scan Check Permission called on WINMOR");
+			Debugprintf("Scan Check Permission called on FLDIGI");
 			return 1;		// OK to change
 		}
 

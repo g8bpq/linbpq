@@ -4275,14 +4275,14 @@ int BuildRigCtlPage(char * _REPLYBUFFER)
 
 void SendRigWebPage()
 {
-	int n;
+	int i, n;
 	struct ConnectionInfo * sockptr;
 	struct TNCINFO * TNC;
 	struct TCPINFO * TCP;
 
-	for (n = 0; n < 33; n++)
+	for (i = 0; i < 33; i++)
 	{
-		TNC = TNCInfo[n];
+		TNC = TNCInfo[i];
 
 		if (TNC && TNC->Hardware == H_TELNET)
 		{

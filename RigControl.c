@@ -285,7 +285,7 @@ VOID Rig_PTTEx(struct RIGINFO * RIG, BOOL PTTState, struct TNCINFO * TNC)
 				long long txfreq = 0;
 
 				if (TNC->TXFreq)
-					txfreq = TNC->TXFreq + TNC->TXOffset;
+					txfreq = TNC->TXFreq + TNC->TXOffset + RIG->txError;
 				else if (TNC->RIG && TNC->RIG->txFreq)
 					txfreq = RIG->txFreq;		// Used if not associated with a TNC port - eg HAMLIB + WSJT
 				else if (TNC->RIG && TNC->RIG->RigFreq != 0.0)
@@ -299,7 +299,6 @@ VOID Rig_PTTEx(struct RIGINFO * RIG, BOOL PTTState, struct TNCINFO * TNC)
 
 				if (txfreq)
 				{
-
 					if (RIG->lastSetFreq != txfreq)
 					{
 						char FreqString[80];
@@ -348,6 +347,8 @@ VOID Rig_PTTEx(struct RIGINFO * RIG, BOOL PTTState, struct TNCINFO * TNC)
 							memcpy(&onString[onLen], RIG->PTTOn, RIG->PTTOnLen);
 							onLen += RIG->PTTOnLen;
 
+							break;
+
 						case HAMLIB:
 
 							// Dont need to save, as we can send strings separately
@@ -375,6 +376,7 @@ VOID Rig_PTTEx(struct RIGINFO * RIG, BOOL PTTState, struct TNCINFO * TNC)
 		{
 			memcpy(offString, TNC->PTTOff, TNC->PTTOffLen);
 			offLen = TNC->PTTOffLen;
+			RIG->lastSetFreq = 0;
 		}
 		else
 		{
@@ -996,7 +998,7 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, int Session, 
 			return FALSE;
 		}
 
-		sprintf(Command, "Sorry - TUNE only supported on your radio\r");
+		sprintf(Command, "Sorry - TUNE not supported on your radio\r");
 		return FALSE;
 	}
 
@@ -8041,6 +8043,7 @@ VOID FLRIGPoll(struct RIGPORTINFO * PORT)
 			if (GetPermissionToChange(PORT, RIG))
 			{
 				char cmd[80];
+				double freq;
 
 				if (RIG->RIG_DEBUG)
 					Debugprintf("BPQ32 Change Freq to %9.4f", PORT->FreqPtr->Freq);
@@ -8053,6 +8056,19 @@ VOID FLRIGPoll(struct RIGPORTINFO * PORT)
 
 				sprintf(cmd, "<double>%s</double>", PORT->FreqPtr->Cmd1Msg);
 				FLRIGSendCommand(PORT, "rig.set_vfo", cmd);
+
+				// Update display as we don't get a response
+
+				freq = atof(PORT->FreqPtr->Cmd1Msg) / 1000000.0;
+
+				if (freq > 0.0)
+				{
+					RIG->RigFreq = freq; 
+					_gcvt(RIG->RigFreq, 9, RIG->Valchar);
+
+					sprintf(RIG->WEB_FREQ,"%s", RIG->Valchar);
+					MySetWindowText(RIG->hFREQ, RIG->WEB_FREQ);
+				}
 
 
 				PORT->CmdSent = 1;

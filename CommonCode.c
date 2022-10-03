@@ -70,6 +70,8 @@ char * FormatMH(PMHSTRUC MH, char Format);
 void WriteConnectLog(char * fromCall, char * toCall, UCHAR * Mode);
 extern BOOL LogAllConnects;
 
+extern VOID * ENDBUFFERPOOL;
+
 //	Read/Write length field in a buffer header
 
 //	Needed for Big/LittleEndian and ARM5 (unaligned operation problem) portability
@@ -231,11 +233,44 @@ UINT _ReleaseBuffer(VOID *pBUFF, char * File, int Line)
 	int n = 0;
 	void ** debug;
 	PMESSAGE Test;
+	UINT CodeDump[16];
+	int i;
+	unsigned int rev;
 
 	if (Semaphore.Flag == 0)
 		Debugprintf("ReleaseBuffer called without semaphore from %s Line %d", File, Line);
 
 	// Make sure address is within pool
+
+	if ((uintptr_t)BUFF < (uintptr_t)BUFFERPOOL || (uintptr_t)BUFF > (uintptr_t)ENDBUFFERPOOL)
+	{
+		// Not pointing to a buffer . debug points to the buffer that this is chained from
+
+		// Dump first chunk and source tag
+
+		memcpy(CodeDump, BUFF, 64);
+
+		Debugprintf("Releasebuffer Buffer not in pool, ptr %p prev %d", BUFF, 0);
+
+		for (i = 0; i < 16; i++)
+		{
+			rev = (CodeDump[i] & 0xff) << 24;
+			rev |= (CodeDump[i] & 0xff00) << 8;
+			rev |= (CodeDump[i] & 0xff0000) >> 8;
+			rev |= (CodeDump[i] & 0xff000000) >> 24;
+
+			CodeDump[i] = rev;
+		}
+
+		Debugprintf("%08x %08x %08x %08x %08x %08x %08x %08x %08x ",
+			Bufferlist[n], CodeDump[0], CodeDump[1], CodeDump[2], CodeDump[3], CodeDump[4], CodeDump[5], CodeDump[6], CodeDump[7]);
+
+		Debugprintf("         %08x %08x %08x %08x %08x %08x %08x %08x",
+			CodeDump[8], CodeDump[9], CodeDump[10], CodeDump[11], CodeDump[12], CodeDump[13], CodeDump[14], CodeDump[15]);
+
+
+		return 0;
+	}
 
 	Test = (PMESSAGE)pBUFF;
 
@@ -259,17 +294,54 @@ BOK1:
 
 	n = 0;
 
-	// See if already on free Queue
+	// validate free Queue
 
 	pointer = FREE_Q;
+	debug = &FREE_Q;
 
 	while (pointer)
 	{
+		// Validate pointer to make sure it is in pool - it may be a duff address if Q is corrupt 
+
+		Test = (PMESSAGE)pointer;
+
+		if (Test->GuardZone || (uintptr_t)pointer < (uintptr_t)BUFFERPOOL || (uintptr_t)pointer > (uintptr_t)ENDBUFFERPOOL)
+		{
+			// Not pointing to a buffer . debug points to the buffer that this is chained from
+
+			// Dump first chunk and source tag
+
+			memcpy(CodeDump, debug, 64);
+
+			Debugprintf("Releasebuffer Pool Corruption n = %d, ptr %p prev %p", n, pointer, debug);
+	
+			for (i = 0; i < 16; i++)
+			{
+				rev = (CodeDump[i] & 0xff) << 24;
+				rev |= (CodeDump[i] & 0xff00) << 8;
+				rev |= (CodeDump[i] & 0xff0000) >> 8;
+				rev |= (CodeDump[i] & 0xff000000) >> 24;
+
+				CodeDump[i] = rev;
+			}
+
+			Debugprintf("%08x %08x %08x %08x %08x %08x %08x %08x %08x ",
+				Bufferlist[n], CodeDump[0], CodeDump[1], CodeDump[2], CodeDump[3], CodeDump[4], CodeDump[5], CodeDump[6], CodeDump[7]);
+
+			Debugprintf("         %08x %08x %08x %08x %08x %08x %08x %08x",
+				CodeDump[8], CodeDump[9], CodeDump[10], CodeDump[11], CodeDump[12], CodeDump[13], CodeDump[14], CodeDump[15]);
+					
+			if (debug[400])
+				Debugprintf("         %s", &debug[400]);
+
+		}
+
+		// See if already on free Queue
+	
 		if (pointer == BUFF)
 		{
 			Debugprintf("Trying to free buffer %p when already on FREE_Q", BUFF);
 //			WriteMiniDump();
-
 			return 0;
 		}
 

@@ -1047,20 +1047,24 @@ VOID APRSClose()
 #endif
 }
 
+time_t lastSecTimer = 0;
+
+
 Dll VOID APIENTRY Poll_APRS()
 {
-	SecTimer--;
+	time_t Now = time(NULL);
 
-	if (SecTimer == 0)
+	if (lastSecTimer != Now)
 	{
-		SecTimer = 10;
+		lastSecTimer = Now;
+
 		DoSecTimer();
 
 		MinTimer--;
 
 		if (MinTimer == 0)
 		{
-			MinTimer = 10;
+			MinTimer = 60;
 			DoMinTimer();
 		}
 	}

@@ -102,6 +102,7 @@ struct DEST_LIST * ENDDESTLIST = NULL;		//		; NODE LIST+1
 ;
 
 VOID * BUFFERPOOL = NULL;		// START OF BUFFER POOL
+VOID * ENDBUFFERPOOL;
 
 int OBSINIT = 5;				// INITIAL OBSOLESCENCE VALUE
 int OBSMIN = 4;					// MINIMUM TO BROADCAST
@@ -1304,6 +1305,7 @@ BOOL Start()
 	int3 += 7;
 	int3 &= 0xfffffffffffffff8;
 	NEXTFREEDATA = (UCHAR *)int3;
+	ENDBUFFERPOOL = NEXTFREEDATA + DATABYTES; // So init will work, set to actual end later
 
 	BUFFERPOOL = NEXTFREEDATA;
 
@@ -1328,6 +1330,7 @@ BOOL Start()
 		MAXBUFFS++;
 	}
 
+	ENDBUFFERPOOL = NEXTFREEDATA;
 
 
 	//	Copy Bridge Map

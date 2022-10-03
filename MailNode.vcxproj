@@ -184,8 +184,10 @@
     <ClCompile Include="AISCommon.c" />
     <ClCompile Include="Alloc.c" />
     <ClCompile Include="APRSCode.c" />
+    <ClCompile Include="APRSIconData.c" />
     <ClCompile Include="APRSStdPages.c" />
     <ClCompile Include="ARDOP.c" />
+    <ClCompile Include="base64.c" />
     <ClCompile Include="BBSHTMLConfig.c" />
     <ClCompile Include="BBSUtilities.c">
       <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -212,8 +214,10 @@
     <ClCompile Include="compatbits.c" />
     <ClCompile Include="config.c" />
     <ClCompile Include="datadefs.c" />
+    <ClCompile Include="DRATS.c" />
     <ClCompile Include="FBBRoutines.c" />
     <ClCompile Include="FLDigi.c" />
+    <ClCompile Include="FreeDATA.c" />
     <ClCompile Include="HALDriver.c" />
     <ClCompile Include="HanksRT.c" />
     <ClCompile Include="HFCommon.c" />
@@ -246,6 +250,23 @@
     <ClCompile Include="MULTIPSK.c" />
     <ClCompile Include="NNTPRoutines.c" />
     <ClCompile Include="pibits.c" />
+    <ClCompile Include="png.c" />
+    <ClCompile Include="pngerror.c" />
+    <ClCompile Include="pnggccrd.c" />
+    <ClCompile Include="pngget.c" />
+    <ClCompile Include="pngmem.c" />
+    <ClCompile Include="pngpread.c" />
+    <ClCompile Include="pngread.c" />
+    <ClCompile Include="pngrio.c" />
+    <ClCompile Include="pngrtran.c" />
+    <ClCompile Include="pngrutil.c" />
+    <ClCompile Include="pngset.c" />
+    <ClCompile Include="pngtrans.c" />
+    <ClCompile Include="pngvcrd.c" />
+    <ClCompile Include="pngwio.c" />
+    <ClCompile Include="pngwrite.c" />
+    <ClCompile Include="pngwtran.c" />
+    <ClCompile Include="pngwutil.c" />
     <ClCompile Include="RigControl.c" />
     <ClCompile Include="SCSPactor.c" />
     <ClCompile Include="SCSTrackeMulti.c" />
@@ -264,6 +285,10 @@
     <ClCompile Include="WINMOR.c" />
     <ClCompile Include="WinRPR.c" />
     <ClCompile Include="WPRoutines.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="png.h" />
+    <ClInclude Include="pngconf.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

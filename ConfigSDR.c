@@ -27,12 +27,34 @@ int PlaybackCount = 0;
 int IndexA = -1;		// Card number
 int IndexB = -1;		// Card number
 int IndexC = -1;		// Card number
+int IndexD = -1;		// Card number
+int SPEAKERS = -1;		// Card number
+
+int Device = 0;
 
 HWAVEOUT hWaveOut = 0;
 HWAVEIN hWaveIn = 0;
 
 char CaptureNames[16][MAXPNAMELEN + 2] = { "" };
 char PlaybackNames[16][MAXPNAMELEN + 2] = { "" };
+
+char * strlop(char * buf, char delim)
+{
+	// Terminate buf at delim, and return rest of string
+
+	char * ptr;
+
+	if (buf == NULL) return NULL;		// Protect
+
+	ptr = strchr(buf, delim);
+
+	if (ptr == NULL) return NULL;
+
+	*(ptr)++ = 0;
+
+	return ptr;
+}
+
 
 void main(int argc, char * argv[])
 {
@@ -41,7 +63,7 @@ void main(int argc, char * argv[])
 	FILE *file;
 
 	char line[1024] = "";
-	char index[16];
+	char index[64];
 	char * ptr;
 
 
@@ -78,7 +100,38 @@ void main(int argc, char * argv[])
 			IndexB = i;
 		else if (strstr(&PlaybackNames[i][0], "CABLE-C"))
 			IndexC = i;
+		else if (strstr(&PlaybackNames[i][0], "CABLE-D"))
+			IndexD = i;
+		else if (strstr(&PlaybackNames[i][0], "SPEAKERS"))
+			SPEAKERS = i;
 	}
+
+	if ((infile = fopen("C:\\Users\\johnw\\AppData\\Roaming\\SDRplay\\SDRuno.ini", "rb")) == NULL)
+			return;
+
+	if ((file = fopen("C:\\Users\\johnw\\AppData\\Roaming\\SDRplay\\SDRuno.in.new", "wb")) == NULL)
+		return;
+
+	while ((fgets(line, 1023, infile)))
+	{
+		if (ptr = strstr(line, "iOutputAudioDeviceID"))
+		{
+			char * ptr2 = strchr(ptr, '=');
+
+			*ptr2 = 0;
+			
+			Device = atoi(ptr2 + 1);
+
+			sprintf(index, "=%s", &PlaybackNames[Device][0]);
+			strlop(index, ' ');
+			strcat(index, "\r\n");
+			strcat(line, index);
+		}
+		fprintf(file, line);
+	}
+
+	fclose(file);
+	fclose(infile);
 
 	if ((infile = fopen("C:\\Users\\johnw\\AppData\\Roaming\\SDRplay\\SDRuno.in", "rb")) == NULL)
 		return;
@@ -106,6 +159,19 @@ void main(int argc, char * argv[])
 			sprintf(index, "%d\r\n", IndexC);
 			strcat(line, index);
 		}
+		if (ptr = strstr(line, "CABLE-D"))
+		{
+			*ptr = 0;
+			sprintf(index, "%d\r\n", IndexD);
+			strcat(line, index);
+		}
+		if (ptr = strstr(line, "SPEAKERS"))
+		{
+			*ptr = 0;
+			sprintf(index, "%d\r\n", SPEAKERS);
+			strcat(line, index);
+		}
+
 		fprintf(file, line);
 	}
 

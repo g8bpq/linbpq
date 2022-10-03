@@ -156,6 +156,7 @@ struct RIGINFO
 	BOOL RIG_DEBUG;
 
 	int HAMLIBPORT;		// Port Number for HAMLIB (rigctld) Emulator
+
 	SOCKET ListenSocket;
 
 	struct HAMLIBSOCK * Sockets;

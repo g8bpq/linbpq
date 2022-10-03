@@ -1108,7 +1108,13 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix length of commands sent via CMD_TO_APPL flag (14)
 //	Add filter by quality option to N display (15)
 //	Fix VARA Mode reporting to WL2K (16)
-//	Add FLRIG POWER anf TUNE commands (18)
+//	Add FLRIG POWER and TUNE commands (18)
+//	Fix crash when processing "C " without a call in UZ7HO, FLDIGI or MULTIPSK drivers (19)
+//	FLDIGI improvements (19)
+//	Fix hang at start if Telnet port Number > Number of Telnet Streams (20)
+//	Fix processing C command if first port driver is SCSPACTROR (20)
+//	Fix crash in UZ7HO driver if bad raw frame received (21)
+
 
 #define CKernel
 

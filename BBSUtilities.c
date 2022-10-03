@@ -443,8 +443,9 @@ BOOL CheckForTooManyErrors(ConnectionInfo * conn)
 
 VOID __cdecl Debugprintf(const char * format, ...)
 {
-	char Mess[1000];
-	va_list(arglist);int Len;
+	char Mess[16384];
+	va_list(arglist);
+	int Len;
 
 	va_start(arglist, format);
 	Len = vsprintf(Mess, format, arglist);

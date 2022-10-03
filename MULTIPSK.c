@@ -498,6 +498,23 @@ static size_t ExtProc(int fn, int port,  PDATAMESSAGE buff)
 				memset(STREAM->RemoteCall, 0, 10);
 
 				ptr = strtok_s(&buff->L2DATA[2], " ,\r", &context);
+
+				if (ptr == 0)
+				{
+					PMSGWITHLEN buffptr = (PMSGWITHLEN)GetBuff();
+
+					if (buffptr)
+					{
+						buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0],
+							"MPSK} Error - Call missing from C command\r", STREAM->MyCall, STREAM->RemoteCall);
+
+						C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
+					}
+
+					STREAM->DiscWhenAllSent = 10;
+					return 0;
+				}
+
 				strcpy(STREAM->RemoteCall, ptr);
 
 				len = sprintf(Command,"%cCALLSIGN_TO_CALL_ARQ_FAE %s%c%cSELECTIVE_CALL_ARQ_FAE\x1b",

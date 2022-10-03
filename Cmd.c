@@ -2235,7 +2235,7 @@ NoPort:
 
 	// Skip call validation if using a ptc to allow 1:call, 2:call format
 
-	if (PORT->PROTOCOL == 10 && memcmp(EXTPORT->PORT_DLL_NAME, "SCSPACTOR", 9) == 0)
+	if (Port && PORT->PROTOCOL == 10 && memcmp(EXTPORT->PORT_DLL_NAME, "SCSPACTOR", 9) == 0)
 	{
 		char * p;
 

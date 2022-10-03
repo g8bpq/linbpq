@@ -1,4 +1,4 @@
-/*
+﻿/*
 Copyright 2001-2018 John Wiseman G8BPQ
 
 This file is part of LinBPQ/BPQ32.
@@ -68,6 +68,8 @@ void CountRestarts(struct TNCINFO * TNC);
 void StopTNC(struct TNCINFO * TNC);
 int FreeDataConnect(struct TNCINFO * TNC, char * Call);
 int FreeDataDisconnect(struct TNCINFO * TNC);
+int FreeGetData(struct TNCINFO * TNC);
+static void SendBeacon(struct TNCINFO * TNC, int Interval);
 
 static char ClassName[]="FREEDATASTATUS";
 static char WindowTitle[] = "FreeData Modem";
@@ -91,6 +93,34 @@ static int ProcessLine(char * buf, int Port);
 VOID WritetoTrace(struct TNCINFO * TNC, char * Msg, int Len);
 
 #define MAXRXSIZE 512000		// Sets max size for file transfer (less base64 overhead
+
+char * gen_uuid()
+{
+    char v[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+	int i;
+
+    //3fb17ebc-bc38-4939-bc8b-74f2443281d4
+    //8 dash 4 dash 4 dash 4 dash 12
+
+    static char buf[37] = {0};
+
+    //gen random for all spaces because lazy
+    for (i = 0; i < 36; ++i)
+	{
+        buf[i] = v[rand()%16];
+    }
+
+    //put dashes in place
+    buf[8] = '-';
+    buf[13] = '-';
+    buf[18] = '-';
+    buf[23] = '-';
+
+    //needs end byte
+    buf[36] = '\0';
+
+    return buf;
+}
 
 static int ProcessLine(char * buf, int Port)
 {
@@ -219,7 +249,13 @@ static int ProcessLine(char * buf, int Port)
 			TNC->FreeDataInfo->hamlibHost = _strdup(&buf[11]);
 			strlop(TNC->FreeDataInfo->hamlibHost, 13);
 		}
-
+		
+		else if (_memicmp(buf, "TuningRange", 11) == 0)
+			TNC->FreeDataInfo->TuningRange = atoi(&buf[12]);
+		
+		else if (_memicmp(buf, "LimitBandWidth", 14) == 0)
+			TNC->FreeDataInfo->LimitBandWidth = atoi(&buf[14]);
+		
 		else if (_memicmp(buf, "HAMLIBPORT", 10) == 0)
 			TNC->FreeDataInfo->hamlibPort = atoi(&buf[11]);
 
@@ -624,12 +660,63 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			return 1;
 		}
 
+		if (TNC->FreeDataInfo->Chat)
+		{
+			// Chat Mode - Send to other end
+
+			char reply[512] = "m";
+			char * p;
+			int Len;
+
+			if (_stricmp(TXMsg, "/ex\r") == 0)
+			{
+				PMSGWITHLEN buffptr = (PMSGWITHLEN)GetBuff();
+				TNC->FreeDataInfo->Chat = 0;
+
+				if (buffptr)
+				{
+					buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "FreeData} Chat with %s ended. \r", TNC->FreeDataInfo->ChatCall);
+					C_Q_ADD(&TNC->Streams[Stream].PACTORtoBPQ_Q, buffptr);
+				}
+
+				return 0;
+			}
+
+			// Send as chat message
+
+			//m�;send_message�;123�;64730c5c-d32c-47b4-9b11-c958fd07a185�;hhhhhhhhhhhhhhhhhh
+			//�;�;plain/text�;
+
+			strlop(TXMsg, 13);
+
+			strcpy(&reply[2], ";send_message");
+			strcpy(&reply[16], ";123");
+			reply[21] = ';';
+			strcpy(&reply[22], gen_uuid());
+			sprintf(&reply[59], ";%s\n", TXMsg);
+
+			p = strchr(&reply[59], 0);
+
+			p[1] = ';';
+			strcpy(&p[3], ";plain/text");
+			p[15] = ';';
+
+			Len = &p[16] - reply;
+
+			SendAsRaw(TNC, TNC->FreeDataInfo->ChatCall, "", reply, Len);
+
+			return 0;
+		}
+
+
+
 		if (_memicmp(&buff->L2DATA[0], "D\r", 2) == 0 || _memicmp(&buff->L2DATA[0], "BYE\r", 4) == 0)
 		{
 			STREAM->ReportDISC = TRUE;		// Tell Node
+			TNC->FreeDataInfo->Chat = 0;
 			return 0;
 		}
-	
+
 
 		// See if Local command (eg RADIO)
 
@@ -701,6 +788,47 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			return 0;
 
 		}
+
+		if (_memicmp(&buff->L2DATA[0], "CHAT ", 5) == 0)
+		{
+			char * Call = &buff->L2DATA[5];
+			PMSGWITHLEN buffptr = (PMSGWITHLEN)GetBuff();
+
+			strlop(Call, 13);
+			strlop(Call, ' ');
+
+			TNC->FreeDataInfo->Chat = 1;
+			memcpy(TNC->FreeDataInfo->ChatCall, _strupr(Call), 10);
+
+			if (buffptr)
+			{
+				buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "FreeData} Chat with %s. Enter /ex to exit\r", Call);
+				C_Q_ADD(&TNC->Streams[Stream].PACTORtoBPQ_Q, buffptr);
+			}
+
+			return 0;
+		}
+
+
+		if (_memicmp(&TXMsg[0], "BEACON ", 7) == 0)
+		{
+			int Interval = atoi(&TXMsg[7]);
+
+			PMSGWITHLEN buffptr = (PMSGWITHLEN)GetBuff();
+
+			SendBeacon(TNC, Interval);
+
+			if (buffptr)
+			{
+				buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "FreeData} Ok\r");
+				C_Q_ADD(&TNC->Streams[Stream].PACTORtoBPQ_Q, buffptr);
+			}
+
+			return 0;
+		}
+
+
+
 
 		// See if a Connect Command.
 
@@ -894,7 +1022,7 @@ static int WebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
 		"function ScrollOutput()\r\n"
 		"{var textarea = document.getElementById('textarea');"
 		"textarea.scrollTop = textarea.scrollHeight;}</script>"
-		"</head><title>VARA Status</title></head><body id=Text onload=\"ScrollOutput()\">"
+		"</head><title>FreDATA Status</title></head><body id=Text onload=\"ScrollOutput()\">"
 		"<h2><form method=post target=\"POPUPW\" onsubmit=\"POPUPW = window.open('about:blank','POPUPW',"
 		"'width=440,height=150');\" action=ARDOPAbort?%d>FreeData Status"
 		"<input name=Save value=\"Abort Session\" type=submit style=\"position: absolute; right: 20;\"></form></h2>",
@@ -1152,6 +1280,8 @@ VOID * FreeDataExtInit(EXTPORTDATA * PortEntry)
 	char * TempScript;
 	u_long param = 1;
 	int line;
+
+	srand(time(NULL));
 	
 	port = PortEntry->PORTCONTROL.PORTNUMBER;
 
@@ -1168,6 +1298,9 @@ VOID * FreeDataExtInit(EXTPORTDATA * PortEntry)
 
 		return ExtProc;
 	}
+
+	if (TNC->FreeDataInfo->TuningRange == 0)
+		TNC->FreeDataInfo->TuningRange = 50;
 
 #ifndef LINBPQ
 
@@ -1887,48 +2020,48 @@ VOID FreeDataProcessNewConnect(struct TNCINFO * TNC, char * fromCall, char * toC
 			}
 		}
 	}
-	/*
 
-	// At the moment we dont support applcalls
-
-
+	// The TNC responds to any SSID so we can use incomming call as Appl Call
+	// No we can't - it responds but reports the configured call not the called call
+/*
 	// See which application the connect is for
 
 	for (App = 0; App < 32; App++)
 	{
-	APPL=&APPLCALLTABLE[App];
-	memcpy(Appl, APPL->APPLCALL_TEXT, 10);
-	ptr=strchr(Appl, ' ');
+		APPL=&APPLCALLTABLE[App];
+		memcpy(Appl, APPL->APPLCALL_TEXT, 10);
+		ptr=strchr(Appl, ' ');
 
-	if (ptr)
-	*ptr = 0;
+		if (ptr)
+			*ptr = 0;
 
-	if (_stricmp(toCall, Appl) == 0)
-	break;
+		if (_stricmp(toCall, Appl) == 0)
+			break;
 	}
 
 	if (App < 32)
 	{
 
-	memcpy(AppName, &ApplPtr[App * sizeof(CMDX)], 12);
-	AppName[12] = 0;
+		memcpy(AppName, &ApplPtr[App * sizeof(CMDX)], 12);
+		AppName[12] = 0;
 
-	// if SendTandRtoRelay set and Appl is RMS change to RELAY
+		// if SendTandRtoRelay set and Appl is RMS change to RELAY
 
-	if (TNC->SendTandRtoRelay && memcmp(AppName, "RMS ", 4) == 0
-	&& (strstr(Call, "-T" ) || strstr(Call, "-R")))
-	strcpy(AppName, "RELAY       ");
+		if (TNC->SendTandRtoRelay && memcmp(AppName, "RMS ", 4) == 0
+			&& (strstr(fromCall, "-T" ) || strstr(fromCall, "-R")))
+			strcpy(AppName, "RELAY       ");
 
-	// Make sure app is available
+		// Make sure app is available
 
-	if (!CheckAppl(TNC, AppName))
-	{
-	Sleep(1000);
-	FreeDataSendCommand(TNC, "dApplication not Available");
-	return;
+		if (!CheckAppl(TNC, AppName))
+		{
+			Sleep(1000);
+			FreeDataSendCommand(TNC, "dApplication not Available");
+			return;
+		}
 	}
-	}
-	*/
+
+*/
 
 	ProcessIncommingConnectEx(TNC, fromCall, 0, TRUE, TRUE);
 	SESS = TNC->PortRecord->ATTACHEDSESSIONS[0];
@@ -2060,32 +2193,15 @@ static int SendAsRaw(struct TNCINFO * TNC, char * Call, char * myCall, char * Ms
 	char Message[16284];
 	char * Base64;
 
-/*
-{
-    "type": "arq", 
-    "command": "send_raw",
-    "uuid": "sjdfksndfkjsnd-123-sdfvlks",
-"parameter":
-            [
-                {
-                   "dxcallsign": "DJ2LS", 
-                    "mycallsign": "DN2LS-2", 
-                   "mode": "255", 
-                    "n_frames": "1", 
-                    "data": "<base64 string>"
-                }   
-            ]
-}
-*/
-
 	// TNC now only supports send_raw, with base64 encoded data
 
-	char Template[] = "{\"type\": \"arq\", \"command\": \"send_raw\", \"parameter\":"
-		"[{\"dxcallsign\": \"%s\", \"mycallsign\": \"%s\", \"mode\": \"255\", \"n_frames\": \"1\", \"data\": \"%s\"}]}\n";
+	char Template[] = "{\"type\" : \"arq\", \"command\" : \"send_raw\", \"uuid\" : \"%s\",\"parameter\":"
+		"[{\"dxcallsign\" : \"%s\", \"mode\": \"255\", \"n_frames\" : \"1\", \"data\" : \"%s\"}]}\n";
+
 
 	Base64 = byte_base64_encode(Msg, Len);
 
-	Len = sprintf(Message, Template, Call, myCall, Base64);
+	Len = sprintf(Message, Template, gen_uuid(), Call, Base64);
 	
 	free(Base64);
 	return send(TNC->TCPDataSock, Message, Len, 0);
@@ -2193,11 +2309,28 @@ static void SendPing(struct TNCINFO * TNC, char * Call)
 
 static void SendCQ(struct TNCINFO * TNC)
 {
-	char CQ[] = "{\"type\" : \"BROADCAST\", \"command\" : \"cqcqcq\", \"timestamp\" : %d}\n";
+	char CQ[] = "{\"type\" : \"broadcast\", \"command\" : \"cqcqcq\"}\n";
+
 	char Message[256];
 	int Len, ret;
 
-	Len = sprintf(Message, CQ, time(NULL));
+	Len = sprintf(Message, CQ);
+	ret = send(TNC->TCPDataSock, (char *)&Message, Len, 0);
+}
+
+static void SendBeacon(struct TNCINFO * TNC, int Interval)
+{
+	char Template1[] = "{\"type\" : \"broadcast\", \"command\" : \"start_beacon\", \"parameter\" : \"%d\"}\n";
+	char Template2[] = "{\"type\" : \"broadcast\", \"command\" : \"stop_beacon\"}\n";
+
+	char Message[256];
+	int Len, ret;
+
+	if (Interval > 0)
+		Len = sprintf(Message, Template1, Interval);
+	else
+		Len = sprintf(Message, Template2);
+
 	ret = send(TNC->TCPDataSock, (char *)&Message, Len, 0);
 }
 
@@ -2309,33 +2442,316 @@ void ProcessFileObject(struct TNCINFO * TNC, char * This)
 
 void ProcessMessageObject(struct TNCINFO * TNC, char * This)
 {
-	// This gets Call and Message from a RX_MSG_BUFFER array element . It doesn't need care that it is json/
-	// as the format is such that keys are unique
-
-	// {"DXCALLSIGN":"GM8BPQ","DXGRID":"","TIMESTAMP":1642581230,"RXDATA":[{"dt":"m","d":"Hello","crc":"123"}]}
+	// This gets Message from a RX_MSG_BUFFER array element.
 
 	char * Call;
 	char * LOC;
 	char * Type;
 	char * Msg;
+	int Len;
+	char * ptr, * ptr2;
 
-	Call = strchr(This, ':');
-	Call += 2;
+	char * ID;
+	char * TYPE;
+	char * SEQ;
+	char * UUID;
+	char * TEXT;
+	char * NOIDEA;
+	char * FORMAT;
+	char * FILENAME;
+	int fileLen;
+
+	int n;
+
+
+	Call = strstr(This, "dxcallsign");
+	Call += 13;
 	This = strlop(Call, '"');
 
 	LOC = strchr(This, ':');
 	LOC += 2;
 	This = strlop(LOC, '"');
 
-	Type = strstr(This, "\"dt\"");
-	Type += 6;
-	This = strlop(Type, '"');
-
-	Msg = strchr(This, ':');
-	Msg += 2;
+	Msg = strstr(This, "\"data\"");
+	Msg += 8;
 	This = strlop(Msg, '"');
 
-	FreeDataProcessTNCMessage(TNC, Call, Msg, strlen(Msg));
+	// Decode Base64
+
+	// FreeData replaces / with \/ so need to undo
+
+	ptr2 = strstr(Msg, "\\/");
+
+	while (ptr2)
+	{
+		memmove(ptr2, ptr2 + 1, strlen(ptr2));
+		ptr2 = strstr(ptr2, "\\/");
+	}
+
+	Len = strlen(Msg);
+
+	ptr = ptr2 = Msg;
+
+	while (Len > 0)
+	{
+		xdecodeblock(ptr, ptr2);
+		ptr += 4;
+		ptr2 += 3;
+		Len -= 4;
+	}
+
+	Len = (int)(ptr2 - Msg);
+
+	if (*(ptr-1) == '=')
+		Len--;
+
+	if (*(ptr-2) == '=')
+		Len--;
+
+	Msg[Len] = 0;
+
+//m�;send_message�;123�;64730c5c-d32c-47b4-9b11-c958fd07a185�;hhhhhhhhhhhhhhhhhh
+//�;�;plain/text�;
+
+//m;send_message;123;64730c5c-d32c-47b4-9b11-c958fd07a185;hhhhhhhhhhhhhhhhhh
+//;;plain/text;
+	
+	// Message elements seem to be delimited by null ;
+	// Guessing labels
+
+	ID = Msg;
+
+	if (ID[0] == 'B')
+	{
+		// BPQ Message
+
+		struct STREAMINFO * STREAM = &TNC->Streams[0];
+		PMSGWITHLEN buffptr;
+
+
+		if (STREAM->Attached)
+		{
+			if (STREAM->Connected == 1 && STREAM->Connecting == 0)
+			{
+				// Just attached - send as Chat Message
+
+				char * Line = &ID[1];
+				Len -= 1;
+
+				while (Len > 256)
+				{
+					buffptr = GetBuff();
+					buffptr->Len = 256;
+					memcpy(buffptr->Data, Line, 256);
+					C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
+					WritetoTrace(TNC, Line, 256);
+					Len -= 256;
+					Line += 256;
+					STREAM->BytesRXed += 256;
+				}
+
+				buffptr = GetBuff();
+				buffptr->Len = Len;
+				memcpy(buffptr->Data, Line, Len);
+				C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
+				WritetoTrace(TNC, Line, Len);
+				STREAM->BytesRXed += Len;
+
+			}
+
+			sprintf(TNC->WEB_TRAFFIC, "Sent %d RXed %d Queued %d",
+				STREAM->BytesTXed - TNC->FreeDataInfo->toSendCount, STREAM->BytesRXed, TNC->FreeDataInfo->toSendCount);
+			MySetWindowText(TNC->xIDC_TRAFFIC, TNC->WEB_TRAFFIC);
+		}
+		return;
+	}
+
+	n = strlen(ID) + 2;
+	Msg += n;
+	Len -= n;
+
+	if (ID[0] == 'm')
+	{
+		// ?? Chat ?? comes from a send raw ??
+
+		struct STREAMINFO * STREAM = &TNC->Streams[0];
+		PMSGWITHLEN buffptr;
+
+		TYPE = Msg;
+		n = strlen(TYPE) + 2;
+		Msg += n;
+		Len -= n;
+
+		SEQ = Msg;
+		n = strlen(SEQ) + 2;
+		Msg += n;
+		Len -= n;
+
+		UUID = Msg;
+		n = strlen(UUID) + 2;
+		Msg += n;
+		Len -= n;
+
+		TEXT = Msg;
+		n = strlen(TEXT) + 2;
+		Msg += n;
+		Len -= n;
+
+		NOIDEA = Msg;
+		n = strlen(NOIDEA) + 2;
+		Msg += n;
+		Len -= n;
+
+		FORMAT = Msg;
+		n = strlen(FORMAT) + 2;
+		Msg += n;
+		Len -= n;
+
+		// if Atached, send to user
+
+		if (STREAM->Attached)
+		{
+			if (STREAM->Connected == 0 && STREAM->Connecting == 0)
+			{
+				// Just attached - send as Chat Message
+
+				char Line[560];
+				char * rest;
+
+				// Send line by line
+
+				rest = strlop(TEXT, 10);		// FreeData chat uses LF
+
+				while (TEXT && TEXT[0])
+				{
+					Len = strlen(TEXT);
+					if (Len > 512)
+						TEXT[512] = 0;
+
+					Len = sprintf(Line, "Chat From %-10s%s\r", Call, TEXT);
+
+					while (Len > 256)
+					{
+						buffptr = GetBuff();
+						buffptr->Len = 256;
+						memcpy(buffptr->Data, Line, 256);
+						C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
+						WritetoTrace(TNC, Line, 256);
+						Len -= 256;
+						TEXT += 256;
+						STREAM->BytesRXed += 256;
+					}
+
+					buffptr = GetBuff();
+					buffptr->Len = Len;
+					memcpy(buffptr->Data, Line, Len);
+					C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
+					WritetoTrace(TNC, Line, Len);
+					STREAM->BytesRXed += Len;
+
+					TEXT = rest;
+					rest = strlop(TEXT, 10);		// FreeData chat ues LF
+				}
+				
+				sprintf(TNC->WEB_TRAFFIC, "Sent %d RXed %d Queued %d",
+					STREAM->BytesTXed - TNC->FreeDataInfo->toSendCount, STREAM->BytesRXed, TNC->FreeDataInfo->toSendCount);
+				MySetWindowText(TNC->xIDC_TRAFFIC, TNC->WEB_TRAFFIC);
+			}
+		}
+		else
+		{
+			// Send Not Available Message
+//m�;send_message�;123�;64730c5c-d32c-47b4-9b11-c958fd07a185�;hhhhhhhhhhhhhhhhhh
+//�;�;plain/text�;
+
+			char reply[512] = "m";
+			char * p;
+
+			strcat(TEXT, "\r");
+			WritetoTrace(TNC, TEXT, strlen(TEXT));
+
+			strcpy(&reply[2], ";send_message");
+			strcpy(&reply[16], ";123");
+			reply[21] = ';';
+			strcpy(&reply[22], gen_uuid());
+			sprintf(&reply[59], ";Message received but user not on line\n");
+
+			p = strchr(&reply[59], 0);
+
+			p[1] = ';';
+			strcpy(&p[3], ";plain/text");
+			p[15] = ';';
+
+			Len = &p[16] - reply;
+
+			SendAsRaw(TNC, Call, TNC->FreeDataInfo->ourCall, reply, Len);
+		}
+		return;
+
+	}
+	else if (ID[0] == 'f')
+	{
+		char Filename[256];
+		FILE * fp1;
+		char Text[64];
+		int textLen;
+
+
+		FILENAME = Msg;
+		n = strlen(FILENAME) + 2;
+		Msg += n;
+		Len -= n;
+
+		TYPE = Msg;
+		n = strlen(TYPE) + 2;
+		Msg += n;
+		Len -= n;
+
+		SEQ = Msg;						// ?? Maybe = 123123123
+		n = strlen(SEQ) + 2;
+		Msg += n;
+		Len -= n;
+
+		TEXT = Msg;						// The file
+		fileLen = Len;
+
+		if (TNC->FreeDataInfo->RXDir == NULL)
+		{
+			Debugprintf("FreeDATA RXDIRECTORY not set - file transfer ignored");
+			return;
+		}
+
+		sprintf(Filename, "%s\\%s", TNC->FreeDataInfo->RXDir, FILENAME); 
+
+		fp1 = fopen(Filename, "wb");
+
+		if (fp1)
+		{
+			fwrite(TEXT, 1, fileLen, fp1);
+			fclose(fp1);
+			textLen = sprintf(Text, "File %s received from %s \r", FILENAME, Call);	
+			WritetoTrace(TNC, Text, textLen);
+		}
+		else
+			Debugprintf("FreeDATA - File %s create failed %s", Filename);
+
+		return;
+	}
+	else if (ID[0] == 'm')
+	{
+
+	}
+
+
+
+
+
+
+
+
+	
+
+//	FreeDataProcessTNCMessage(TNC, Call, Msg, strlen(Msg));
 }
 
 void processJSONINFO(struct TNCINFO * TNC, char * Info, char * Call, double snr)
@@ -2538,16 +2954,34 @@ void ProcessDAEMONJSON(struct TNCINFO * TNC, char * Msg, int Len)
 					char * devptr = stristr(TNC->CaptureDevices, Info->Capture);
 					int capindex = -1, playindex = -1;
 					char startTNC[] = "{\"type\":\"set\",\"command\":\"start_tnc\","
-						"\"parameter\":[{\"mycall\":\"%s\",\"mygrid\":\"%s\",\"rx_audio\":\"%d\","
-						"\"tx_audio\":\"%d\",\"devicename\":\"RIG_MODEL_NETRIGCTL\",\"deviceport\":\"/dev/ttyAMA0\","
+						"\"parameter\":"
+						"[{\"mycall\":\"%s\","
+						"\"mygrid\":\"%s\","
+						"\"rx_audio\":\"%d\","
+						"\"tx_audio\":\"%d\","
+						"\"radiocontrol\":\"disabled\","
+						"\"devicename\":\"RIG_MODEL_NETRIGCTL\","
+						"\"deviceport\":\"COM99\","
+						"\"pttprotocol\":\"USB\","
+						"\"pttport\":\"COM99\","
 						"\"serialspeed\":\"19200\","
-						"\"pttprotocol\":\"RTS\",\"pttport\":\"/dev/ttyAMA0\",\"data_bits\":\"8\","
-						"\"stop_bits\":\"1\",\"handshake\":\"None\", \"radiocontrol\":\"disabled\","
-						"\"rigctld_ip\":\"%s\",\"rigctld_port\":\"%d\","
-						"\"enable_scatter\":\"0\",\"enable_fft\":\"0\",\"low_bandwith_mode\":\"0\"}]}\n";
+						"\"data_bits\":\"8\","
+						"\"stop_bits\":\"1\","
+						"\"handshake\":\"None\","
+						"\"rigctld_ip\":\"%s\","
+						"\"rigctld_port\":\"%d\","
+						"\"enable_scatter\":\"False\","
+						"\"enable_fft\":\"False\","
+						"\"enable_fsk\":\"False\","
+						"\"low_bandwidth_mode\":\"%s\","		//False
+						"\"tuning_range_fmin\":\"%3.1f\","			//-50.0
+						"\"tuning_range_fmax\":\"%3.1f\","			// 50.0
+						"\"tx_audio_level\":\"125\","
+						"\"respond_to_cq\":\"True\","
+						"\"rx_buffer_size\":\"16\"}]}\n";
 
 
-					char Command[512];
+					char Command[2048];
 					int Len;
 
 					if (devptr)
@@ -2567,7 +3001,11 @@ void ProcessDAEMONJSON(struct TNCINFO * TNC, char * Msg, int Len)
 					if (capindex > -1 && playindex > -1)
 					{
 						Len = sprintf(Command, startTNC, TNC->FreeDataInfo->ourCall, LOC, capindex, playindex,
-							TNC->FreeDataInfo->hamlibHost, TNC->FreeDataInfo->hamlibPort);
+							TNC->FreeDataInfo->hamlibHost, TNC->FreeDataInfo->hamlibPort,
+							TNC->FreeDataInfo->LimitBandWidth ? "True" : "False",
+							TNC->FreeDataInfo->TuningRange * -1.0,
+							TNC->FreeDataInfo->TuningRange * 1.0);
+					
 						send(TNC->TCPSock, Command, Len, 0);
 //						TNC->FreeDataInfo->startingTNC = 5;
 					}
@@ -2625,19 +3063,22 @@ void ProcessTNCJSON(struct TNCINFO * TNC, char * Msg, int Len)
 		return;
 	}
 
+	if (memcmp(Msg, "{\"command_response\"", 19) == 0)
+	{
+		Debugprintf(Msg);
+		return;
+	}
+
+
 	if (memcmp(Msg, "{\"command\":\"tnc_state\"", 22) == 0)
 	{
 /*
-{"COMMAND":"TNC_STATE","TIMESTAMP":1642429227972,"PTT_STATE":"False","TNC_STATE":"IDLE","ARQ_STATE":"False",
-"AUDIO_RMS":"0","SNR":"0","FREQUENCY":"145000000","MODE":"FM","BANDWITH":"15000",
-"FFT":"[47.7, 28.9, 19.8, 26.4, 22.9, 19.9, 20.0, 20.1, 21.8, 24.0, 21.4, 14.9, 20.6, 17.9, 19.9, 18.4, 20.8,
-22.2, 17.8, 23.7, 17.5, 15.6, 21.7, 17.5, 20.4, 21.7, 23.4, 18.2, 21.6, 17.0, 18.7, 18.2, 19.8, 18.6, 20.2,
-..
-12.0, 11.9, 12.9, 13.5, 14.3, 14.6, 16.5, 15.4, 14.9, 13.7, 15.6, 12.3]",
-"SCATTER":[],"RX_BUFFER_LENGTH":"0","RX_MSG_BUFFER_LENGTH":"0","ARQ_BYTES_PER_MINUTE":"0","ARQ_BYTES_PER_MINUTE_BURST":"0","ARQ_COMPRESSION_FACTOR":"0","ARQ_TRANSMISSION_PERCENT":"0","TOTAL_BYTES":"0","INFO":[],"BEACON_STATE":"False","STATIONS":[],"EOF":"EOF"}{"type" : "GET", "command" : "TNC_STATE", "timestamp" : 1642429228121}
-
-"arq_session":"True"
-\"arq_session_state\":\"disconnected\"
+{"command":"tnc_state","ptt_state":"False","tnc_state":"IDLE","arq_state":"False","arq_session":"False",
+"arq_session_state":"disconnected","audio_rms":"0","snr":"0","frequency":"None","speed_level":"1",
+"mode":"None","bandwidth":"None","fft":"[0]","channel_busy":"False","scatter":[],"rx_buffer_length":"0",
+"rx_msg_buffer_length":"0","arq_bytes_per_minute":"0","arq_bytes_per_minute_burst":"0","arq_compression_factor":"0",
+"arq_transmission_percent":"0","total_bytes":"0","beacon_state":"False",
+"stations":[],"mycallsign":"GM8BPQ-6","dxcallsign":"AA0AA","dxgrid":""}
 */
 		char * LOC = 0;
 		char * Stations;
@@ -2645,8 +3086,20 @@ void ProcessTNCJSON(struct TNCINFO * TNC, char * Msg, int Len)
 		char * farCall = 0;
 		double snr;
 		int arqstate = 0;
+		int rx_buffer_length = 0;
+		int rx_msg_buffer_length = 0;
 
 		Msg += 23;
+
+		ptr = strstr(Msg, "rx_buffer_length");
+
+		if (ptr)
+			rx_buffer_length = atoi(&ptr[19]);
+
+		ptr = strstr(Msg, "rx_msg_buffer_length");
+
+		if (ptr)
+			rx_msg_buffer_length = atoi(&ptr[23]);
 
 		ptr = strstr(Msg, "snr");
 
@@ -2679,10 +3132,14 @@ void ProcessTNCJSON(struct TNCINFO * TNC, char * Msg, int Len)
 		{
 			struct STREAMINFO * STREAM = &TNC->Streams[0];
 			ptr += 21;
-
+ 
 			if (memcmp(ptr, "disconnected", 10) == 0)
 			{
-				arqstate = 1;
+				if (TNC->FreeDataInfo->arqstate != 1)
+				{
+					TNC->FreeDataInfo->arqstate = 1;
+					Debugprintf("%d arq_session_state %s", TNC->Port, "disconnected");
+				}
 
 				// if connected this is a new disconnect
 
@@ -2704,22 +3161,32 @@ void ProcessTNCJSON(struct TNCINFO * TNC, char * Msg, int Len)
 						STREAM->BytesRXed, (int)(STREAM->BytesRXed/Duration), (int)Duration);
 
 					Debugprintf(logmsg);
+
+					STREAM->Connected = FALSE;		// Back to Command Mode
+					STREAM->ReportDISC = TRUE;		// Tell Node
+					STREAM->Disconnecting = FALSE;
+
+					strcpy(TNC->WEB_TNCSTATE, "Free");
+					MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
 				}
-
-				STREAM->Connected = FALSE;		// Back to Command Mode
-				STREAM->ReportDISC = TRUE;		// Tell Node
-				STREAM->Disconnecting = FALSE;
-
-				strcpy(TNC->WEB_TNCSTATE, "Free");
-				MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
 			}
 			else if (memcmp(ptr, "connecting", 10) == 0)
-				arqstate = 2;
+			{
+				if (TNC->FreeDataInfo->arqstate != 2)
+				{
+					TNC->FreeDataInfo->arqstate = 2;
+					Debugprintf("%d arq_session_state %s", TNC->Port, "connecting");
+				}
+			}
 			else if (memcmp(ptr, "connected", 9) == 0)
 			{
 				// if connection is idle this is an incoming connect
 
-				arqstate = 3;
+				if (TNC->FreeDataInfo->arqstate != 3)
+				{
+					TNC->FreeDataInfo->arqstate = 3;
+					Debugprintf("%d arq_session_state %s", TNC->Port, "connected");
+				}
 
 				if (STREAM->Connecting == FALSE && STREAM->Connected == FALSE)
 				{
@@ -2735,11 +3202,22 @@ void ProcessTNCJSON(struct TNCINFO * TNC, char * Msg, int Len)
 			}
 
 			else if (memcmp(ptr, "disconnecting", 12) == 0)
-				arqstate = 4;
+			{
+				if (TNC->FreeDataInfo->arqstate != 4)
+				{
+					TNC->FreeDataInfo->arqstate = 4;
+					Debugprintf("%d arq_session_state %s", TNC->Port, "disconnecting");
+				}
+			}
 			else if (memcmp(ptr, "failed", 5) == 0)
 			{
 				PMSGWITHLEN buffptr;
-				arqstate = 5;
+				
+				if (TNC->FreeDataInfo->arqstate != 5)
+				{
+					TNC->FreeDataInfo->arqstate = 5;
+					Debugprintf("%d arq_session_state %s", TNC->Port, "failed");
+				}
 
 				if (STREAM->Connecting)
 				{
@@ -2757,12 +3235,15 @@ void ProcessTNCJSON(struct TNCINFO * TNC, char * Msg, int Len)
 					STREAM->FramesQueued++;
 				}
 			}
-
-			Debugprintf("%d arq_session_state %d", TNC->Port, arqstate);
 		}
 
+		if (rx_buffer_length || rx_msg_buffer_length)
+			FreeGetData(TNC);
 
 		ptr = getJSONValue(Msg, "\"info\"");
+
+		if (ptr == NULL)
+			return;
 
 		if (strcmp(ptr, "[]") != 0)
 		{
@@ -2773,6 +3254,140 @@ void ProcessTNCJSON(struct TNCINFO * TNC, char * Msg, int Len)
 
 		return;
 	}
+
+	if (memcmp(Msg, "{\"freedata\":\"tnc-message\"", 25) == 0)
+	{
+		char * mycall = strstr(Msg, "mycall");
+		char * dxcall = strstr(Msg, "dxcall");
+		char * dxgrid = strstr(Msg, "dxgrid");
+		char * snrptr = strstr(Msg, "snr");
+		float snr = 0;
+		char CQ[64];
+		int Len;
+
+		Msg += 26;
+
+		if (mycall && dxcall && dxgrid)
+		{
+			mycall += 13;
+			strlop(mycall, '"');
+
+			dxcall += 13;
+			strlop(dxcall, '"');
+
+			dxgrid += 9;
+			strlop(dxgrid, '"');
+		}
+
+
+		if (dxcall && strstr(dxcall, "-0"))
+			strlop(dxcall, '-');
+
+		if (snrptr)
+			snr = atof(&snrptr[6]);
+
+		if (memcmp(Msg, "\"beacon\":\"received\"", 18) == 0)
+		{
+			if (mycall && dxcall && dxgrid)
+			{
+				Len = sprintf(CQ, "Beacon received from %s SNR %3.1f", dxcall, snr);	
+				WritetoTrace(TNC, CQ, Len);
+
+				// Add to MH
+
+				if (dxcall)
+					UpdateMH(TNC, dxcall, '!', 'I');
+
+				return;
+			}
+		}
+
+		if (memcmp(Msg, "\"cq\":\"received\"", 14) == 0)
+		{
+			if (mycall && dxcall && dxgrid)
+			{
+				Len = sprintf(CQ, "CQ received from %s", dxcall);	
+				WritetoTrace(TNC, CQ, Len);
+
+				// Add to MH
+
+				if (dxcall)
+					UpdateMH(TNC, dxcall, '!', 'I');
+
+				return;
+			}
+		}
+
+		if (memcmp(Msg, "\"ping\":\"received\"", 16) == 0)
+		{
+			if (mycall && dxcall && dxgrid)
+			{
+				Len = sprintf(CQ, "PING received from %s SNR %3.1f", dxcall, snr);	
+				WritetoTrace(TNC, CQ, Len);
+
+				// Add to MH
+
+				if (dxcall)
+					UpdateMH(TNC, dxcall, '!', 'I');
+
+				return;
+			}
+		}
+
+		if (memcmp(Msg, "\"ping\":\"acknowledge\"", 16) == 0)
+		{
+			if (mycall && dxcall && dxgrid)
+			{
+				char Msg[128];
+	
+				Len = sprintf(Msg, "Ping Response from %s SNR %3.1f\r", dxcall, snr);
+				FreeDataProcessTNCMessage(TNC, dxcall, Msg, Len);
+
+				UpdateMH(TNC, dxcall, '!', 'I');
+
+				return;
+			}
+		}
+
+
+
+
+
+
+		Debugprintf(Msg);
+		return;
+	}
+
+	if (memcmp(Msg, "{\"command\":\"rx_buffer\"", 22) == 0)
+	{
+		char * Next, * This;
+
+		// Delete from TNC
+			
+		SendTNCCommand(TNC, "set", "del_rx_buffer");		Msg += 22;
+
+		ptr = getJSONValue(Msg, "\"eof\"");
+		ptr = getJSONValue(Msg, "\"data-array\"");
+
+		This = ptr;
+
+		if (This[1] == '{')		// Array of objects
+		{
+			This++;
+			do
+			{
+				Next = getObjectFromArray(This);
+				ProcessMessageObject(TNC, This);
+				This = Next;
+
+			} while (Next && Next[0] == '{');
+		}
+
+		return;
+	}
+
+	Debugprintf(Msg);
+
 
 //	{"COMMAND":"RX_BUFFER","DATA-ARRAY":[],"EOF":"EOF"}
 /* {"COMMAND":"RX_BUFFER","DATA-ARRAY":[{"DXCALLSIGN":"GM8BPQ","DXGRID":"","TIMESTAMP":1642579504,
@@ -2800,7 +3415,7 @@ void ProcessTNCJSON(struct TNCINFO * TNC, char * Msg, int Len)
 
 		// Decode Base64
 
-		// FreeData replacs / with \/ so need to undo
+		// FreeData replaces / with \/ so need to undo
 
 		ptr2 = strstr(Type, "\\/");
 
@@ -2882,7 +3497,6 @@ void ProcessTNCJSON(struct TNCINFO * TNC, char * Msg, int Len)
 
 		return;
 	}
-	Debugprintf(Msg);
 }
 	
 int FreeDataConnect(struct TNCINFO * TNC, char * Call)
@@ -2905,6 +3519,18 @@ int FreeDataDisconnect(struct TNCINFO * TNC)
 //	return FreeDataSendCommand(TNC, "D");
 
 	Len = sprintf(Msg, Disconnect);
+
+	return send(TNC->TCPDataSock, Msg, Len, 0);
+}
+
+
+int FreeGetData(struct TNCINFO * TNC)
+{
+	char GetData[] = "{\"type\" : \"get\", \"command\": \"rx_buffer\"}\n";
+	char Msg[128];
+	int Len;
+
+	Len = sprintf(Msg, GetData);
 
 	return send(TNC->TCPDataSock, Msg, Len, 0);
 }
@@ -3019,6 +3645,7 @@ void FreeDataProcessTNCMsg(struct TNCINFO * TNC)
 {
 	int DataInputLen, MsgLen;
 	char * ptr, * endptr;
+	int maxlen;
 
 	// May get message split over packets or multiple messages per packet
 
@@ -3027,8 +3654,13 @@ void FreeDataProcessTNCMsg(struct TNCINFO * TNC)
 
 	if (TNC->DataInputLen > MAXRXSIZE)	// Shouldnt have packets longer than this
 		TNC->DataInputLen=0;
+
+	maxlen = MAXRXSIZE - TNC->DataInputLen;
+
+	if (maxlen >1400)
+		maxlen = 1400;
 				
-	DataInputLen = recv(TNC->TCPDataSock, &TNC->ARDOPDataBuffer[TNC->DataInputLen], MAXRXSIZE - TNC->DataInputLen, 0);
+	DataInputLen = recv(TNC->TCPDataSock, &TNC->ARDOPDataBuffer[TNC->DataInputLen], maxlen, 0);
 
 	if (DataInputLen == 0 || DataInputLen == SOCKET_ERROR)
 	{
@@ -3055,7 +3687,7 @@ void FreeDataProcessTNCMsg(struct TNCINFO * TNC)
 
 	TNC->DataInputLen += DataInputLen;
 
-	TNC->ARDOPDataBuffer[TNC->DataInputLen] = 0;	// So we cat use string functions
+	TNC->ARDOPDataBuffer[TNC->DataInputLen] = 0;	// So we can use string functions
 
 	// Message should be json. We know the format, so don't need a general parser, but need to know if complete.
 	// I think counting { and } and stopping if equal should work;

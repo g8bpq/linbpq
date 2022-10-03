@@ -1875,6 +1875,8 @@ int standardParams(struct TNCINFO * TNC, char * buf)
 		char * ptr2 = TNC->PTTOn;
 		int i, j, len;
 
+		_strupr(ptr1);
+
 		TNC->PTTOnLen = len = strlen(ptr1) / 2;
 
 		if (len < 240)
@@ -1904,6 +1906,8 @@ int standardParams(struct TNCINFO * TNC, char * buf)
 		char * ptr = &buf[10];
 		char * ptr2 = TNC->PTTOff;
 		int i, j, len;
+
+		_strupr(ptr);
 
 		TNC->PTTOffLen = len = strlen(ptr) / 2;
 

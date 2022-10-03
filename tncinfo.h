@@ -294,8 +294,8 @@ typedef struct ARQINFO
 	char OurStream;
 	char FarStream;
 
-	UINT * TXHOLDQ[64];			// Frames waiting ACK
-	UINT * RXHOLDQ[64];			// Frames waiting missing frames.
+	PMSGWITHLEN TXHOLDQ[64];	// Frames waiting ACK
+	PMSGWITHLEN RXHOLDQ[64];	// Frames waiting missing frames.
 
 	int TXWindow;
 	int RXWindow;
@@ -389,6 +389,12 @@ struct FreeDataINFO
 	int toSendMsgTimeout;
 	char * RXDir;				// Directory for Received Files
 	int CONOK;					// Virtual Lisren Flag
+	int Chat;					// In Chat Mode
+	char ChatCall[10];
+	int needPoll;				// Set if get data needed
+	int arqstate;				// 1 = Disc / 2 - connecting 3 - connected
+	int TuningRange;			// Must be 50, 100, 150, 200, 250
+	int LimitBandWidth;
 };
 
 
