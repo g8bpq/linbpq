@@ -1114,7 +1114,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix hang at start if Telnet port Number > Number of Telnet Streams (20)
 //	Fix processing C command if first port driver is SCSPACTROR (20)
 //	Fix crash in UZ7HO driver if bad raw frame received (21)
-
+//	Fix using FLARQ chat mode with FLDIGI ddriover (22)
 
 #define CKernel
 

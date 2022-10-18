@@ -2693,7 +2693,9 @@ void SendBeaconThread(void * Param)
 
 			PORT = GetPortTableEntryFromPortNum(Port);
 	
-			if (PORT && PORT->PORTINTERLOCK)
+			// Just pause for all ports
+
+//			if (PORT && PORT->PORTINTERLOCK)
 				Sleep(20000);
 		}
 	}

@@ -250,7 +250,7 @@ UINT _ReleaseBuffer(VOID *pBUFF, char * File, int Line)
 
 		memcpy(CodeDump, BUFF, 64);
 
-		Debugprintf("Releasebuffer Buffer not in pool, ptr %p prev %d", BUFF, 0);
+		Debugprintf("Releasebuffer Buffer not in pool from %s Line %d, ptr %p prev %d", File, Line, BUFF, 0);
 
 		for (i = 0; i < 16; i++)
 		{
@@ -340,7 +340,7 @@ BOK1:
 	
 		if (pointer == BUFF)
 		{
-			Debugprintf("Trying to free buffer %p when already on FREE_Q", BUFF);
+			Debugprintf("Trying to free buffer %p when already on FREE_Q called from %s Line %d", BUFF, File, Line);
 //			WriteMiniDump();
 			return 0;
 		}

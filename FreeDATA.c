@@ -2533,8 +2533,6 @@ void ProcessMessageObject(struct TNCINFO * TNC, char * This)
 		{
 			if (STREAM->Connected == 1 && STREAM->Connecting == 0)
 			{
-				// Just attached - send as Chat Message
-
 				char * Line = &ID[1];
 				Len -= 1;
 
@@ -2691,6 +2689,8 @@ void ProcessMessageObject(struct TNCINFO * TNC, char * This)
 	}
 	else if (ID[0] == 'f')
 	{
+		// File Tranfer
+
 		char Filename[256];
 		FILE * fp1;
 		char Text[64];
@@ -3065,7 +3065,7 @@ void ProcessTNCJSON(struct TNCINFO * TNC, char * Msg, int Len)
 
 	if (memcmp(Msg, "{\"command_response\"", 19) == 0)
 	{
-		Debugprintf(Msg);
+		Debugprintf("%d %s", TNC->Port, Msg);
 		return;
 	}
 
@@ -3354,7 +3354,7 @@ void ProcessTNCJSON(struct TNCINFO * TNC, char * Msg, int Len)
 
 
 
-		Debugprintf(Msg);
+		Debugprintf("%d %s", TNC->Port, Msg);
 		return;
 	}
 
@@ -3386,7 +3386,7 @@ void ProcessTNCJSON(struct TNCINFO * TNC, char * Msg, int Len)
 		return;
 	}
 
-	Debugprintf(Msg);
+	Debugprintf("%d %s", TNC->Port, Msg);
 
 
 //	{"COMMAND":"RX_BUFFER","DATA-ARRAY":[],"EOF":"EOF"}

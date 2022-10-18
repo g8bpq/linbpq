@@ -2854,7 +2854,36 @@ SendKReply:
 
 	if (CTRL == 't')
 	{
-		// Talk - not sure what to do with these
+		// Talk - pass to node
+
+		char * call1;
+		char * context;
+		char * ptr;
+
+		PMSGWITHLEN buffptr;
+
+		Input[Len] = 0;			// Removes checksum
+
+		call1 = strtok_s(&Input[1], " ", &context);
+		strlop(call1, ':');
+
+		if (strcmp(STREAM->RemoteCall, call1))
+			return;
+
+		if (Channel != ARQ->OurStream)
+			return;					// Wrong Session
+
+		buffptr = (PMSGWITHLEN)GetBuff();
+
+		if (buffptr == 0) return;			// No buffers, so ignore
+
+		while (ptr = strchr(context, 10))
+			*ptr = 13;
+
+		buffptr->Len = strlen(context);
+		strcpy(buffptr->Data, context);
+
+		C_Q_ADD(&TNC->Streams[Stream].PACTORtoBPQ_Q, buffptr);
 
 		return;
 	}
