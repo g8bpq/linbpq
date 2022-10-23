@@ -1115,6 +1115,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix processing C command if first port driver is SCSPACTROR (20)
 //	Fix crash in UZ7HO driver if bad raw frame received (21)
 //	Fix using FLARQ chat mode with FLDIGI ddriover (22)
+//	Fixed to KISSHF driver (23)
+//	Fix for application buffer loss (24)
 
 #define CKernel
 

@@ -536,6 +536,7 @@ VOID * _GetBuff(char * File, int Line)
 		byteaddr = (unsigned char *)Msg;
 
 
+		memset(&byteaddr[0], 0, 64);		// simplify debugging lost buffers
 		memset(&byteaddr[400], 0, 64);		// simplify debugging lost buffers
 		sprintf(&byteaddr[400], "%s %d", fptr, Line);
 

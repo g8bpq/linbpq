@@ -102,7 +102,7 @@ struct DEST_LIST * ENDDESTLIST = NULL;		//		; NODE LIST+1
 ;
 
 VOID * BUFFERPOOL = NULL;		// START OF BUFFER POOL
-VOID * ENDBUFFERPOOL;
+VOID * ENDBUFFERPOOL = NULL;
 
 int OBSINIT = 5;				// INITIAL OBSOLESCENCE VALUE
 int OBSMIN = 4;					// MINIMUM TO BROADCAST
@@ -2465,6 +2465,9 @@ VOID FindLostBuffers()
 	unsigned int rev;
 
 	UINT CodeDump[16];
+	char codeText[65] = "";
+	unsigned char * codeByte = (unsigned char *) CodeDump;
+
 	PBPQVECSTRUC HOSTSESS = BPQHOSTVECTOR;
 	struct _TRANSPORTENTRY * L4;	// Pointer to Session
 	
@@ -2583,6 +2586,14 @@ VOID FindLostBuffers()
 
 			memcpy(CodeDump, Bufferlist[n], 64);
 	
+			for (i = 0; i < 64; i++)
+			{
+				if (codeByte[i] > 0x1f && codeByte[i] < 0x80) 
+					codeText[i] = codeByte[i];
+				else
+					codeText[i] = '.';
+			}
+
 			for (i = 0; i < 16; i++)
 			{
 				rev = (CodeDump[i] & 0xff) << 24;
@@ -2599,7 +2610,7 @@ VOID FindLostBuffers()
 			Debugprintf("         %08x %08x %08x %08x %08x %08x %08x %08x %d",
 				CodeDump[8], CodeDump[9], CodeDump[10], CodeDump[11], CodeDump[12], CodeDump[13], CodeDump[14], CodeDump[15], Msg->Process);
 		
-			Debugprintf("         %s", &fileptr[400]);
+			Debugprintf("         %s %s", &fileptr[400], codeText);
 		}
 	}
 

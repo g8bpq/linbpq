@@ -187,11 +187,9 @@ static int ProcessLine(char * buf, int Port)
 			*ptr = 0;
 		}
 
-		if (_memicmp(buf, "WL2KREPORT", 10) == 0)
-			TNC->WL2K = DecodeWL2KReportLine(buf);
-		else if (_memicmp(buf, "SESSIONTIMELIMIT", 16) == 0)
-			TNC->SessionTimeLimit = TNC->DefaultSessionTimeLimit = atoi(&buf[16]) * 60;
-		else
+		if (_memicmp(buf, "UPDATEMAP", 9) == 0)
+			TNC->PktUpdateMap = TRUE;
+		else if (standardParams(TNC, buf) == FALSE)
 			strcat(TNC->InitScript, buf);	
 	}
 	return (TRUE);	

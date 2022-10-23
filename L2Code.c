@@ -1155,7 +1155,6 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 		return;
 	}
 
-
 	//	IF CONNECT TO APPL ADDRESS, SET UP APPL SESSION
 
 	if (APPLMASK == 0)
@@ -1170,10 +1169,6 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 		int Paclen= PORT->PORTPACLEN;
 		UCHAR * ptr;
 
-		if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
-			AttachKISSHF(PORT, Buffer);
-
-
 		if (LogAllConnects)
 		{		
 			char toCall[12], fromCall[12];
@@ -1183,6 +1178,9 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 		}
 		
 		L2SENDUA(PORT, Buffer, ADJBUFFER);
+
+		if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
+			AttachKISSHF(PORT, Buffer);
 
 		if (NO_CTEXT == 1)
 			return;
@@ -1291,8 +1289,55 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 
 		//	ACCEPT THE CONNECT, THEN INVOKE THE ALIAS
 
+		L2SENDUA(PORT, Buffer, ADJBUFFER);
+	
 		if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
+		{
+			struct DATAMESSAGE * Msg;
+			int Totallen = 0;
+			int Paclen= PORT->PORTPACLEN;
+			UCHAR * ptr;
+
 			AttachKISSHF(PORT, Buffer);
+
+			// if Port CTEXT defined, use it
+
+			if (PORT->CTEXT)
+			{
+				Totallen = strlen(PORT->CTEXT);
+				ptr = PORT->CTEXT;
+			}
+			else if (HFCTEXTLEN)	
+			{
+				Totallen = HFCTEXTLEN;
+				ptr = HFCTEXT;
+			}
+
+			if (Paclen == 0)
+				Paclen = PACLEN;
+
+			while(Totallen)
+			{
+				Msg = GetBuff();
+
+				if (Msg == NULL)
+					break;				// No Buffers
+
+				Msg->PID = 0xf0;
+
+				if (Paclen > Totallen)
+					Paclen = Totallen;
+
+				memcpy(Msg->L2DATA, ptr, Paclen);
+				Msg->LENGTH = Paclen + MSGHDDRLEN + 1;
+
+				C_Q_ADD(&LINK->TX_Q, Msg);
+
+				ptr += Paclen;
+				Totallen -= Paclen;
+			}
+
+		}
 
 		if (LogAllConnects)
 		{		
@@ -1302,13 +1347,10 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 			WriteConnectLog(fromCall, toCall, "AX.25");
 		}
 
-		L2SENDUA(PORT, Buffer, ADJBUFFER);
-
 		Msg = GetBuff();
 
 		if (Msg)
 		{
-
 			Msg->PID = 0xf0;
 				
 			memcpy(Msg->L2DATA, APPL->APPLCMD, 12);
@@ -1331,13 +1373,11 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 
 		if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
 			DetachKISSHF(PORT);
+
 		L2SENDDM(PORT, Buffer, ADJBUFFER);
 	
 		return;
 	}
-
-	if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
-		AttachKISSHF(PORT, Buffer);
 
 	if (LogAllConnects)
 	{		
@@ -1346,7 +1386,58 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 		fromCall[ConvFromAX25(ADJBUFFER->ORIGIN, fromCall)] = 0;
 		WriteConnectLog(fromCall, toCall, "AX.25");
 	}
+
 	L2SENDUA(PORT, Buffer, ADJBUFFER);
+
+	if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
+	{
+		struct DATAMESSAGE * Msg;
+		int Totallen = 0;
+		int Paclen= PORT->PORTPACLEN;
+		UCHAR * ptr;
+
+		AttachKISSHF(PORT, Buffer);
+
+		// if Port CTEXT defined, use it
+		
+		if (PORT->CTEXT)
+		{
+			Totallen = strlen(PORT->CTEXT);
+			ptr = PORT->CTEXT;
+		}
+		else if (HFCTEXTLEN)	
+		{
+			Totallen = HFCTEXTLEN;
+			ptr = HFCTEXT;
+		}
+		else
+			return;
+
+		if (Paclen == 0)
+			Paclen = PACLEN;
+
+		while(Totallen)
+		{
+			Msg = GetBuff();
+
+			if (Msg == NULL)
+				break;				// No Buffers
+
+			Msg->PID = 0xf0;
+
+			if (Paclen > Totallen)
+				Paclen = Totallen;
+
+			memcpy(Msg->L2DATA, ptr, Paclen);
+			Msg->LENGTH = Paclen + MSGHDDRLEN + 1;
+
+			C_Q_ADD(&LINK->TX_Q, Msg);
+
+			ptr += Paclen;
+			Totallen -= Paclen;
+		}
+		return;
+	}
 }
 
 VOID SETUPNEWL2SESSION(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffer, UCHAR MSGFLAG)
