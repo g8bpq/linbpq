@@ -58,10 +58,13 @@ extern char LOC[7];
 extern BPQVECSTRUC ** BPQHOSTVECPTR;
 UCHAR * GetLogDirectory();
 DllExport int APIENTRY SessionStateNoAck(int stream, int * state);
+int RefreshWebMailIndex();
 #else
 __declspec(dllimport) BPQVECSTRUC ** BPQHOSTVECPTR;
 typedef char * (WINAPI FAR *FARPROCZ)();
+typedef int (WINAPI FAR *FARPROCX)();
 FARPROCZ pGetLOC;
+FARPROCX pRefreshWebMailIndex;
 
 #endif
 
@@ -1506,6 +1509,13 @@ VOID SaveMessageDatabase()
 
 //	SaveConfig(ConfigName);		// Message Headers now in main config
 //	return;
+
+#ifdef LINBPQ
+	RefreshWebMailIndex();
+#else
+	if (pRefreshWebMailIndex)
+		pRefreshWebMailIndex();
+#endif
 
 	Handle = fopen(MsgDatabasePath, "wb");
 

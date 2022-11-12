@@ -1162,7 +1162,7 @@ void * VARAExtInit(EXTPORTDATA * PortEntry)
 
 	if (TNC->TXFreq)
 	{
-		CreatePactorWindow(TNC, ClassName, WindowTitle, RigControlRow + 22, PacWndProc, 500, 450, ForcedClose);
+		CreatePactorWindow(TNC, ClassName, WindowTitle, RigControlRow + 22, PacWndProc, 550, 450, ForcedClose);
 
 		InitCommonControls(); // loads common control's DLL 
 

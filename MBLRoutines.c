@@ -85,6 +85,7 @@ VOID ProcessMBLLine(CIRCUIT * conn, struct UserInfo * user, UCHAR* Buffer, int l
 			SendCompressed(conn, Msg);
 			FBBputs(conn, ">\r");
 			Msg->status = 'Y';					// Mark as read
+			SaveMessageDatabase();
 		}
 		else
 		{

@@ -2,7 +2,7 @@
 //	HTTP Session Control. Used In Kernel HTTPCode, BBSHTMLConfig
 //	and ChatHTMLConfig
 
-// On Windows ghanges to layout or length of this struct require rebuilding BPQ32.dll, BPQMail and BPQChat
+// On Windows changes to layout or length of this struct require rebuilding BPQ32.dll, BPQMail and BPQChat
 
 struct HTTPConnectionInfo		// Used for Web Server for thread-specific stuff
 {

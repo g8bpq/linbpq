@@ -68,7 +68,7 @@ struct ConnectionInfo
 
 	struct ADIF * ADIF;			// ADIF Logging info
 	int WebSocks;
-	char WebURL[16];			// URL for WebSocket Connection
+	char WebURL[32];			// URL for WebSocket Connection
 	int WebSecure;				// Set if secure session
 };
 

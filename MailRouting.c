@@ -1467,6 +1467,7 @@ NOHA:
 		}
 
 		// We should choose the BBS with most matching elements (ie match on #23.GBR better that GBR)
+		// If SendPtoMultiple is set I think we send to any with same mtch level
 
 		for (bbs = BBSChain; bbs; bbs = bbs->BBSNext)
 		{		

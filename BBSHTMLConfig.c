@@ -445,7 +445,7 @@ void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, 
 	if (strstr(input, "Host: 127.0.0.1"))
 		LOCAL = TRUE;
 
-	if (Session->TNC == 1)
+	if (Session->TNC == (void *)1)					// Re-using an address as a flag
 		LOCAL = TRUE;
 
 	NodeURL = strtok_s(URL, "?", &Context);
@@ -2842,6 +2842,8 @@ int SendUserDetails(struct HTTPConnectionInfo * Session, char * Reply, char * Ke
 
 #ifdef WIN32
 
+int ProcessWebmailWebSock(char * MsgPtr, char * OutBuffer);
+
 static char PipeFileName[] = "\\\\.\\pipe\\BPQMailWebPipe";
 
 static DWORD WINAPI InstanceThread(LPVOID lpvParam)
@@ -2852,14 +2854,14 @@ static DWORD WINAPI InstanceThread(LPVOID lpvParam)
 // of this procedure to run concurrently, depending on the number of incoming
 // client connections.
 { 
-   DWORD cbBytesRead = 0, cbReplyBytes = 0, cbWritten = 0; 
-   BOOL fSuccess = FALSE;
-   HANDLE hPipe  = NULL;
-   char Buffer[250000];
-   char OutBuffer[250000];
-   char * MsgPtr;
-   int InputLen = 0;
-   int OutputLen = 0;
+	DWORD cbBytesRead = 0, cbReplyBytes = 0, cbWritten = 0; 
+	BOOL fSuccess = FALSE;
+	HANDLE hPipe  = NULL;
+	char Buffer[250000];
+	char OutBuffer[250000];
+	char * MsgPtr;
+	int InputLen = 0;
+	int OutputLen = 0;
 	struct HTTPConnectionInfo Session;
 	char URL[100001];
 	char * Context, * Method;
@@ -2867,17 +2869,17 @@ static DWORD WINAPI InstanceThread(LPVOID lpvParam)
 
 	char * ptr;
 
-//	Debugprintf("InstanceThread created, receiving and processing messages.");
+	// The thread's parameter is a handle to a pipe object instance. 
 
-// The thread's parameter is a handle to a pipe object instance. 
- 
-   hPipe = (HANDLE) lpvParam; 
+	hPipe = (HANDLE) lpvParam; 
 
-   // Read client requests from the pipe. This simplistic code only allows messages
-   // up to BUFSIZE characters in length.
- 
-   n = ReadFile(hPipe, &Session, sizeof (struct HTTPConnectionInfo), &n, NULL);
-   fSuccess = ReadFile(hPipe, Buffer, 250000, &InputLen, NULL);
+	// First block is the HTTPConnectionInfo record, rest is request
+
+	n = ReadFile(hPipe, &Session, sizeof (struct HTTPConnectionInfo), &n, NULL);
+
+	// Get the data
+
+	fSuccess = ReadFile(hPipe, Buffer, 250000, &InputLen, NULL);
 
 	if (!fSuccess || InputLen == 0)
 	{   
@@ -2885,13 +2887,20 @@ static DWORD WINAPI InstanceThread(LPVOID lpvParam)
 			Debugprintf("InstanceThread: client disconnected.", GetLastError()); 
 		else
 			Debugprintf("InstanceThread ReadFile failed, GLE=%d.", GetLastError()); 
+
+		return 1;
+	}
+
+	Buffer[InputLen] = 0;
+
+	MsgPtr = &Buffer[0];
+
+	if (memcmp(MsgPtr,  "WMRefresh", 9) == 0)
+	{
+		OutputLen = ProcessWebmailWebSock(MsgPtr, OutBuffer);
 	}
 	else
 	{
-		Buffer[InputLen] = 0;
-
-		MsgPtr = &Buffer[0];
-
 		strcpy(URL, MsgPtr);
 
 		ptr = strstr(URL, " HTTP");
@@ -2902,14 +2911,15 @@ static DWORD WINAPI InstanceThread(LPVOID lpvParam)
 		Method = strtok_s(URL, " ", &Context);
 
 		ProcessMailHTTPMessage(&Session, Method, Context, MsgPtr, OutBuffer, &OutputLen, InputLen);
-
-		WriteFile(hPipe, &Session, sizeof (struct HTTPConnectionInfo), &n, NULL);
-		WriteFile(hPipe, OutBuffer, OutputLen, &cbWritten, NULL); 
-
-		FlushFileBuffers(hPipe); 
-		DisconnectNamedPipe(hPipe); 
-		CloseHandle(hPipe);
 	}
+
+	WriteFile(hPipe, &Session, sizeof (struct HTTPConnectionInfo), &n, NULL);
+	WriteFile(hPipe, OutBuffer, OutputLen, &cbWritten, NULL); 
+
+	FlushFileBuffers(hPipe); 
+	DisconnectNamedPipe(hPipe); 
+	CloseHandle(hPipe);
+
 	return 1;
 }
 

@@ -1101,7 +1101,7 @@
 
 //	Fix ' in Webmail subject (8)
 //	Change web buttons to white on black when pressed (10)
-
+//	Add auto-refresh option to Webmail index page (25)
 
 #include "bpqmail.h"
 #define MAIL
@@ -1116,6 +1116,7 @@ typedef int (WINAPI FAR *FARPROCZ)();
 
 FARPROCX pDllBPQTRACE;
 FARPROCZ pGetLOC;
+FARPROCX pRefreshWebMailIndex;
 
 BOOL WINE = FALSE;
 
@@ -1879,6 +1880,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	{
 		pDllBPQTRACE = GetProcAddress(ExtDriver,"_DllBPQTRACE@8");
 		pGetLOC = GetProcAddress(ExtDriver,"_GetLOC@0");
+		pRefreshWebMailIndex = GetProcAddress(ExtDriver,"_RefreshWebMailIndex@0");
 
 		if (pGetLOC)
 		{

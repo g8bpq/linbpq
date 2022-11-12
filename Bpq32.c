@@ -1117,6 +1117,9 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix using FLARQ chat mode with FLDIGI ddriover (22)
 //	Fixed to KISSHF driver (23)
 //	Fix for application buffer loss (24)
+//	Add Web Sockets auto-refresh option for Webmail index page (25)
+//	Fix FREEDATA driver for compatibility with FreeData TNC version 0.6.4-alpha.3 (25)
+
 
 #define CKernel
 
@@ -1350,6 +1353,7 @@ DllExport int APIENTRY CloseBPQ32();
 DllExport char * APIENTRY GetLOC();
 DllExport int APIENTRY SessionControl(int stream, int command, int param);
 
+int DoRefreshWebMailIndex();
 
 BOOL APIENTRY Init_IP();
 BOOL APIENTRY Poll_IP();
@@ -1508,6 +1512,7 @@ BOOL ReconfigFlag = FALSE;
 BOOL RigReconfigFlag = FALSE;
 BOOL APRSReconfigFlag = FALSE;
 BOOL CloseAllNeeded = FALSE;
+BOOL NeedWebMailRefresh = FALSE;
 
 int AttachedPIDList[100] = {0};
 
@@ -2126,6 +2131,9 @@ VOID TimerProcX()
 		if (IPActive) Poll_IP();
 		if (PMActive) Poll_PM();
 		if (RigActive) Rig_Poll();
+
+		if (NeedWebMailRefresh)
+			DoRefreshWebMailIndex();
 
 		CheckGuardZone();
 

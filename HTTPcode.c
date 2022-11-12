@@ -2068,7 +2068,7 @@ doHeader:
 			if (Session == 0)
 				Session = &Dummy;
 
-			Session->TNC = LOCAL;		// TNC only used for Web Terminal Sessions
+			Session->TNC = (void *)LOCAL;		// TNC only used for Web Terminal Sessions
 
 			ProcessMailHTTPMessage(Session, Method, Context, MsgPtr, _REPLYBUFFER, &ReplyLen, MsgLen);
 
@@ -2195,7 +2195,7 @@ doHeader:
 				if (Session == 0)
 					Session = &Dummy;
 
-				Session->TNC = LOCAL;		// TNC is only used on Web Terminal Sessions 
+				Session->TNC = LOCAL;		// TNC is only used on Web Terminal Sessions so can reuse as LOCAL flag
 
 				WriteFile(hPipe, Session, sizeof (struct HTTPConnectionInfo), &InputLen, NULL);
 				WriteFile(hPipe, MsgPtr, MsgLen, &InputLen, NULL);
@@ -4325,7 +4325,100 @@ void SendRigWebPage()
 	}
 }
 
+// Webmail web socket code
+
+int ProcessWebmailWebSock(char * MsgPtr, char * OutBuffer);
+
+void ProcessWebmailWebSockThread(void * conn)
+{
+	// conn is a malloc'ed copy to handle reused connections, so need to free it
+
+	struct ConnectionInfo * sockptr = (struct ConnectionInfo *)conn;
+	char * URL = sockptr->WebURL;
+	int Loops = 0;
+	int Sent;
+	int InputLen;
+	struct HTTPConnectionInfo Dummy = {0};
+	int ReplyLen = 0;
+
+#ifdef LINBPQ
+
+	char _REPLYBUFFER[250000];
+
+	ReplyLen = ProcessWebmailWebSock(URL, _REPLYBUFFER);
+
+	// Send may block
+
+	Sent = send(sockptr->socket, _REPLYBUFFER, ReplyLen, 0);
+
+	while (Sent != ReplyLen && Loops++ < 3000)					// 100 secs max
+	{	
+		if (Sent > 0)					// something sent
+		{
+			InputLen -= Sent;
+			memmove(_REPLYBUFFER, &_REPLYBUFFER[Sent], ReplyLen);
+		}	
+
+		Sleep(30);
+		Sent = send(sockptr->socket, _REPLYBUFFER, ReplyLen, 0);
+	}
+	
+#else
+	// Send URL to BPQMail via Pipe. Just need a dummy session, as URL contains session key
+
+	HANDLE hPipe;
+	char Reply[250000];
 
 
 
- 
+	hPipe = CreateFile(MAILPipeFileName, GENERIC_READ | GENERIC_WRITE,
+		0,                    // exclusive access
+		NULL,                 // no security attrs
+		OPEN_EXISTING,
+		FILE_ATTRIBUTE_NORMAL, 
+		NULL );
+
+	if (hPipe == (HANDLE)-1)
+	{
+		free(conn);
+		return;
+	}
+
+	WriteFile(hPipe, &Dummy, sizeof (struct HTTPConnectionInfo), &InputLen, NULL);
+	WriteFile(hPipe, URL, strlen(URL), &InputLen, NULL);
+
+	ReadFile(hPipe, &Dummy, sizeof (struct HTTPConnectionInfo), &InputLen, NULL);
+	ReadFile(hPipe, Reply, 250000, &ReplyLen, NULL);
+
+	if (ReplyLen <= 0)
+	{
+		InputLen = GetLastError();
+	}
+
+	CloseHandle(hPipe);
+
+	// ?? do we need a thread to handle write which may block
+
+	Sent = send(sockptr->socket, Reply, ReplyLen, 0);
+
+	while (Sent != ReplyLen && Loops++ < 3000)					// 100 secs max
+	{	
+		//			Debugprintf("%d out of %d sent %d Loops", Sent, InputLen, Loops);
+
+		if (Sent > 0)					// something sent
+		{
+			InputLen -= Sent;
+			memmove(Reply, &Reply[Sent], ReplyLen);
+		}
+
+		Sleep(30);
+		Sent = send(sockptr->socket, Reply, ReplyLen, 0);
+	}
+#endif
+	free(conn);
+	return;
+}
+
+
+
+

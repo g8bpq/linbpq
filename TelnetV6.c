@@ -88,6 +88,7 @@ int DataSocket_ReadDRATS(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, 
 void processDRATSFrame(unsigned char * Message, int Len, struct ConnectionInfo * sockptr);
 void DRATSConnectionLost(struct ConnectionInfo * sockptr);
 int BuildRigCtlPage(char * _REPLYBUFFER);
+void ProcessWebmailWebSockThread(void * conn);
 
 #ifndef LINBPQ
 extern HKEY REGTREE;
@@ -915,7 +916,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 	{
 	case 7:			
 
-		// 100 mS Timer. Now needed, as Poll can be called more ferquently in some circimstances
+		// 100 mS Timer. Now needed, as Poll can be called more frequently in some circuymstances
 
 		while (TNC->PortRecord->UI_Q)			// Release anything accidentally put on UI_Q
 		{
@@ -1317,7 +1318,10 @@ static int WebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
 				{
 					char Addr[100];
 					Tel_Format_Addr(sockptr, Addr);
-					sprintf(msg,"<tr><td>HTTP<%s</td><td>&nbsp;</td><td>&nbsp;</td></tr>", Addr);
+					if (sockptr->WebSocks)
+						sprintf(msg,"<tr><td>Websock<%s</td><td>&nbsp;</td><td>&nbsp;</td></tr>", Addr);
+					else
+						sprintf(msg,"<tr><td>HTTP<%s</td><td>&nbsp;</td><td>&nbsp;</td></tr>", Addr);
 				}
 				else if (sockptr->DRATSMode)
 				{
@@ -4953,10 +4957,20 @@ int DataSocket_ReadHTTP(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, S
 				sprintf(RigCMD, "%s PTT", &MsgPtr[6]);
 				Rig_Command(-1, RigCMD);
 			}
-			else
-				Debugprintf("WebSock Opcode %d Msg %s", Opcode, &MsgPtr[6]);
+			else if (memcmp(sockptr->WebURL, "WMRefresh", 9) == 0)
+			{
+				sockcopy = malloc(sizeof(struct ConnectionInfo));
+				sockptr->TNC = TNC;
+				sockptr->LastSendTime = REALTIMETICKS;
 
+				memcpy(sockcopy, sockptr, sizeof(struct ConnectionInfo));
+
+				_beginthread(ProcessWebmailWebSockThread, 2048000, (VOID *)sockcopy);				// Needs big stack
+				return 0;
+			}
 		}
+		else
+			Debugprintf("WebSock Opcode %d Msg %s", Opcode, &MsgPtr[6]);
 
 		sockptr->InputLen = 0;
 		return 0;
@@ -4989,59 +5003,60 @@ int DataSocket_ReadHTTP(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, S
 
 	if(strstr(MsgPtr, "Upgrade: websocket"))
 	{
-		if(RigWebPage[0])
-		{
-			int LOCAL = 0, COOKIE = 0;
-			char * HostPtr;
-			char * ptr;
+		int LOCAL = 0, COOKIE = 0;
+		char * HostPtr;
+		char * ptr;
 
-			sockptr->WebSocks = 1;
-			memcpy(sockptr->WebURL, &MsgPtr[5], 15);
-			strlop(sockptr->WebURL, ' ');
+		sockptr->WebSocks = 1;
+		ShowConnections(TNC);
+
+		memcpy(sockptr->WebURL, &MsgPtr[5], 31);
+		strlop(sockptr->WebURL, ' ');
+		if (RigWebPage)
 			RigWebPage[0] = 0;
 
-			HostPtr = strstr(MsgPtr, "Host: ");
+		HostPtr = strstr(MsgPtr, "Host: ");
 
-			if (HostPtr)
+		if (HostPtr)
+		{
+			uint32_t Host;
+			char Hostname[32]= "";
+			struct LOCALNET * LocalNet = sockptr->TNC->TCPInfo->LocalNets;
+
+			HostPtr += 6;
+			memcpy(Hostname, HostPtr, 31);
+			strlop(Hostname, ':');
+			Host = inet_addr(Hostname);
+
+			if (strcmp(Hostname, "127.0.0.1") == 0)
+				LOCAL = TRUE;
+			else
 			{
-				uint32_t Host;
-				char Hostname[32]= "";
-				struct LOCALNET * LocalNet = sockptr->TNC->TCPInfo->LocalNets;
-
-				HostPtr += 6;
-				memcpy(Hostname, HostPtr, 31);
-				strlop(Hostname, ':');
-				Host = inet_addr(Hostname);
-
-				if (strcmp(Hostname, "127.0.0.1") == 0)
-					LOCAL = TRUE;
-				else
+				if (sockptr->sin.sin_family != AF_INET6)
 				{
-					if (sockptr->sin.sin_family != AF_INET6)
+					while(LocalNet)
 					{
-						while(LocalNet)
-						{
-							uint32_t MaskedHost = sockptr->sin.sin_addr.s_addr & LocalNet->Mask;
-							if (MaskedHost == LocalNet->Network)
-							{				
-								LOCAL = 1;
-								break;
-							}
-							LocalNet = LocalNet->Next;
+						uint32_t MaskedHost = sockptr->sin.sin_addr.s_addr & LocalNet->Mask;
+						if (MaskedHost == LocalNet->Network)
+						{				
+							LOCAL = 1;
+							break;
 						}
+						LocalNet = LocalNet->Next;
 					}
-				
-					ptr = strstr(MsgPtr, "BPQSessionCookie=N");
-
-					if (ptr)
-						COOKIE = TRUE;
 				}
-				sockptr->WebSecure = LOCAL | COOKIE;
+
+				ptr = strstr(MsgPtr, "BPQSessionCookie=N");
+
+				if (ptr)
+					COOKIE = TRUE;
 			}
+			sockptr->WebSecure = LOCAL | COOKIE;
 		}
 	}
 
-	_beginthread(ProcessHTTPMessage, 2048000, (VOID *)sockcopy);
+
+	_beginthread(ProcessHTTPMessage, 2048000, (VOID *)sockcopy);				// Needs big stack
 
 	sockptr->InputLen = 0;
 	return 0;
@@ -5103,7 +5118,7 @@ int ShowConnections(struct TNCINFO * TNC)
 
 	SendMessage(TNC->hMonitor,LB_RESETCONTENT,0,0);
 
-	for (n = 0; n <= TNC->TCPInfo->CurrentSockets; n++)
+	for (n = 1; n <= TNC->TCPInfo->CurrentSockets; n++)
 	{
 		sockptr=TNC->Streams[n].ConnectionInfo;
 
@@ -5119,7 +5134,11 @@ int ShowConnections(struct TNCINFO * TNC)
 				{
 					char Addr[100];
 					Tel_Format_Addr(sockptr, Addr);
-					sprintf(msg, "HTTP From %s", Addr);
+				
+					if (sockptr->WebSocks)
+						sprintf(msg, "Websock From %s", Addr);
+					else
+						sprintf(msg, "HTTP From %s", Addr);
 				}
 				else if (sockptr->DRATSMode)
 				{
@@ -6873,7 +6892,12 @@ VOID SHOWTELNET(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX
 				{
 					char Addr[100];
 					Tel_Format_Addr(sockptr, Addr);
-					sprintf(msg, "HTTP From %s", Addr);
+
+					if (sockptr->WebSocks)
+						sprintf(msg, "Websock From %s", Addr);
+					else
+						sprintf(msg, "HTTP From %s", Addr);
+
 				}
 				else if (sockptr->DRATSMode)
 				{
@@ -6895,3 +6919,83 @@ VOID SHOWTELNET(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX
 
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
+
+
+// Refresh any Web Socket Webmail index display
+// Called whenever message database is changed
+
+#ifdef LINBPQ
+
+int DoRefreshWebMailIndex();
+
+int RefreshWebMailIndex()
+{
+	DoRefreshWebMailIndex();
+}
+
+#else
+
+// Have to pass request from BPQMail to DLL as socket can only be accessed in calling process
+// Pass request back to WebMail via pipe
+
+// Code must run in bpq32 process, so set flag here and call code from Timer Routine
+
+extern BOOL NeedWebMailRefresh;
+
+
+DllExport int APIENTRY RefreshWebMailIndex()
+{
+	NeedWebMailRefresh = 1;
+	return 0;
+}
+
+#endif
+
+int DoRefreshWebMailIndex()
+{
+	// Loop through all sockets and pick out WebMail Index Connections
+
+	int i, n;
+	struct ConnectionInfo * sockptr;
+	struct ConnectionInfo * sockcopy;
+	struct TNCINFO * TNC;
+	struct TCPINFO * TCP;
+
+#ifndef LINBPQ
+	NeedWebMailRefresh = 0;
+#endif
+
+	for (i = 0; i < 33; i++)
+	{
+		TNC = TNCInfo[i];
+
+		if (TNC && TNC->Hardware == H_TELNET)
+		{
+			TCP = TNC->TCPInfo;
+
+			if (TCP)
+			{
+				for (n = 0; n <= TCP->MaxSessions; n++)
+				{
+					sockptr = TNC->Streams[n].ConnectionInfo;
+
+					if (sockptr->SocketActive)
+					{
+						if (sockptr->HTTPMode && sockptr->WebSocks  && memcmp(sockptr->WebURL, "WMRefresh", 9) == 0)
+						{
+							sockcopy = malloc(sizeof(struct ConnectionInfo));
+							sockptr->TNC = TNC;
+							sockptr->LastSendTime = REALTIMETICKS;
+
+							memcpy(sockcopy, sockptr, sizeof(struct ConnectionInfo));
+
+							_beginthread(ProcessWebmailWebSockThread, 2048000, (VOID *)sockcopy);				// Needs big stack
+						}
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}
+

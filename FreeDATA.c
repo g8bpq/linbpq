@@ -2978,7 +2978,11 @@ void ProcessDAEMONJSON(struct TNCINFO * TNC, char * Msg, int Len)
 						"\"tuning_range_fmax\":\"%3.1f\","			// 50.0
 						"\"tx_audio_level\":\"125\","
 						"\"respond_to_cq\":\"True\","
-						"\"rx_buffer_size\":\"16\"}]}\n";
+						"\"rx_buffer_size\":\"16\","
+						"\"rx_buffer_size\":\"16\","
+						"\"enable_explorer\": \"False\""
+				
+						"}]}\n";
 
 
 					char Command[2048];

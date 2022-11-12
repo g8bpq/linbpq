@@ -954,7 +954,7 @@ int SendWebMailHeaderEx(char * Reply, char * Key, struct HTTPConnectionInfo * Se
 	if (WebMailTemplate == NULL)
 		WebMailTemplate = GetTemplateFromFile(6, "WebMailPage.txt");
 
-	return sprintf(Reply, WebMailTemplate, BBSName, User->Call, Key, Key, Key, Key, Key, Key, Key, Messages);
+	return sprintf(Reply, WebMailTemplate, BBSName, User->Call, Key, Key, Key, Key, Key, Key, Key, Key, Messages);
 }
 
 int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Number, BOOL DisplayHTML)
@@ -1119,6 +1119,8 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 							{
 								Msg->status = 'Y';
 								Msg->datechanged=time(NULL);
+								SaveMessageDatabase();
+
 							}
 						}
 					}
@@ -1185,6 +1187,7 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 						{
 							Msg->status = 'Y';
 							Msg->datechanged=time(NULL);
+							SaveMessageDatabase();
 						}
 					}
 				}
@@ -1281,6 +1284,7 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 				{
 					Msg->status = 'Y';
 					Msg->datechanged=time(NULL);
+					SaveMessageDatabase();
 				}
 			}
 		}
@@ -1790,6 +1794,98 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 		*RLen = SendWebMailHeader(Reply, Session->Key, Session);
  		return;
 	}
+
+	if (_stricmp(NodeURL, "/WebMail/WMAuto") == 0)
+	{
+		// Auto Refresh Version of index page. Uses Web Sockets
+
+		char Page[4096];
+
+		char WebSockPage[] =
+			"<!-- Version 6 8/11/2018 -->\r\n"
+			"<!DOCTYPE html> \r\n"
+			"<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\"> \r\n"
+			"<head> \r\n"
+			"<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"/> \r\n"
+			"<style type=\"text/css\">\r\n"
+			"pre {margin-left: 4px;white-space: pre} \r\n"
+			"#main{width:700px;position:absolute;left:0px;border:2px solid;background-color: #ffffff;}\r\n"
+			"</style>\r\n"
+			"<script src=\"/WebMail/webscript.js\"></script>\r\n"
+
+			"<script type = \"text/javascript\">\r\n"
+			"var ws;"
+			"function Init()"
+			"{"
+			" if (\"WebSocket\" in window)"
+			" {"
+			"   // open a web socket. Get address from URL\r\n"
+			"	var text = window.location.href;"
+			"	var result = text.substring(7);"
+			"	var myArray = result.split('/', 1);"
+			"   ws = new WebSocket('ws://' + myArray[0] + '/WMRefresh&%s');\r\n"
+
+			"   ws.onopen = function() {\r\n"
+
+			"   // Web Socket is connected\r\n"
+
+			"	const div = document.getElementById('main');\r\n"
+			"	div.innerHTML = 'Websock Connected'\r\n"
+			"   ws.send('WMRefresh&%s');"
+			"    };\r\n"
+
+			"   ws.onmessage = function (evt)"
+			"   {"
+			"     var received_msg = evt.data;\r\n"
+			"	  const div = document.getElementById('main');\r\n"
+			"	  div.innerHTML = received_msg\r\n"
+			"     };"
+
+			"   ws.onclose = function()"
+			"   {"
+
+			"    // websocket is closed.\r\n"
+			"	 const div = document.getElementById('main');\r\n"
+			"	 div.innerHTML = 'Websock Connection Lost';\r\n"
+			"    };"
+			"  initialize(120);"
+			" }"
+			" else"
+			" {"
+			"  // The browser doesn't support WebSocket\r\n"
+			"	const div = document.getElementById('main');\r\n"
+			"	div.innerHTML = 'WebSocket not supported by your Browser - AutoRefresh not availble'\r\n"
+			" }"
+			"}"
+
+			"</script>\r\n"
+			"<title>WebMail</title> \r\n"
+			"</head>\r\n"
+
+			"<body background=/background.jpg onload=Init() onresize=initialize(120)>\r\n"
+			"<h3 align=center> %s Webmail Interface - User %s - Message List</h3>\r\n"
+			"<table align=center border=1 cellpadding=2 bgcolor=white><tr>\r\n"
+			"\r\n"
+			"<td><a href=/WebMail/WMB?%s>Bulls</a></td>\r\n"
+			"<td><a href=/WebMail/WMP?%s>Personal</a></td>\r\n"
+			"<td><a href=/WebMail/WMT?%s>NTS</a></td>\r\n"
+			"<td><a href=/WebMail/WMALL?%s>All Types</a></td>\r\n"
+			"<td><a href=/WebMail/WMMine?%s>Mine</a></td>\r\n"
+			"<td><a href=/WebMail/WMAuto?%s>Auto Refresh</a></td>\r\n"
+			"<td><a href=\"#\" onclick=\"newmsg('%s'); return false;\">Send Message</a></td>\r\n"
+			"<td><a href=/WebMail/WMLogout?%s>Logout</a></td>\r\n"
+			"<td><a href=/>Node Menu</a></td></tr></table>\r\n"
+			"<br>\r\n"
+
+			"<div align=left id=main style=overflow:scroll;>Waiting for data...</div>\r\n"
+			"</body></html>\r\n";
+
+		sprintf(Page, WebSockPage, Key, Key ,BBSName, Session->User->Call, Key, Key, Key, Key, Key, Key, Key, Key);
+
+		*RLen = sprintf(Reply, "%s", Page);
+		return;
+	}
+	
 
 	if (memcmp(NodeURL, "/WebMail/QuoteOriginal/", 15) == 0)
 	{
@@ -2656,7 +2752,6 @@ VOID SaveNewMessage(struct HTTPConnectionInfo * Session, char * MsgPtr, char * R
 		MatchMessagetoBBSList(Msg, &conn);
 
 		BuildNNTPList(Msg);				// Build NNTP Groups list
-
 
 		if (EnableUI)
 			SendMsgUI(Msg);	
@@ -5956,6 +6051,119 @@ char * WebFindPart(char ** Msg, char * Boundary, int * PartLen, char * End)
 		ptr ++;
 	}
 	return NULL;
+}
+
+
+int ProcessWebmailWebSock(char * MsgPtr, char * OutBuffer)
+{
+	int Len = 129;
+	char * Key = strlop(MsgPtr, '&');
+
+	struct HTTPConnectionInfo * Session;
+	struct UserInfo * User;
+	int m;
+	struct MsgInfo * Msg;
+	char * ptr = &OutBuffer[4];
+
+	int n = NumberofMessages;
+	char Via[64];
+	int Count = 0;
+
+	if (Key == 0)
+		return 0;
+
+	Session = FindWMSession(Key);
+
+	if (Session == NULL)
+		return 0;
+
+	User = Session->User;
+
+	// Outbuffer is 250000
+
+//	ptr += sprintf(ptr, "<div align=left id=\"main\" style=\"overflow:scroll;\">\r\n"
+	ptr += sprintf(ptr, "<pre align=left>");
+
+	ptr += sprintf(ptr, "%s", "     #  Date  XX   Len To      @       From    Subject\r\n\r\n");
+
+	for (m = LatestMsg; m >= 1; m--)
+	{
+		if (ptr > &OutBuffer[244000])
+			break;						// protect buffer
+
+		Msg = GetMsgFromNumber(m);
+
+		if (Msg == 0 || Msg->type == 0 || Msg->status == 0)
+			continue;					// Protect against corrupt messages
+		
+		if (Msg && CheckUserMsg(Msg, User->Call, User->flags & F_SYSOP))
+		{
+			char UTF8Title[128];
+			char  * EncodedTitle;
+			
+			// List if it is the right type and in the page range we want
+
+			if (Session->WebMailTypes[0] && strchr(Session->WebMailTypes, Msg->type) == 0) 
+				continue;
+
+			// All Types or right Type. Check Mine Flag
+
+			if (Session->WebMailMine)
+			{
+				// Only list if to or from me
+
+				if (strcmp(User->Call, Msg->to) != 0 && strcmp(User->Call, Msg->from) != 0)
+					continue;
+			}
+
+			if (Count++ < Session->WebMailSkip)
+				continue;
+
+			strcpy(Via, Msg->via);
+			strlop(Via, '.');
+
+			// make sure title is HTML safe (no < > etc) and UTF 8 encoded
+
+			EncodedTitle = doXMLTransparency(Msg->title);
+
+			ConvertTitletoUTF8(EncodedTitle, UTF8Title);
+
+			free(EncodedTitle);
+			
+			ptr += sprintf(ptr, "<a href=/WebMail/WM?%s&%d>%6d</a> %s %c%c %5d %-8s%-8s%-8s%s\r\n",
+				Key, Msg->number, Msg->number,
+				FormatDateAndTime((time_t)Msg->datecreated, TRUE), Msg->type,
+				Msg->status, Msg->length, Msg->to, Via,
+				Msg->from, UTF8Title);
+
+			n--;
+
+			if (n == 0)
+				break;
+		}
+	}
+
+	ptr += sprintf(ptr, "%s</pre> \r\n", ptr);
+
+	Len = ptr - &OutBuffer[4];
+
+	OutBuffer[0] = 0x81;		// Fin, Data
+
+	if (Len < 126)
+	{
+		OutBuffer[1] = Len;
+		memmove(&OutBuffer[2], &OutBuffer[4], Len);
+		return Len + 2;
+	}
+	else
+	{
+		OutBuffer[1] = 126;			// Unmasked, Extended Len
+		OutBuffer[2] = Len >> 8;
+		OutBuffer[3] = Len & 0xff;
+
+		return Len + 4;
+	}
+
 }
 
 
