@@ -1,5 +1,5 @@
 /*
-Copyright 2001-2018 John Wiseman G8BPQ
+Copyright 2001-2022 John Wiseman G8BPQ
 
 This file is part of LinBPQ/BPQ32.
 
@@ -1285,8 +1285,17 @@ Dll VOID APIENTRY Poll_APRS()
 					memcpy(Buffer, Orig, Orig->LENGTH);
 					Buffer->PORT = toPort;
 					PORT = GetPortTableEntryFromPortNum(toPort);
+
 					if (PORT)
+					{
+						if (PORT->SmartIDInterval && PORT->SmartIDNeeded == 0)
+						{
+							// Using Smart ID, but none scheduled
+
+							PORT->SmartIDNeeded = time(NULL) + PORT->SmartIDInterval;
+						}
 						PUT_ON_PORT_Q(PORT, Buffer);
+					}
 					else
 						ReleaseBuffer(Buffer);
 				}	

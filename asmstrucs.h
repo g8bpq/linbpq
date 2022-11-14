@@ -684,6 +684,9 @@ typedef struct PORTCONTROL
 	char Hide;					// Hide from port display and AGW connect menu
 	TRANSPORTENTRY * Session;	// For Response to KISS command
 	time_t LastKISSCmdTime;
+	time_t LastSmartIDTime;		// For SmartID - ID only if packets sent recently
+	time_t SmartIDNeeded;		// Time to send next smart ID
+	time_t SmartIDInterval;		// Smart ID Interval (Secs)
 
 }	PORTCONTROLX, *PPORTCONTROL;
 

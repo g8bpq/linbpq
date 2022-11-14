@@ -1,5 +1,5 @@
 /*
-Copyright 2001-2018 John Wiseman G8BPQ
+Copyright 2001-2022 John Wiseman G8BPQ
 
 This file is part of LinBPQ/BPQ32.
 
@@ -94,6 +94,43 @@ VOID TNCTimerProc()
 			}
 		}
 		HOSTSESS++;
+	}
+}
+
+VOID SendSmartID(struct PORTCONTROL * PORT)
+{
+	struct _MESSAGE * ID = IDMSG;
+	struct _MESSAGE * Buffer;
+
+	PORT->SmartIDNeeded = 0;
+
+	Buffer = GetBuff();
+
+	if (Buffer)
+	{
+		memcpy(Buffer, ID, ID->LENGTH);
+
+		Buffer->PORT = PORT->PORTNUMBER;
+
+		//	IF PORT HAS A CALLSIGN DEFINED, SEND THAT INSTEAD
+
+		if (PORT->PORTCALL[0] > 0x40)
+		{
+			memcpy(Buffer->ORIGIN, PORT->PORTCALL, 7);
+			Buffer->ORIGIN[6] |= 1;		// SET END OF CALL BIT
+		}
+
+		// If Pactor Style add to UI_Q
+
+		if (PORT->PROTOCOL == 10 && PORT->TNC && PORT->TNC->Hardware != H_KISSHF && PORT->UICAPABLE)
+		{
+			EXTPORTDATA * EXTPORT = (EXTPORTDATA *) PORT;
+
+			C_Q_ADD(&EXTPORT->UI_Q, Buffer);
+			return;
+		}
+
+		PUT_ON_PORT_Q(PORT, Buffer);
 	}
 }
 

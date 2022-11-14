@@ -1,5 +1,5 @@
 /*
-Copyright 2001-2018 John Wiseman G8BPQ
+Copyright 2001-2022 John Wiseman G8BPQ
 
 This file is part of LinBPQ/BPQ32.
 
@@ -45,7 +45,7 @@ void GetPortCTEXT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CM
 int upnpInit();
 void AISTimer();
 void ADSBTimer();
-
+VOID SendSmartID(struct PORTCONTROL * PORT);
 
 #include "configstructs.h"
 
@@ -1019,6 +1019,8 @@ BOOL Start()
 
 		PORT->Hide = PortRec->Hide;
 
+		PORT->SmartIDInterval = PortRec->SmartID;
+
 		if (PortRec->BBSFLAG)						// Appl 1 no permitted - BBSFLAG=NOBBS
 			PORT->PERMITTEDAPPLS &= 0xfffffffe;		// Clear bottom bit
 
@@ -1942,6 +1944,12 @@ VOID TIMERINTERRUPT()
 	for (i = 0; i < NUMBEROFPORTS; i++)
 	{	
 		PORT->PORTTIMERCODE(PORT);
+
+		// Check Smart ID timer
+
+		if (PORT->SmartIDNeeded && PORT->SmartIDNeeded < time(NULL))
+			SendSmartID(PORT);
+
 		PORT = PORT->PORTPOINTER;
 	}
 

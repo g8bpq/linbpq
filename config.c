@@ -1,5 +1,5 @@
 /*
-Copyright 2001-2018 John Wiseman G8BPQ
+Copyright 2001-2022 John Wiseman G8BPQ
 
 This file is part of LinBPQ/BPQ32.
 
@@ -359,7 +359,8 @@ static char *pkeywords[] =
 "TXPORT", "MHEARD", "CWIDTYPE", "MINQUAL", "MAXDIGIS", "PORTALIAS2", "DLLNAME",
 "BCALL", "DIGIMASK", "NOKEEPALIVES", "COMPORT", "DRIVER", "WL2KREPORT", "UIONLY",
 "UDPPORT", "IPADDR", "I2CBUS", "I2CDEVICE", "UDPTXPORT", "UDPRXPORT", "NONORMALIZE",
-"IGNOREUNLOCKEDROUTES", "INP3ONLY", "TCPPORT", "RIGPORT", "PERMITTEDAPPLS", "HIDE"};           /* parameter keywords */
+"IGNOREUNLOCKEDROUTES", "INP3ONLY", "TCPPORT", "RIGPORT", "PERMITTEDAPPLS", "HIDE",
+"SMARTID"};           /* parameter keywords */
 
 static void * poffset[] =
 {
@@ -372,7 +373,8 @@ static void * poffset[] =
 &xxp.TXPORT, &xxp.MHEARD, &xxp.CWIDTYPE, &xxp.MINQUAL, &xxp.MAXDIGIS, &xxp.PORTALIAS2, &xxp.DLLNAME,
 &xxp.BCALL, &xxp.DIGIMASK, &xxp.DefaultNoKeepAlives, &xxp.IOADDR, &xxp.DLLNAME, &xxp.WL2K, &xxp.UIONLY,
 &xxp.IOADDR, &xxp.IPADDR, &xxp.INTLEVEL, &xxp.IOADDR, &xxp.IOADDR, &xxp.ListenPort, &xxp.NoNormalize,
-&xxp.IGNOREUNLOCKED, &xxp.INP3ONLY, &xxp.TCPPORT, &xxp.RIGPORT, &xxp.PERMITTEDAPPLS, &xxp.Hide};	/* offset for corresponding data in config file */
+&xxp.IGNOREUNLOCKED, &xxp.INP3ONLY, &xxp.TCPPORT, &xxp.RIGPORT, &xxp.PERMITTEDAPPLS, &xxp.Hide,
+&xxp.SmartID};	/* offset for corresponding data in config file */
 
 static int proutine[] = 
 {
@@ -385,7 +387,8 @@ static int proutine[] =
 1, 7, 7, 13, 13, 0, 14,
 0, 1, 2, 18, 15, 16, 2,
 1, 17, 1, 1, 1, 1, 2,
-2, 2, 1, 1, 19, 2};							/* routine to process parameter */
+2, 2, 1, 1, 19, 2,
+1};							/* routine to process parameter */
 
 int PPARAMLIM = sizeof(proutine)/sizeof(int);
 

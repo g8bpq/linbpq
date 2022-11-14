@@ -1,5 +1,5 @@
 /*
-Copyright 2001-2015 John Wiseman G8BPQ
+Copyright 2001-2022 John Wiseman G8BPQ
 
 This file is part of LinBPQ/BPQ32.
 
@@ -1119,6 +1119,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix for application buffer loss (24)
 //	Add Web Sockets auto-refresh option for Webmail index page (25)
 //	Fix FREEDATA driver for compatibility with FreeData TNC version 0.6.4-alpha.3 (25)
+//	Add SmartID for bridged frames - Send ID only if packets sent recently (26)
 
 
 #define CKernel

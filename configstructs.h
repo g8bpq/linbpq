@@ -72,6 +72,7 @@ struct PORTCONFIG
 	int Hide;				// Don't show on Ports display or AGW Connect Menu
 	long long txOffset;		// Transverter tx offset 
 	long long rxOffset;		// Transverter rx offset ppa
+	int SmartID;
 };
 
 struct ROUTECONFIG

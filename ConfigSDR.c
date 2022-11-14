@@ -143,33 +143,43 @@ void main(int argc, char * argv[])
 	{
 		if (ptr = strstr(line, "CABLE-A"))
 		{
+			printf(line);
 			*ptr = 0;
 			sprintf(index, "%d\r\n", IndexA);
 			strcat(line, index);
+			printf(line);
 		}
 		if (ptr = strstr(line, "CABLE-B"))
 		{
+			printf(line);
 			*ptr = 0;
 			sprintf(index, "%d\r\n", IndexB);
 			strcat(line, index);
+			printf(line);
 		}
 		if (ptr = strstr(line, "CABLE-C"))
 		{
+			printf(line);
 			*ptr = 0;
 			sprintf(index, "%d\r\n", IndexC);
 			strcat(line, index);
+			printf(line);
 		}
 		if (ptr = strstr(line, "CABLE-D"))
 		{
+			printf(line); 
 			*ptr = 0;
 			sprintf(index, "%d\r\n", IndexD);
 			strcat(line, index);
+			printf(line);
 		}
 		if (ptr = strstr(line, "SPEAKERS"))
 		{
+			printf(line);
 			*ptr = 0;
 			sprintf(index, "%d\r\n", SPEAKERS);
 			strcat(line, index);
+			printf(line);
 		}
 
 		fprintf(file, line);
