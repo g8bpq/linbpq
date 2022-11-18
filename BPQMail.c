@@ -1117,6 +1117,7 @@ typedef int (WINAPI FAR *FARPROCZ)();
 FARPROCX pDllBPQTRACE;
 FARPROCZ pGetLOC;
 FARPROCX pRefreshWebMailIndex;
+FARPROCX pRunEventProgram;
 
 BOOL WINE = FALSE;
 
@@ -1881,6 +1882,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		pDllBPQTRACE = GetProcAddress(ExtDriver,"_DllBPQTRACE@8");
 		pGetLOC = GetProcAddress(ExtDriver,"_GetLOC@0");
 		pRefreshWebMailIndex = GetProcAddress(ExtDriver,"_RefreshWebMailIndex@0");
+		pRunEventProgram = GetProcAddress(ExtDriver,"_RunEventProgram@8");
 
 		if (pGetLOC)
 		{

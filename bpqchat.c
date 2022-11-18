@@ -61,7 +61,8 @@
 //  Version 6.0.24.1 ??
 
 //	Restore CMD_TO_APPL flag to Applflags (13)
-//	Check for and remove names set to *RTL (
+//	Check for and remove names set to *RTL 
+//	Add option to run user program when chat user connects (27)
 
 
 #include "BPQChat.h"
@@ -214,6 +215,7 @@ VOID SaveStringValue(config_setting_t * group, char * name, char * value);
 VOID SaveIntValue(config_setting_t * group, char * name, int value);
 VOID SaveChatConfig(HWND hDlg);
 BOOL CreateChatPipeThread();
+VOID WriteMiniDump();
 
 struct _EXCEPTION_POINTERS exinfox;
 	
@@ -223,6 +225,9 @@ EXCEPTION_RECORD ExceptionRecord;
 DWORD Stack[16];
 
 BOOL Restarting = FALSE;
+
+typedef int (WINAPI FAR *FARPROCX)();
+FARPROCX pRunEventProgram;
 
 int Dump_Process_State(struct _EXCEPTION_POINTERS * exinfo, char * Msg)
 {
@@ -1282,6 +1287,7 @@ BOOL Initialise()
 {
 	int i;
 	ChatCIRCUIT * conn;
+	HMODULE ExtDriver = LoadLibrary("bpq32.dll");
 
 	//	Register message for posting by BPQDLL
 
@@ -1387,6 +1393,11 @@ Retry:
 	DeleteLogFiles();
 
 	CreateChatPipeThread();
+
+
+	if (ExtDriver)
+		pRunEventProgram = GetProcAddress(ExtDriver,"_RunEventProgram@8");
+
 
 	return TRUE;
 }

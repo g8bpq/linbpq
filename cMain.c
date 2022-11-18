@@ -137,6 +137,8 @@ BOOL LogAllConnects = FALSE;
 BOOL AUTOSAVEMH = TRUE;
 extern BOOL ADIFLogEnabled;
 extern UCHAR LogDirectory[260];
+extern BOOL EventsEnabled;
+extern BOOL SaveAPRSMsgs;
 
 //TNCTABLE	DD	0
 //NUMBEROFSTREAMS	DD	0
@@ -759,6 +761,8 @@ BOOL Start()
 	LogAllConnects = cfg->C_LogAllConnects;
 	AUTOSAVEMH = cfg->C_SaveMH;
 	ADIFLogEnabled = cfg->C_ADIF;
+	EventsEnabled = cfg->C_EVENTS;
+	SaveAPRSMsgs = cfg->C_SaveAPRSMsgs;
 
 	// Get pointers to PASSWORD and APPL1 commands
 

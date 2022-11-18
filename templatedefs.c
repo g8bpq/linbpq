@@ -377,6 +377,7 @@ char * WebMailPagetxt()
 		"<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en\"> \r\n"
 		"<head> \r\n"
 		"<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\"/> \r\n"
+		"<meta http-equiv=refresh content=300>"
 		"<style type=\"text/css\">\r\n"
 		"pre {margin-left: 4px;white-space: pre} \r\n"
 		"#main{width:700px;position:absolute;left:0px;border:2px solid;background-color: #ffffff;}\r\n"

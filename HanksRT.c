@@ -36,6 +36,9 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 iconv_t link_toUTF8 = NULL;
 
+
+BOOL RunEventProgram(char * Program, char * Param);
+
 #endif
 
 BOOL ProcessChatConnectScript(ChatCIRCUIT * conn, char * Buffer, int len);
@@ -48,6 +51,7 @@ void ChatWriteLogLine(ChatCIRCUIT * conn, int Flag, char * Msg, int MsgLen, int 
 extern struct SEM ChatSemaphore;
 UCHAR * APIENTRY GetLogDirectory();
 char * APIENTRY GetBPQDirectory();
+VOID WriteMiniDump();
 
 extern SOCKADDR_IN Chatreportdest;
 
@@ -113,6 +117,9 @@ time_t RunningConnectScript = 0;
 //#undef free
 //#define   free(p) 
 
+
+typedef int (WINAPI FAR *FARPROCX)();
+extern FARPROCX pRunEventProgram;
 
 int ChatIsUTF8(unsigned char *ptr, int len)
 {
@@ -1935,6 +1942,7 @@ void text_tellu_Joined(USER * user)
 	struct tm * tm;
 	char Stamp[20];
 	time_t T;
+	char prog[256] = "";
 
 	T = time(NULL);
 	tm = gmtime(&T);	
@@ -1973,6 +1981,14 @@ void text_tellu_Joined(USER * user)
 				nputc(circuit, 7);
 
 		nputc(circuit, 13);
+
+#ifdef WIN32
+		if (pRunEventProgram)
+			pRunEventProgram("ChatNewUser.exe", user->call);
+#else
+		sprintf(prog, "%s/%s", BPQDirectory, "ChatNewUser");
+		RunEventProgram(prog, user->call);
+#endif
 	}
 }
 // Tell one link circuit about a local user change of topic.

@@ -299,7 +299,7 @@ static char *keywords[] =
 "APPL1QUAL", "APPL2QUAL", "APPL3QUAL", "APPL4QUAL",
 "APPL5QUAL", "APPL6QUAL", "APPL7QUAL", "APPL8QUAL",
 "BTEXT:", "NETROMCALL", "C_IS_CHAT", "MAXRTT", "MAXHOPS",		// IPGATEWAY= no longer allowed
-"LogL4Connects", "LogAllConnects", "SAVEMH", "ENABLEADIFLOG"
+"LogL4Connects", "LogAllConnects", "SAVEMH", "ENABLEADIFLOG", "ENABLEEVENTS", "SAVEAPRSMSGS"
 };           /* parameter keywords */
 
 static void * offset[] =
@@ -319,7 +319,7 @@ static void * offset[] =
 &xxcfg.C_APPL[0].ApplQual, &xxcfg.C_APPL[1].ApplQual, &xxcfg.C_APPL[2].ApplQual, &xxcfg.C_APPL[3].ApplQual,
 &xxcfg.C_APPL[4].ApplQual, &xxcfg.C_APPL[5].ApplQual, &xxcfg.C_APPL[6].ApplQual, &xxcfg.C_APPL[7].ApplQual,
 &xxcfg.C_BTEXT, &xxcfg.C_NETROMCALL, &xxcfg.C_C, &xxcfg.C_MAXRTT, &xxcfg.C_MAXHOPS,		// IPGATEWAY= no longer allowed
-&xxcfg.C_LogL4Connects, &xxcfg.C_LogAllConnects, &xxcfg.C_SaveMH, &xxcfg.C_ADIF};		/* offset for corresponding data in config file */
+&xxcfg.C_LogL4Connects, &xxcfg.C_LogAllConnects, &xxcfg.C_SaveMH, &xxcfg.C_ADIF, &xxcfg.C_EVENTS, &xxcfg.C_SaveAPRSMsgs};		/* offset for corresponding data in config file */
 
 static int routine[] = 
 {
@@ -338,7 +338,7 @@ static int routine[] =
 14, 14, 14, 14,
 14, 14 ,14, 14,
 15, 0, 2, 9, 9,
-2, 2, 2, 2} ;			// Routine to process param
+2, 2, 2, 2, 2, 2} ;			// Routine to process param
 
 int PARAMLIM = sizeof(routine)/sizeof(int);
 //int NUMBEROFKEYWORDS = sizeof(routine)/sizeof(int);
@@ -407,7 +407,7 @@ static int routeindex = 0;
 /* Global variables							*/
 /************************************************************************/
 
-int paramok[100];		/* PARAMETER OK FLAG  */
+int paramok[100] = {0};		/* PARAMETER OK FLAG  */
 
 FILE *fp1;			/* TEXT INPUT FILE    */
 
@@ -587,6 +587,8 @@ BOOL ProcessConfig()
 	paramok[75]=1;			// LogAllConnects optional
 	paramok[76]=1;			// SAVEMH optional
 	paramok[77]=1;			// ENABLEADIFLOG optional
+	paramok[78]=1;			// EnableEvents optional
+	paramok[79]=1;			// SaveAPRSMsgs optional
 
 	for (i=0; i < PARAMLIM; i++)
 	{

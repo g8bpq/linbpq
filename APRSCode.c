@@ -99,12 +99,16 @@ BOOL ProcessConfig();
 int ProcessAISMessage(char * msg, int len);
 int read_png(unsigned char *bytes);
 VOID sendandcheck(SOCKET sock, const char * Buffer, int Len);
+void SaveAPRSMessage(struct APRSMESSAGE * ptr);
+void ClearSavedMessages();
+void GetSavedAPRSMessages();
 
 extern int SemHeldByAPI;
 extern int APRSMONDECODE();
 extern struct ConsoleInfo MonWindow;
 extern char VersionString[];
 
+BOOL SaveAPRSMsgs = 0;
 
 BOOL LogAPRSIS = FALSE;
 
@@ -958,6 +962,11 @@ Dll BOOL APIENTRY Init_APRS()
 
 	read_png((unsigned char *)IconData);
 
+	// Reload saved messages
+
+	if (SaveAPRSMsgs)
+		GetSavedAPRSMessages();
+
 	// If a Run parameter was supplied, run the program
 
 	if (RunProgram[0] == 0)
@@ -970,7 +979,7 @@ Dll BOOL APIENTRY Init_APRS()
 
 		signal(SIGCHLD, SIG_IGN); // Silently (and portably) reap children. 
 
-		//	Fork and Exec ARDOP
+		//	Fork and Exec program
 
 		printf("Trying to start %s\n", RunProgram);
 
@@ -1095,6 +1104,8 @@ Dll VOID APIENTRY Poll_APRS()
 		SMEM->Messages = NULL;
 		SMEM->ClearRX = 0;
 		SMEM->NeedRefresh = TRUE;
+
+		ClearSavedMessages();
 	}
 
 	if (SMEM->ClearTX)
@@ -7674,6 +7685,9 @@ int ProcessMessage(char * Payload, struct STATIONRECORD * Station)
 		}
 	}
 
+	if (SaveAPRSMsgs)
+		SaveAPRSMessage(Message);
+
 	ptr = SMEM->Messages;
 
 	if (ptr == NULL)
@@ -7690,6 +7704,7 @@ int ProcessMessage(char * Payload, struct STATIONRECORD * Station)
 		}
 		ptr->Next = Message;
 	}
+
 	return ourMessage;
 }
 
@@ -8763,3 +8778,132 @@ unsigned char * PngEncode (png_byte *pDiData, int iWidth, int iHeight, struct ic
     return Icon->pngimage;
 }
 
+void SaveAPRSMessage(struct APRSMESSAGE * ptr)
+{
+	// Save messages in case of a restart
+
+	char FN[250];
+	FILE *file;
+
+	// Set up filename
+
+	if (BPQDirectory[0] == 0)
+	{
+		strcpy(FN,"APRSMsgs.dat");
+	}
+	else
+	{
+		strcpy(FN,BPQDirectory);
+		strcat(FN,"/");
+		strcat(FN,"APRSMsgs.dat");
+	}
+
+	if ((file = fopen(FN, "a")) == NULL)
+		return ;
+
+	fprintf(file, "%d %s,%s,%s,%s,%s\n", time(NULL), ptr->FromCall, ptr->ToCall, ptr->Seq, ptr->Time, ptr->Text);
+
+	fclose(file);
+}
+
+void ClearSavedMessages()
+{
+	char FN[250];
+	FILE *file;
+
+	// Set up filename
+
+	if (BPQDirectory[0] == 0)
+	{
+		strcpy(FN,"APRSMsgs.dat");
+	}
+	else
+	{
+		strcpy(FN,BPQDirectory);
+		strcat(FN,"/");
+		strcat(FN,"APRSMsgs.dat");
+	}
+
+	if ((file = fopen(FN, "w")) == NULL)
+		return ;
+
+	fclose(file);
+}
+
+void GetSavedAPRSMessages()
+{
+	// Get Saved messages 
+
+	// 1668768157 SERVER   ,GM8BPQ-2 ,D7Yx,10:42,filter m/200 active
+
+	char FN[250];
+	FILE *file;
+	struct APRSMESSAGE * Message;
+	struct APRSMESSAGE * ptr;
+	char Line[256];
+	char * Stamp = 0;
+	char * From = 0;
+	char * To = 0;
+	char * Seq = 0;
+	char * Time = 0;
+	char * Text = 0;
+
+	// Set up filename
+
+	if (BPQDirectory[0] == 0)
+	{
+		strcpy(FN,"APRSMsgs.dat");
+	}
+	else
+	{
+		strcpy(FN,BPQDirectory);
+		strcat(FN,"/");
+		strcat(FN,"APRSMsgs.dat");
+	}
+
+	if ((file = fopen(FN, "r")) == NULL)
+		return ;
+
+	while (fgets(Line, 512, file))
+	{
+		Stamp = Line;
+		From = strlop(Stamp, ' ');
+		To = strlop(From, ',');
+		Seq = strlop(To, ',');
+		Time = strlop(Seq, ',');
+		Text = strlop(Time, ',');
+
+		if (Stamp && From && To && Seq && Time && Text)
+		{
+			Message = APRSGetMessageBuffer();
+
+			if (Message == NULL)
+				break;
+
+			memset(Message, 0, sizeof(struct APRSMESSAGE));
+
+			strcpy(Message->FromCall, From);
+			strcpy(Message->ToCall, To);
+			strcpy(Message->Seq, Seq);
+			strcpy(Message->Time, Time);
+			strcpy(Message->Text, Text);
+
+			ptr = SMEM->Messages;
+
+			if (ptr == NULL)
+			{
+				SMEM->Messages = Message;
+			}
+			else
+			{
+				while(ptr->Next)
+				{
+					ptr = ptr->Next;
+				}
+				ptr->Next = Message;
+			}
+
+		}
+	}
+	fclose(file);
+}

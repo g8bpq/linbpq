@@ -41,6 +41,7 @@ extern int RunningConnectScript;
 INT_PTR CALLBACK InfoDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 int GetMultiLineDialog(HWND hDialog, int DLGItem);
 BOOL ProcessChatConnectScript(ChatCIRCUIT * conn, char * Buffer, int len);
+VOID WriteMiniDump();
 
 int Connected(int Stream)
 {

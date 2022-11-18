@@ -38,6 +38,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #define SD_BOTH         0x02
 
+#define FREEDATABUFLEN 16384				// TCP buffer size
+
 int KillTNC(struct TNCINFO * TNC);
 int RestartTNC(struct TNCINFO * TNC);
 
@@ -254,7 +256,7 @@ static int ProcessLine(char * buf, int Port)
 			TNC->FreeDataInfo->TuningRange = atoi(&buf[12]);
 		
 		else if (_memicmp(buf, "LimitBandWidth", 14) == 0)
-			TNC->FreeDataInfo->LimitBandWidth = atoi(&buf[14]);
+			TNC->FreeDataInfo->LimitBandWidth = atoi(&buf[15]);
 		
 		else if (_memicmp(buf, "HAMLIBPORT", 10) == 0)
 			TNC->FreeDataInfo->hamlibPort = atoi(&buf[11]);
@@ -928,14 +930,28 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 		return ((TNC->TNCCONNECTED != 0) << 8 | TNC->Streams[Stream].Disconnecting << 15);		// OK
 		
-
-	case 4:				// reinit7
-
-		return 0;
-
 	case 5:				// Close
 
 		StopTNC(TNC);
+
+		// Drop through
+
+	case 4:				// reinit7
+
+		if (TNC->TCPDataSock)
+		{
+			shutdown(TNC->TCPDataSock, SD_BOTH);
+			Sleep(100);
+			closesocket(TNC->TCPDataSock);
+		}
+
+		if (TNC->TCPSock)
+		{
+			shutdown(TNC->TCPSock, SD_BOTH);
+			Sleep(100);
+			closesocket(TNC->TCPSock);
+		}
+
 		return 0;
 
 	case 6:				// Scan Stop Interface
@@ -1320,7 +1336,7 @@ VOID * FreeDataExtInit(EXTPORTDATA * PortEntry)
 	TNC->Hardware = H_FREEDATA;
 
 	TNC->ARDOPDataBuffer = malloc(MAXRXSIZE);
-	TNC->ARDOPBuffer = malloc(8192);
+	TNC->ARDOPBuffer = malloc(FREEDATABUFLEN);
 
 	TNC->PortRecord = PortEntry;
 
@@ -3566,9 +3582,9 @@ void FreeDataProcessDaemonMsg(struct TNCINFO * TNC)
 	if (TNC->InputLen > 8000)	// Shouldnt have packets longer than this
 		TNC->InputLen=0;
 				
-	InputLen=recv(TNC->TCPSock, &TNC->ARDOPBuffer[TNC->InputLen], 8191 - TNC->InputLen, 0);
+	InputLen=recv(TNC->TCPSock, &TNC->ARDOPBuffer[TNC->InputLen], FREEDATABUFLEN - 1 - TNC->InputLen, 0);
 
-	if (InputLen == 8191)
+	if (InputLen == FREEDATABUFLEN - 1)
 		c = 0;
 
 
@@ -3970,14 +3986,11 @@ TNCRunning:
 		if (TNC->TNCCONNECTED)
 			FD_SET(TNC->TCPDataSock,&readfs);
 			
-//		FD_ZERO(&writefs);
-
-//		if (TNC->BPQtoWINMOR_Q) FD_SET(TNC->TCPSock,&writefs);	// Need notification of busy clearing
 		
 		if (TNC->TNCCONNECTING || TNC->TNCCONNECTED) FD_SET(TNC->TCPDataSock,&errorfs);
 
-		timeout.tv_sec = 90;
-		timeout.tv_usec = 0;				// We should get messages more frequently that this
+		timeout.tv_sec = 300;
+		timeout.tv_usec = 0;
 
 		ret = select((int)TNC->TCPSock + 1, &readfs, NULL, &errorfs, &timeout);
 		
@@ -3986,7 +3999,20 @@ TNCRunning:
 			Debugprintf("FreeData Select failed %d ", WSAGetLastError());
 			goto Lost;
 		}
-		if (ret > 0)
+
+		// If nothing doing send get rx_buffer as link validation poll
+
+		if (ret == 0)
+		{
+			char GetData[] = "{\"type\" : \"get\", \"command\": \"rx_buffer\"}\n";
+			int Len;
+			
+			Len =  send(TNC->TCPDataSock, GetData, strlen(GetData), 0);
+
+			if (Len != strlen(GetData))
+				goto closeThread;
+		}
+		else
 		{
 			//	See what happened
 
@@ -4007,7 +4033,7 @@ TNCRunning:
 			if (FD_ISSET(TNC->TCPDataSock, &errorfs))
 			{
 Lost:	
-				sprintf(Msg, "FreeData Daemon Connection lost for Port %d\r\n", TNC->Port);
+				sprintf(Msg, "FreeData TNC Connection lost for Port %d\r\n", TNC->Port);
 				WritetoConsole(Msg);
 
 				sprintf(TNC->WEB_COMMSSTATE, "Connection to Daemon lost");
@@ -4048,10 +4074,9 @@ Lost:
 			}
 			continue;
 		}
-		else
-		{
-		}
 	}
+
+closeThread:
 
 	if (TNC->TCPDataSock)
 	{

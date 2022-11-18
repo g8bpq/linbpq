@@ -351,6 +351,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Events.c"
+				>
+			</File>
+			<File
 				RelativePath="..\CommonSource\FLDigi.c"
 				>
 			</File>

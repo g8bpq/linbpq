@@ -506,6 +506,8 @@ extern int ISPort;
 
 extern char ChatConfigName[250];
 
+BOOL EventsEnabled = 0;
+
 UCHAR * GetBPQDirectory()
 {
 	return BPQDirectory;

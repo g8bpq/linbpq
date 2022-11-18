@@ -1120,6 +1120,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add Web Sockets auto-refresh option for Webmail index page (25)
 //	Fix FREEDATA driver for compatibility with FreeData TNC version 0.6.4-alpha.3 (25)
 //	Add SmartID for bridged frames - Send ID only if packets sent recently (26)
+//	Add option to save and restore received APRS messages (27)
+//	Add mechanism to run a user program on certain events (27)
 
 
 #define CKernel
@@ -1499,6 +1501,8 @@ int FirstInitDone = 0;
 int PerlReinit = 0;
 UINT_PTR TimerHandle = 0;
 UINT_PTR SessHandle = 0;
+
+BOOL EventsEnabled = 0;
 
 unsigned int TimerInst = 0xffffffff;
 
