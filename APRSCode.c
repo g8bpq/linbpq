@@ -102,6 +102,7 @@ VOID sendandcheck(SOCKET sock, const char * Buffer, int Len);
 void SaveAPRSMessage(struct APRSMESSAGE * ptr);
 void ClearSavedMessages();
 void GetSavedAPRSMessages();
+static VOID GPSDConnect(void * unused);
 
 extern int SemHeldByAPI;
 extern int APRSMONDECODE();
@@ -178,11 +179,19 @@ char LON[] = "00000.00W";	//in standard APRS Format
 char HostName[80];			// for BlueNMEA
 int HostPort = 4352;
 
+char GPSDHost[80];			// for BlueNMEA
+int GPSDPort = 2947;
+
+
 extern int ADSBPort;
 extern char ADSBHost[];
 
 BOOL BlueNMEAOK = FALSE;
 int BlueNMEATimer = 0;
+
+BOOL GPSDOK = FALSE;
+int GPSDTimer = 0;
+
 
 BOOL GPSSetsLocator = 0;	// Update Map Location from GPS
 
@@ -2326,6 +2335,21 @@ static int APRSProcessLine(char * buf)
 		return TRUE;
 	}
 
+	if (_stricmp(ptr, "GPSDHost") == 0)
+	{
+		if (strlen(p_value) > 70)
+			return FALSE;
+
+		strcpy(GPSDHost, p_value);
+		return TRUE;
+	}
+
+	if (_stricmp(ptr, "GPSDPort") == 0)
+	{
+		GPSDPort = atoi(p_value);
+		return TRUE;
+	}
+
 	if (_stricmp(ptr, "ADSBHost") == 0)
 	{
 		if (strlen(p_value) > 70)
@@ -2912,6 +2936,18 @@ VOID DoSecTimer()
 		}
 	}
 
+	if (GPSDHost[0])
+	{
+		if (GPSDOK == 0)
+		{
+			GPSDTimer++;
+			if (GPSDTimer > 15)
+			{
+				GPSDTimer = 0;
+				_beginthread(GPSDConnect, 0, 0);
+			}
+		}
+	}
 
 	if (BeaconCounter)
 	{
@@ -3894,6 +3930,7 @@ void DecodeRMC(char * msg, size_t len)
 	{
 #ifdef LINBPQ
 		Debugprintf("GPS OK");
+		printf("GPS OK\n");
 #else
 		SetDlgItemText(hConsWnd, IDC_GPS, "GPS OK");
 #endif
@@ -4315,6 +4352,141 @@ Lost:
 		}
 	}
 }
+
+
+static VOID GPSDConnect(void * unused)
+{
+	int err, ret;
+	u_long param=1;
+	BOOL bcopt=TRUE;
+	fd_set readfs;
+	fd_set errorfs;
+	struct timeval timeout;
+	struct sockaddr_in destaddr;
+	SOCKET TCPSock;
+
+	if (GPSDHost[0] == 0)
+		return;
+
+	destaddr.sin_addr.s_addr = inet_addr(GPSDHost);
+	destaddr.sin_family = AF_INET;
+	destaddr.sin_port = htons(GPSDPort);
+
+	TCPSock = socket(AF_INET,SOCK_STREAM,0);
+
+	if (TCPSock == INVALID_SOCKET)
+	{
+  	 	return; 
+	}
+ 
+	setsockopt (TCPSock, SOL_SOCKET, SO_REUSEADDR, (const char FAR *)&bcopt, 4);
+
+	GPSDOK = TRUE;			// So we don't try to reconnect while waiting		
+
+	if (connect(TCPSock,(LPSOCKADDR) &destaddr, sizeof(destaddr)) == 0)
+	{
+		//
+		//	Connected successful
+		//
+
+#ifdef LINBPQ
+   		printf("GPSD Connected\n");
+#else
+   		Debugprintf("GPSD Connected");
+#endif		
+		ioctl(TCPSock, FIONBIO, &param);
+
+		// Request data 
+
+		send(TCPSock, "?WATCH={\"enable\":true,\"nmea\":true}", 34, 0);
+	}
+	else
+	{
+		err=WSAGetLastError();
+#ifdef LINBPQ
+   		printf("GPSD Connect Failed - error code = %d\n", err);
+#else
+   		Debugprintf("GPSD Connect Failed - error code = %d", err);
+#endif		
+		closesocket(TCPSock);
+		GPSDOK = FALSE;
+
+		return;
+	}
+
+	while (TRUE)
+	{
+		FD_ZERO(&readfs);	
+		FD_ZERO(&errorfs);
+
+		FD_SET(TCPSock,&readfs);
+		FD_SET(TCPSock,&errorfs);
+
+		timeout.tv_sec = 900;
+		timeout.tv_usec = 0;				// We should get messages more frequently that this
+
+		ret = select((int)TCPSock + 1, &readfs, NULL, &errorfs, &timeout);
+		
+		if (ret == SOCKET_ERROR)
+		{
+			goto Lost;
+		}
+		if (ret > 0)
+		{
+			//	See what happened
+
+			if (FD_ISSET(TCPSock, &readfs))
+			{
+				char Buffer[65536];
+				int len = recv(TCPSock, Buffer, 65500, 0);
+			
+				if (len == 0)
+				{
+					closesocket(TCPSock);
+					GPSDOK = FALSE;;
+					return;
+				}
+
+				if (len < 9000)
+				{
+					Buffer[len] = 0;
+
+					if (Buffer[0] == '$' && memcmp(&Buffer[3], "RMC", 3) == 0)
+						if (Check0183CheckSum(Buffer, len))
+							DecodeRMC(Buffer, len);	
+
+			}
+		}
+
+		if (FD_ISSET(TCPSock, &errorfs))
+		{
+Lost:				
+#ifdef LINBPQ
+				printf("GPSD Connection lost\n");
+#endif			
+				closesocket(TCPSock);
+				GPSDOK = FALSE;;
+				return;
+			}
+		}
+		else
+		{
+			// 15 mins without data. Shouldn't happen
+
+			shutdown(TCPSock, SD_BOTH);
+			Sleep(100);
+
+			closesocket(TCPSock);
+			GPSDOK = FALSE;
+			return;
+		}
+	}
+}
+
+
+
+
+
 // Code Moved from APRS Application
 
 //
@@ -7849,7 +8021,7 @@ VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 	if (memcmp(CmdTail, "? ", 2) == 0)
 	{
 		Bufferptr = Cmdprintf(Session, Bufferptr, "APRS Subcommmands:\r");
-		Bufferptr = Cmdprintf(Session, Bufferptr, "STATUS SEND MSGS SENT ENABLEIGATE DISABLEIGATE RECONFIG\r");
+		Bufferptr = Cmdprintf(Session, Bufferptr, "STATUS SEND MSGS SENT ENABLEIGATE DISABLEIGATE BEACON RECONFIG\r");
 		Bufferptr = Cmdprintf(Session, Bufferptr, "Default is Station list - Params [Port] [Pattern]\r");
 	
 		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
@@ -7908,7 +8080,16 @@ VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 			else
 				Bufferptr = Cmdprintf(Session, Bufferptr, "but not connected\r");
 		}
+		return;
+	}
 
+	if (memcmp(CmdTail, "BEACON ", 7) == 0)
+	{
+		if (isSYSOP(Session, Bufferptr) == FALSE)
+			return;
+
+		BeaconCounter = 2;
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Beacons requested\r");
 		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 		return;
 	}

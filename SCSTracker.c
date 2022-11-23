@@ -1052,11 +1052,11 @@ VOID DEDPoll(int Port)
 
 		// Can't use retries, as we have no way of detecting lost chars. Have to re-init on timeout
 
-		if (TNC->HostMode == 0 || TNC->ReinitState == 10)		// 10 is Recovery Mode
-		{
-			DoTermModeTimeout(TNC);
-			return;
-		}
+//		if (TNC->HostMode == 0 || TNC->ReinitState == 10)		// 10 is Recovery Mode
+//		{
+//			DoTermModeTimeout(TNC);
+//			return;
+//		}
 
 		// Timed out in host mode - Clear any connection and reinit the TNC
 

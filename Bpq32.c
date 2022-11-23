@@ -1125,8 +1125,9 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	If BeacontoIS is zero don't Gate any of our messages received locally to APRS-IS (28)
 //	Add Node Help command (28)
 //	Add APRS Igate RXOnly option (29)
-//	Fix RMC message handling with prefixes other than GP
-
+//	Fix RMC message handling with prefixes other than GP (29)
+//	Add GPSD support for APRS (30)
+//	Attempt to tix Tracker/WinRPR reconnect code (30)
 
 #define CKernel
 
