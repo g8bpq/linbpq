@@ -118,8 +118,70 @@ time_t RunningConnectScript = 0;
 //#define   free(p) 
 
 
+struct HistoryRec * History = NULL;
+int HistoryCount = 0;
+
+
 typedef int (WINAPI FAR *FARPROCX)();
 extern FARPROCX pRunEventProgram;
+
+int AddtoHistory(struct user_t * user, char * text)
+{
+	struct HistoryRec * Rec;
+	struct HistoryRec * ptr;
+	int n = 1;
+	char buf[512];
+	char Stamp[16];
+	struct tm * tm;
+	time_t Now = time(NULL);
+
+	// Don't want to grow indefinitely and fill memory. We only allow display upt 24 hours back, so if first record is older that that 
+	// remove and reuse it
+
+	if (History && History->Time  < Now - 86400)
+	{
+		Rec = History;
+		History = Rec->next;		// Remove from front of chain 
+	}
+	else
+		Rec = malloc(sizeof (struct HistoryRec));
+
+	memset(Rec, 0, sizeof (struct HistoryRec));
+
+	tm = gmtime(&Now);
+
+	sprintf(Stamp,"%02d:%02d ", tm->tm_hour, tm->tm_min);
+	sprintf(buf, "%s%-6.6s %s %c %s\r", Stamp, user->call, user->name, ':', text);
+
+	Rec->Time = Now;
+	
+	Rec->Topic = _strdup(user->topic->name);
+	Rec->Message = _strdup(buf);
+
+	if (History == NULL)
+		History = Rec;
+
+	else
+	{
+		ptr = History;
+
+		while (ptr && ptr->next)
+		{
+			n++;
+			ptr = ptr->next;
+		}
+
+		n++;
+		ptr->next = Rec;
+	}
+
+	return n;
+}
+
+
+
+
+
 
 int ChatIsUTF8(unsigned char *ptr, int len)
 {
@@ -221,7 +283,6 @@ VOID * _zalloc_dbg(int len, int type, char * file, int line)
 	return ptr;
 }
 
-
 #endif
 
 VOID __cdecl nprintf(ChatCIRCUIT * conn, const char * format, ...)
@@ -268,22 +329,18 @@ int ChatQueueMsg(ChatCIRCUIT * conn, char * msg, int len)
 
 	//	UCHAR * OutputQueue;		// Messages to user
 	//	int OutputQueueLength;		// Total Malloc'ed size. Also Put Pointer for next Message
-	//	int OutputGetPointer;		// Next byte to send. When Getpointer = Quele Length all is sent - free the buffer and start again.
+	//	int OutputGetPointer;		// Next byte to send. When Getpointer = Queue Length all is sent - free the buffer and start again.
 
 	// Create or extend buffer
 
 	GetSemaphore(&OutputSEM, 0);
 
-	if (conn->OutputQueueLength + len > 9999)
+	while (conn->OutputQueueLength + len > conn->OutputQueueSize)
 	{
-		Debugprintf("Output Queue Overflow %d", conn->OutputQueueLength);
+		// Extend Queue
 
-		// Shouldn't clear buffer as this will corrupt any partly recevied message - just drop it
-
-//		conn->OutputQueueLength = 0;
-//		conn->OutputGetPointer = 0;
-		FreeSemaphore(&OutputSEM);
-		return 0;							// or we will send a partial message
+		conn->OutputQueueSize += 4096;
+		conn->OutputQueue =  realloc(conn->OutputQueue, conn->OutputQueueSize);
 	}
 
 	memcpy(&conn->OutputQueue[conn->OutputQueueLength], msg, len);
@@ -702,6 +759,52 @@ VOID ProcessChatLine(ChatCIRCUIT * conn, struct UserInfo * user, char* OrigBuffe
 			return;
 		}
 
+		if (_memicmp(&Buffer[1], "History", 7) == 0)
+		{
+			// Param is number of minutes to go back (max 24 hours)
+		
+			struct HistoryRec * ptr = History;
+			int interval = atoi(&Buffer[9]) * 60;
+			time_t start = time(NULL) - interval;
+			int n = HistoryCount;
+
+			if (interval < 1)
+			{
+				nprintf(conn, "Format is /history n, where n is history time in minutes\r");
+				conn->u.user->lastsendtime = time(NULL);
+				return;
+			}
+
+			if (interval > 1440)
+			{
+				nprintf(conn, "History is only held for 24 Hours (1440 Minutes)\r");
+				interval = 1440;				// Limit to 1 day
+			}
+
+			// Find first record to send
+
+			while (ptr)
+			{
+				if (ptr->Time > start)
+					break;
+				n--;
+				ptr = ptr->next;
+			}
+
+			// n  is records found
+		
+			while (ptr)
+			{
+				nprintf(conn, ptr->Message);
+				ptr = ptr->next;
+			}
+				
+			conn->u.user->lastsendtime = time(NULL);
+			return;
+		}
+
+		
+
 		if (_memicmp(&Buffer[1], "Keepalive", 4) == 0)
 		{
 			conn->u.user->rtflags ^= u_keepalive;
@@ -842,6 +945,8 @@ VOID ProcessChatLine(ChatCIRCUIT * conn, struct UserInfo * user, char* OrigBuffe
 	// Send message to all other connected users on same channel
 		
 	text_tellu(conn->u.user, Buffer, NULL, o_topic); // To local users.
+
+	HistoryCount = AddtoHistory(conn->u.user, Buffer);
 
 	conn->u.user->lastrealmsgtime = conn->u.user->lastmsgtime = time(NULL);
 		
@@ -2938,6 +3043,7 @@ int rt_cmd(ChatCIRCUIT *circuit, char * Buffer)
 				nputs(circuit, "/S CALL Text - Send Text to that station only.\r");
 				nputs(circuit, "/F - Force all links to be made.\r/K - Show Known nodes.\r");
 				nputs(circuit, "/B - Leave Chat and return to node.\r/QUIT - Leave Chat and disconnect from node.\r");
+				nputs(circuit, "/History nn - Display chat messages received in last nn minutes.\r");
 			}
 		}
 		return TRUE;
@@ -4165,6 +4271,7 @@ BOOL ChatInit()
 	return TRUE;
 }
 
+#endif
 
 void ChatFlush(ChatCIRCUIT * conn)
 {
@@ -4181,22 +4288,6 @@ void ChatFlush(ChatCIRCUIT * conn)
 	//	int PageLen;				// Lines per page
 
 
-	if (conn->OutputQueue == NULL)
-	{
-		// Nothing to send. If Close after Flush is set, disconnect
-
-		if (conn->CloseAfterFlush)
-		{
-			conn->CloseAfterFlush--;
-			
-			if (conn->CloseAfterFlush)
-				return;
-
-			Disconnect(conn->BPQStream);
-		}
-
-		return;						// Nothing to send
-	}
 	tosend = conn->OutputQueueLength - conn->OutputGetPointer;
 
 	sent = 0;
@@ -4233,9 +4324,6 @@ void ChatFlush(ChatCIRCUIT * conn)
 
 VOID ChatClearQueue(ChatCIRCUIT * conn)
 {
-	if (conn->OutputQueue == NULL)
-		return;
-
 	GetSemaphore(&OutputSEM, 0);
 	
 	conn->OutputGetPointer = 0;
@@ -4244,6 +4332,7 @@ VOID ChatClearQueue(ChatCIRCUIT * conn)
 	FreeSemaphore(&OutputSEM);
 }
 
+#ifdef LINBPQ
 void ChatTrytoSend()
 {
 	// call Flush on any connected streams with queued data

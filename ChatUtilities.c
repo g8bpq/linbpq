@@ -320,7 +320,7 @@ char * ReadInfoFile(char * File)
 	FILE * hFile;
 	char * MsgBytes;
 	struct stat STAT;
-	char * ptr1 = 0;
+	char * ptr1 = 0, * ptr2;
  
 	sprintf_s(MsgFile, sizeof(MsgFile), "%s/%s", GetBPQDirectory(), File);
 
@@ -342,11 +342,16 @@ char * ReadInfoFile(char * File)
 
 	MsgBytes[FileSize]=0;
 
-#ifndef WIN32
+	// Replace LF or CRLF with CR
 
-	// Replace LF with CR
+	// First remove cr from crlf
 
-	// Remove lf chars
+	while(ptr2 = strstr(ptr1, "\r\n"))
+	{
+		memmove(ptr2, ptr2 + 1, strlen(ptr2));
+	}
+
+	// Now replace lf with cr
 
 	ptr1 = MsgBytes;
 
@@ -357,7 +362,6 @@ char * ReadInfoFile(char * File)
 
 		ptr1++;
 	}
-#endif
 
 	return MsgBytes;
 }

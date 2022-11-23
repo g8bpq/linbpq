@@ -2407,9 +2407,6 @@ HANDLE OpenCOMPort(VOID * pPort, int speed, BOOL SetDTR, BOOL SetRTS, BOOL Quiet
 	struct termios term;
 	struct speed_struct *s;
 
-	// As Serial ports under linux can have all sorts of odd names, the code assumes that
-	// they are symlinked to a com1-com255 in the BPQ Directory (normally the one it is started from
-
 	if ((UINT)pPort < 256)
 		sprintf(Port, "%s/com%d", BPQDirectory, (int)pPort);
 	else

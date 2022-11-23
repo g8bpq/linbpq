@@ -43,6 +43,9 @@ RECT ConsoleRect;
 BOOL OpenConsole;
 BOOL OpenMon;
 
+int reportNewMesageEvents = 0;
+
+
 extern struct ConsoleInfo BBSConsole;
 
 extern char LOC[7];
@@ -198,6 +201,14 @@ extern BOOL MonTCP;
 BOOL SendNewUserMessage = TRUE;
 BOOL AllowAnon = FALSE;
 BOOL UserCantKillT = FALSE;
+
+typedef int (WINAPI FAR *FARPROCX)();
+FARPROCX pRunEventProgram;
+
+int RunEventProgram(char * Program, char * Param);
+
+
+extern BOOL EventsEnabled;
 
 #define BPQHOSTSTREAMS	64
 
@@ -4796,7 +4807,7 @@ char * ReadInfoFile(char * File)
 	FILE * hFile;
 	char * MsgBytes;
 	struct stat STAT;
-	char * ptr1 = 0;
+	char * ptr1 = 0, * ptr2;
  
 	sprintf_s(MsgFile, sizeof(MsgFile), "%s/%s", BaseDir, File);
 
@@ -4816,13 +4827,20 @@ char * ReadInfoFile(char * File)
 
 	fclose(hFile);
 
-	MsgBytes[FileSize]=0;
+	MsgBytes[FileSize] = 0;
 
-#ifndef WIN32
+	ptr1 = MsgBytes;
 
-	// Replace LF with CR
+	// Replace LF or CRLF with CR
 
-	// Remove lf chars
+	// First remove cr from crlf
+
+	while(ptr2 = strstr(ptr1, "\r\n"))
+	{
+		memmove(ptr2, ptr2 + 1, strlen(ptr2));
+	}
+
+	// Now replace lf with cr
 
 	ptr1 = MsgBytes;
 
@@ -4833,7 +4851,6 @@ char * ReadInfoFile(char * File)
 
 		ptr1++;
 	}
-#endif
 
 	return MsgBytes;
 }
@@ -6294,6 +6311,33 @@ nextline:
 
 	SaveMessageDatabase();
 	SaveBIDDatabase();
+
+	// If Event Notifications enabled report a new message event
+
+	if (reportNewMesageEvents)
+	{
+		char msg[200];
+
+		//12345 B 2053 TEST@ALL F6FBB 920325 This is the subject
+
+		struct tm *tm = gmtime((time_t *)&Msg->datecreated);	
+
+		sprintf_s(msg, sizeof(msg),"%-6d %c %6d %-13s %-6s %02d%02d%02d %s\r",
+			Msg->number, Msg->type, Msg->length, Msg->to,
+			Msg->from, tm->tm_year-100, tm->tm_mon+1, tm->tm_mday, Msg->title);
+
+#ifdef WIN32
+		if (pRunEventProgram)
+			pRunEventProgram("MailNewMsg.exe", msg);
+#else
+		{
+			char prog[256];
+			sprintf(prog, "%s/%s", BPQDirectory, "MailNewMsg");
+			RunEventProgram(prog, msg);
+		}
+#endif
+	}
+
 
 	if (EnableUI)
 #ifdef LINBPQ

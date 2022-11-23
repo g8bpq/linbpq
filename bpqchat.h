@@ -400,11 +400,10 @@ typedef struct ChatConnectionInfo_S
 	// and data sucked out under both terminal and system flow control. PACLEN is
 	// enfored when sending to node.
 
-	UCHAR OutputQueue[10000];	// Messages to user
-	int OutputQueueLength;		// Total Malloc'ed size. Also Put Pointer for next Message
+	UCHAR  * OutputQueue;	    // Messages to user
+	int OutputQueueSize;		// Total Malloc'ed size.
+	int OutputQueueLength;		// Put Pointer for next Message
 	int OutputGetPointer;		// Next byte to send. When Getpointer = Queue Length all is sent - free the buffer and start again.
-
-	int CloseAfterFlush;		// Close session when all sent. Set to 100ms intervals to wait.
 	
 	BOOL sysop;					// Set if user is authenticated as a sysop
 	BOOL Secure_Session;		// Set if Local Terminal, or Telnet connect with SYSOP status
@@ -550,6 +549,16 @@ struct ConsoleInfo
 
 };
 
+struct HistoryRec
+{
+	struct HistoryRec * next;
+	time_t Time;
+	char * Topic;
+	char * Message;
+};
+
+extern struct HistoryRec * History;
+extern int HistoryCount;
 
 extern USER *user_hd;
 

@@ -1,5 +1,4 @@
 IZ4FVW 0 Giulio Cesena ITA JN64ce, 1k2 bps radio link¬55¬0
-GM8BPQ 40 John ?_qth¬14¬0
 N5UXT 0 Angelo th New Orleans, La¬99¬0
 N0NJY 0 Rick Oak Island, NC¬76¬0
 KB8UVN 0 Matt Johnstown, Ohio¬95¬0
@@ -14,3 +13,4 @@ WE1H 0 Matt Merrimack, NH¬26¬0
 W9IKU 0 Greg Portage, Wisconsin USA¬55¬0
 KA3VSP 0 Brian New Castle, DE¬91¬0
 G8BPQ 0 John Nottingham¬26¬0
+GM8BPQ 40 John ?_qth¬14¬0

@@ -169,6 +169,9 @@ VOID FLMSG(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * Us
 void ListExcludedCalls(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
 VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
 VOID RECONFIGTELNET (TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
+VOID HELPCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
+
+
 
 char * __cdecl Cmdprintf(TRANSPORTENTRY * Session, char * Bufferptr, const char * format, ...)
 {
@@ -4205,6 +4208,7 @@ CMDX COMMANDS[] =
 	"BYE         ",1,BYECMD,0,
 	"QUIT        ",1,BYECMD,0,
 	"INFO        ",1,CMDI00,0,
+	"HELP        ",1,HELPCMD,0,
 	"VERSION     ",1,CMDV00,0,
 	"NODES       ",1,CMDN00,0,
 	"LINKS       ",1,CMDL00,0,
@@ -5495,6 +5499,93 @@ BOOL isSYSOP(TRANSPORTENTRY * Session, char * Bufferptr)
 
 	return TRUE;
 }
+
+VOID HELPCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+{
+	int FileSize;
+	char MsgFile[MAX_PATH];
+	FILE * hFile;
+	char * MsgBytes;
+	struct stat STAT;
+	char * ptr1, * ptr, * ptr2;
+ 
+	sprintf_s(MsgFile, sizeof(MsgFile), "%s/%s", BPQDirectory, "NodeHelp.txt");
+
+	if (stat(MsgFile, &STAT) == -1)
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Help file not found\r");
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
+	FileSize = STAT.st_size;
+
+	hFile = fopen(MsgFile, "rb");
+
+	if (hFile == NULL)
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Help file not found\r");
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
+	MsgBytes = malloc(FileSize+1);
+
+	fread(MsgBytes, 1, FileSize, hFile); 
+
+	fclose(hFile);
+
+	MsgBytes[FileSize] = 0;
+
+	ptr1 = MsgBytes;
+
+	// Replace LF or CRLF with CR
+
+	// First remove cr from crlf
+
+	while(ptr2 = strstr(ptr1, "\r\n"))
+	{
+		memmove(ptr2, ptr2 + 1, strlen(ptr2));
+	}
+
+	// Now replace lf with cr
+
+	ptr1 = MsgBytes;
+
+	while (*ptr1)
+	{
+		if (*ptr1 == '\n')
+			*(ptr1) = '\r';
+
+		ptr1++;
+	}
+	
+	ptr = ptr1 = MsgBytes;
+
+	Bufferptr = Cmdprintf(Session, Bufferptr, "\r");
+
+	// Read and send a line at a time, converting any line endings into CR
+
+	while (*ptr1)
+	{
+		if (*ptr1 == '\r')
+		{
+			*(ptr1++) = 0;
+
+			Bufferptr = Cmdprintf(Session, Bufferptr, "%s\r", ptr);
+
+			ptr = ptr1;
+		}
+		else
+			ptr1++;
+	}
+
+	free(MsgBytes);
+	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+}
+
+
+
 
 
 

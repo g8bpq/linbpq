@@ -63,7 +63,7 @@
 //	Restore CMD_TO_APPL flag to Applflags (13)
 //	Check for and remove names set to *RTL 
 //	Add option to run user program when chat user connects (27)
-
+//	Add History (28)
 
 #include "BPQChat.h"
 #include "Dbghelp.h"

@@ -1122,6 +1122,10 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add SmartID for bridged frames - Send ID only if packets sent recently (26)
 //	Add option to save and restore received APRS messages (27)
 //	Add mechanism to run a user program on certain events (27)
+//	If BeacontoIS is zero don't Gate any of our messages received locally to APRS-IS (28)
+//	Add Node Help command (28)
+//	Add APRS Igate RXOnly option (29)
+//	Fix RMC message handling with prefixes other than GP
 
 
 #define CKernel

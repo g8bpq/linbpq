@@ -241,6 +241,7 @@ char SYMSET = '/';
 
 BOOL TraceDigi = FALSE;					// Add Trace to packets relayed on Digi Calls
 BOOL SATGate = FALSE;					// Delay Gating to IS directly heard packets
+BOOL RXOnly = FALSE;					// Run as RX only IGATE, ie don't gate anything to RF
 
 BOOL DefaultLocalTime = FALSE;
 BOOL DefaultDistKM = FALSE;
@@ -1272,7 +1273,7 @@ Dll VOID APIENTRY Poll_APRS()
 				|| memcmp(AdjBuff->ORIGIN, axRFONLY, 6) == 0
 				|| DigisUsed > MaxDigisforIS)
 
-				// TOo many digis or Last digis is NOGATE or RFONLY - dont send to IS
+				// Too many digis or Last digis is NOGATE or RFONLY - dont send to IS
 
 				NoGate = TRUE;
 		}
@@ -1418,7 +1419,7 @@ Dll VOID APIENTRY Poll_APRS()
 			MH->IGate = TRUE;			// if we've seen msgs to TCPIP, it must be an Igate
 		}
 
-		if (NoGate)
+		if (NoGate || RXOnly)
 			goto NoIS;
 
 		// I think all PID F0 UI frames go to APRS-IS,
@@ -1452,7 +1453,23 @@ Dll VOID APIENTRY Poll_APRS()
 
 		if (APRSISOpen && CrossPortMap[Port][0])	// No point if not open
 		{
-// was done above     len = sprintf(ISMsg, "%s>%s,qAR,%s:%s", ptr1, ptr4, APRSCall, Payload);
+			// was done above     len = sprintf(ISMsg, "%s>%s,qAR,%s:%s", ptr1, ptr4, APRSCall, Payload);
+
+			if (BeacontoIS == 0)
+			{
+				// Don't send anything we've received as an echo
+
+				char SaveCall[7];
+				memcpy(SaveCall, &monbuff->ORIGIN, 7);
+				SaveCall[6] &= 0x7e;	// Mask End of address bit
+
+				if (memcmp(SaveCall, AXCall, 7) == 0)		// We sent it
+				{
+					// Should we check for being received via digi? - not for now 
+
+					goto NoIS;
+				}
+			}
 
 			if (SATGate && (DigisUsed == 0))
 			{
@@ -1471,7 +1488,7 @@ Dll VOID APIENTRY Poll_APRS()
 			}
 
 			ISSend(sock, ISMsg, len, 0);
-	
+
 			ptr1 = strchr(ISMsg, 13);
 			if (ptr1) *ptr1 = 0;
 //			Debugprintf(">%s", ISMsg);
@@ -1985,6 +2002,12 @@ static int APRSProcessLine(char * buf)
 	if (_stricmp(ptr, "SATGate") == 0)
 	{
 		SATGate = TRUE;
+		return TRUE;
+	}
+
+	if (_stricmp(ptr, "RXOnly") == 0)
+	{
+		RXOnly = TRUE;
 		return TRUE;
 	}
 
@@ -2794,7 +2817,7 @@ VOID SendIStatus()
 
 	IStatusCounter = 3600;		// One per hour
 
-	if (APRSISOpen && BeacontoIS)
+	if (APRSISOpen && BeacontoIS && RXOnly == 0)
 	{
 		Msg.PID = 0xf0;
 		Msg.CTL = 3;
@@ -3740,7 +3763,7 @@ void PollGPSIn()
 				GPSMsg[len] = 0;
 
 				if (Check0183CheckSum(GPSMsg, len))
-					if (memcmp(&GPSMsg[1], "GPRMC", 5) == 0)
+					if (memcmp(&GPSMsg[3], "RMC", 3) == 0)
 						DecodeRMC(GPSMsg, len);	
 
 				portptr->gpsinptr -= (int)len;			// bytes left
@@ -4174,7 +4197,7 @@ static VOID ProcessReceivedData(SOCKET TCPSock)
 			}
 			else
 			{			
-				if (memcmp(UDPMsg, "$GPRMC", 6) == 0)
+				if (memcmp(&UDPMsg[3], "RMC", 3) == 0)
 					DecodeRMC(UDPMsg, Len);
 
 				else if (memcmp(UDPMsg, "!AIVDM", 6) == 0)
