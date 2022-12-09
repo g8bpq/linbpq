@@ -20,7 +20,7 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
 #define LIBCONFIG_STATIC
-#include "libconfig.h"
+#include <libconfig.h>
 
 #include "compatbits.h"
 

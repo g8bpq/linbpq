@@ -1103,6 +1103,9 @@
 //	Change web buttons to white on black when pressed (10)
 //	Add auto-refresh option to Webmail index page (25)
 //	Fix displaying help and info files with crlf line endings on Linux (28)
+//	Impotove validation of extended FC message (32)
+//	Improve WP check for SYSTEM as a callsihn (33)
+
 
 #include "bpqmail.h"
 #define MAIL

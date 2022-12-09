@@ -245,7 +245,7 @@ static BOOL RestartTNC(struct TNCINFO * TNC)
 			Sleep(100);
 		}
 
-		if (CreateProcess(NULL, TNC->ProgramPath, NULL, NULL, FALSE,0 ,NULL ,workingDirectory, &SInfo, &PInfo))
+		if (CreateProcess(NULL, TNC->ProgramPath, NULL, NULL, FALSE,0, NULL, workingDirectory, &SInfo, &PInfo))
 		{
 			Debugprintf("Restart TNC OK");
 			TNC->PID = PInfo.dwProcessId;

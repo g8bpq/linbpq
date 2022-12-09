@@ -4360,7 +4360,7 @@ VOID ARDOPDoTNCReinit(struct TNCINFO * TNC)
 
 	if (TNC->ReinitState == 2)		// In Term State, Sending Initialisation Commands
 	{
-		Debugprintf("DOTNCReinit Complete - Entering Hostmode");
+		Debugprintf("DOTNCReinit %d Complete - Entering Hostmode", TNC->Port);
 
 		TNC->TXBuffer[2] = 0;
 		TNC->Toggle = 0;

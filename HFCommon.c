@@ -65,6 +65,7 @@ VOID FromLOC(char * Locator, double * pLat, double * pLon);
 BOOL ToLOC(double Lat, double Lon , char * Locator);
 
 int GetPosnFromAPRS(char * Call, double * Lat, double * Lon);
+char * stristr (char *ch1, char *ch2);
 
 static RECT Rect;
 
@@ -210,7 +211,8 @@ LRESULT CALLBACK PacWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 		{
 			if (TNC->ProgramPath)
 			{
-				if (strstr(TNC->ProgramPath, " TNC") || strstr(TNC->ProgramPath, "ARDOP") || strstr(TNC->ProgramPath, "VARA"))
+				if (strstr(TNC->ProgramPath, " TNC") || strstr(TNC->ProgramPath, "ARDOP")
+					 || strstr(TNC->ProgramPath, "VARA") || stristr(TNC->ProgramPath, "FREEDATA"))
 				{
 					EnableMenuItem(TNC->hMenu, WINMOR_RESTART, MF_BYCOMMAND | MF_ENABLED);
 					EnableMenuItem(TNC->hMenu, WINMOR_KILL, MF_BYCOMMAND | MF_ENABLED);
@@ -311,7 +313,6 @@ LRESULT CALLBACK PacWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
 	case WM_HSCROLL:
 	{ 
-		DWORD dwPos;    // current position of slider 
 		char value[16];
 
 		switch (LOWORD(wParam))
@@ -765,10 +766,10 @@ IdTag (random alphanumeric, 12 chars)
 		}
 	}
 
-	if (ADIF == NULL || ADIF->LOC[0] == 0)
+	if (ADIF == NULL || ADIF->LOC[0] == 0 || ADIF->Call[0] == 0)
 		return TRUE;
 
-	if (ADIF->StartTime == 0 || ADIF->ServerSID[0] == 0)
+	if (ADIF->StartTime == 0 || ADIF->ServerSID[0] == 0 || ADIF->CMSCall[0] == 0)
 		return TRUE;
 
 	T = time(NULL);
@@ -1853,6 +1854,9 @@ int standardParams(struct TNCINFO * TNC, char * buf)
 		TNC->LISTENCALLS = _strdup(&buf[8]);
 		strlop(TNC->LISTENCALLS, '\r');
 	}
+	else if (_memicmp(buf, "MAXCONREQ", 9) == 0)		// Hold Time for Busy Detect
+		TNC->MaxConReq = atoi(&buf[9]);
+
 	else if (_memicmp(buf, "FREQUENCY", 9) == 0)
 		TNC->Frequency = _strdup(&buf[10]);
 	else if (_memicmp(buf, "SendTandRtoRelay", 16) == 0)

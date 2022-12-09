@@ -395,6 +395,9 @@ struct FreeDataINFO
 	int arqstate;				// 1 = Disc / 2 - connecting 3 - connected
 	int TuningRange;			// Must be 50, 100, 150, 200, 250
 	int LimitBandWidth;
+	int TXLevel;
+	int Explorer;				// Enable reporting to Freedata Explorer
+	char SSIDList[256];
 };
 
 
@@ -512,8 +515,6 @@ typedef struct TNCINFO
 
 	BOOL TNCCONNECTING;			// For FreeData
 	BOOL TNCCONNECTED;
-	BOOL DAEMONCONNECTING;
-	BOOL DAEMONCONNECTED;
 
 	char NodeCall[10];				// Call we listen for (PORTCALL or NODECALL
 	char CurrentMYC[10];			// Save current call so we don't change it unnecessarily
@@ -609,6 +610,7 @@ typedef struct TNCINFO
 	char * InitPtr;				// Next Command
 	int	ReinitState;			// Reinit State Machine
 	int	ReinitCount;			// Count for DED Recovery
+	int	TermReinitCount;		// Count for DED Term Mode Recovery
 	BOOL TNCOK;					// TNC is reponding
 	int	FramesOutstanding;		// Frames Queued - used for flow control
 	BOOL InternalCmd;			// Last Command was generated internally

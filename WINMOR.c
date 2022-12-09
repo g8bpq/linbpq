@@ -608,7 +608,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			}
 		}
 
-		if (TNC->BusyDelay)
+		if (TNC->ConnectCmd && TNC->BusyDelay)
 		{
 			// Still Busy?
 
@@ -626,6 +626,8 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				SetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
 
 				free(TNC->ConnectCmd);
+				TNC->ConnectCmd = 0;
+
 				TNC->BusyDelay = 0;
 			}
 			else
@@ -3013,13 +3015,13 @@ BOOL RestartTNC(struct TNCINFO * TNC)
 		return TRUE;
 	}								 
 #else
-
 	{
 		int n = 0;
 		
 		STARTUPINFO  SInfo;			// pointer to STARTUPINFO 
 	    PROCESS_INFORMATION PInfo; 	// pointer to PROCESS_INFORMATION 
-//		char workingDirectory[256];
+		char workingDirectory[256];
+		int i = strlen(TNC->ProgramPath);
 
 		SInfo.cb=sizeof(SInfo);
 		SInfo.lpReserved=NULL; 
@@ -3031,13 +3033,23 @@ BOOL RestartTNC(struct TNCINFO * TNC)
 
 		Debugprintf("RestartTNC Called for %s", TNC->ProgramPath);
 
+		strcpy(workingDirectory, TNC->ProgramPath);
+
+		while (i--)
+		{
+			if (workingDirectory[i] == '\\' || workingDirectory[i] == '/')
+			{
+				workingDirectory[i] = 0; 
+				break;
+			}
+		}
+
 		while (KillOldTNC(TNC->ProgramPath) && n++ < 100)
 		{
 			Sleep(100);
 		}
 
-
-		if (CreateProcess(NULL, TNC->ProgramPath, NULL, NULL, FALSE,0 ,NULL ,NULL, &SInfo, &PInfo))
+		if (CreateProcess(NULL, TNC->ProgramPath, NULL, NULL, FALSE,0, NULL, workingDirectory, &SInfo, &PInfo))
 		{
 			Debugprintf("Restart TNC OK");
 			TNC->PID = PInfo.dwProcessId;

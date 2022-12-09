@@ -64,6 +64,8 @@
 //	Check for and remove names set to *RTL 
 //	Add option to run user program when chat user connects (27)
 //	Add History (28)
+//	Add connect scripts to config page text (31)
+//	Fix History (31)
 
 #include "BPQChat.h"
 #include "Dbghelp.h"
@@ -1010,7 +1012,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 
 		case IDM_CONFIG:
-			i = DialogBox(hInst, MAKEINTRESOURCE(CHAT_CONFIG), hWnd, ConfigWndProc);
+		i = DialogBox(hInst, MAKEINTRESOURCE(CHAT_CONFIG), hWnd, ConfigWndProc);
 			i = WSAGetLastError();
 			break;
 

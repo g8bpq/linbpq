@@ -1259,6 +1259,7 @@ void chkctl(ChatCIRCUIT *ckt_from, char * Buffer, int Len)
 			user->lastrealmsgtime = user->lastmsgtime = time(NULL);
 
 			text_tellu(user, f1, NULL, o_topic);
+			HistoryCount = AddtoHistory(user, f1);
 
 			for (ckt_to = circuit_hd; ckt_to; ckt_to = ckt_to->next)
 			{

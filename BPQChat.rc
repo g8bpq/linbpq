@@ -1,4 +1,4 @@
-// Microsoft Visual C++ generated resource script.
+//Microsoft Developer Studio generated resource script.
 //
 #include "chatrc.h"
 
@@ -19,19 +19,21 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (United States) resources
+// English (U.S.) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 #pragma code_page(1252)
+#endif //_WIN32
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Dialog
 //
 
-IDD_PROPPAGE_LARGE DIALOG 0, 0, 235, 156
-STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
+IDD_PROPPAGE_LARGE DIALOG DISCARDABLE  0, 0, 235, 156
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Property Page"
 FONT 8, "MS Sans Serif"
 BEGIN
@@ -44,7 +46,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO
+GUIDELINES DESIGNINFO MOVEABLE PURE 
 BEGIN
     IDD_PROPPAGE_LARGE, DIALOG
     BEGIN
@@ -56,29 +58,33 @@ BEGIN
 END
 #endif    // APSTUDIO_INVOKED
 
-#endif    // English (United States) resources
+#endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
 /////////////////////////////////////////////////////////////////////////////
-// English (United Kingdom) resources
+// English (U.K.) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENG)
+#ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 #pragma code_page(1252)
+#endif //_WIN32
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Dialog
 //
 
-BPQMAILCHAT DIALOG 120, 50, 294, 165
-STYLE DS_SETFONT | DS_3DLOOK | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+BPQMAILCHAT DIALOG DISCARDABLE  120, 50, 294, 165
+STYLE DS_3DLOOK | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | 
+    WS_THICKFRAME
 CAPTION "G8BPQ Chat Server 1.0.0.10 Beta July 2009"
 CLASS "BPQMailChat"
 FONT 8, "FixedSys"
 BEGIN
-    LTEXT           " User      Callsign Stream Conf      Queue RTT",101,3,4,184,10
+    LTEXT           " User      Callsign Stream Conf      Queue RTT",101,3,4,
+                    184,10
     LTEXT           "UTC",IDC_STATIC,197,5,15,10
     LTEXT           "Local",IDC_STATIC,241,5,21,10
     LTEXT           "",IDC_UTC,215,5,25,10
@@ -96,8 +102,9 @@ BEGIN
     LTEXT           "0",IDC_CONSEM,274,135,20,10
 END
 
-CONSOLEWINDOW DIALOG 17, 25, 400, 301
-STYLE DS_SETFONT | DS_3DLOOK | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CONSOLEWINDOW DIALOG DISCARDABLE  17, 25, 400, 301
+STYLE DS_3DLOOK | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | 
+    WS_THICKFRAME
 CAPTION "Chat Console"
 MENU CONSOLEMENU
 CLASS "CONSOLEWINDOW"
@@ -106,108 +113,134 @@ BEGIN
     EDITTEXT        118,24,228,348,15,ES_AUTOHSCROLL | ES_NOHIDESEL
 END
 
-BPQMONWINDOW DIALOG 17, 25, 400, 300
-STYLE DS_SETFONT | DS_3DLOOK | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+BPQMONWINDOW DIALOG DISCARDABLE  17, 25, 400, 300
+STYLE DS_3DLOOK | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | 
+    WS_THICKFRAME
 CAPTION "Chat Monitor"
 MENU MENU_2
 CLASS "BPQMONWINDOW"
 FONT 8, "FixedSys"
 BEGIN
-    LISTBOX         121,6,25,290,109,LBS_MULTIPLESEL | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_HSCROLL
+    LISTBOX         121,6,25,290,109,LBS_MULTIPLESEL | LBS_NOINTEGRALHEIGHT | 
+                    WS_VSCROLL | WS_HSCROLL
 END
 
-BPQDEBUGWINDOW DIALOG 17, 25, 400, 300
-STYLE DS_SETFONT | DS_3DLOOK | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+BPQDEBUGWINDOW DIALOG DISCARDABLE  17, 25, 400, 300
+STYLE DS_3DLOOK | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | 
+    WS_THICKFRAME
 CAPTION "Chat Debug Window"
 MENU MENU_3
 CLASS "BPQDEBUGWINDOW"
 FONT 8, "FixedSys"
 BEGIN
-    LISTBOX         122,5,156,290,109,LBS_MULTIPLESEL | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_HSCROLL
+    LISTBOX         122,5,156,290,109,LBS_MULTIPLESEL | LBS_NOINTEGRALHEIGHT | 
+                    WS_VSCROLL | WS_HSCROLL
 END
 
-CHAT_CONFIG DIALOGEX 0, 0, 371, 296
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CHAT_CONFIG DIALOG DISCARDABLE  0, 0, 372, 318
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Configuration"
-FONT 8, "System", 0, 0, 0x0
+FONT 8, "System"
 BEGIN
-    LTEXT           "Chat Appl Number",IDC_STATIC,91,85,61,8
-    EDITTEXT        ID_CHATAPPL,159,83,29,14
-    LTEXT           "Nodes to link to",IDC_STATIC,159,106,53,8
-    EDITTEXT        ID_CHATNODES,29,119,313,60,ES_MULTILINE | ES_UPPERCASE | ES_AUTOVSCROLL | ES_WANTRETURN | WS_VSCROLL
-    DEFPUSHBUTTON   "Save",SAVENODES,160,183,50,14,BS_CENTER | BS_VCENTER
-    LTEXT           "The Application Number defines which BPQ32 Application gives access to the Chat Server. Note this is the APPLNumber (1-32) not an Application Mask, as uses in many BPQ32 programs.",IDC_STATIC,10,10,353,18
-    LTEXT           "The Nodes to link to box defines which other Chat Nodes should be connected to, or from which connections may be accepted. The format is ALIAS:CALL, eg BPQCHT:G8BPQ-4. Note these must be directly connectable - ie in your NODES table.",IDC_STATIC,10,30,355,25
-    LTEXT           "The Callsign of the Chat Node is not defined here - It is obtained from the BPQ32 APPLCALL parameter corresponding to the Chat Appl Number.",IDC_STATIC,10,60,360,25
-    LTEXT           "Streams",IDC_STATIC,199,85,34,8
-    EDITTEXT        ID_STREAMS,236,83,29,14
-    LTEXT           "Chat Welcome Message",IDC_STATIC,142,202,82,8
-    EDITTEXT        IDM_CHATUSERMSG,15,214,340,54,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | WS_VSCROLL
-    DEFPUSHBUTTON   "Save Welcome Message",SAVEWELCOME,140,274,91,14,BS_CENTER | BS_VCENTER
+    LTEXT           "Chat Appl Number",IDC_STATIC,91,110,61,8
+    EDITTEXT        ID_CHATAPPL,159,108,29,14
+    LTEXT           "Nodes to link to",IDC_STATIC,159,126,53,8
+    EDITTEXT        ID_CHATNODES,29,141,313,60,ES_MULTILINE | ES_UPPERCASE | 
+                    ES_AUTOVSCROLL | ES_WANTRETURN | WS_VSCROLL
+    DEFPUSHBUTTON   "Save",SAVENODES,160,204,50,14,BS_CENTER | BS_VCENTER
+    LTEXT           "The Application Number defines which BPQ32 Application gives access to the Chat Server. Note this is the APPLNumber (1-32) not an Application Mask, as uses in many BPQ32 programs.",
+                    IDC_STATIC,10,10,353,18
+    LTEXT           "The Nodes to link to box defines which other Chat Nodes should be connected to, or from which connections may be accepted. The format is ALIAS:CALL, eg BPQCHT:G8BPQ-4.",
+                    IDC_STATIC,10,31,355,22
+    LTEXT           "The Callsign of the Chat Node is not defined here - it is obtained from the BPQ32 APPLCALL parameter corresponding to the Chat Appl Number.",
+                    IDC_STATIC,10,76,360,21
+    LTEXT           "Streams",IDC_STATIC,199,110,34,8
+    EDITTEXT        ID_STREAMS,236,108,29,14
+    LTEXT           "Chat Welcome Message",IDC_STATIC,142,222,82,8
+    EDITTEXT        IDM_CHATUSERMSG,15,235,340,54,ES_MULTILINE | 
+                    ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | 
+                    WS_VSCROLL
+    DEFPUSHBUTTON   "Save Welcome Message",SAVEWELCOME,140,296,91,14,
+                    BS_CENTER | BS_VCENTER
+    LTEXT           " If the node is not directly  connectable (ie is not in your NODES table)  you can add a connect script. This consists of a series of commands seperared by |, eg NOTCHT:G8BPQ-4|C 3 GM8BPQ-9|CHAT",
+                    IDC_STATIC,9,52,355,24
 END
 
-IDD_USERADDED_BOX DIALOG 176, 132, 129, 68
-STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_THICKFRAME
+IDD_USERADDED_BOX DIALOG DISCARDABLE  176, 132, 129, 68
+STYLE DS_FIXEDSYS | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_THICKFRAME
 FONT 8, "System"
 BEGIN
     DEFPUSHBUTTON   "Ok",0,47,48,36,17,BS_CENTER | BS_VCENTER
     LTEXT           "Label0",5050,5,10,117,32
 END
 
-WELCOMEMSG DIALOG 26, 5, 381, 266
-STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE
+WELCOMEMSG DIALOG DISCARDABLE  26, 5, 381, 266
+STYLE WS_CHILD | WS_VISIBLE
 FONT 8, "System"
 BEGIN
     LTEXT           "Normal User Welcome Message",IDC_STATIC,5,7,130,8
-    EDITTEXT        IDM_USERMSG,5,20,340,45,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN
+    EDITTEXT        IDM_USERMSG,5,20,340,45,ES_MULTILINE | ES_AUTOVSCROLL | 
+                    ES_AUTOHSCROLL | ES_WANTRETURN
     LTEXT           "Chat Welcome Message",IDC_STATIC,5,67,130,8
-    EDITTEXT        IDM_CHATUSERMSG,5,80,340,45,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN
+    EDITTEXT        IDM_CHATUSERMSG,5,80,340,45,ES_MULTILINE | 
+                    ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN
     LTEXT           "New User Welcome Message",IDC_STATIC,5,127,130,8
-    EDITTEXT        IDM_NEWUSERMSG,5,140,340,45,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN
+    EDITTEXT        IDM_NEWUSERMSG,5,140,340,45,ES_MULTILINE | 
+                    ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN
     LTEXT           "Expert User Welcome Message",IDC_STATIC,5,187,130,8
-    EDITTEXT        IDM_EXPERTUSERMSG,5,200,340,25,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN
+    EDITTEXT        IDM_EXPERTUSERMSG,5,200,340,25,ES_MULTILINE | 
+                    ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN
     DEFPUSHBUTTON   "Save",IDM_MSGSAVE,166,250,50,14,BS_CENTER | BS_VCENTER
-    LTEXT           "$U : Callsign of the user      $I : First name of the user      $X Messages for user       $x Unread messages",IDC_STATIC,5,228,369,8
-    LTEXT           "$L : Number of the latest message    $N : Number of active messages.    $Z : Last message read by user",IDC_STATIC,5,238,365,10
+    LTEXT           "$U : Callsign of the user      $I : First name of the user      $X Messages for user       $x Unread messages",
+                    IDC_STATIC,5,228,369,8
+    LTEXT           "$L : Number of the latest message    $N : Number of active messages.    $Z : Last message read by user",
+                    IDC_STATIC,5,238,365,10
 END
 
-IDD_CHATCOLCONFIG DIALOG 0, 0, 224, 120
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_CHATCOLCONFIG DIALOG DISCARDABLE  0, 0, 224, 120
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Chat Colour Configuration"
 FONT 8, "System"
 BEGIN
     DEFPUSHBUTTON   "Save",IDOK,50,95,50,14
     PUSHBUTTON      "Close",IDCANCEL,120,95,50,14
-    COMBOBOX        IDC_CHATCALLS,10,5,100,60,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_CHATCOLOURS,115,5,100,60,CBS_DROPDOWNLIST | CBS_OWNERDRAWFIXED | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CHATCALLS,10,5,100,60,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CHATCOLOURS,115,5,100,60,CBS_DROPDOWNLIST | 
+                    CBS_OWNERDRAWFIXED | WS_VSCROLL | WS_TABSTOP
 END
 
-IDD_UPDATECHATMAP DIALOG 0, 0, 274, 146
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_UPDATECHATMAP DIALOG DISCARDABLE  0, 0, 274, 146
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Update Chat Map"
 FONT 8, "System"
 BEGIN
-    LTEXT           "Click Help for full information about the Chat Network Map",IDC_STATIC,5,10,195,15
+    LTEXT           "Click Help for full information about the Chat Network Map",
+                    IDC_STATIC,5,10,195,15
     DEFPUSHBUTTON   "? Help",IDC_MAPHELP,220,10,33,11,BS_CENTER | BS_VCENTER
     LTEXT           "Position",IDC_STATIC,5,30,35,10
     EDITTEXT        IDC_MAPPOSITION,5,45,145,15,ES_AUTOHSCROLL
     LTEXT           "Popup Box Text. ",IDC_STATIC,5,65,70,9
-    EDITTEXT        IDC_POPUPTEXT,5,80,200,35,ES_MULTILINE | ES_AUTOHSCROLL | WS_HSCROLL
+    EDITTEXT        IDC_POPUPTEXT,5,80,200,35,ES_MULTILINE | ES_AUTOHSCROLL | 
+                    WS_HSCROLL
     LTEXT           "Popup Mode",IDC_STATIC,215,80,49,10
-    CONTROL         "Hover",IDC_HOVER,"Button",BS_AUTORADIOBUTTON,219,92,45,10
-    CONTROL         "Click",IDC_CLICK,"Button",BS_AUTORADIOBUTTON,219,104,45,10
+    CONTROL         "Hover",IDC_HOVER,"Button",BS_AUTORADIOBUTTON,219,92,45,
+                    10
+    CONTROL         "Click",IDC_CLICK,"Button",BS_AUTORADIOBUTTON,219,104,45,
+                    10
     DEFPUSHBUTTON   "Send to Map System",IDSENDTOMAP,5,125,90,14
     DEFPUSHBUTTON   "Save",IDOK,100,125,35,14
     PUSHBUTTON      "Cancel",IDCANCEL,140,125,40,14
 END
 
-IDD_HRHELP DIALOG 0, 0, 415, 182
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_HRHELP DIALOG DISCARDABLE  0, 0, 415, 182
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Hierarchical Forwarding Help"
 FONT 8, "System"
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,182,158,50,14
-    EDITTEXT        IDC_HRTEXT,4,4,405,150,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL | WS_HSCROLL
+    EDITTEXT        IDC_HRTEXT,4,4,405,150,ES_MULTILINE | ES_AUTOVSCROLL | 
+                    ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL | WS_HSCROLL
 END
 
 
@@ -217,7 +250,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO
+GUIDELINES DESIGNINFO MOVEABLE PURE 
 BEGIN
     "BPQMAILCHAT", DIALOG
     BEGIN
@@ -226,6 +259,8 @@ BEGIN
 
     CHAT_CONFIG, DIALOG
     BEGIN
+        RIGHTMARGIN, 371
+        BOTTOMMARGIN, 296
     END
 
     "IDD_USERADDED_BOX", DIALOG
@@ -249,7 +284,7 @@ END
 // Menu
 //
 
-IDC_BPQMailChat MENU
+IDC_BPQMailChat MENU DISCARDABLE 
 BEGIN
     POPUP "Actions"
     BEGIN
@@ -278,7 +313,7 @@ BEGIN
     END
 END
 
-CONSOLEMENU MENU
+CONSOLEMENU MENU DISCARDABLE 
 BEGIN
     POPUP "Options"
     BEGIN
@@ -298,7 +333,7 @@ BEGIN
     END
 END
 
-MENU_2 MENU
+MENU_2 MENU DISCARDABLE 
 BEGIN
     POPUP "Monitor"
     BEGIN
@@ -311,7 +346,7 @@ BEGIN
     END
 END
 
-MENU_3 MENU
+MENU_3 MENU DISCARDABLE 
 BEGIN
     POPUP "Edit"
     BEGIN
@@ -326,7 +361,7 @@ END
 // Accelerator
 //
 
-IDC_TELNETSERVER ACCELERATORS
+IDC_TELNETSERVER ACCELERATORS MOVEABLE PURE 
 BEGIN
     "?",            IDM_ABOUT,              ASCII,  ALT
     "/",            IDM_ABOUT,              ASCII,  ALT
@@ -339,12 +374,12 @@ END
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE 
+1 TEXTINCLUDE MOVEABLE PURE 
 BEGIN
     "chatrc.h\0"
 END
 
-2 TEXTINCLUDE 
+2 TEXTINCLUDE MOVEABLE PURE 
 BEGIN
     "#define APSTUDIO_HIDDEN_SYMBOLS\r\n"
     "#include ""windows.h""\r\n"
@@ -356,18 +391,18 @@ BEGIN
     "\0"
 END
 
-3 TEXTINCLUDE 
+3 TEXTINCLUDE MOVEABLE PURE 
 BEGIN
     "#include ""..\\StdVer.inc""\r\n"
     "\0"
 END
 
-1 TEXTINCLUDE 
+1 TEXTINCLUDE MOVEABLE PURE 
 BEGIN
     "resource.h\0"
 END
 
-3 TEXTINCLUDE 
+3 TEXTINCLUDE MOVEABLE PURE 
 BEGIN
     "#include ""..\\StdVer.inc""\r\n"
     "\r\n"
@@ -382,9 +417,9 @@ END
 // AFX_DIALOG_LAYOUT
 //
 
-CHAT_CONFIG AFX_DIALOG_LAYOUT
+CHAT_CONFIG AFX_DIALOG_LAYOUT MOVEABLE PURE 
 BEGIN
-    0
+    0x0000
 END
 
 
@@ -393,13 +428,13 @@ END
 // String Table
 //
 
-STRINGTABLE
+STRINGTABLE DISCARDABLE 
 BEGIN
     IDS_APP_TITLE           "BPQMailChat"
     IDC_BPQMailChat         "BPQMailChat"
 END
 
-#endif    // English (United Kingdom) resources
+#endif    // English (U.K.) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

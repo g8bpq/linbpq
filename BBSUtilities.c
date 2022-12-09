@@ -414,7 +414,7 @@ void WriteLogLine(CIRCUIT * conn, int Flag, char * Msg, int MsgLen, int Flags)
 
 	// Don't close/reopen logs every time
 
-	if ((LT - LastLogTime[Flags]) > 60)
+//	if ((LT - LastLogTime[Flags]) > 60)
 	{
 		LastLogTime[Flags] = LT;
 		fclose(LogHandle[Flags]);
@@ -1005,7 +1005,12 @@ Next:
 		user = UserRecPtr[i];
 
 		if (user->flags & F_BBS)
+		{
+			if (user->BBSNumber == 0)
+				user->BBSNumber = FindFreeBBSNumber();
+			
 			CheckBBSNumber(user->BBSNumber);
+		}
 	}
 
 	SortBBSChain();
@@ -9846,7 +9851,7 @@ BOOL GetConfig(char * ConfigName)
 		return(EXIT_FAILURE);
 	}
 
-#ifdef FREEBSD
+#if IBCONFIG_VER_MINOR > 4
 	config_set_option(&cfg, CONFIG_OPTION_AUTOCONVERT, 1);
 #else
 	config_set_auto_convert (&cfg, 1);

@@ -857,6 +857,7 @@ static void DEDCheckRX(struct TNCINFO * TNC)
 			TNC->HOSTSTATE = 0;
 			TNC->Timeout = 0;
 			TNC->RXLen = 0;
+			TNC->TermReinitCount = 0;
 			return;
 		}
 
@@ -1052,15 +1053,23 @@ VOID DEDPoll(int Port)
 
 		// Can't use retries, as we have no way of detecting lost chars. Have to re-init on timeout
 
-//		if (TNC->HostMode == 0 || TNC->ReinitState == 10)		// 10 is Recovery Mode
-//		{
-//			DoTermModeTimeout(TNC);
-//			return;
-//		}
+		if (TNC->HostMode == 0 || TNC->ReinitState == 10)		// 10 is Recovery Mode
+		{
+			TNC->TermReinitCount++;
+
+			if (TNC->TermReinitCount == 10)
+				goto reinit;
+
+			DoTermModeTimeout(TNC);
+			return;
+		}
 
 		// Timed out in host mode - Clear any connection and reinit the TNC
 
 		Debugprintf("DEDHOST - Link to TNC Lost Port %d", TNC->Port);
+
+reinit:
+
 		TNC->TNCOK = FALSE;
 
 		sprintf(TNC->WEB_COMMSSTATE, "%s Open but TNC not responding", TNC->PortRecord->PORTCONTROL.SerialPortName);
@@ -1069,6 +1078,7 @@ VOID DEDPoll(int Port)
 
 		TNC->HostMode = 0;
 		TNC->ReinitState = 0;
+		TNC->TermReinitCount = 0;
 
 		CloseCOMPort(TNC->hDevice);
 		OpenCOMMPort(TNC, TNC->PortRecord->PORTCONTROL.SerialPortName, TNC->PortRecord->PORTCONTROL.BAUDRATE, TRUE);
@@ -1388,7 +1398,7 @@ VOID DEDPoll(int Port)
 			}
 
 			Poll[2] = datalen - 1;
-			memcpy(&Poll[3], buffptr + 2, datalen);
+			memcpy(&Poll[3], buffptr->Data, datalen);
 
 			ReleaseBuffer(buffptr);
 
@@ -1612,6 +1622,7 @@ VOID DoTermModeTimeout(struct TNCINFO * TNC)
 		TNC->hDevice =(HANDLE)0;
 		TNC->ReopenTimer = 290;
 		TNC->HostMode = FALSE;
+		TNC->TermReinitCount = 0;
 
 		return;
 	}
@@ -1623,6 +1634,7 @@ VOID DoTermModeTimeout(struct TNCINFO * TNC)
 
 		TNC->HostMode = TRUE;
 		TNC->IntCmdDelay = 10;
+		TNC->TermReinitCount = 0;
 
 		return;
 	}
@@ -1698,6 +1710,7 @@ VOID TrkProcessTermModeResponse(struct TNCINFO * TNC)
 		{
 			TNC->HostMode = TRUE;
 			TNC->Timeout = 0;
+			TNC->TermReinitCount = 0;
 		}
 		return;
 	}
@@ -1726,6 +1739,7 @@ VOID TrkProcessDEDFrame(struct TNCINFO * TNC)
 		TNC->ReinitState = 0;
 		TNC->RXLen = 0;
 		TNC->HOSTSTATE = 0;
+		TNC->TermReinitCount = 0;
 
 		Debugprintf("TRK - Resync Complete");
 		return;

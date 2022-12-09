@@ -78,7 +78,7 @@ void RunEventProgram(char * Program, char * Param)
 								 
 #else
 
-DllExport int APIENTRY RunEventProgram(char * Program, char * Param)
+DllExport void APIENTRY RunEventProgram(char * Program, char * Param)
 {
 	int n = 0;
 	char cmdLine[256];
@@ -87,7 +87,7 @@ DllExport int APIENTRY RunEventProgram(char * Program, char * Param)
 	PROCESS_INFORMATION PInfo; 	// pointer to PROCESS_INFORMATION 
 
 	if (EventsEnabled == 0)
-		return 0;
+		return;
 
 
 	SInfo.cb=sizeof(SInfo);
@@ -105,5 +105,5 @@ DllExport int APIENTRY RunEventProgram(char * Program, char * Param)
 
 #endif
 
-	return 0;
+	return;
 }

@@ -41,7 +41,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #define FREEDATABUFLEN 16384				// TCP buffer size
 
 int KillTNC(struct TNCINFO * TNC);
-int RestartTNC(struct TNCINFO * TNC);
+static int RestartTNC(struct TNCINFO * TNC);
 
 int (WINAPI FAR *GetModuleFileNameExPtr)();
 extern int (WINAPI FAR *EnumProcessesPtr)();
@@ -72,6 +72,10 @@ int FreeDataConnect(struct TNCINFO * TNC, char * Call);
 int FreeDataDisconnect(struct TNCINFO * TNC);
 int FreeGetData(struct TNCINFO * TNC);
 static void SendBeacon(struct TNCINFO * TNC, int Interval);
+void buildParamString(struct TNCINFO * TNC, char * line);
+VOID FreeDataSuspendPort(struct TNCINFO * TNC);
+VOID FreeDataReleasePort(struct TNCINFO * TNC);
+
 
 static char ClassName[]="FREEDATASTATUS";
 static char WindowTitle[] = "FreeData Modem";
@@ -79,6 +83,7 @@ static int RigControlRow = 205;
 
 #ifndef WIN32
 #include <netinet/tcp.h>
+#define MAXPNAMELEN 32 
 #else
 #include <commctrl.h>
 #endif
@@ -95,6 +100,39 @@ static int ProcessLine(char * buf, int Port);
 VOID WritetoTrace(struct TNCINFO * TNC, char * Msg, int Len);
 
 #define MAXRXSIZE 512000		// Sets max size for file transfer (less base64 overhead
+
+int CaptureCount = 0;
+int PlaybackCount = 0;
+
+int CaptureIndex = -1;		// Card number
+int PlayBackIndex = -1;
+
+
+
+char CaptureNames[16][MAXPNAMELEN + 2] = { "" };
+char PlaybackNames[16][MAXPNAMELEN + 2] = { "" };
+
+
+#ifdef WIN32
+
+#include <mmsystem.h>
+
+#pragma comment(lib, "winmm.lib")
+
+WAVEFORMATEX wfx = { WAVE_FORMAT_PCM, 1, 12000, 24000, 2, 16, 0 };
+
+WAVEOUTCAPS pwoc;
+WAVEINCAPS pwic;
+
+
+char * CaptureDevices = NULL;
+char * PlaybackDevices = NULL;
+
+HWAVEOUT hWaveOut = 0;
+HWAVEIN hWaveIn = 0;
+
+#endif
+
 
 char * gen_uuid()
 {
@@ -163,6 +201,8 @@ static int ProcessLine(char * buf, int Port)
 
 	TNC->InitScript = malloc(1000);
 	TNC->InitScript[0] = 0;
+
+	TNC->MaxConReq = 10;		// Default
 	
 	if (p_ipad == NULL)
 		p_ipad = strtok(NULL, " \t\n\r");
@@ -177,10 +217,8 @@ static int ProcessLine(char * buf, int Port)
 
 	TNC->TCPPort = WINMORport;
 
-	TNC->destaddr.sin_family = AF_INET;
-	TNC->destaddr.sin_port = htons(WINMORport);
 	TNC->Datadestaddr.sin_family = AF_INET;
-	TNC->Datadestaddr.sin_port = htons(WINMORport+1);
+	TNC->Datadestaddr.sin_port = htons(WINMORport);
 
 	TNC->HostName = malloc(strlen(p_ipad)+1);
 
@@ -234,12 +272,12 @@ static int ProcessLine(char * buf, int Port)
 
 		if (_memicmp(buf, "CAPTURE", 7) == 0)
 		{
-			TNC->FreeDataInfo->Capture = _strdup(&buf[8]);
+			TNC->FreeDataInfo->Capture = _strupr(_strdup(&buf[8]));
 			strlop(TNC->FreeDataInfo->Capture, 13);
 		}
 		else if (_memicmp(buf, "PLAYBACK", 8) == 0)
 		{
-			TNC->FreeDataInfo->Playback = _strdup(&buf[9]);
+			TNC->FreeDataInfo->Playback = _strupr(_strdup(&buf[9]));
 			strlop(TNC->FreeDataInfo->Playback, 13);
 		}
 
@@ -254,6 +292,13 @@ static int ProcessLine(char * buf, int Port)
 		
 		else if (_memicmp(buf, "TuningRange", 11) == 0)
 			TNC->FreeDataInfo->TuningRange = atoi(&buf[12]);
+		
+		else if (_memicmp(buf, "TXLevel", 6) == 0)
+			TNC->FreeDataInfo->TXLevel = atoi(&buf[7]);
+
+		else if (_memicmp(buf, "Explorer", 8) == 0)
+			TNC->FreeDataInfo->Explorer = atoi(&buf[9]);
+	
 		
 		else if (_memicmp(buf, "LimitBandWidth", 14) == 0)
 			TNC->FreeDataInfo->LimitBandWidth = atoi(&buf[15]);
@@ -428,12 +473,12 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 //		FreeDataCheckRX(TNC);
 
-		if (TNC->DAEMONCONNECTED == FALSE && TNC->DAEMONCONNECTING == FALSE)
+		if (TNC->TNCCONNECTED == FALSE && TNC->TNCCONNECTING == FALSE)
 		{
 			//	See if time to reconnect
 		
 			time(&ltime);
-			if (ltime - TNC->lasttime > 9 )
+			if (ltime - TNC->lasttime > 19 )
 			{
 				TNC->lasttime = ltime;
 				ConnecttoFreeData(port);
@@ -551,14 +596,17 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			
 				calllen = ConvFromAX25(TNC->PortRecord->ATTACHEDSESSIONS[Stream]->L4USER, STREAM->MyCall);
 				TNC->Streams[Stream].MyCall[calllen] = 0;
-			
-	
-				FreeDataChangeMYC(TNC, TNC->Streams[0].MyCall);
-		
+					
 				// Stop other ports in same group
 
 				SuspendOtherPorts(TNC);
-	
+
+				// Stop Listening, and set MYCALL to user's call
+
+				FreeDataSuspendPort(TNC);	
+				FreeDataChangeMYC(TNC, TNC->Streams[0].MyCall);
+				TNC->SessionTimeLimit = TNC->DefaultSessionTimeLimit;		// Reset Limit
+
 				sprintf(TNC->WEB_TNCSTATE, "In Use by %s", STREAM->MyCall);
 				MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
 
@@ -788,7 +836,43 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			}
 
 			return 0;
+		}
 
+		if (_memicmp(&buff->L2DATA[0], "TXLEVEL ", 8) == 0)
+		{
+			PMSGWITHLEN buffptr = (PMSGWITHLEN)GetBuff();
+			int Level = atoi(&buff->L2DATA[8]);
+			char TXL[] = "{\"type\" : \"set\", \"command\" : \"tx_audio_level\", \"value\": \"%d\"}\n";
+			char Message[256];
+			int Len, ret;
+
+			Len = sprintf(Message, TXL, Level);
+			ret = send(TNC->TCPDataSock, (char *)&Message, Len, 0);
+			
+			if (buffptr)
+			{
+				buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "FreeData} TXLevel Set\r");
+				C_Q_ADD(&TNC->Streams[Stream].PACTORtoBPQ_Q, buffptr);
+			}
+			return 0;
+		}
+
+		if (_memicmp(&buff->L2DATA[0], "SENDTEST", 8) == 0)
+		{
+			PMSGWITHLEN buffptr = (PMSGWITHLEN)GetBuff();
+			char TXF[] = "{\"type\" : \"set\", \"command\" : \"send_test_frame\"}\n";
+			char Message[256];
+			int Len, ret;
+
+			Len = sprintf(Message, TXF);
+			ret = send(TNC->TCPDataSock, (char *)&Message, Len, 0);
+			
+			if (buffptr)
+			{
+				buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "FreeData} Test Frame Requested\r");
+				C_Q_ADD(&TNC->Streams[Stream].PACTORtoBPQ_Q, buffptr);
+			}
+			return 0;
 		}
 
 		if (_memicmp(&buff->L2DATA[0], "CHAT ", 5) == 0)
@@ -830,16 +914,13 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 		}
 
 
-
-
 		// See if a Connect Command.
 
 		if (toupper(buff->L2DATA[0]) == 'C' && buff->L2DATA[1] == ' ' && txlen > 2)	// Connect
 		{
 			char Connect[80];
 			char loppedCall[10];
-			char toCall[10];
-
+			
 			char * ptr = strchr(&buff->L2DATA[2], 13);
 
 			if (ptr)
@@ -945,12 +1026,9 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			closesocket(TNC->TCPDataSock);
 		}
 
-		if (TNC->TCPSock)
-		{
-			shutdown(TNC->TCPSock, SD_BOTH);
-			Sleep(100);
-			closesocket(TNC->TCPSock);
-		}
+		if (TNC->WeStartedTNC)
+			KillTNC(TNC);
+
 
 		return 0;
 
@@ -971,7 +1049,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			
 			if (TNC->ConnectPending == 0 && TNC->PTTState == 0)
 			{
-				TNC->FreeDataInfo->CONOK = 0;
+				FreeDataSuspendPort(TNC);
 				TNC->GavePermission = TRUE;
 				return 0;	// OK to Change
 			}
@@ -988,8 +1066,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			{
 				TNC->GavePermission = FALSE;
 				if (TNC->ARDOPCurrentMode[0] != 'S')	// Skip
-					TNC->FreeDataInfo->CONOK = 1;
-
+					FreeDataReleasePort(TNC);
 			}
 			return 0;
 		}
@@ -1016,18 +1093,21 @@ VOID FreeDataReleaseTNC(struct TNCINFO * TNC)
 
 	Rig_Command(-1, TXMsg);
 
+	FreeDataReleasePort(TNC);
 	ReleaseOtherPorts(TNC);
 
 }
 
 VOID FreeDataSuspendPort(struct TNCINFO * TNC)
 {
-	TNC->FreeDataInfo->CONOK = 0;
+//	char CMD[] = "{\"type\" : \"set\", \"command\" : \"listen\", \"state\": \"False\"}\n";
+//	send(TNC->TCPDataSock, CMD, strlen(CMD), 0);
 }
 
 VOID FreeDataReleasePort(struct TNCINFO * TNC)
 {
-	TNC->FreeDataInfo->CONOK = 1;
+	char CMD[] = "{\"type\" : \"set\", \"command\" : \"listen\", \"state\": \"True\"}\n";
+	send(TNC->TCPDataSock, CMD, strlen(CMD), 0);
 }
 
 
@@ -1296,6 +1376,7 @@ VOID * FreeDataExtInit(EXTPORTDATA * PortEntry)
 	char * TempScript;
 	u_long param = 1;
 	int line;
+	int i;
 
 	srand(time(NULL));
 	
@@ -1318,6 +1399,12 @@ VOID * FreeDataExtInit(EXTPORTDATA * PortEntry)
 	if (TNC->FreeDataInfo->TuningRange == 0)
 		TNC->FreeDataInfo->TuningRange = 50;
 
+	if (TNC->FreeDataInfo->TXLevel == 0)
+			TNC->FreeDataInfo->TXLevel = 50;
+
+	if (TNC->AutoStartDelay == 0)
+		TNC->AutoStartDelay = 2000;
+
 #ifndef LINBPQ
 
 	if (bgBrush == NULL)
@@ -1335,6 +1422,8 @@ VOID * FreeDataExtInit(EXTPORTDATA * PortEntry)
 	TNC->Port = port;
 	TNC->Hardware = H_FREEDATA;
 
+	TNC->WeStartedTNC = 1;
+
 	TNC->ARDOPDataBuffer = malloc(MAXRXSIZE);
 	TNC->ARDOPBuffer = malloc(FREEDATABUFLEN);
 
@@ -1349,9 +1438,6 @@ VOID * FreeDataExtInit(EXTPORTDATA * PortEntry)
 	strlop(TNC->FreeDataInfo->ourCall, ' ');
 	if (TNC->FreeDataInfo->useBaseCall)
 		strlop(TNC->FreeDataInfo->ourCall, '-');
-
-	if (TNC->FreeDataInfo->hamlibHost == 0)
-		TNC->FreeDataInfo->hamlibHost = _strdup("127.0.0.1");
 
 	if (PortEntry->PORTCONTROL.PORTINTERLOCK && TNC->RXRadio == 0 && TNC->TXRadio == 0)
 		TNC->RXRadio = TNC->TXRadio = PortEntry->PORTCONTROL.PORTINTERLOCK;
@@ -1406,10 +1492,55 @@ VOID * FreeDataExtInit(EXTPORTDATA * PortEntry)
 	strcpy(TNC->CurrentMYC, TNC->NodeCall);
 
 	if (TNC->WL2K == NULL)
-		if (PortEntry->PORTCONTROL.WL2KInfo.RMSCall[0])			// Alrerady decoded
+		if (PortEntry->PORTCONTROL.WL2KInfo.RMSCall[0])			// Already decoded
 			TNC->WL2K = &PortEntry->PORTCONTROL.WL2KInfo;
 
 	PortEntry->PORTCONTROL.TNC = TNC;
+
+	// Build SSID List
+
+	if (TNC->LISTENCALLS)
+	{
+		strcpy(TNC->FreeDataInfo->SSIDList, TNC->LISTENCALLS);
+	}
+	else
+	{
+		APPLCALLS * APPL;
+		char Appl[11] = "";
+		char * List = TNC->FreeDataInfo->SSIDList;
+		char * SSIDptr;
+		int SSID;
+		int Listptr;
+
+		// list is a set of numbers separated by spaces eg 0 2 10 
+
+		SSIDptr = strchr(TNC->NodeCall, '-');
+		if (SSIDptr)
+			SSID = atoi(SSIDptr + 1);
+		else
+			SSID = 0;
+
+		Listptr = sprintf(List, "%d", SSID);
+
+		for (i = 0; i < 32; i++)
+		{
+			APPL=&APPLCALLTABLE[i];
+
+			if (APPL->APPLCALL_TEXT[0] > ' ')
+			{
+				memcpy(Appl, APPL->APPLCALL_TEXT, 10);
+
+				SSIDptr = strchr(Appl, '-');
+				if (SSIDptr)
+					SSID = atoi(SSIDptr + 1);
+				else
+					SSID = 0;
+
+				Listptr += sprintf(&List[Listptr], " %d", SSID);
+			}
+		}
+		List[Listptr] = 0;
+	}
 
 	TNC->WebWindowProc = WebProc;
 	TNC->WebWinX = 520;
@@ -1427,7 +1558,6 @@ VOID * FreeDataExtInit(EXTPORTDATA * PortEntry)
 	TNC->WEB_MODE = zalloc(20);
 	TNC->WEB_TRAFFIC = zalloc(100);
 
-
 #ifndef LINBPQ
 
 	line = 6;
@@ -1443,7 +1573,7 @@ VOID * FreeDataExtInit(EXTPORTDATA * PortEntry)
 		TNC->xIDC_TXTUNEVAL = CreateWindowEx(0, "STATIC", "0", WS_CHILD | WS_VISIBLE, 320,line,30,20, TNC->hDlg, NULL, hInstance, NULL);
 
 		SendMessage(TNC->xIDC_TXTUNE, TBM_SETRANGE, (WPARAM) TRUE, (LPARAM) MAKELONG(-200, 200));  // min. & max. positions
-        
+
 		line += 22;
 	}
 	else
@@ -1451,7 +1581,7 @@ VOID * FreeDataExtInit(EXTPORTDATA * PortEntry)
 
 	CreateWindowEx(0, "STATIC", "Comms State", WS_CHILD | WS_VISIBLE, 10,line,120,20, TNC->hDlg, NULL, hInstance, NULL);
 	TNC->xIDC_COMMSSTATE = CreateWindowEx(0, "STATIC", "", WS_CHILD | WS_VISIBLE, 116,line,450,20, TNC->hDlg, NULL, hInstance, NULL);
-	
+
 	line += 22;
 	CreateWindowEx(0, "STATIC", "TNC State", WS_CHILD | WS_VISIBLE, 10,line,106,20, TNC->hDlg, NULL, hInstance, NULL);
 	TNC->xIDC_TNCSTATE = CreateWindowEx(0, "STATIC", "", WS_CHILD | WS_VISIBLE, 116,line,520,20, TNC->hDlg, NULL, hInstance, NULL);
@@ -1459,15 +1589,15 @@ VOID * FreeDataExtInit(EXTPORTDATA * PortEntry)
 	line += 22;
 	CreateWindowEx(0, "STATIC", "Mode", WS_CHILD | WS_VISIBLE, 10,line,80,20, TNC->hDlg, NULL, hInstance, NULL);
 	TNC->xIDC_MODE = CreateWindowEx(0, "STATIC", "", WS_CHILD | WS_VISIBLE, 116,line,200,20, TNC->hDlg, NULL, hInstance, NULL);
- 
+
 	line += 22;
 	CreateWindowEx(0, "STATIC", "Channel State", WS_CHILD | WS_VISIBLE, 10,line,110,20, TNC->hDlg, NULL, hInstance, NULL);
 	TNC->xIDC_CHANSTATE = CreateWindowEx(0, "STATIC", "", WS_CHILD | WS_VISIBLE, 116,line,144,20, TNC->hDlg, NULL, hInstance, NULL);
- 
+
 	line += 22;
- 	CreateWindowEx(0, "STATIC", "Proto State", WS_CHILD | WS_VISIBLE,10,line,80,20, TNC->hDlg, NULL, hInstance, NULL);
+	CreateWindowEx(0, "STATIC", "Proto State", WS_CHILD | WS_VISIBLE,10,line,80,20, TNC->hDlg, NULL, hInstance, NULL);
 	TNC->xIDC_PROTOSTATE = CreateWindowEx(0, "STATIC", "", WS_CHILD | WS_VISIBLE,116,line,374,20 , TNC->hDlg, NULL, hInstance, NULL);
- 
+
 	line += 22;
 	CreateWindowEx(0, "STATIC", "Traffic", WS_CHILD | WS_VISIBLE,10,line,80,20, TNC->hDlg, NULL, hInstance, NULL);
 	TNC->xIDC_TRAFFIC = CreateWindowEx(0, "STATIC", "0 0 0 0", WS_CHILD | WS_VISIBLE,116,line,374,20 , TNC->hDlg, NULL, hInstance, NULL);
@@ -1479,16 +1609,16 @@ VOID * FreeDataExtInit(EXTPORTDATA * PortEntry)
 	TNC->xIDC_RESTARTTIME = CreateWindowEx(0, "STATIC", "Never", WS_CHILD | WS_VISIBLE,250,line,200,20, TNC->hDlg, NULL, hInstance, NULL);
 
 	TNC->hMonitor= CreateWindowEx(0, "LISTBOX", "", WS_CHILD |  WS_VISIBLE  | LBS_NOINTEGRALHEIGHT | 
-            LBS_DISABLENOSCROLL | WS_HSCROLL | WS_VSCROLL,
-			0,170,250,300, TNC->hDlg, NULL, hInstance, NULL);
+		LBS_DISABLENOSCROLL | WS_HSCROLL | WS_VSCROLL,
+		0,170,250,300, TNC->hDlg, NULL, hInstance, NULL);
 
 	TNC->ClientHeight = 450;
 	TNC->ClientWidth = 500;
 
 	TNC->hMenu = CreatePopupMenu();
 
-	AppendMenu(TNC->hMenu, MF_STRING, WINMOR_KILL, "Kill TNC TNC");
-	AppendMenu(TNC->hMenu, MF_STRING, WINMOR_RESTART, "Kill and Restart TNC TNC");
+	AppendMenu(TNC->hMenu, MF_STRING, WINMOR_KILL, "Kill Freedata TNC");
+	AppendMenu(TNC->hMenu, MF_STRING, WINMOR_RESTART, "Kill and Restart Freedata TNC");
 	AppendMenu(TNC->hMenu, MF_STRING, WINMOR_RESTARTAFTERFAILURE, "Restart TNC after failed Connection");	
 	CheckMenuItem(TNC->hMenu, WINMOR_RESTARTAFTERFAILURE, (TNC->RestartAfterFailure) ? MF_CHECKED : MF_UNCHECKED);
 	AppendMenu(TNC->hMenu, MF_STRING, ARDOP_ABORT, "Abort Current Session");
@@ -1496,11 +1626,62 @@ VOID * FreeDataExtInit(EXTPORTDATA * PortEntry)
 	MoveWindows(TNC);
 #endif
 
+	strcpy(TNC->WEB_CHANSTATE, "Idle");
+	SetWindowText(TNC->xIDC_CHANSTATE, TNC->WEB_CHANSTATE);
+
+	// Convert sound card name to index
+
+#ifdef WIN32
+
+	if (CaptureDevices == NULL)				// DOn't do it again if more that one port
+	{
+		CaptureCount = waveInGetNumDevs();
+
+		CaptureDevices = malloc((MAXPNAMELEN + 2) * CaptureCount);
+		CaptureDevices[0] = 0;
+
+		printf("Capture Devices");
+
+		for (i = 0; i < CaptureCount; i++)
+		{
+			waveInOpen(&hWaveIn, i, &wfx, 0, 0, CALLBACK_NULL); //WAVE_MAPPER
+			waveInGetDevCaps((UINT_PTR)hWaveIn, &pwic, sizeof(WAVEINCAPS));
+
+			if (CaptureDevices)
+				strcat(CaptureDevices, ",");
+			strcat(CaptureDevices, pwic.szPname);
+			Debugprintf("%d %s", i + 1, pwic.szPname);
+			memcpy(&CaptureNames[i][0], pwic.szPname, MAXPNAMELEN);
+			_strupr(&CaptureNames[i][0]);
+		}
+
+		PlaybackCount = waveOutGetNumDevs();
+
+		PlaybackDevices = malloc((MAXPNAMELEN + 2) * PlaybackCount);
+		PlaybackDevices[0] = 0;
+
+		Debugprintf("Playback Devices");
+
+		for (i = 0; i < PlaybackCount; i++)
+		{
+			waveOutOpen(&hWaveOut, i, &wfx, 0, 0, CALLBACK_NULL); //WAVE_MAPPER
+			waveOutGetDevCaps((UINT_PTR)hWaveOut, &pwoc, sizeof(WAVEOUTCAPS));
+
+			if (PlaybackDevices[0])
+				strcat(PlaybackDevices, ",");
+			strcat(PlaybackDevices, pwoc.szPname);
+			Debugprintf("%i %s", i + 1, pwoc.szPname);
+			memcpy(&PlaybackNames[i][0], pwoc.szPname, MAXPNAMELEN);
+			_strupr(&PlaybackNames[i][0]);
+			waveOutClose(hWaveOut);
+		}
+	}
+
+#endif
+
 	time(&TNC->lasttime);			// Get initial time value
 
 	ConnecttoFreeData(port);
-	TNC->FreeDataInfo->CONOK = 1;
-
 	return ExtProc;
 }
 
@@ -1981,9 +2162,7 @@ VOID FreeDataProcessNewConnect(struct TNCINFO * TNC, char * fromCall, char * toC
 	PMSGWITHLEN buffptr;
 	struct STREAMINFO * STREAM = &TNC->Streams[0];
 	struct FreeDataINFO * Modem = TNC->FreeDataInfo;
-	char * tncCall, *Context;
 	char * ptr;
-	char a, b;
 	unsigned char axcall[7];
 	char AppName[13] = "";
 	APPLCALLS * APPL;
@@ -2039,7 +2218,7 @@ VOID FreeDataProcessNewConnect(struct TNCINFO * TNC, char * fromCall, char * toC
 
 	// The TNC responds to any SSID so we can use incomming call as Appl Call
 	// No we can't - it responds but reports the configured call not the called call
-/*
+
 	// See which application the connect is for
 
 	for (App = 0; App < 32; App++)
@@ -2077,7 +2256,7 @@ VOID FreeDataProcessNewConnect(struct TNCINFO * TNC, char * fromCall, char * toC
 		}
 	}
 
-*/
+
 
 	ProcessIncommingConnectEx(TNC, fromCall, 0, TRUE, TRUE);
 	SESS = TNC->PortRecord->ATTACHEDSESSIONS[0];
@@ -2141,18 +2320,6 @@ VOID FreeDataProcessConnectAck(struct TNCINFO * TNC, char * Call, unsigned char 
 	PMSGWITHLEN buffptr;
 	struct STREAMINFO * STREAM = &TNC->Streams[0];
 	struct FreeDataINFO * Modem = TNC->FreeDataInfo;
-	char * toCall, * fromCall, * tncCall, *Context;
-	char * ptr;
-	char a, b;
-	unsigned char axcall[7];
-	char AppName[13] = "";
-	APPLCALLS * APPL;
-	char * ApplPtr = APPLS;
-	int App;
-	char Appl[10];
-	struct WL2KInfo * WL2K = TNC->WL2K;
-	TRANSPORTENTRY * SESS;
-
 
 	sprintf(TNC->WEB_TNCSTATE, "%s Connected to %s", STREAM->MyCall, STREAM->RemoteCall);
 	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
@@ -2284,32 +2451,6 @@ static int SendTNCCommand(struct TNCINFO * TNC, char * Type, char * Command)
 
 static void SendPoll(struct TNCINFO * TNC)
 {
-	char DataMsgPoll[] = "{\"type\" : \"GET\", \"command\" : \"RX_MSG_BUFFER\"}\n";
-//	char DaemonPoll[] = "{\"type\" : \"GET\", \"command\" : \"DAEMON_STATE\"}\n";
-	char TNCPoll[] = "{\"type\" : \"GET\", \"command\" : \"TNC_STATE\", \"timestamp\" : 0}\n";
-
-	// Poll daemon rapidly until tnc is connected, then every 5 secs
-
-	if ((TNC->PollDelay++ > 50))// || !TNC->TNCCONNECTED) && TNC->DAEMONCONNECTED)
-	{
-//		ret = send(TNC->TCPSock, (char *)&DaemonPoll, strlen(DaemonPoll), 0);
-		TNC->PollDelay = 0;
-
-	}
-
-	if (TNC->TNCCONNECTED)
-	{
-//		ret = send(TNC->TCPDataSock, (char *)&TNCPoll, strlen(TNCPoll), 0);
-
-//		if (TNC->PollDelay & 1)
-//			ret = SendTNCCommand(TNC, "GET", "RX_BUFFER");
-//		else if (TNC->PollDelay & 2)
-//			ret = SendTNCCommand(TNC, "GET", "RX_MSG_BUFFER");
-//		else
-//			ret = send(TNC->TCPDataSock, (char *)&TNCPoll, strlen(TNCPoll), 0);
-
-
-	}
 	return;
 }
 
@@ -2462,7 +2603,6 @@ void ProcessMessageObject(struct TNCINFO * TNC, char * This)
 
 	char * Call;
 	char * LOC;
-	char * Type;
 	char * Msg;
 	int Len;
 	char * ptr, * ptr2;
@@ -2918,147 +3058,10 @@ char * getJSONValue(char * Msg, char * Key)
 char stopTNC[] = "{\"type\" : \"SET\", \"command\": \"STOPTNC\" , \"parameter\": \"---\" }\r";
 
 
-void ProcessDAEMONJSON(struct TNCINFO * TNC, char * Msg, int Len)
-{
-	char * ptr;
-	char * capture, * playback;
-
-	
-	if (memcmp(Msg, "{\"command\":\"daemon_state\"", 25) == 0)
-	{
-/*
-		{"COMMAND":"DAEMON_STATE","DAEMON_STATE":[{"STATUS":"stopped"}],
-		"PYTHON_VERSION":"3.9",
-		"HAMLIB_VERSION":"4.0",
-		"INPUT_DEVICES":[{"ID":5,"NAME":"pulse"},{"ID":9,"NAME":"default"}],
-		"OUTPUT_DEVICES":[{"ID":0,"NAME":"bcm2835 Headphones: - (hw:0,0)"},{"ID":1,"NAME":"sysdefault"},{"ID":2,"NAME":"lavrate"},{"ID":3,"NAME":"samplerate"},{"ID":4,"NAME":"speexrate"},{"ID":5,"NAME":"pulse"},{"ID":6,"NAME":"upmix"},{"ID":7,"NAME":"vdownmix"},{"ID":8,"NAME":"dmix"},{"ID":9,"NAME":"default"}],
-		"SERIAL_DEVICES":[{"PORT":"\/dev\/ttyAMA0","DESCRIPTION":"ttyAMA0 [1dff]"}],
-		"CPU":"39.6",
-		"RAM":"38.6",
-		"VERSION":"0.1-prototype"}
-*/
-
-		Msg += 25;
-
-		playback = getJSONValue(Msg, "\"output_devices\"");
-		capture = getJSONValue(Msg, "\"input_devices\"");
-
-		if (TNC->CaptureDevices)
-			free(TNC->CaptureDevices);
-
-		TNC->CaptureDevices = _strdup(capture);
-				
-		if (TNC->PlaybackDevices)
-			free(TNC->PlaybackDevices);
-
-		TNC->PlaybackDevices = _strdup(playback);
-
-		ptr = getJSONValue(Msg, "\"daemon_state\"");
-
-		if (strstr(ptr, "stopped"))
-		{
-			TNC->FreeDataInfo->TNCRunning = 0;
-			// if we have Capture and Playback devices, then start the TNC, else look in message for them
-				
-			if (TNC->CaptureDevices)	
-			{
-				if (TNC->FreeDataInfo->startingTNC == 0)
-				{
-					// Find Capture and Playback indices
-
-					struct FreeDataINFO * Info = TNC->FreeDataInfo;
-					char * devptr = stristr(TNC->CaptureDevices, Info->Capture);
-					int capindex = -1, playindex = -1;
-					char startTNC[] = "{\"type\":\"set\",\"command\":\"start_tnc\","
-						"\"parameter\":"
-						"[{\"mycall\":\"%s\","
-						"\"mygrid\":\"%s\","
-						"\"rx_audio\":\"%d\","
-						"\"tx_audio\":\"%d\","
-						"\"radiocontrol\":\"disabled\","
-						"\"devicename\":\"RIG_MODEL_NETRIGCTL\","
-						"\"deviceport\":\"COM99\","
-						"\"pttprotocol\":\"USB\","
-						"\"pttport\":\"COM99\","
-						"\"serialspeed\":\"19200\","
-						"\"data_bits\":\"8\","
-						"\"stop_bits\":\"1\","
-						"\"handshake\":\"None\","
-						"\"rigctld_ip\":\"%s\","
-						"\"rigctld_port\":\"%d\","
-						"\"enable_scatter\":\"False\","
-						"\"enable_fft\":\"False\","
-						"\"enable_fsk\":\"False\","
-						"\"low_bandwidth_mode\":\"%s\","		//False
-						"\"tuning_range_fmin\":\"%3.1f\","			//-50.0
-						"\"tuning_range_fmax\":\"%3.1f\","			// 50.0
-						"\"tx_audio_level\":\"125\","
-						"\"respond_to_cq\":\"True\","
-						"\"rx_buffer_size\":\"16\","
-						"\"rx_buffer_size\":\"16\","
-						"\"enable_explorer\": \"False\""
-				
-						"}]}\n";
-
-
-					char Command[2048];
-					int Len;
-
-					if (devptr)
-					{
-						while (*(--devptr) != '{');		// find start of subparam
-						capindex = atoi(&devptr[6]);
-					}
-
-					devptr = stristr(TNC->PlaybackDevices, Info->Playback);
-
-					if (devptr)
-					{
-						while (*(--devptr) != '{');		// find start of subparam
-						playindex = atoi(&devptr[6]);
-					}
-
-					if (capindex > -1 && playindex > -1)
-					{
-						Len = sprintf(Command, startTNC, TNC->FreeDataInfo->ourCall, LOC, capindex, playindex,
-							TNC->FreeDataInfo->hamlibHost, TNC->FreeDataInfo->hamlibPort,
-							TNC->FreeDataInfo->LimitBandWidth ? "True" : "False",
-							TNC->FreeDataInfo->TuningRange * -1.0,
-							TNC->FreeDataInfo->TuningRange * 1.0);
-					
-						send(TNC->TCPSock, Command, Len, 0);
-//						TNC->FreeDataInfo->startingTNC = 5;
-					}
-				}
-			}
-			else
-			{
-				ptr = getJSONValue(Msg, "\"version\"");
-
-			}
-			return;
-		}
-		TNC->FreeDataInfo->TNCRunning = 1;
-
-		if (TNC->TNCCONNECTED == FALSE && TNC->TNCCONNECTING == FALSE)
-			ConnectTNCPort(TNC);
-
-		return;
-
-	}
-
-	Debugprintf(Msg);
-}
-
 void StopTNC(struct TNCINFO * TNC)
 {
-	char stopTNC[] = "{\"type\" : \"set\", \"command\": \"stop_tnc\" , \"parameter\": \"---\"}";
-
-	if (TNC->TNCCONNECTED)
-	{
-		send(TNC->TCPSock, stopTNC, strlen(stopTNC), 0);
+	if (TNC->TCPDataSock)
 		closesocket(TNC->TCPDataSock);
-	}
 }
 
 
@@ -3089,6 +3092,151 @@ void ProcessTNCJSON(struct TNCINFO * TNC, char * Msg, int Len)
 		return;
 	}
 
+	if (memcmp(Msg, "{\"freedata\"", 10) == 0)
+	{
+		// {"freedata":"tnc-message","arq":"session","status":"connected","mycallsign":"G8BPQ-10","dxcallsign":"G8BPQ-0"}
+		// {"freedata":"tnc-message","arq":"session","status":"connected","heartbeat":"transmitting","mycallsign":"G8BPQ-10","dxcallsign":"G8BPQ-0"}
+
+		char myCall[12] = "";
+		char farCall[12] = "";
+		char * ptr2;
+
+		ptr = strstr(Msg, "\"tnc-message\",\"arq\":\"session\"");
+
+		if (ptr)
+		{
+			ptr = strstr(ptr, "status");
+
+			if (ptr)
+			{
+				struct STREAMINFO * STREAM = &TNC->Streams[0];
+				ptr += 9;
+
+				ptr2 = strstr(ptr, "mycallsign");
+
+				if (ptr2)
+				{
+					memcpy(myCall, &ptr2[13], 10);
+					strlop(myCall, '"');
+				}
+
+				ptr2 = strstr(ptr, "dxcallsign");
+
+				if (ptr2)
+				{
+					memcpy(farCall, &ptr2[13], 10);
+					strlop(farCall, '"');
+				}
+
+				if (memcmp(ptr, "disconnected", 10) == 0)
+				{
+					if (TNC->FreeDataInfo->arqstate != 1)
+					{
+						TNC->FreeDataInfo->arqstate = 1;
+						Debugprintf("%d arq_session_state %s", TNC->Port, "disconnected");
+					}
+
+					// if connected this is a new disconnect
+
+					if (STREAM->Connected)
+					{
+						// Create a traffic record
+
+						char logmsg[120];	
+						time_t Duration;
+
+						Duration = time(NULL) - STREAM->ConnectTime;
+
+						if (Duration == 0)
+							Duration = 1;
+
+						sprintf(logmsg,"Port %2d %9s Bytes Sent %d  BPS %d Bytes Received %d BPS %d Time %d Seconds",
+							TNC->Port, STREAM->RemoteCall,
+							STREAM->BytesTXed, (int)(STREAM->BytesTXed/Duration),
+							STREAM->BytesRXed, (int)(STREAM->BytesRXed/Duration), (int)Duration);
+
+						Debugprintf(logmsg);
+
+						STREAM->Connected = FALSE;		// Back to Command Mode
+						STREAM->ReportDISC = TRUE;		// Tell Node
+						STREAM->Disconnecting = FALSE;
+
+						strcpy(TNC->WEB_TNCSTATE, "Free");
+						MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
+					}
+				}
+				else if (memcmp(ptr, "connecting", 10) == 0)
+				{
+					if (TNC->FreeDataInfo->arqstate != 2)
+					{
+						TNC->FreeDataInfo->arqstate = 2;
+						Debugprintf("%d arq_session_state %s", TNC->Port, "connecting");
+					}
+				}
+				else if (memcmp(ptr, "connected", 9) == 0)
+				{
+					// if connection is idle this is an incoming connect
+
+					if (TNC->FreeDataInfo->arqstate != 3)
+					{
+						TNC->FreeDataInfo->arqstate = 3;
+						Debugprintf("%d arq_session_state %s", TNC->Port, "connected");
+					}
+
+					if (STREAM->Connecting == FALSE && STREAM->Connected == FALSE)
+					{
+						FreeDataProcessNewConnect(TNC, farCall, myCall);
+					}
+
+					// if connecting it is a connect ack
+
+					else if (STREAM->Connecting)
+					{
+						FreeDataProcessConnectAck(TNC, farCall, Msg, Len);
+					}
+				}
+
+				else if (memcmp(ptr, "disconnecting", 12) == 0)
+				{
+					if (TNC->FreeDataInfo->arqstate != 4)
+					{
+						TNC->FreeDataInfo->arqstate = 4;
+						Debugprintf("%d arq_session_state %s", TNC->Port, "disconnecting");
+					}
+				}
+				else if (memcmp(ptr, "failed", 5) == 0)
+				{
+					PMSGWITHLEN buffptr;
+
+					if (TNC->FreeDataInfo->arqstate != 5)
+					{
+						TNC->FreeDataInfo->arqstate = 5;
+						Debugprintf("%d arq_session_state %s", TNC->Port, "failed");
+					}
+
+					if (STREAM->Connecting)
+					{
+						sprintf(TNC->WEB_TNCSTATE, "In Use by %s", STREAM->MyCall);
+						MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
+
+						STREAM->Connecting = FALSE;
+						buffptr = (PMSGWITHLEN)GetBuff();
+
+						if (buffptr == 0) return;			// No buffers, so ignore
+
+						buffptr->Len = sprintf(buffptr->Data, "*** Connect Failed\r");
+
+						C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
+						STREAM->FramesQueued++;
+					}
+				}
+			}
+	
+			Debugprintf("%d %s", TNC->Port, Msg);
+			return;
+		}
+
+}
 
 	if (memcmp(Msg, "{\"command\":\"tnc_state\"", 22) == 0)
 	{
@@ -3110,6 +3258,24 @@ void ProcessTNCJSON(struct TNCINFO * TNC, char * Msg, int Len)
 		int rx_msg_buffer_length = 0;
 
 		Msg += 23;
+
+		ptr = strstr(Msg, "tnc_state");
+
+		if (ptr)
+		{
+			if (ptr[12] == 'B' && TNC->Busy == FALSE)
+			{
+				TNC->Busy = TRUE;
+				strcpy(TNC->WEB_CHANSTATE, "Busy");
+				SetWindowText(TNC->xIDC_CHANSTATE, TNC->WEB_CHANSTATE);
+			}
+			else if (ptr[12] == 'I' && TNC->Busy)
+			{
+				TNC->Busy = FALSE;
+				strcpy(TNC->WEB_CHANSTATE, "Idle");
+				SetWindowText(TNC->xIDC_CHANSTATE, TNC->WEB_CHANSTATE);
+			}
+		}
 
 		ptr = strstr(Msg, "rx_buffer_length");
 
@@ -3521,11 +3687,11 @@ void ProcessTNCJSON(struct TNCINFO * TNC, char * Msg, int Len)
 	
 int FreeDataConnect(struct TNCINFO * TNC, char * Call)
 {
-	char Connect[] = "{\"type\" : \"arq\", \"command\": \"connect\" , \"dxcallsign\": \"%s\"}\n";
+	char Connect[] = "{\"type\" : \"arq\", \"command\": \"connect\" , \"dxcallsign\": \"%s\", \"attempts\": \"%d\"}\n";
 	char Msg[128];
 	int Len;
 
-	Len = sprintf(Msg, Connect, Call);
+	Len = sprintf(Msg, Connect, Call, TNC->MaxConReq);
 
 	return send(TNC->TCPDataSock, Msg, Len, 0);
 }
@@ -3566,100 +3732,6 @@ int FreeDataSendCommand(struct TNCINFO * TNC, char * Msg)
 	SendAsRaw(TNC, TNC->FreeDataInfo->farCall, TNC->FreeDataInfo->ourCall, Msg, strlen(Msg));
 	return 0;
 }
-
-void FreeDataProcessDaemonMsg(struct TNCINFO * TNC)
-{
-	int InputLen, MsgLen;
-	char * ptr;
-	int OpenBraces;
-	int CloseBraces;
-	char c;
-
-
-	// shouldn't get several messages per packet, as each should need an ack
-	// May get message split over packets
-
-	if (TNC->InputLen > 8000)	// Shouldnt have packets longer than this
-		TNC->InputLen=0;
-				
-	InputLen=recv(TNC->TCPSock, &TNC->ARDOPBuffer[TNC->InputLen], FREEDATABUFLEN - 1 - TNC->InputLen, 0);
-
-	if (InputLen == FREEDATABUFLEN - 1)
-		c = 0;
-
-
-	if (InputLen == 0 || InputLen == SOCKET_ERROR)
-	{
-		// Does this mean closed?
-		
-		closesocket(TNC->TCPSock);
-
-		TNC->TCPSock = 0;
-
-		TNC->DAEMONCONNECTED = FALSE;
-		TNC->Streams[0].ReportDISC = TRUE;
-
-		sprintf(TNC->WEB_COMMSSTATE, "Connection to TNC lost");
-		MySetWindowText(TNC->xIDC_COMMSSTATE, TNC->WEB_COMMSSTATE);
-
-		return;					
-	}
-
-	TNC->InputLen += InputLen;
-
-loop:
-	TNC->ARDOPBuffer[TNC->InputLen] = 0;	// So we cat use string functions
-
-	// Message should be json. We know the format, so don't need a general parser, but need to know if complete.
-	// I think counting { and } and stopping if equal should work;
-
-
-	if (TNC->ARDOPBuffer[0] != '{')
-	{
-		TNC->InputLen = 0;
-		return;
-	}
-
-	ptr = &TNC->ARDOPBuffer[0];
-	
-	OpenBraces = 0;
-	CloseBraces = 0;
-
-	while (c = *(ptr++))
-	{
-		if (c == '{')
-			OpenBraces ++;
-		else if (c == '}')
-			CloseBraces ++;
-
-		if (OpenBraces == CloseBraces)
-		{
-			MsgLen = ptr - (char * )TNC->ARDOPBuffer;
-
-			ProcessDAEMONJSON(TNC, TNC->ARDOPBuffer, MsgLen);
-
-			if (TNC->InputLen == 0 || *ptr == 0)
-			{
-				TNC->InputLen = 0;
-				return;
-			}
-
-			// More in buffer
-
-			memmove(TNC->ARDOPBuffer, ptr, TNC->InputLen - MsgLen);
-
-			TNC->InputLen -= MsgLen;
-			goto loop;
-		}
-
-	}	
-	// Message Incomplete - wait for rest;
-}
-
-
-
-
-
 
 void FreeDataProcessTNCMsg(struct TNCINFO * TNC)
 {
@@ -3776,10 +3848,8 @@ static SOCKADDR_IN rxaddr;
 
 VOID FreeDataThread(void * portptr)
 {
-	// FreeData TNC has two sessions, not sure why!
-
 	// Messages are JSON encapulated
-	// Opens deamon socket. TNC socket is only available once Start TNC command sent
+	// Now We run tnc directly so don't open daemon socket
 	// Looks for data on socket(s)
 	
 	int port = (int)(size_t)portptr;
@@ -3792,13 +3862,16 @@ VOID FreeDataThread(void * portptr)
 	fd_set readfs;
 	fd_set errorfs;
 	struct timeval timeout;
+	char Params[512];
 
 	if (TNC->HostName == NULL)
 		return;
 
+	buildParamString(TNC, Params);
+
 	TNC->BusyFlags = 0;
 
-	TNC->DAEMONCONNECTING = TRUE;
+	TNC->TNCCONNECTING = TRUE;
 
 	Sleep(3000);		// Allow init to complete 
 
@@ -3812,7 +3885,7 @@ VOID FreeDataThread(void * portptr)
 	{
 		// can only check if running on local host
 		
-		TNC->PID = GetListeningPortsPID(TNC->destaddr.sin_port);
+		TNC->PID = GetListeningPortsPID(TNC->Datadestaddr.sin_port);
 		
 		if (TNC->PID == 0)
 			goto TNCNotRunning;
@@ -3846,28 +3919,27 @@ TNCNotRunning:
 
 	// Not running or can't check, restart if we have a path 
 
-/*	if (TNC->ProgramPath)
+	if (TNC->ProgramPath)
 	{
-		Consoleprintf("Trying to (re)start TNC %s", TNC->ProgramPath);
+		Consoleprintf("Trying to (re)start TNC  %s", TNC->ProgramPath);
 
 		if (RestartTNC(TNC))
 			CountRestarts(TNC);
 
 		Sleep(TNC->AutoStartDelay);
 	}
-*/
+
 TNCRunning:
 
 	if (TNC->Alerted == FALSE)
 	{
-		sprintf(TNC->WEB_COMMSSTATE, "Connecting to Daemon");
+		sprintf(TNC->WEB_COMMSSTATE, "Connecting to TNC");
 		MySetWindowText(TNC->xIDC_COMMSSTATE, TNC->WEB_COMMSSTATE);
 	}
 
-	TNC->destaddr.sin_addr.s_addr = inet_addr(TNC->HostName);
 	TNC->Datadestaddr.sin_addr.s_addr = inet_addr(TNC->HostName);
 
-	if (TNC->destaddr.sin_addr.s_addr == INADDR_NONE)
+	if (TNC->Datadestaddr.sin_addr.s_addr == INADDR_NONE)
 	{
 		//	Resolve name to address
 
@@ -3875,17 +3947,13 @@ TNCRunning:
 		 
 		 if (!HostEnt)
 		 {
-		 	TNC->DAEMONCONNECTING = FALSE;
+		 	TNC->TNCCONNECTING = FALSE;
 			sprintf(Msg, "Resolve Failed for FreeData Host - error code = %d\r\n", WSAGetLastError());
 			WritetoConsole(Msg);
 			return;			// Resolve failed
 		 }
-		 memcpy(&TNC->destaddr.sin_addr.s_addr,HostEnt->h_addr,4);
 		 memcpy(&TNC->Datadestaddr.sin_addr.s_addr,HostEnt->h_addr,4);
 	}
-
-//	closesocket(TNC->TCPDataSock);
-//	closesocket(TNC->TCPSock);
 
 	TNC->TCPDataSock=socket(AF_INET,SOCK_STREAM,0);
 
@@ -3894,33 +3962,17 @@ TNCRunning:
 		i=sprintf(Msg, "Socket Failed for FreeData TNC socket - error code = %d\r\n", WSAGetLastError());
 		WritetoConsole(Msg);
 
-	 	TNC->DAEMONCONNECTING = FALSE;
+	 	TNC->TNCCONNECTING = FALSE;
   	 	return; 
 	}
-
-	TNC->TCPSock = socket(AF_INET,SOCK_STREAM,0);
-
-	if (TNC->TCPSock == INVALID_SOCKET)
-	{
-		i=sprintf(Msg, "Socket Failed for FreeData Data Daemon socket - error code = %d\r\n", WSAGetLastError());
-		WritetoConsole(Msg);
-
-	 	TNC->DAEMONCONNECTING = FALSE;
-		closesocket(TNC->TCPDataSock);
-
-  	 	return; 
-	}
-
-	setsockopt(TNC->TCPSock, SOL_SOCKET, SO_REUSEADDR, (const char FAR *)&bcopt, 4);
-	setsockopt(TNC->TCPSock, IPPROTO_TCP, TCP_NODELAY, (const char FAR *)&bcopt, 4); 
 
 	sinx.sin_family = AF_INET;
 	sinx.sin_addr.s_addr = INADDR_ANY;
 	sinx.sin_port = 0;
 
-	// Connect Daemon Port
+	// Connect TNC Port
 
-	if (connect(TNC->TCPSock,(LPSOCKADDR) &TNC->Datadestaddr,sizeof(TNC->Datadestaddr)) == 0)
+	if (connect(TNC->TCPDataSock,(LPSOCKADDR) &TNC->Datadestaddr,sizeof(TNC->Datadestaddr)) == 0)
 	{
 		//
 		//	Connected successful
@@ -3931,18 +3983,17 @@ TNCRunning:
 		if (TNC->Alerted == FALSE)
 		{
 			err=WSAGetLastError();
-   			i=sprintf(Msg, "Connect Failed for FreeData Daemon socket - error code = %d\r\n", err);
+   			i=sprintf(Msg, "Connect Failed for FreeData TNC socket - error code = %d\r\n", err);
 			WritetoConsole(Msg);
-			sprintf(TNC->WEB_COMMSSTATE, "Connection to Daemon failed");
+			sprintf(TNC->WEB_COMMSSTATE, "Connection to TNC failed");
 			MySetWindowText(TNC->xIDC_COMMSSTATE, TNC->WEB_COMMSSTATE);
 			TNC->Alerted = TRUE;
 		}
 		
-		closesocket(TNC->TCPSock);
-		TNC->TCPSock = 0;
-	 	TNC->DAEMONCONNECTING = FALSE;
+		closesocket(TNC->TCPDataSock);
+		TNC->TCPDataSock = 0;
+	 	TNC->TNCCONNECTING = FALSE;
 			
-		RestartTNC(TNC);
 		return;
 	}
 
@@ -3950,18 +4001,18 @@ TNCRunning:
 
 	TNC->LastFreq = 0;
 
- 	TNC->DAEMONCONNECTING = FALSE;
-	TNC->DAEMONCONNECTED = TRUE;
+ 	TNC->TNCCONNECTING = FALSE;
+	TNC->TNCCONNECTED = TRUE;
 	TNC->BusyFlags = 0;
 	TNC->InputLen = 0;
 	TNC->Alerted = FALSE;
 
 	TNC->Alerted = TRUE;
 
-	sprintf(TNC->WEB_COMMSSTATE, "Connected to FreeData Daemon");		
+	sprintf(TNC->WEB_COMMSSTATE, "Connected to FreeData TNC");		
 	MySetWindowText(TNC->xIDC_COMMSSTATE, TNC->WEB_COMMSSTATE);
 
-	sprintf(Msg, "Connected to FreeData Daemon Port %d\r\n", TNC->Port);
+	sprintf(Msg, "Connected to FreeData TNC Port %d\r\n", TNC->Port);
 	WritetoConsole(Msg);
 
 
@@ -3972,27 +4023,20 @@ TNCRunning:
 //	GetSemaphore(&Semaphore, 52);
 #endif
 
-	while (TNC->DAEMONCONNECTED || TNC->TNCCONNECTED)
+	while (TNC->TNCCONNECTED)
 	{
 		FD_ZERO(&readfs);	
 		FD_ZERO(&errorfs);
 
-		if (TNC->DAEMONCONNECTED)
-			FD_SET(TNC->TCPSock,&readfs);
-
-		if (TNC->TCPSock)
-			FD_SET(TNC->TCPSock,&errorfs);
-
 		if (TNC->TNCCONNECTED)
 			FD_SET(TNC->TCPDataSock,&readfs);
-			
-		
+					
 		if (TNC->TNCCONNECTING || TNC->TNCCONNECTED) FD_SET(TNC->TCPDataSock,&errorfs);
 
 		timeout.tv_sec = 300;
 		timeout.tv_usec = 0;
 
-		ret = select((int)TNC->TCPSock + 1, &readfs, NULL, &errorfs, &timeout);
+		ret = select((int)TNC->TCPDataSock + 1, &readfs, NULL, &errorfs, &timeout);
 		
 		if (ret == SOCKET_ERROR)
 		{
@@ -4023,20 +4067,13 @@ TNCRunning:
 				FreeSemaphore(&Semaphore);
 			}
 								
-			if (FD_ISSET(TNC->TCPSock, &readfs))
-			{
-				GetSemaphore(&Semaphore, 52);
-				FreeDataProcessDaemonMsg(TNC);
-				FreeSemaphore(&Semaphore);
-			}
-
 			if (FD_ISSET(TNC->TCPDataSock, &errorfs))
 			{
 Lost:	
 				sprintf(Msg, "FreeData TNC Connection lost for Port %d\r\n", TNC->Port);
 				WritetoConsole(Msg);
 
-				sprintf(TNC->WEB_COMMSSTATE, "Connection to Daemon lost");
+				sprintf(TNC->WEB_COMMSSTATE, "Connection to TNC lost");
 				MySetWindowText(TNC->xIDC_COMMSSTATE, TNC->WEB_COMMSSTATE);
 
 				TNC->TNCCONNECTED = FALSE;
@@ -4052,26 +4089,6 @@ Lost:
 				TNC->TCPDataSock = 0;
 			}
 
-			if (FD_ISSET(TNC->TCPSock, &errorfs))
-			{
-				sprintf(Msg, "FreeData Daemon Connection lost for Port %d\r\n", TNC->Port);
-				WritetoConsole(Msg);
-
-				sprintf(TNC->WEB_COMMSSTATE, "Connection to Daemon lost");
-				MySetWindowText(TNC->xIDC_COMMSSTATE, TNC->WEB_COMMSSTATE);
-
-				TNC->DAEMONCONNECTED = FALSE;
-				TNC->Alerted = FALSE;
-
-				if (TNC->PTTMode)
-					Rig_PTT(TNC, FALSE);			// Make sure PTT is down
-
-				if (TNC->Streams[0].Attached)
-					TNC->Streams[0].ReportDISC = TRUE;
-
-				closesocket(TNC->TCPSock);
-				TNC->TCPSock = 0;
-			}
 			continue;
 		}
 	}
@@ -4083,13 +4100,6 @@ closeThread:
 		shutdown(TNC->TCPDataSock, SD_BOTH);
 		Sleep(100);
 		closesocket(TNC->TCPDataSock);
-	}
-
-	if (TNC->TCPSock)
-	{
-		shutdown(TNC->TCPSock, SD_BOTH);
-		Sleep(100);
-		closesocket(TNC->TCPSock);
 	}
 
 	sprintf(Msg, "FreeData Thread Terminated Port %d\r\n", TNC->Port);
@@ -4118,7 +4128,7 @@ void ConnectTNCPort(struct TNCINFO * TNC)
 	setsockopt(TNC->TCPDataSock, SOL_SOCKET, SO_REUSEADDR, (const char FAR *)&bcopt, 4);
 	setsockopt(TNC->TCPDataSock, IPPROTO_TCP, TCP_NODELAY, (const char FAR *)&bcopt, 4); 
 
-	if (connect(TNC->TCPDataSock,(LPSOCKADDR) &TNC->destaddr,sizeof(TNC->destaddr)) == 0)
+	if (connect(TNC->TCPDataSock,(LPSOCKADDR) &TNC->Datadestaddr,sizeof(TNC->Datadestaddr)) == 0)
 	{
 		//	Connected successful
 
@@ -4134,7 +4144,7 @@ void ConnectTNCPort(struct TNCINFO * TNC)
 	{
 		err=WSAGetLastError();
 		sprintf(Msg, "Connect Failed for FreeData TNC socket - error code = %d Port %d\n",
-				err, htons(TNC->destaddr.sin_port));
+				err, htons(TNC->Datadestaddr.sin_port));
 
 		WritetoConsole(Msg);
 		TNC->Alerted = TRUE;
@@ -4151,3 +4161,606 @@ void ConnectTNCPort(struct TNCINFO * TNC)
 	return;
 }
 
+void buildParamString(struct TNCINFO * TNC, char * line)
+{
+	//  choices=[, "direct", "rigctl", "rigctld"],
+
+	struct FreeDataINFO * FDI = TNC->FreeDataInfo;
+	int capindex = -1, playindex = -1;
+	int i;
+
+	// Python adds sound mapper on front and counts Playback after Capture
+
+	for (i = 0; i < CaptureCount; i++)
+	{
+		if (strstr(&CaptureNames[i][0], TNC->FreeDataInfo->Capture))
+		{
+			capindex = i + 1;
+			break;
+		}
+	}
+
+	for (i = 0; i < PlaybackCount; i++)
+	{
+		if (strstr(&PlaybackNames[i][0], TNC->FreeDataInfo->Playback))
+		{
+			playindex = i + CaptureCount + 2;
+			break;
+		}
+	}
+
+	sprintf(line,
+		"--mycall %s --ssid %s --mygrid %s --rx %d --tx %d --port %d --radiocontrol %s "
+		"--tuning_range_fmin %3.1f --tuning_range_fmax %3.1f --tx-audio-level %d",
+
+		FDI->ourCall, FDI->SSIDList, LOC, capindex, playindex, TNC->TCPPort, FDI->hamlibHost ? "rigctld" : "disabled",
+		FDI->TuningRange * -1.0, FDI->TuningRange * 1.0, FDI->TXLevel);
+
+	if (FDI->hamlibHost)
+		sprintf(line, "%s --rigctld_ip %s --rigctld_port %d", line, FDI->hamlibHost, FDI->hamlibPort);
+
+	if (FDI->LimitBandWidth)
+		strcat(line, " --500hz");
+
+	if (FDI->Explorer)
+		strcat(line, " --explorer");
+
+
+	// Add these to the end if needed 
+	//				--scatter
+	//				--fft
+	//				--fsk
+	//				--qrv (respond to cq)
+
+}
+
+#ifndef WIN32
+
+#include <alsa/asoundlib.h>
+
+char ** WriteDevices = NULL;
+int WriteDeviceCount = 0;
+
+char ** ReadDevices = NULL;
+int ReadDeviceCount = 0;
+
+
+int GetOutputDeviceCollection()
+{
+	// Get all the suitable devices and put in a list for GetNext to return
+
+	snd_ctl_t *handle= NULL;
+	snd_pcm_t *pcm= NULL;
+	snd_ctl_card_info_t *info;
+	snd_pcm_info_t *pcminfo;
+	snd_pcm_hw_params_t *pars;
+	snd_pcm_format_mask_t *fmask;
+	char NameString[256];
+
+	Debugprintf("Playback Devices\n");
+
+	// free old struct if called again
+
+//	while (WriteDeviceCount)
+//	{
+//		WriteDeviceCount--;
+//		free(WriteDevices[WriteDeviceCount]);
+//	}
+
+//	if (WriteDevices)
+//		free(WriteDevices);
+
+	WriteDevices = NULL;
+	WriteDeviceCount = 0;
+
+	//	Add virtual device ARDOP so ALSA plugins can be used if needed
+
+	WriteDevices = realloc(WriteDevices,(WriteDeviceCount + 1) * sizeof(WriteDevices));
+
+	//	Get Device List  from ALSA
+	
+	snd_ctl_card_info_alloca(&info);
+	snd_pcm_info_alloca(&pcminfo);
+	snd_pcm_hw_params_alloca(&pars);
+	snd_pcm_format_mask_alloca(&fmask);
+
+	char hwdev[80];
+	unsigned min, max, ratemin, ratemax;
+	int card, err, dev, nsubd;
+	snd_pcm_stream_t stream = SND_PCM_STREAM_PLAYBACK;
+	
+	card = -1;
+
+	if (snd_card_next(&card) < 0)
+	{
+		Debugprintf("No Devices");
+		return 0;
+	}
+
+	while (card >= 0)
+	{
+		sprintf(hwdev, "hw:%d", card);
+		err = snd_ctl_open(&handle, hwdev, 0);
+		err = snd_ctl_card_info(handle, info);
+    
+		Debugprintf("Card %d, ID `%s', name `%s'", card, snd_ctl_card_info_get_id(info),
+                snd_ctl_card_info_get_name(info));
+
+
+		dev = -1;
+
+		if(snd_ctl_pcm_next_device(handle, &dev) < 0)
+		{
+			// Card has no devices
+
+			snd_ctl_close(handle);
+
+			WriteDevices = realloc(WriteDevices,(WriteDeviceCount + 1) * sizeof(WriteDevices));
+			WriteDevices[WriteDeviceCount++] = strupr(strdup("DummyDevice"));
+
+			goto nextcard;      
+		}
+
+		while (dev >= 0)
+		{
+			snd_pcm_info_set_device(pcminfo, dev);
+			snd_pcm_info_set_subdevice(pcminfo, 0);
+			snd_pcm_info_set_stream(pcminfo, stream);
+	
+			err = snd_ctl_pcm_info(handle, pcminfo);
+
+			
+			if (err == -ENOENT)
+				goto nextdevice;
+
+			nsubd = snd_pcm_info_get_subdevices_count(pcminfo);
+		
+			Debugprintf("  Device hw:%d,%d ID `%s', name `%s', %d subdevices (%d available)",
+				card, dev, snd_pcm_info_get_id(pcminfo), snd_pcm_info_get_name(pcminfo),
+				nsubd, snd_pcm_info_get_subdevices_avail(pcminfo));
+
+			sprintf(hwdev, "hw:%d,%d", card, dev);
+
+			err = snd_pcm_open(&pcm, hwdev, stream, SND_PCM_NONBLOCK);
+
+			if (err)
+			{
+				Debugprintf("Error %d opening output device", err);
+				goto nextdevice;
+			}
+
+			//	Get parameters for this device
+
+			err = snd_pcm_hw_params_any(pcm, pars);
+ 
+			snd_pcm_hw_params_get_channels_min(pars, &min);
+			snd_pcm_hw_params_get_channels_max(pars, &max);
+			
+			snd_pcm_hw_params_get_rate_min(pars, &ratemin, NULL);
+			snd_pcm_hw_params_get_rate_max(pars, &ratemax, NULL);
+
+			if( min == max )
+				if( min == 1 )
+					Debugprintf("    1 channel,  sampling rate %u..%u Hz", ratemin, ratemax);
+				else
+					Debugprintf("    %d channels,  sampling rate %u..%u Hz", min, ratemin, ratemax);
+			else
+				Debugprintf("    %u..%u channels, sampling rate %u..%u Hz", min, max, ratemin, ratemax);
+
+			// Add device to list
+
+			sprintf(NameString, "hw:%d,%d %s(%s)", card, dev,
+				snd_pcm_info_get_name(pcminfo), snd_ctl_card_info_get_name(info));
+
+			WriteDevices = realloc(WriteDevices,(WriteDeviceCount + 1) * sizeof(WriteDevices));
+			WriteDevices[WriteDeviceCount++] = strupr(strdup(NameString));
+
+			snd_pcm_close(pcm);
+			pcm= NULL;
+
+nextdevice:
+			if (snd_ctl_pcm_next_device(handle, &dev) < 0)
+				break;
+	    }
+		snd_ctl_close(handle);
+
+nextcard:
+			
+		Debugprintf("");
+
+		if (snd_card_next(&card) < 0)		// No more cards
+			break;
+	}
+
+	return WriteDeviceCount;
+}
+
+int GetNextOutputDevice(char * dest, int max, int n)
+{
+	if (n >= WriteDeviceCount)
+		return 0;
+
+	strcpy(dest, WriteDevices[n]);
+	return strlen(dest);
+}
+
+
+int GetInputDeviceCollection()
+{
+	// Get all the suitable devices and put in a list for GetNext to return
+
+	snd_ctl_t *handle= NULL;
+	snd_pcm_t *pcm= NULL;
+	snd_ctl_card_info_t *info;
+	snd_pcm_info_t *pcminfo;
+	snd_pcm_hw_params_t *pars;
+	snd_pcm_format_mask_t *fmask;
+	char NameString[256];
+
+	Debugprintf("Capture Devices\n");
+
+	ReadDevices = NULL;
+	ReadDeviceCount = 0;
+
+	ReadDevices = realloc(ReadDevices,(ReadDeviceCount + 1) * sizeof(ReadDevices));
+
+	//	Get Device List  from ALSA
+	
+	snd_ctl_card_info_alloca(&info);
+	snd_pcm_info_alloca(&pcminfo);
+	snd_pcm_hw_params_alloca(&pars);
+	snd_pcm_format_mask_alloca(&fmask);
+
+	char hwdev[80];
+	unsigned min, max, ratemin, ratemax;
+	int card, err, dev, nsubd;
+	snd_pcm_stream_t stream = SND_PCM_STREAM_CAPTURE;
+	
+	card = -1;
+
+	if(snd_card_next(&card) < 0)
+	{
+		Debugprintf("No Devices");
+		return 0;
+	}
+
+	while(card >= 0)
+	{
+		sprintf(hwdev, "hw:%d", card);
+		err = snd_ctl_open(&handle, hwdev, 0);
+		err = snd_ctl_card_info(handle, info);
+    
+//		Debugprintf("Card %d, ID `%s', name `%s'", card, snd_ctl_card_info_get_id(info), 
+//		snd_ctl_card_info_get_name(info));
+
+		dev = -1;
+			
+		if (snd_ctl_pcm_next_device(handle, &dev) < 0)		// No Devicdes
+		{
+			snd_ctl_close(handle);
+			
+			ReadDevices = realloc(ReadDevices,(ReadDeviceCount + 1) * sizeof(ReadDevices));
+			ReadDevices[ReadDeviceCount++] = strupr(strdup("DummyDevice"));
+
+			Debugprintf("%d %s", ReadDeviceCount, "DummyDevice");
+			goto nextcard;      
+		}
+
+		while(dev >= 0)
+		{
+			snd_pcm_info_set_device(pcminfo, dev);
+			snd_pcm_info_set_subdevice(pcminfo, 0);
+			snd_pcm_info_set_stream(pcminfo, stream);
+			err= snd_ctl_pcm_info(handle, pcminfo);
+	
+			if (err == -ENOENT)
+				goto nextdevice;
+	
+			nsubd= snd_pcm_info_get_subdevices_count(pcminfo);
+//			Debugprintf("  Device hw:%d,%d ID `%s', name `%s', %d subdevices (%d available)",
+//				card, dev, snd_pcm_info_get_id(pcminfo), snd_pcm_info_get_name(pcminfo),
+//				nsubd, snd_pcm_info_get_subdevices_avail(pcminfo));
+
+			sprintf(hwdev, "hw:%d,%d", card, dev);
+/*
+			err = snd_pcm_open(&pcm, hwdev, stream, SND_PCM_NONBLOCK);
+	
+			if (err)
+			{	
+				Debugprintf("Error %d opening input device", err);
+				goto nextdevice;
+			}
+
+			err = snd_pcm_hw_params_any(pcm, pars);
+ 
+			snd_pcm_hw_params_get_channels_min(pars, &min);
+			snd_pcm_hw_params_get_channels_max(pars, &max);
+			snd_pcm_hw_params_get_rate_min(pars, &ratemin, NULL);
+			snd_pcm_hw_params_get_rate_max(pars, &ratemax, NULL);
+
+			if( min == max )
+				if( min == 1 )
+					Debugprintf("    1 channel,  sampling rate %u..%u Hz", ratemin, ratemax);
+				else
+					Debugprintf("    %d channels,  sampling rate %u..%u Hz", min, ratemin, ratemax);
+			else
+				Debugprintf("    %u..%u channels, sampling rate %u..%u Hz", min, max, ratemin, ratemax);
+*/
+			sprintf(NameString, "hw:%d,%d %s(%s)", card, dev,
+				snd_pcm_info_get_name(pcminfo), snd_ctl_card_info_get_name(info));
+
+			Debugprintf("%d %s", ReadDeviceCount, NameString);
+
+			ReadDevices = realloc(ReadDevices,(ReadDeviceCount + 1) * sizeof(ReadDevices));
+			ReadDevices[ReadDeviceCount++] = strupr(strdup(NameString));
+
+nextdevice:
+			if (snd_ctl_pcm_next_device(handle, &dev) < 0)
+				break;
+	    }
+		snd_ctl_close(handle);
+nextcard:
+
+		Debugprintf("");
+		if (snd_card_next(&card) < 0 )
+			break;
+	}
+	return ReadDeviceCount;
+}
+
+int GetNextInputDevice(char * dest, int max, int n)
+{
+	if (n >= ReadDeviceCount)
+		return 0;
+
+	strcpy(dest, ReadDevices[n]);
+	return strlen(dest);
+}
+
+#endif
+
+
+// We need a local restart tnc as we need to add params and start a python progrm on Linux
+
+BOOL KillOldTNC(char * Path);
+
+static BOOL RestartTNC(struct TNCINFO * TNC)
+{
+	if (TNC->ProgramPath == NULL || TNC->DontRestart)
+		return 0;
+
+	if (_memicmp(TNC->ProgramPath, "REMOTE:", 7) == 0)
+	{
+		int n;
+		
+		// Try to start TNC on a remote host
+
+		SOCKET sock = socket(AF_INET,SOCK_DGRAM,0);
+		struct sockaddr_in destaddr;
+
+		Debugprintf("trying to restart TNC %s", TNC->ProgramPath);
+
+		if (sock == INVALID_SOCKET)
+			return 0;
+
+		destaddr.sin_family = AF_INET;
+		destaddr.sin_addr.s_addr = inet_addr(TNC->HostName);
+		destaddr.sin_port = htons(8500);
+
+		if (destaddr.sin_addr.s_addr == INADDR_NONE)
+		{
+			//	Resolve name to address
+
+			struct hostent * HostEnt = gethostbyname (TNC->HostName);
+		 
+			if (!HostEnt)
+				return 0;			// Resolve failed
+
+			memcpy(&destaddr.sin_addr.s_addr,HostEnt->h_addr,4);
+		}
+
+		n = sendto(sock, TNC->ProgramPath, (int)strlen(TNC->ProgramPath), 0, (struct sockaddr *)&destaddr, sizeof(destaddr));
+	
+		Debugprintf("Restart TNC - sendto returned %d", n);
+
+		Sleep(100);
+		closesocket(sock);
+
+		return 1;				// Cant tell if it worked, but assume ok
+	}
+
+	// Not Remote
+
+	// Add  parameters to command string
+
+#ifndef WIN32
+	{
+		char * arg_list[64];
+		char rxVal[16];
+		char txVal[16];
+		char tunePlus[16];
+		char tuneMinus[16];
+		char portVal[16];
+		char txLevelVal[16];
+		char RigPort[16];
+		int n = 0;
+
+		pid_t child_pid;
+
+		struct FreeDataINFO * FDI = TNC->FreeDataInfo;
+		int capindex = -1, playindex = -1;
+		int i;
+
+		if (ReadDeviceCount == 0)
+		{
+			GetOutputDeviceCollection();
+			GetInputDeviceCollection();
+		}
+
+		// 
+
+		for (i = 0; i < ReadDeviceCount; i++)
+		{
+			printf("%s %s\n", &ReadDevices[i][0], TNC->FreeDataInfo->Capture);
+			if (strstr(&ReadDevices[i][0], TNC->FreeDataInfo->Capture))
+			{
+				capindex = i;
+				break;
+			}
+		}
+
+
+		for (i = 0; i < WriteDeviceCount; i++)
+		{
+			printf("%s %s\n", &WriteDevices[i][0], TNC->FreeDataInfo->Playback);
+
+			if (strstr(&WriteDevices[i][0], TNC->FreeDataInfo->Playback))
+			{
+				playindex = i;
+				break;
+			}
+		}
+
+
+		capindex=playindex=3;
+
+		printf("%d %d \n", capindex, playindex);
+
+		signal(SIGCHLD, SIG_IGN); // Silently (and portably) reap children. 
+
+		arg_list[n++] = "python3";
+		arg_list[n++] = TNC->ProgramPath;
+		arg_list[n++] = "--mycall";
+		arg_list[n++] = FDI->ourCall;
+		arg_list[n++] = "--ssid";
+		arg_list[n++] = FDI->SSIDList;
+		arg_list[n++] = "--mygrid";
+		arg_list[n++] = LOC;
+		arg_list[n++] = "--rx";
+		sprintf(rxVal, "%d", capindex);
+		arg_list[n++] = rxVal;
+		arg_list[n++] = "--tx";
+		sprintf(txVal, "%d", playindex);
+		arg_list[n++] = txVal;
+		arg_list[n++] = "--port";
+		sprintf(portVal, "%d", TNC->TCPPort);
+		arg_list[n++] = portVal;
+		arg_list[n++] = "--radiocontrol";
+		arg_list[n++] = FDI->hamlibHost ? "rigctld" : "disabled";
+		arg_list[n++] = "--tuning_range_fmin";
+		sprintf(tuneMinus, "%3.1f", FDI->TuningRange * -1.0);
+		arg_list[n++] = tuneMinus;
+		arg_list[n++] = "--tuning_range_fmax";
+		sprintf(tunePlus, "%3.1f", FDI->TuningRange * 1.0);
+		arg_list[n++] = tunePlus;
+		arg_list[n++] = "--tx-audio-level";
+		sprintf(txLevelVal, "%d", FDI->TXLevel);
+		arg_list[n++] = txLevelVal;
+
+		if (FDI->hamlibHost)
+		{
+			arg_list[n++] = "--rigctld_ip";
+			arg_list[n++] = FDI->hamlibHost;
+			arg_list[n++] = "--rigctld_port";
+			sprintf(RigPort, "%d", FDI->hamlibPort);
+			arg_list[n++] = RigPort;
+		}
+
+		if (FDI->LimitBandWidth)
+			arg_list[n++] = "--500hz";
+
+		if (FDI->Explorer)
+			arg_list[n++] = "--explorer";
+
+		arg_list[n++] = 0;
+
+		n = 0;
+
+		//	Fork and Exec TNC
+
+		printf("Trying to start %s\n", TNC->ProgramPath);
+
+		/* Duplicate this process. */ 
+
+		child_pid = fork (); 
+
+		if (child_pid == -1) 
+		{    				
+			printf ("StartTNC fork() Failed\n"); 
+			return 0;
+		}
+
+		if (child_pid == 0) 
+		{    				
+			execvp (arg_list[0], arg_list); 
+
+			/* The execvp  function returns only if an error occurs.  */ 
+
+			printf ("Failed to start TNC\n"); 
+			exit(0);			// Kill the new process
+		}
+		printf("Started TNC\n");
+		sleep(5000);
+
+		return TRUE;
+	}								 
+#else
+
+	{
+		int n = 0;
+
+		STARTUPINFO  SInfo;			// pointer to STARTUPINFO 
+		PROCESS_INFORMATION PInfo; 	// pointer to PROCESS_INFORMATION 
+		char workingDirectory[256];
+		char commandLine[512];
+		char Params[512];
+
+		int i = strlen(TNC->ProgramPath);
+
+		SInfo.cb=sizeof(SInfo);
+		SInfo.lpReserved=NULL; 
+		SInfo.lpDesktop=NULL; 
+		SInfo.lpTitle=NULL; 
+		SInfo.dwFlags=0; 
+		SInfo.cbReserved2=0; 
+		SInfo.lpReserved2=NULL; 
+
+		Debugprintf("RestartTNC Called for %s", TNC->ProgramPath);
+
+
+		strcpy(workingDirectory, TNC->ProgramPath);
+
+		while (i--)
+		{
+			if (workingDirectory[i] == '\\' || workingDirectory[i] == '/')
+			{
+				workingDirectory[i] = 0; 
+				break;
+			}
+		}
+
+		buildParamString(TNC, Params);
+
+		if (TNC->PID)
+		{
+			KillTNC(TNC);
+			Sleep(100);
+		}
+
+		sprintf(commandLine, "\"%s\" %s", TNC->ProgramPath, Params);
+
+		if (CreateProcess(NULL, commandLine, NULL, NULL, FALSE,0, NULL, workingDirectory, &SInfo, &PInfo))
+		{
+			Debugprintf("Restart TNC OK");
+			TNC->PID = PInfo.dwProcessId;
+			return TRUE;
+		}
+		else
+		{
+			Debugprintf("Restart TNC Failed %d ", GetLastError());
+			return FALSE;
+		}
+	}
+#endif
+	return 0;
+}

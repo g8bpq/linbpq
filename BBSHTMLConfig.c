@@ -1194,8 +1194,9 @@ int SendMessageDetails(struct MsgInfo * Msg, char * Reply, char * Key)
 		{
 			USER = UserRecPtr[n];
 
-			if ((USER->flags & F_BBS) && USER->BBSNumber)
-				bbs[i++] = USER;
+			if ((USER->flags & F_BBS))
+				if (USER->BBSNumber)
+					bbs[i++] = USER;
 		}
 
 		qsort((void *)bbs, i, sizeof(void *), compare );

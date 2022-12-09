@@ -49,6 +49,38 @@ WPRec * AllocateWPRecord()
 	return WP;
 }
 
+int BadCall(char * Call)
+{
+	if (_stricmp(Call, "RMS") == 0)
+		return 1;
+
+	if (_stricmp(Call, "SYSTEM") == 0)
+		return 1;
+
+	if (_stricmp(Call, "SWITCH") == 0)
+		return 1;
+
+	if (_stricmp(Call, "SYSOP") == 0)
+		return 1;
+
+	if (_memicmp(Call, "SMTP", 4) == 0)
+		return 1;
+
+	if (_memicmp(Call, "SMTP:", 5) == 0)
+		return 1;
+
+	if (_stricmp(Call, "AMPR") == 0)
+		return 1;
+
+	if (_stricmp(Call, "FILE") == 0)
+		return 1;
+
+	if (_memicmp(Call, "MCAST", 5) == 0)
+		return 1;
+
+	return 0;
+}
+
 extern config_t cfg;
 
 VOID GetWPDatabase()
@@ -267,31 +299,7 @@ WPOK:;
 			if (strchr(WPRec.callsign, ':'))
 				continue;
 
-			if (_stricmp(WPRec.callsign, "RMS") == 0)
-				continue;
-
-			if (_stricmp(WPRec.callsign, "SYSTEM") == 0)
-				continue;
-
-			if (_stricmp(WPRec.callsign, "SWITCH") == 0)
-				continue;
-
-			if (_stricmp(WPRec.callsign, "SYSOP") == 0)
-				continue;
-
-			if (_memicmp(WPRec.callsign, "SMTP", 4) == 0)
-				continue;
-
-			if (_memicmp(WPRec.callsign, "SMTP:", 5) == 0)
-				continue;
-
-			if (_stricmp(WPRec.callsign, "AMPR") == 0)
-				continue;
-
-			if (_stricmp(WPRec.callsign, "FILE") == 0)
-				continue;
-
-			if (_memicmp(WPRec.callsign, "MCAST", 5) == 0)
+			if (BadCall(WPRec.callsign))
 				continue;
 
 			WP = LookupWP(WPRec.callsign);
@@ -354,31 +362,7 @@ Next:
 			if (strchr(WPRec.callsign, ':'))
 				goto Next;
 
-			if (_stricmp(WPRec.callsign, "RMS") == 0)
-				goto Next;
-
-			if (_stricmp(WPRec.callsign, "SYSTEM") == 0)
-				goto Next;
-
-			if (_stricmp(WPRec.callsign, "SWITCH") == 0)
-				goto Next;
-
-			if (_stricmp(WPRec.callsign, "SYSOP") == 0)
-				goto Next;
-
-			if (_memicmp(WPRec.callsign, "SMTP", 4) == 0)
-				goto Next;
-
-			if (_memicmp(WPRec.callsign, "SMTP:", 5) == 0)
-				goto Next;
-
-			if (_stricmp(WPRec.callsign, "AMPR") == 0)
-				goto Next;
-
-			if (_stricmp(WPRec.callsign, "FILE") == 0)
-				goto Next;
-
-			if (_memicmp(WPRec.callsign, "MCAST", 5) == 0)
+			if (BadCall(WPRec.callsign))
 				goto Next;
 
 			WP = LookupWP(WPRec.callsign);
@@ -800,31 +784,7 @@ VOID GetWPBBSInfo(char * Rline)
 			memcpy(QTH, ptr2 + 1, ptr1 - ptr2 - 1);
 	}
 
-	if (_stricmp(Call, "RMS") == 0)
-		return;
-
-	if (_stricmp(Call, "SYSTEM") == 0)
-		return;
-
-	if (_stricmp(Call, "SWITCH") == 0)
-		return;
-
-	if (_stricmp(Call, "SYSOP") == 0)
-		return;
-
-	if (_memicmp(Call, "SMTP", 4) == 0)
-		return;
-
-	if (_memicmp(Call, "SMTP:", 5) == 0)
-		return;
-
-	if (_stricmp(Call, "AMPR") == 0)
-		return;
-
-	if (_stricmp(Call, "FILE") == 0)
-		return;
-
-	if (_memicmp(Call, "MCAST", 5) == 0)
+	if (BadCall(Call))
 		return;
 
 	WP = LookupWP(Call);
@@ -897,6 +857,9 @@ VOID GetWPInfoFromRLine(char * From, char * FirstRLine, time_t RLineTime)
 
 	char * ptr1 = strchr(FirstRLine, '@'); 
 	char * ptr2 = strchr(FirstRLine, '\r');
+
+	if (BadCall(From))
+		return;
 
 	if (!ptr1)
 		return;			// Duff
@@ -1074,31 +1037,7 @@ it will not be replaced. This flag will be used in case the WP update messages a
 					if (strchr(Call, ':'))
 						break;
 
-					if (_stricmp(Call, "RMS") == 0)
-						break;
-
-					if (_stricmp(Call, "SWITCH") == 0)
-						break;
-
-					if (_stricmp(Call, "SYSTEM") == 0)
-						break;
-
-					if (_stricmp(Call, "SYSOP") == 0)
-						break;
-
-					if (_memicmp(Call, "SMTP", 4) == 0)
-						break;
-
-					if (_memicmp(Call, "SMTP:", 5) == 0)
-						break;
-		
-					if (_stricmp(Call, "AMPR") == 0)
-						break;
-
-					if (_stricmp(Call, "FILE") == 0)
-						break;
-
-					if (_memicmp(Call, "MCAST", 5) == 0)
+					if (BadCall(Call))
 						break;
 
 					WP = LookupWP(Call);
@@ -1242,37 +1181,7 @@ VOID UpdateWPWithUserInfo(struct UserInfo * user)
 	if (strchr(user->Call, ':'))
 		return;
 
-	if (_stricmp(user->Call, "RMS") == 0)
-		return;
-
-	if (_stricmp(user->Call, "SYSTEM") == 0)
-		return;
-
-	if (_stricmp(user->Call, "SWITCH") == 0)
-		return;
-
-	if (_stricmp(user->Call, "SYSOP") == 0)
-		return;
-
-	if (_memicmp(user->Call, "SMTP", 4) == 0)
-		return;
-
-	if (_memicmp(user->Call, "SMTP:", 5) == 0)
-		return;
-
-	if (_stricmp(user->Call, "AMPR") == 0)
-		return;
-
-	if (_stricmp(user->Call, "FILE") == 0)
-		return;
-
-	if (_stricmp(user->Call, "SYNC") == 0)
-		return;
-
-	if (_memicmp(user->Call, "MCAST", 5) == 0)
-		return;
-
-	if (_stricmp(user->Call, user->Name) == 0)
+	if (BadCall(user->Call))
 		return;
 
 	if (!WP)

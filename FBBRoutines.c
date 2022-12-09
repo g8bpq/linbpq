@@ -551,7 +551,6 @@ ok:
 
 
 		// FC EM A3EDD4P00P55 377 281 0
-
 		
 		/*
 		
@@ -576,7 +575,7 @@ ok:
 
 		if (ptr == NULL) goto badparam2;
 
-		// Relay In RO mode adds @MPS@R to the MID. Non't know why (yet!)
+		// Relay In RO mode adds @MPS@R to the MID. Don't know why (yet!)
 
 		MPS = strlop(ptr, '@');
 		if (MPS)
@@ -605,7 +604,7 @@ ok:
 			char * To = strtok_s(NULL, seps, &Context);
 			char * Type = strtok_s(NULL, seps, &Context);
 
-			if (From && To && ATBBS && CheckRejFilters(From, To, ATBBS, NULL, *Type))
+			if (From && To && ATBBS && Type && CheckRejFilters(From, To, ATBBS, NULL, *Type))
 			{
 				memset(FBBHeader, 0, sizeof(struct FBBHeaderLine));		// Clear header
 				conn->FBBReplyChars[conn->FBBReplyIndex++] = '-';

@@ -837,9 +837,9 @@ VOID HALPoll(int Port)
 			UCHAR * MsgPtr;
 			unsigned char TXMsg[500];
 			
-			buffptr = (UINT * )STREAM->BPQtoPACTOR_Q;
-			datalen=buffptr->Len;
-			MsgPtr = (UCHAR *)buffptr->Data;
+			buffptr = (PMSGWITHLEN)STREAM->BPQtoPACTOR_Q;
+			datalen = buffptr->Len;
+			MsgPtr = buffptr->Data;
 
 			if (STREAM->Connected)
 			{

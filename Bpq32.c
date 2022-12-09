@@ -1127,7 +1127,11 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add APRS Igate RXOnly option (29)
 //	Fix RMC message handling with prefixes other than GP (29)
 //	Add GPSD support for APRS (30)
-//	Attempt to tix Tracker/WinRPR reconnect code (30)
+//	Attempt to fix Tracker/WinRPR reconnect code (30)
+//	Changes to FreeDATA - Don't use deamon and add txlevel and send text commands (31)
+//	Fix interactive commands in tracker driver (33)
+
+
 
 #define CKernel
 
