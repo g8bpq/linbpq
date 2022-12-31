@@ -4950,7 +4950,7 @@ BOOL DecodeLocationString(UCHAR * Payload, struct STATIONRECORD * Station)
 
 		if (SymChar == '_')		// WX
 		{
-			if (strlen(Payload) > 50)
+			if (strlen(Payload) > 30)
 				strcpy(Station->LastWXPacket, Payload);
 		}
 
@@ -5060,6 +5060,10 @@ int DecodeAPRSPayload(char * Payload, struct STATIONRECORD * Station)
 
 	Station->Object = NULL;
 
+	if (strcmp(Station->Callsign, "LA1ZDA-2") == 0)
+	{
+		int i = 1;	
+	}
 	switch(*Payload)
 	{
 	case '`':
@@ -8627,7 +8631,7 @@ int GetAPRSPageInfo(char * Buffer, double N, double S, double W, double E, int a
 	int KM = DefaultDistKM; 
 	char * ptr1;
 
-	while (ptr && aprs)
+	while (ptr && aprs && Len < 240000)
 	{
 		if (ptr->Lat != 0.0 && ptr->Lon != 0.0)
 		{

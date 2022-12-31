@@ -398,6 +398,7 @@ struct FreeDataINFO
 	int TXLevel;
 	int Explorer;				// Enable reporting to Freedata Explorer
 	char SSIDList[256];
+	char * SSIDS[16];
 };
 
 

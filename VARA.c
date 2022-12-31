@@ -378,6 +378,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 				VARASendCommand(TNC, TNC->ConnectCmd, TRUE);
 				TNC->Streams[0].Connecting = TRUE;
+				TNC->Streams[0].ConnectTime = time(NULL); 
 
 				memset(TNC->Streams[0].RemoteCall, 0, 10);
 				memcpy(TNC->Streams[0].RemoteCall, &TNC->ConnectCmd[8], strlen(TNC->ConnectCmd)-10);
@@ -401,6 +402,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 					PMSGWITHLEN buffptr = GetBuff();
 
 					TNC->Streams[0].Connecting = FALSE;
+					TNC->Streams[0].ConnectTime = time(NULL); 
 
 					if (buffptr == 0) return (0);			// No buffers, so ignore
 
@@ -1577,6 +1579,7 @@ Lost:
 
 				TNC->CONNECTED = FALSE;
 				TNC->Alerted = FALSE;
+				TNC->ConnectPending = FALSE;
 
 				if (TNC->PTTMode)
 					Rig_PTT(TNC, FALSE);			// Make sure PTT is down

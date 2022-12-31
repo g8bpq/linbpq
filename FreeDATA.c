@@ -1026,9 +1026,13 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			closesocket(TNC->TCPDataSock);
 		}
 
-		if (TNC->WeStartedTNC)
-			KillTNC(TNC);
+		printf("FreeData Closing %d\n", TNC->WeStartedTNC);
 
+		if (TNC->WeStartedTNC)
+		{
+			printf("Calling KillTNC\n");
+			KillTNC(TNC);
+		}
 
 		return 0;
 
@@ -1377,6 +1381,7 @@ VOID * FreeDataExtInit(EXTPORTDATA * PortEntry)
 	u_long param = 1;
 	int line;
 	int i;
+	int n = 0;
 
 	srand(time(NULL));
 	
@@ -1500,7 +1505,7 @@ VOID * FreeDataExtInit(EXTPORTDATA * PortEntry)
 	// Build SSID List
 
 	if (TNC->LISTENCALLS)
-	{
+	{		
 		strcpy(TNC->FreeDataInfo->SSIDList, TNC->LISTENCALLS);
 	}
 	else
@@ -1540,6 +1545,16 @@ VOID * FreeDataExtInit(EXTPORTDATA * PortEntry)
 			}
 		}
 		List[Listptr] = 0;
+	}
+	
+	// Build SSID List for Linux
+
+	TNC->FreeDataInfo->SSIDS[n] = _strdup(TNC->FreeDataInfo->SSIDList);
+
+	while (TNC->FreeDataInfo->SSIDS[n]) 
+	{
+		TNC->FreeDataInfo->SSIDS[n+1] = strlop(TNC->FreeDataInfo->SSIDS[n], ' ');
+		n++;
 	}
 
 	TNC->WebWindowProc = WebProc;
@@ -3196,12 +3211,12 @@ void ProcessTNCJSON(struct TNCINFO * TNC, char * Msg, int Len)
 					}
 				}
 
-				else if (memcmp(ptr, "disconnecting", 12) == 0)
+				else if (memcmp(ptr, "close", 12) == 0)
 				{
 					if (TNC->FreeDataInfo->arqstate != 4)
 					{
 						TNC->FreeDataInfo->arqstate = 4;
-						Debugprintf("%d arq_session_state %s", TNC->Port, "disconnecting");
+						Debugprintf("%d arq_session_state %s", TNC->Port, "Closed");
 					}
 				}
 				else if (memcmp(ptr, "failed", 5) == 0)
@@ -3927,6 +3942,11 @@ TNCNotRunning:
 			CountRestarts(TNC);
 
 		Sleep(TNC->AutoStartDelay);
+
+#ifdef LINBPQ
+		Sleep(5000);
+#endif
+
 	}
 
 TNCRunning:
@@ -4015,14 +4035,6 @@ TNCRunning:
 	sprintf(Msg, "Connected to FreeData TNC Port %d\r\n", TNC->Port);
 	WritetoConsole(Msg);
 
-
-	#ifndef LINBPQ
-//	FreeSemaphore(&Semaphore);
-	Sleep(1000);		// Give VARA time to update Window title
-//	EnumWindows(EnumVARAWindowsProc, (LPARAM)TNC);
-//	GetSemaphore(&Semaphore, 52);
-#endif
-
 	while (TNC->TNCCONNECTED)
 	{
 		FD_ZERO(&readfs);	
@@ -4103,6 +4115,8 @@ closeThread:
 	}
 
 	sprintf(Msg, "FreeData Thread Terminated Port %d\r\n", TNC->Port);
+	TNC->lasttime = time(NULL);				// Prevent immediate restart
+
 	WritetoConsole(Msg);
 }
 
@@ -4214,312 +4228,6 @@ void buildParamString(struct TNCINFO * TNC, char * line)
 
 }
 
-#ifndef WIN32
-
-#include <alsa/asoundlib.h>
-
-char ** WriteDevices = NULL;
-int WriteDeviceCount = 0;
-
-char ** ReadDevices = NULL;
-int ReadDeviceCount = 0;
-
-
-int GetOutputDeviceCollection()
-{
-	// Get all the suitable devices and put in a list for GetNext to return
-
-	snd_ctl_t *handle= NULL;
-	snd_pcm_t *pcm= NULL;
-	snd_ctl_card_info_t *info;
-	snd_pcm_info_t *pcminfo;
-	snd_pcm_hw_params_t *pars;
-	snd_pcm_format_mask_t *fmask;
-	char NameString[256];
-
-	Debugprintf("Playback Devices\n");
-
-	// free old struct if called again
-
-//	while (WriteDeviceCount)
-//	{
-//		WriteDeviceCount--;
-//		free(WriteDevices[WriteDeviceCount]);
-//	}
-
-//	if (WriteDevices)
-//		free(WriteDevices);
-
-	WriteDevices = NULL;
-	WriteDeviceCount = 0;
-
-	//	Add virtual device ARDOP so ALSA plugins can be used if needed
-
-	WriteDevices = realloc(WriteDevices,(WriteDeviceCount + 1) * sizeof(WriteDevices));
-
-	//	Get Device List  from ALSA
-	
-	snd_ctl_card_info_alloca(&info);
-	snd_pcm_info_alloca(&pcminfo);
-	snd_pcm_hw_params_alloca(&pars);
-	snd_pcm_format_mask_alloca(&fmask);
-
-	char hwdev[80];
-	unsigned min, max, ratemin, ratemax;
-	int card, err, dev, nsubd;
-	snd_pcm_stream_t stream = SND_PCM_STREAM_PLAYBACK;
-	
-	card = -1;
-
-	if (snd_card_next(&card) < 0)
-	{
-		Debugprintf("No Devices");
-		return 0;
-	}
-
-	while (card >= 0)
-	{
-		sprintf(hwdev, "hw:%d", card);
-		err = snd_ctl_open(&handle, hwdev, 0);
-		err = snd_ctl_card_info(handle, info);
-    
-		Debugprintf("Card %d, ID `%s', name `%s'", card, snd_ctl_card_info_get_id(info),
-                snd_ctl_card_info_get_name(info));
-
-
-		dev = -1;
-
-		if(snd_ctl_pcm_next_device(handle, &dev) < 0)
-		{
-			// Card has no devices
-
-			snd_ctl_close(handle);
-
-			WriteDevices = realloc(WriteDevices,(WriteDeviceCount + 1) * sizeof(WriteDevices));
-			WriteDevices[WriteDeviceCount++] = strupr(strdup("DummyDevice"));
-
-			goto nextcard;      
-		}
-
-		while (dev >= 0)
-		{
-			snd_pcm_info_set_device(pcminfo, dev);
-			snd_pcm_info_set_subdevice(pcminfo, 0);
-			snd_pcm_info_set_stream(pcminfo, stream);
-	
-			err = snd_ctl_pcm_info(handle, pcminfo);
-
-			
-			if (err == -ENOENT)
-				goto nextdevice;
-
-			nsubd = snd_pcm_info_get_subdevices_count(pcminfo);
-		
-			Debugprintf("  Device hw:%d,%d ID `%s', name `%s', %d subdevices (%d available)",
-				card, dev, snd_pcm_info_get_id(pcminfo), snd_pcm_info_get_name(pcminfo),
-				nsubd, snd_pcm_info_get_subdevices_avail(pcminfo));
-
-			sprintf(hwdev, "hw:%d,%d", card, dev);
-
-			err = snd_pcm_open(&pcm, hwdev, stream, SND_PCM_NONBLOCK);
-
-			if (err)
-			{
-				Debugprintf("Error %d opening output device", err);
-				goto nextdevice;
-			}
-
-			//	Get parameters for this device
-
-			err = snd_pcm_hw_params_any(pcm, pars);
- 
-			snd_pcm_hw_params_get_channels_min(pars, &min);
-			snd_pcm_hw_params_get_channels_max(pars, &max);
-			
-			snd_pcm_hw_params_get_rate_min(pars, &ratemin, NULL);
-			snd_pcm_hw_params_get_rate_max(pars, &ratemax, NULL);
-
-			if( min == max )
-				if( min == 1 )
-					Debugprintf("    1 channel,  sampling rate %u..%u Hz", ratemin, ratemax);
-				else
-					Debugprintf("    %d channels,  sampling rate %u..%u Hz", min, ratemin, ratemax);
-			else
-				Debugprintf("    %u..%u channels, sampling rate %u..%u Hz", min, max, ratemin, ratemax);
-
-			// Add device to list
-
-			sprintf(NameString, "hw:%d,%d %s(%s)", card, dev,
-				snd_pcm_info_get_name(pcminfo), snd_ctl_card_info_get_name(info));
-
-			WriteDevices = realloc(WriteDevices,(WriteDeviceCount + 1) * sizeof(WriteDevices));
-			WriteDevices[WriteDeviceCount++] = strupr(strdup(NameString));
-
-			snd_pcm_close(pcm);
-			pcm= NULL;
-
-nextdevice:
-			if (snd_ctl_pcm_next_device(handle, &dev) < 0)
-				break;
-	    }
-		snd_ctl_close(handle);
-
-nextcard:
-			
-		Debugprintf("");
-
-		if (snd_card_next(&card) < 0)		// No more cards
-			break;
-	}
-
-	return WriteDeviceCount;
-}
-
-int GetNextOutputDevice(char * dest, int max, int n)
-{
-	if (n >= WriteDeviceCount)
-		return 0;
-
-	strcpy(dest, WriteDevices[n]);
-	return strlen(dest);
-}
-
-
-int GetInputDeviceCollection()
-{
-	// Get all the suitable devices and put in a list for GetNext to return
-
-	snd_ctl_t *handle= NULL;
-	snd_pcm_t *pcm= NULL;
-	snd_ctl_card_info_t *info;
-	snd_pcm_info_t *pcminfo;
-	snd_pcm_hw_params_t *pars;
-	snd_pcm_format_mask_t *fmask;
-	char NameString[256];
-
-	Debugprintf("Capture Devices\n");
-
-	ReadDevices = NULL;
-	ReadDeviceCount = 0;
-
-	ReadDevices = realloc(ReadDevices,(ReadDeviceCount + 1) * sizeof(ReadDevices));
-
-	//	Get Device List  from ALSA
-	
-	snd_ctl_card_info_alloca(&info);
-	snd_pcm_info_alloca(&pcminfo);
-	snd_pcm_hw_params_alloca(&pars);
-	snd_pcm_format_mask_alloca(&fmask);
-
-	char hwdev[80];
-	unsigned min, max, ratemin, ratemax;
-	int card, err, dev, nsubd;
-	snd_pcm_stream_t stream = SND_PCM_STREAM_CAPTURE;
-	
-	card = -1;
-
-	if(snd_card_next(&card) < 0)
-	{
-		Debugprintf("No Devices");
-		return 0;
-	}
-
-	while(card >= 0)
-	{
-		sprintf(hwdev, "hw:%d", card);
-		err = snd_ctl_open(&handle, hwdev, 0);
-		err = snd_ctl_card_info(handle, info);
-    
-//		Debugprintf("Card %d, ID `%s', name `%s'", card, snd_ctl_card_info_get_id(info), 
-//		snd_ctl_card_info_get_name(info));
-
-		dev = -1;
-			
-		if (snd_ctl_pcm_next_device(handle, &dev) < 0)		// No Devicdes
-		{
-			snd_ctl_close(handle);
-			
-			ReadDevices = realloc(ReadDevices,(ReadDeviceCount + 1) * sizeof(ReadDevices));
-			ReadDevices[ReadDeviceCount++] = strupr(strdup("DummyDevice"));
-
-			Debugprintf("%d %s", ReadDeviceCount, "DummyDevice");
-			goto nextcard;      
-		}
-
-		while(dev >= 0)
-		{
-			snd_pcm_info_set_device(pcminfo, dev);
-			snd_pcm_info_set_subdevice(pcminfo, 0);
-			snd_pcm_info_set_stream(pcminfo, stream);
-			err= snd_ctl_pcm_info(handle, pcminfo);
-	
-			if (err == -ENOENT)
-				goto nextdevice;
-	
-			nsubd= snd_pcm_info_get_subdevices_count(pcminfo);
-//			Debugprintf("  Device hw:%d,%d ID `%s', name `%s', %d subdevices (%d available)",
-//				card, dev, snd_pcm_info_get_id(pcminfo), snd_pcm_info_get_name(pcminfo),
-//				nsubd, snd_pcm_info_get_subdevices_avail(pcminfo));
-
-			sprintf(hwdev, "hw:%d,%d", card, dev);
-/*
-			err = snd_pcm_open(&pcm, hwdev, stream, SND_PCM_NONBLOCK);
-	
-			if (err)
-			{	
-				Debugprintf("Error %d opening input device", err);
-				goto nextdevice;
-			}
-
-			err = snd_pcm_hw_params_any(pcm, pars);
- 
-			snd_pcm_hw_params_get_channels_min(pars, &min);
-			snd_pcm_hw_params_get_channels_max(pars, &max);
-			snd_pcm_hw_params_get_rate_min(pars, &ratemin, NULL);
-			snd_pcm_hw_params_get_rate_max(pars, &ratemax, NULL);
-
-			if( min == max )
-				if( min == 1 )
-					Debugprintf("    1 channel,  sampling rate %u..%u Hz", ratemin, ratemax);
-				else
-					Debugprintf("    %d channels,  sampling rate %u..%u Hz", min, ratemin, ratemax);
-			else
-				Debugprintf("    %u..%u channels, sampling rate %u..%u Hz", min, max, ratemin, ratemax);
-*/
-			sprintf(NameString, "hw:%d,%d %s(%s)", card, dev,
-				snd_pcm_info_get_name(pcminfo), snd_ctl_card_info_get_name(info));
-
-			Debugprintf("%d %s", ReadDeviceCount, NameString);
-
-			ReadDevices = realloc(ReadDevices,(ReadDeviceCount + 1) * sizeof(ReadDevices));
-			ReadDevices[ReadDeviceCount++] = strupr(strdup(NameString));
-
-nextdevice:
-			if (snd_ctl_pcm_next_device(handle, &dev) < 0)
-				break;
-	    }
-		snd_ctl_close(handle);
-nextcard:
-
-		Debugprintf("");
-		if (snd_card_next(&card) < 0 )
-			break;
-	}
-	return ReadDeviceCount;
-}
-
-int GetNextInputDevice(char * dest, int max, int n)
-{
-	if (n >= ReadDeviceCount)
-		return 0;
-
-	strcpy(dest, ReadDevices[n]);
-	return strlen(dest);
-}
-
-#endif
-
-
 // We need a local restart tnc as we need to add params and start a python progrm on Linux
 
 BOOL KillOldTNC(char * Path);
@@ -4584,47 +4292,10 @@ static BOOL RestartTNC(struct TNCINFO * TNC)
 		char txLevelVal[16];
 		char RigPort[16];
 		int n = 0;
-
+		int i = 0;
 		pid_t child_pid;
 
 		struct FreeDataINFO * FDI = TNC->FreeDataInfo;
-		int capindex = -1, playindex = -1;
-		int i;
-
-		if (ReadDeviceCount == 0)
-		{
-			GetOutputDeviceCollection();
-			GetInputDeviceCollection();
-		}
-
-		// 
-
-		for (i = 0; i < ReadDeviceCount; i++)
-		{
-			printf("%s %s\n", &ReadDevices[i][0], TNC->FreeDataInfo->Capture);
-			if (strstr(&ReadDevices[i][0], TNC->FreeDataInfo->Capture))
-			{
-				capindex = i;
-				break;
-			}
-		}
-
-
-		for (i = 0; i < WriteDeviceCount; i++)
-		{
-			printf("%s %s\n", &WriteDevices[i][0], TNC->FreeDataInfo->Playback);
-
-			if (strstr(&WriteDevices[i][0], TNC->FreeDataInfo->Playback))
-			{
-				playindex = i;
-				break;
-			}
-		}
-
-
-		capindex=playindex=3;
-
-		printf("%d %d \n", capindex, playindex);
 
 		signal(SIGCHLD, SIG_IGN); // Silently (and portably) reap children. 
 
@@ -4633,14 +4304,17 @@ static BOOL RestartTNC(struct TNCINFO * TNC)
 		arg_list[n++] = "--mycall";
 		arg_list[n++] = FDI->ourCall;
 		arg_list[n++] = "--ssid";
-		arg_list[n++] = FDI->SSIDList;
+
+		while(TNC->FreeDataInfo->SSIDS[i])
+			arg_list[n++] = TNC->FreeDataInfo->SSIDS[i++];
+	
 		arg_list[n++] = "--mygrid";
 		arg_list[n++] = LOC;
 		arg_list[n++] = "--rx";
-		sprintf(rxVal, "%d", capindex);
+		sprintf(rxVal, "%s", TNC->FreeDataInfo->Capture);
 		arg_list[n++] = rxVal;
 		arg_list[n++] = "--tx";
-		sprintf(txVal, "%d", playindex);
+		sprintf(txVal, "%s", TNC->FreeDataInfo->Playback);
 		arg_list[n++] = txVal;
 		arg_list[n++] = "--port";
 		sprintf(portVal, "%d", TNC->TCPPort);
@@ -4699,8 +4373,9 @@ static BOOL RestartTNC(struct TNCINFO * TNC)
 			printf ("Failed to start TNC\n"); 
 			exit(0);			// Kill the new process
 		}
-		printf("Started TNC\n");
-		sleep(5000);
+		
+		TNC->PID = child_pid;
+		printf("Started TNC, Process ID = %d\n", TNC->PID);
 
 		return TRUE;
 	}								 

@@ -1840,7 +1840,7 @@ int standardParams(struct TNCINFO * TNC, char * buf)
 	if (_memicmp(buf, "WL2KREPORT", 10) == 0)
 		TNC->WL2K = DecodeWL2KReportLine(buf);
 	else if (_memicmp(buf, "SESSIONTIMELIMIT", 16) == 0)
-		TNC->SessionTimeLimit = TNC->DefaultSessionTimeLimit = atoi(&buf[16]) * 60;
+		TNC->SessionTimeLimit = TNC->DefaultSessionTimeLimit = atoi(&buf[17]) * 60;
 	else if (_memicmp(buf, "BUSYHOLD", 8) == 0)		// Hold Time for Busy Detect
 		TNC->BusyHold = atoi(&buf[8]);
 	else if (_memicmp(buf, "BUSYWAIT", 8) == 0)		// Wait time before failing connect if busy

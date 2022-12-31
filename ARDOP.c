@@ -1652,6 +1652,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				}
 
 				STREAM->Connecting = TRUE;
+				STREAM->ConnectTime = time(NULL);
 				return 0;
 
 			}

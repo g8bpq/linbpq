@@ -2612,7 +2612,8 @@ doHeader:
 			}
 			ReplyLen = GetAPRSPageInfo(_REPLYBUFFER, N, S, W, E, aprs, ais, adsb);
 
-			ReplyLen += GetAISPageInfo(&_REPLYBUFFER[ReplyLen], ais, adsb);
+			if (ReplyLen < 240000)
+				ReplyLen += GetAISPageInfo(&_REPLYBUFFER[ReplyLen], ais, adsb);
 
 			if (allowDeflate)
 				Compressed = Compressit(_REPLYBUFFER, ReplyLen, &ReplyLen);

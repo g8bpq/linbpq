@@ -1419,6 +1419,7 @@ VOID SCSPoll(int Port)
 
 			TNC->Streams[0].CmdSet = TNC->ConnectCmd;
 			TNC->Streams[0].Connecting = TRUE;
+			TNC->Streams[0].ConnectTime = time(NULL);
 
 			sprintf(TNC->WEB_TNCSTATE, "%s Connecting to %s", TNC->Streams[0].MyCall, TNC->Streams[0].RemoteCall);
 			SetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);

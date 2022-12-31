@@ -33,12 +33,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define MINIUPNP_STATICLIB
 
+#include <stdio.h>
+#ifdef _WIN32
 #include "upnpcommands.h"
 #include "miniupnpc.h"
 #include "upnperrors.h"
-#include <stdio.h>
-#ifdef _WIN32
 #include <winsock2.h>
+#else
+#include <miniupnpc/upnpcommands.h>
+#include <miniupnpc/miniupnpc.h>
+#include <miniupnpc/upnperrors.h>
+#include <stdio.h>
 #endif
 
 int AddMap(char * controlURL, char * eport, char * iport, char * proto);

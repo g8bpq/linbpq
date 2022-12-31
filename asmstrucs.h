@@ -555,6 +555,7 @@ typedef struct PORTCONTROL
 	BOOL (FAR * PORTSTOPCODE)();	// Temporarily Stop Port
 	BOOL (FAR * PORTSTARTCODE)();	// Restart Port
 	BOOL PortStopped;				// STOPPORT command used
+	BOOL PortSuspended;				// Suspended by interlock
 
 	char PORTDESCRIPTION[31];// TEXT DESCRIPTION OF FREQ/SPEED ETC (31 so null terminated)
 

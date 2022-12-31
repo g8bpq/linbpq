@@ -1299,7 +1299,6 @@ int main(int argc, char * argv[])
 	if (needAIS)
 		SaveAIS();
 
-
 	// Close Ports
 
 	PORTVEC=(PEXTPORTDATA)PORTTABLE;

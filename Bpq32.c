@@ -1130,7 +1130,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Attempt to fix Tracker/WinRPR reconnect code (30)
 //	Changes to FreeDATA - Don't use deamon and add txlevel and send text commands (31)
 //	Fix interactive commands in tracker driver (33)
-
+//  Fix SESSIONTIMELIMIT processing
 
 
 #define CKernel

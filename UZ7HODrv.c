@@ -271,15 +271,76 @@ void RegisterAPPLCalls(struct TNCINFO * TNC, BOOL Unregister)
 }
 
 
+BOOL UZ7HOStopPort(struct PORTCONTROL * PORT)
+{
+	// Disable Port - close TCP Sockets or Serial Port
+
+	struct TNCINFO * TNC = PORT->TNC;
+
+	TNC->CONNECTED = FALSE;
+	TNC->Alerted = FALSE;
+
+	if (TNC->PTTMode)
+		Rig_PTT(TNC, FALSE);			// Make sure PTT is down
+
+	if (TNC->Streams[0].Attached)
+		TNC->Streams[0].ReportDISC = TRUE;
+
+	if (TNC->TCPSock)
+	{
+		shutdown(TNC->TCPSock, SD_BOTH);
+		Sleep(100);
+		closesocket(TNC->TCPSock);
+	}
+
+	if (TNC->TCPDataSock)
+	{
+		shutdown(TNC->TCPDataSock, SD_BOTH);
+		Sleep(100);
+		closesocket(TNC->TCPDataSock);
+	}
+
+	TNC->TCPSock = 0;
+	TNC->TCPDataSock = 0;
+
+	KillTNC(TNC);
+
+	sprintf(PORT->TNC->WEB_COMMSSTATE, "%s", "Port Stopped");
+	MySetWindowText(PORT->TNC->xIDC_COMMSSTATE, PORT->TNC->WEB_COMMSSTATE);
+
+	return TRUE;
+}
+
+int ConnecttoUZ7HO(int port);
+
+BOOL UZ7HOStartPort(struct PORTCONTROL * PORT)
+{
+	// Restart Port - Open Sockets or Serial Port
+
+	struct TNCINFO * TNC = PORT->TNC;
+
+	ConnecttoUZ7HO(TNC->Port);
+	TNC->lasttime = time(NULL);;
+
+	sprintf(PORT->TNC->WEB_COMMSSTATE, "%s", "Port Restarted");
+	MySetWindowText(PORT->TNC->xIDC_COMMSSTATE, PORT->TNC->WEB_COMMSSTATE);
+
+	return TRUE;
+}
+
+
+
+
+
 VOID UZ7HOSuspendPort(struct TNCINFO * TNC)
 {
-	TNC->PortRecord->PORTCONTROL.PortStopped = TRUE;
+	TNC->PortRecord->PORTCONTROL.PortSuspended = TRUE;
 	RegisterAPPLCalls(TNC, TRUE);
 }
 
 VOID UZ7HOReleasePort(struct TNCINFO * TNC)
 {
-	TNC->PortRecord->PORTCONTROL.PortStopped = FALSE;
+	TNC->PortRecord->PORTCONTROL.PortSuspended = FALSE;
 	RegisterAPPLCalls(TNC, FALSE);
 }
 
@@ -359,7 +420,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 					{
 						AGW->LastParamTime = ltime;
 
-						if (TNC->PortRecord->PORTCONTROL.PortStopped == FALSE)
+						if (TNC->PortRecord->PORTCONTROL.PortSuspended == FALSE)
 							RegisterAPPLCalls(TNC, FALSE);
 					}
 				}
@@ -618,7 +679,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			SOCKET Sock;
 			buffptr = Q_REM(&TNC->PortRecord->UI_Q);
 
-			if (TNC->PortRecord->PORTCONTROL.PortStopped == TRUE)		// Interlock Disabled Port
+			if (TNC->PortRecord->PORTCONTROL.PortSuspended == TRUE)		// Interlock Disabled Port
 			{
 				ReleaseBuffer((UINT *)buffptr);
 				return (0);
@@ -653,7 +714,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 	case 2:				// send
 
-		if (TNC->PortRecord->PORTCONTROL.PortStopped == TRUE)		// Interlock Disabled Port
+		if (TNC->PortRecord->PORTCONTROL.PortSuspended == TRUE)		// Interlock Disabled Port
 			return 0;
 
 		if (!TNCInfo[MasterPort[port]]->CONNECTED) return 0;		// Don't try if not connected to TNC
@@ -1179,6 +1240,8 @@ void * UZ7HOExtInit(EXTPORTDATA * PortEntry)
 	TNC->SuspendPortProc = UZ7HOSuspendPort;
 	TNC->ReleasePortProc = UZ7HOReleasePort;
 
+	PortEntry->PORTCONTROL.PORTSTARTCODE = UZ7HOStartPort;
+	PortEntry->PORTCONTROL.PORTSTOPCODE = UZ7HOStopPort;
 
 	PortEntry->PORTCONTROL.PROTOCOL = 10;
 	PortEntry->PORTCONTROL.UICAPABLE = 1;
@@ -1598,6 +1661,9 @@ BOOL CALLBACK uz_enum_windows_callback(HWND handle, LPARAM lParam)
 
 int ConnecttoUZ7HO(int port)
 {
+	if (TNCInfo[port]->CONNECTING || TNCInfo[port]->PortRecord->PORTCONTROL.PortStopped)
+		return 0;
+
 	_beginthread(ConnecttoUZ7HOThread, 0, (void *)(size_t)port);
 	return 0;
 }

@@ -2832,6 +2832,7 @@ INT_PTR CALLBACK ConfigDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
 
 #ifdef LINBPQ
 #include <signal.h>
+#include <sys/types.h>
 #endif
 
 
