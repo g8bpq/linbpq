@@ -1558,22 +1558,23 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, int Session, 
 
 	case YAESU:
 			
-		if (n < 3)
+		if (n == 2)			// Just set freq
 		{
-			strcpy(Command, "Sorry - Invalid Format - should be Port Freq Mode\r");
-			return FALSE;
+			ModeNo = -1;
 		}
-
-		for (ModeNo = 0; ModeNo < 15; ModeNo++)
+		else
 		{
-			if (_stricmp(YaesuModes[ModeNo], Mode) == 0)
-				break;
-		}
+			for (ModeNo = 0; ModeNo < 15; ModeNo++)
+			{
+				if (_stricmp(YaesuModes[ModeNo], Mode) == 0)
+					break;
+			}
 
-		if (ModeNo == 15)
-		{
-			sprintf(Command, "Sorry -Invalid Mode\r");
-			return FALSE;
+			if (ModeNo == 15)
+			{
+				sprintf(Command, "Sorry -Invalid Mode\r");
+				return FALSE;
+			}
 		}
 
 		buffptr = GetBuff();
@@ -1597,11 +1598,17 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, int Session, 
 
 		// Send Mode then Freq - setting Mode seems to change frequency
 
-		*(Poll++) = ModeNo;
-		*(Poll++) = 0;
-		*(Poll++) = 0;
-		*(Poll++) = 0;
-		*(Poll++) = 7;		// Set Mode
+		FreqPtr->Cmd1Len = 0;
+
+		if (ModeNo != -1)		// Set freq only
+		{
+			*(Poll++) = ModeNo;
+			*(Poll++) = 0;
+			*(Poll++) = 0;
+			*(Poll++) = 0;
+			*(Poll++) = 7;		// Set Mode
+			FreqPtr->Cmd1Len = 5;
+		}
 
 		*(Poll++) = (FreqString[1] - 48) | ((FreqString[0] - 48) << 4);
 		*(Poll++) = (FreqString[3] - 48) | ((FreqString[2] - 48) << 4);
@@ -1609,7 +1616,7 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, int Session, 
 		*(Poll++) = (FreqString[7] - 48) | ((FreqString[6] - 48) << 4);
 		*(Poll++) = 1;		// Set Freq
 					
-		FreqPtr->Cmd1Len = 10;
+		FreqPtr->Cmd1Len += 5;
 
 		if (strcmp(PORT->Rigs[0].RigName, "FT847") == 0)
 		{
@@ -2863,7 +2870,19 @@ BOOL RigWriteCommBlock(struct RIGPORTINFO * PORT)
 		fWriteStat = WriteFile(PORT->hDevice, PORT->TXBuffer, PORT->TXLen, &BytesWritten, NULL );
 #endif
 		if (PORT->TXLen != BytesWritten)
-		{	
+		{
+			struct RIGINFO * RIG = &PORT->Rigs[PORT->CurrentRig];		// Only one on Yaseu
+
+			if (RIG->RIGOK)
+			{
+				SetWindowText(RIG->hFREQ, "Port Closed");
+				SetWindowText(RIG->hMODE, "----------");
+				strcpy(RIG->WEB_FREQ, "-----------");;
+				strcpy(RIG->WEB_MODE, "------");
+			}
+
+			RIG->RIGOK = FALSE;
+
 			if (PORT->hDevice)
 				 CloseCOMPort(PORT->hDevice);
 		
@@ -7758,8 +7777,7 @@ VOID HAMLIBThread(struct RIGPORTINFO * PORT)
 
 			err = WSAGetLastError();
 
-   			sprintf(Msg, "Connect Failed for HAMLIB socket - error code = %d Port %d\r\n",
-				err, htons(destaddr->sin_port));
+   			sprintf(Msg, "Connect Failed for HAMLIB socket - error code = %d Addr %s\r\n", err, PORT->IOBASE);
 
 			WritetoConsole(Msg);
 				PORT->Alerted = TRUE;
@@ -7811,7 +7829,7 @@ VOID HAMLIBThread(struct RIGPORTINFO * PORT)
 			if (FD_ISSET(PORT->remoteSock, &errorfs))
 			{
 Lost:	
-				sprintf(Msg, "HAMLIB Connection lost for Port %s\r\n", PORT->IOBASE);
+				sprintf(Msg, "HAMLIB Connection lost for Addr %s\r\n", PORT->IOBASE);
 				WritetoConsole(Msg);
 
 				PORT->CONNECTED = FALSE;
@@ -7830,7 +7848,7 @@ Lost:
 		{
 		}
 	}
-	sprintf(Msg, "HAMLIB Thread Terminated Port %s\r\n", PORT->IOBASE);
+	sprintf(Msg, "HAMLIB Thread Terminated Addr %s\r\n", PORT->IOBASE);
 	WritetoConsole(Msg);
 }
 

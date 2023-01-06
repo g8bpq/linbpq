@@ -2038,6 +2038,12 @@ static int APRSProcessLine(char * buf)
 		return TRUE;
 	}
 
+	if (_stricmp(ptr, "SaveAPRSMsgs") == 0)
+	{
+		SaveAPRSMsgs = TRUE;
+		return TRUE;
+	}
+
 	p_value = strtok(NULL, " \t\n\r");
 
 	if (p_value == NULL)
@@ -4640,6 +4646,20 @@ Dll struct STATIONRECORD *  APIENTRY APPLFindStation(char * Call, BOOL AddIfNotF
 Dll struct APRSMESSAGE * APIENTRY APRSGetMessageBuffer()
 {
 	struct APRSMESSAGE * ptr = MessageRecordPool;
+
+	if (ptr == NULL)
+	{
+		// try getting oldest
+
+		ptr = SMEM->Messages;
+
+		if (ptr)
+		{
+			SMEM->Messages = ptr->Next;
+			memset(ptr, 0, sizeof(struct APRSMESSAGE));
+		}
+		return ptr;
+	}
 		
 	if (ptr)
 	{

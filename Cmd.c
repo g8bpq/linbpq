@@ -3884,7 +3884,6 @@ VOID ATTACHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 		return;
 	}
 
-
 	Message.PORT = 0;
 
 	ret = PORT->PORTTXCHECKCODE(PORT, Message.PORT);

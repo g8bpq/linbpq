@@ -1131,6 +1131,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Changes to FreeDATA - Don't use deamon and add txlevel and send text commands (31)
 //	Fix interactive commands in tracker driver (33)
 //  Fix SESSIONTIMELIMIT processing
+//	Add STOPPORT/STARTPORT for UZ7HO driver
+//	Fix processing of extended QtSM 'g' frame (36)
 
 
 #define CKernel

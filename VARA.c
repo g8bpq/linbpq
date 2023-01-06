@@ -104,6 +104,8 @@ BOOL VARAStopPort(struct PORTCONTROL * PORT)
 	if (TNC->Streams[0].Attached)
 		TNC->Streams[0].ReportDISC = TRUE;
 
+	TNC->Streams[0].Disconnecting = FALSE;
+
 	if (TNC->TCPSock)
 	{
 		shutdown(TNC->TCPSock, SD_BOTH);
@@ -328,6 +330,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 		}
 	}
 
+	TNC->Streams[0].Disconnecting = FALSE;
 
 	switch (fn)
 	{
@@ -486,7 +489,6 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			sprintf(Msg, "%d SCANSTOP", TNC->Port);
 	
 			Rig_Command(-1, Msg);
-
 		}
 
 		if (TNC->Streams[0].Attached)
@@ -714,6 +716,8 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				TNC->OverrideBusy = FALSE;
 
 				VARASendCommand(TNC, Connect, TRUE);
+				TNC->Streams[0].ConnectTime = time(NULL); 
+
 
 				memset(TNC->Streams[0].RemoteCall, 0, 10);
 				strcpy(TNC->Streams[0].RemoteCall, &buff->L2DATA[2]);
@@ -2251,6 +2255,9 @@ VOID VARAProcessReceivedData(struct TNCINFO * TNC)
 		if (TNC->Streams[0].Attached)
 			TNC->Streams[0].ReportDISC = TRUE;
 
+		TNC->Streams[0].Disconnecting = FALSE;
+
+
 		closesocket(TNC->TCPDataSock);
 		TNC->TCPSock = 0;
 
@@ -2295,6 +2302,8 @@ VOID VARAProcessReceivedControl(struct TNCINFO * TNC)
 
 		TNC->CONNECTED = FALSE;
 		TNC->Streams[0].ReportDISC = TRUE;
+
+		TNC->Streams[0].Disconnecting = FALSE;
 
 		sprintf(TNC->WEB_COMMSSTATE, "Connection to TNC lost");
 		MySetWindowText(TNC->xIDC_COMMSSTATE, TNC->WEB_COMMSSTATE);
