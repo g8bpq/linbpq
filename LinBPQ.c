@@ -1379,6 +1379,7 @@ void * SerialExtInit(EXTPORTDATA * PortEntry);
 void * WinRPRExtInit(EXTPORTDATA * PortEntry);
 void * HSMODEMExtInit(EXTPORTDATA * PortEntry);
 void * FreeDataExtInit(EXTPORTDATA * PortEntry);
+void * KISSHFExtInit(EXTPORTDATA * PortEntry);
 
 void * InitializeExtDriver(PEXTPORTDATA PORTVEC)
 {
@@ -1454,6 +1455,9 @@ void * InitializeExtDriver(PEXTPORTDATA PORTVEC)
 
 	if (strstr(Value, "VARA"))
 		return VARAExtInit;
+
+	if (strstr(Value, "KISSHF"))
+		return KISSHFExtInit;
 
 	if (strstr(Value, "SERIAL"))
 		return SerialExtInit;

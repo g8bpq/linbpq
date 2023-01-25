@@ -2179,15 +2179,17 @@ VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message)
 		if (TNC == NULL)
 			return;
 
+		PORT = &TNC->PortRecord->PORTCONTROL;
+
 		if (strstr(Message, " To Station"))
 		{
 			char noStreams[] = "No free sessions - disconnecting\r";
 
 			// Incoming. Look for a free Stream
 
-			Stream = 1;
+			Stream = 0;
 
-			while(Stream <= AGW->MaxSessions)
+			while(Stream < AGW->MaxSessions)
 			{
 				if (TNC->PortRecord->ATTACHEDSESSIONS[Stream] == 0)
 					goto GotStream;

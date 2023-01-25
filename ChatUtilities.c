@@ -14,7 +14,7 @@ int SEMCLASHES = 0;
 
 VOID __cdecl Debugprintf(const char * format, ...)
 {
-	char Mess[1000];
+	char Mess[65536];
 	va_list(arglist);int Len;
 
 	va_start(arglist, format);
@@ -29,7 +29,7 @@ VOID __cdecl Debugprintf(const char * format, ...)
 
 VOID __cdecl Logprintf(int LogMode, ChatCIRCUIT * conn, int InOut, const char * format, ...)
 {
-	char Mess[1000];
+	char Mess[65536];
 	va_list(arglist);int Len;
 
 	va_start(arglist, format);
@@ -85,7 +85,7 @@ void FreeSemaphore(struct SEM * Semaphore)
 
 VOID __cdecl nodeprintf(ChatCIRCUIT * conn, const char * format, ...)
 {
-	char Mess[1000];
+	char Mess[65536];
 	int len;
 	va_list(arglist);
 

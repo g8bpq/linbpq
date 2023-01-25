@@ -3201,6 +3201,19 @@ static VOID ADSBConnect(void * unused)
 	destaddr.sin_family = AF_INET;
 	destaddr.sin_port = htons(ADSBPort);
 
+	if (destaddr.sin_addr.s_addr == INADDR_NONE)
+	{
+		//	Resolve name to address
+
+		struct hostent * HostEnt = gethostbyname(ADSBHost);
+		 
+		if (!HostEnt)
+			return;			// Resolve failed
+
+		memcpy(&destaddr.sin_addr.s_addr,HostEnt->h_addr,4);
+	}
+
+
 	TCPSock = socket(AF_INET,SOCK_STREAM,0);
 
 	if (TCPSock == INVALID_SOCKET)

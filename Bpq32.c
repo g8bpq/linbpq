@@ -1133,6 +1133,12 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //  Fix SESSIONTIMELIMIT processing
 //	Add STOPPORT/STARTPORT for UZ7HO driver
 //	Fix processing of extended QtSM 'g' frame (36)
+//	Allow setting just freq on Yaseu rigs (37)
+//	Enable KISSHF driver on Linux (40)
+//	Allow AISHOST and ADSBHOST to be a name as well as an address (41)
+//	Fix Interlock of incoming UZ7HO connections (41)
+//	Disable VARA Actions menu if not sysop (41)
+//	Fix Port CTEXT on UZ7HO B C or D channels (42)
 
 
 #define CKernel

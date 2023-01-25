@@ -130,7 +130,7 @@ int AddtoHistory(struct user_t * user, char * text)
 	struct HistoryRec * Rec;
 	struct HistoryRec * ptr;
 	int n = 1;
-	char buf[512];
+	char buf[2048];
 	char Stamp[16];
 	struct tm * tm;
 	time_t Now = time(NULL);
@@ -149,6 +149,9 @@ int AddtoHistory(struct user_t * user, char * text)
 	memset(Rec, 0, sizeof (struct HistoryRec));
 
 	tm = gmtime(&Now);
+
+	if (strlen(text) + strlen(user->name) + strlen(user->call) > 2000)
+		return 0;					// Shouldn't be that long, but protect buffer
 
 	sprintf(Stamp,"%02d:%02d ", tm->tm_hour, tm->tm_min);
 	sprintf(buf, "%s%-6.6s %s %c %s\r", Stamp, user->call, user->name, ':', text);
@@ -290,11 +293,11 @@ VOID __cdecl nprintf(ChatCIRCUIT * conn, const char * format, ...)
 {
 	// seems to be printf to a socket
 
-	char buff[600];
+	char buff[65536];
 	va_list(arglist);
 	
 	va_start(arglist, format);
-	vsprintf(buff, format, arglist);
+	vsnprintf(buff, sizeof(buff), format, arglist);
 
 	nputs(conn, buff);
 }
@@ -516,6 +519,11 @@ VOID ProcessChatLine(ChatCIRCUIT * conn, struct UserInfo * user, char* OrigBuffe
 	char * Buffer = OrigBuffer;
 	WCHAR BufferW[65536];
 	UCHAR BufferB[65536];
+
+	// Sanity Check
+
+	if (len > 32768)
+		return;
 
 	// Convert to UTF8 if not already in UTF-8
 

@@ -3975,11 +3975,16 @@ VOID ATTACHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 
 				if (rxInterlock == OtherTNC->RXRadio || txInterlock == OtherTNC->TXRadio)	// Same Group	
 				{
-					if (OtherTNC->PortRecord->ATTACHEDSESSIONS[0])
-					{			
-						Bufferptr = Cmdprintf(Session, Bufferptr, "Sorry, interlocked port %d is in use\r", i);
-						SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
-						return;
+					int n;
+
+					for (n = 0; n <= 26; n++)
+					{
+						if (OtherTNC->PortRecord->ATTACHEDSESSIONS[n])
+						{			
+							Bufferptr = Cmdprintf(Session, Bufferptr, "Sorry, interlocked port %d is in use\r", i);
+							SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+							return;
+						}
 					}
 				}
 			}

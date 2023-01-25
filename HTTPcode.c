@@ -2307,6 +2307,9 @@ doHeader:
 					if (TNC == 0)
 						return 1;
 
+					if (LOCAL == FALSE && COOKIE == FALSE)
+						return 1;
+
 					if (strcmp(input, "Abort") == 0)
 					{
 						if (TNC->ForcedCloseProc)

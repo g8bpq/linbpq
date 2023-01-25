@@ -3522,7 +3522,7 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 	if (_memicmp(Buffer, "PINGACK ", 8) == 0)
 	{
 		WritetoTrace(TNC, Buffer, MsgLen - 1);
-		// Drop through to return touser
+		// Drop through to return to user
 	}
 
 	if (_memicmp(Buffer, "CQ ", 3) == 0 && MsgLen > 10)

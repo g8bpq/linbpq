@@ -918,8 +918,9 @@ char WebProcTemplate[] = "<html><meta http-equiv=expires content=0>"
 		"{location.reload()}\n"
 		"</script>\r\n"
 		"</head><title>%s</title></head><body id=Text onload=\"ScrollOutput()\">\r\n"
-		"<h2 style=\"margin-bottom: 0.2em; text-align:center\">%s</h2>"
-		"<span class='dropdown' style=\"position: absolute; left: 10;top: 12;\">"
+		"<h2 style=\"margin-bottom: 0.2em; text-align:center\">%s</h2>";
+
+char Menubit[] = "<span class='dropdown' style=\"position: absolute; left: 10;top: 12;\">"
 		"<button class='dropbtn'>Actions</button>\r\n"
 		"<span class='dropdown-content'>"
 		"<a href='javascript:xxx(\"Abort\");'>Abort Session</a>"
@@ -941,6 +942,9 @@ char sliderBit[] = "<span style=\"position: absolute; left: 380;top: 2;\"> TX Of
 static int WebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
 {
 	int Len = sprintf(Buff, WebProcTemplate, TNC->Port, TNC->Port, "VARA Status", "VARA Status");
+
+	if (LOCAL)
+		Len += sprintf(&Buff[Len], Menubit, TNC->TXOffset, TNC->TXOffset);
 
 	if (TNC->TXFreq)
 		Len += sprintf(&Buff[Len], sliderBit, TNC->TXOffset, TNC->TXOffset);
@@ -2285,17 +2289,11 @@ VOID VARAProcessReceivedControl(struct TNCINFO * TNC)
 
 	if (TNC->InputLen > 8000)	// Shouldnt have packets longer than this
 		TNC->InputLen=0;
-
-	//	I don't think it likely we will get packets this long, but be aware...
-
-	//	We can get pretty big ones in the faster 
 				
 	InputLen=recv(TNC->TCPSock, &TNC->ARDOPBuffer[TNC->InputLen], 8192 - TNC->InputLen, 0);
 
 	if (InputLen == 0 || InputLen == SOCKET_ERROR)
-	{
-		// Does this mean closed?
-		
+	{		
 		closesocket(TNC->TCPSock);
 
 		TNC->TCPSock = 0;
@@ -2324,7 +2322,7 @@ loop:
 
 	if ((ptr2 - ptr) == 1)	// CR 
 	{
-		// Usual Case - single meg in buffer
+		// Usual Case - single msg in buffer
 
 		VARAProcessResponse(TNC, TNC->ARDOPBuffer, TNC->InputLen);
 		TNC->InputLen=0;

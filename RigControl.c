@@ -820,36 +820,6 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, int Session, 
 		return FALSE;
 	}
 
-	if (RIG->RIGOK == 0)
-	{
-		if (Session != -1)
-		{
-			if (PORT->Closed)
-				sprintf(Command, "Sorry - Radio port closed\r");
-			else
-				sprintf(Command, "Sorry - Radio not responding\r");
-		}
-		return FALSE;
-	}
-
-	if (n == 2 && _stricmp(FreqString, "FREQ") == 0)
-	{
-		if (RIG->Valchar[0])
-			sprintf(Command, "Frequency is %s MHz\r", RIG->Valchar);
-		else
-			sprintf(Command, "Frequency not known\r");
-
-		return FALSE;
-	}
-
-	if (n == 2 && _stricmp(FreqString, "PTT") == 0)
-	{
-		Rig_PTTEx(RIG, TRUE, NULL);
-		RIG->PTTTimer = 10;				// 1 sec
-		sprintf(Command, "Ok\r");
-		return FALSE;
-	}
-
 	if (n > 1)
 	{
 		if (_stricmp(FreqString, "SCANSTART") == 0)
@@ -903,6 +873,38 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, int Session, 
 
 			return FALSE;
 		}
+	}
+
+
+
+	if (RIG->RIGOK == 0)
+	{
+		if (Session != -1)
+		{
+			if (PORT->Closed)
+				sprintf(Command, "Sorry - Radio port closed\r");
+			else
+				sprintf(Command, "Sorry - Radio not responding\r");
+		}
+		return FALSE;
+	}
+
+	if (n == 2 && _stricmp(FreqString, "FREQ") == 0)
+	{
+		if (RIG->Valchar[0])
+			sprintf(Command, "Frequency is %s MHz\r", RIG->Valchar);
+		else
+			sprintf(Command, "Frequency not known\r");
+
+		return FALSE;
+	}
+
+	if (n == 2 && _stricmp(FreqString, "PTT") == 0)
+	{
+		Rig_PTTEx(RIG, TRUE, NULL);
+		RIG->PTTTimer = 10;				// 1 sec
+		sprintf(Command, "Ok\r");
+		return FALSE;
 	}
 
 	RIG->Session = Session;		// BPQ Stream
