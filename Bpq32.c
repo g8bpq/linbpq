@@ -1139,7 +1139,11 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix Interlock of incoming UZ7HO connections (41)
 //	Disable VARA Actions menu if not sysop (41)
 //	Fix Port CTEXT on UZ7HO B C or D channels (42)
-
+//	Fix repeated trigger of SessionTimeLimit (43)
+//  Fix posible memory corruption in UpateMH (44)
+//	Add PHG to APRS beacons (45)
+//	Dont send DM to stations in exclude list(45)
+//	Improvements to RMS Relay SYNC Mode (46)
 
 #define CKernel
 

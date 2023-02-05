@@ -349,8 +349,10 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 		{
 			if (TNC->SessionTimeLimit && STREAM->ConnectTime && time(NULL) > (TNC->SessionTimeLimit + STREAM->ConnectTime))
 			{
-				VARASendCommand(TNC, "ABORT\r", TRUE);
+				VARASendCommand(TNC, "CLEANTXBUFFER\r", TRUE);
+				VARASendCommand(TNC, "DISCONNECT\r", TRUE);
 				STREAM->Disconnecting = TRUE;
+				TNC->SessionTimeLimit += 120;	// Don't retrigger unless things have gone horribly wrong
 			}
 		}
 
@@ -2127,7 +2129,7 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 				return;			// No buffers, so ignore
 			}
 
-			buffptr->Len = sprintf(buffptr->Data, "VARA} Failure with %s\r", TNC->Streams[0].RemoteCall);
+			buffptr->Len = sprintf(buffptr->Data, "VARA} Failure with %s\r", STREAM->RemoteCall);
 
 			C_Q_ADD(&TNC->WINMORtoBPQ_Q, buffptr);
 
@@ -2147,7 +2149,7 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 
 		// Release Session
 
-		if (TNC->Streams[0].Connected)
+		if (STREAM->Connected && STREAM->ConnectTime)
 		{
 			// Create a traffic record
 		
@@ -2165,17 +2167,19 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 				STREAM->BytesRXed, (int)(STREAM->BytesRXed/Duration), (int)Duration);
 
 			Debugprintf(logmsg);
+
+			STREAM->ConnectTime= 0;  //Prevent retrigger
 		}
 
 
-		TNC->Streams[0].Connecting = FALSE;
-		TNC->Streams[0].Connected = FALSE;		// Back to Command Mode
-		TNC->Streams[0].ReportDISC = TRUE;		// Tell Node
+		STREAM->Connecting = FALSE;
+		STREAM->Connected = FALSE;		// Back to Command Mode
+		STREAM->ReportDISC = TRUE;		// Tell Node
 
-		if (TNC->Streams[0].Disconnecting)		// 
+		if (STREAM->Disconnecting)		// 
 			VARAReleaseTNC(TNC);
 
-		TNC->Streams[0].Disconnecting = FALSE;
+		STREAM->Disconnecting = FALSE;
 
 		return;
 	}

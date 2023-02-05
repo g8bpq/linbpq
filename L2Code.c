@@ -1538,6 +1538,12 @@ VOID L2SENDUA(struct PORTCONTROL * PORT, MESSAGE * Buffer, MESSAGE * ADJBUFFER)
 
 VOID L2SENDDM(struct PORTCONTROL * PORT, MESSAGE * Buffer, MESSAGE * ADJBUFFER)
 {
+	if (CheckExcludeList(Buffer->ORIGIN) == 0)  // if in exclude, don't send DM
+	{
+		ReleaseBuffer(Buffer);  // not sure that this is the right place for releasing?
+		return;
+	}
+
 	L2SENDRESP(PORT, Buffer, ADJBUFFER, DM);
 }
 

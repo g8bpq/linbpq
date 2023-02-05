@@ -117,6 +117,11 @@ long long GetInt64Value(config_setting_t * group, char * name);
 void ProcessSyncModeMessage(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int len);
 int ReformatSyncMessage(CIRCUIT * conn);
 char * initMultipartUnpack(char ** Input);
+char * FormatSYNCMessage(CIRCUIT * conn, struct MsgInfo * Msg);
+int decode_quoted_printable(char *ptr, int len);
+void decodeblock( unsigned char in[4], unsigned char out[3]);
+int encode_quoted_printable(char *s, char * out, int Len);
+
 
 config_t cfg;
 config_setting_t * group;
@@ -5984,6 +5989,9 @@ VOID CreateMessageFromBuffer(CIRCUIT * conn)
 	FreeSemaphore(&MsgNoSemaphore);
 	MsgnotoMsg[Msg->number] = Msg;
 
+	if (Msg->status == 0)
+		Msg->status = 'N';
+
 	// Create BID if non supplied
 
 	if (Msg->bid[0] == 0)
@@ -8267,6 +8275,12 @@ InBand:
 				goto CheckForEnd;
 			}
 
+			if (_memicmp(Cmd, "SYNC", 4) == 0)
+			{
+				conn->BBSFlags |= SYNCMODE;			
+				goto CheckForEnd;
+			}
+
 			if (_memicmp(Cmd, "NEEDLF", 6) == 0)
 			{
 				conn->BBSFlags |= NEEDLF;			
@@ -8467,7 +8481,7 @@ InBand:
 
 CheckForSID:
 
-	if (strstr(Buffer, "POSYNCHELLO"))			// URONODE
+	if (strstr(Buffer, "POSYNCHELLO"))			// RMS RELAY Sync process
 	{
 		conn->BBSFlags &= ~RunningConnectScript;	// so it doesn't get reentered
 		ProcessLine(conn, 0, Buffer, len);
@@ -11371,6 +11385,9 @@ VOID ProcessLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int len)
 
 	if (_memicmp(Buffer, "POSYNCHELLO", 11) == 0)
 	{
+		// This is first message received after connecting to SYNC
+		// Save Callsign
+
 		char Reply[32];
 		conn->BBSFlags |= SYNCMODE;
 		conn->FBBHeaders = zalloc(5 * sizeof(struct FBBHeaderLine));
@@ -13544,17 +13561,197 @@ void ProcessSyncModeMessage(CIRCUIT * conn, struct UserInfo * user, char* Buffer
 {
 	Buffer[len] = 0;
 
+	if (conn->Flags & PROPOSINGSYNCMSG)
+	{
+		// Waiting for response to TR AddMessage
+
+		if (strcmp(Buffer, "OK\r") == 0)
+		{
+			char Msg[256];
+			int n;
+
+			WriteLogLine(conn, '<', Buffer, len-1, LOG_BBS);
+	
+			// Send the message, it has already been built
+
+			conn->Flags &= !PROPOSINGSYNCMSG;
+			conn->Flags |= SENDINGSYNCMSG;
+
+			n = sprintf_s(Msg, sizeof(Msg), "Sending SYNC message %s", conn->FwdMsg->bid);
+			WriteLogLine(conn, '|',Msg, n, LOG_BBS);
+
+			QueueMsg(conn, conn->SyncMessage, conn->SyncCompressedLen);
+			return;
+		}
+
+		if (strcmp(Buffer, "NO\r") == 0)
+		{
+			WriteLogLine(conn, '<', Buffer, len-1, LOG_BBS);
+	
+			// Message Rejected - ? duplicate
+
+			if (conn->FwdMsg)
+			{
+				// Zap the entry
+
+				clear_fwd_bit(conn->FwdMsg->fbbs, user->BBSNumber);
+				set_fwd_bit(conn->FwdMsg->forw, user->BBSNumber);
+				conn->UserPointer->ForwardingInfo->MsgCount--;
+
+				//  Only mark as forwarded if sent to all BBSs that should have it
+
+				if (memcmp(conn->FwdMsg->fbbs, zeros, NBMASK) == 0)
+				{
+					conn->FwdMsg->status = 'F';			// Mark as forwarded
+					conn->FwdMsg->datechanged=time(NULL);
+				}
+
+				conn->FwdMsg->Locked = 0;	// Unlock
+			}
+		}
+
+		BBSputs(conn, "BYE\r");
+		conn->CloseAfterFlush = 20;			// 2 Secs
+		conn->Flags &= !PROPOSINGSYNCMSG;
+		conn->BBSFlags &= ~SYNCMODE;
+		return;
+	}
+
+	if (conn->Flags & SENDINGSYNCMSG)
+	{
+		if (strcmp(Buffer, "OK\r") == 0)
+		{
+			// Message Sent
+
+			conn->Flags &= !SENDINGSYNCMSG;
+			free(conn->SyncMessage);
+
+			if (conn->FwdMsg)
+			{
+				char Msg[256];
+				int n;
+
+				n = sprintf_s(Msg, sizeof(Msg), "SYNC message %s Sent", conn->FwdMsg->bid);
+				WriteLogLine(conn, '|',Msg, n, LOG_BBS);
+
+				clear_fwd_bit(conn->FwdMsg->fbbs, user->BBSNumber);
+				set_fwd_bit(conn->FwdMsg->forw, user->BBSNumber);
+				conn->UserPointer->ForwardingInfo->MsgCount--;
+
+				//  Only mark as forwarded if sent to all BBSs that should have it
+
+				if (memcmp(conn->FwdMsg->fbbs, zeros, NBMASK) == 0)
+				{
+					conn->FwdMsg->status = 'F';			// Mark as forwarded
+					conn->FwdMsg->datechanged=time(NULL);
+				}
+
+				conn->FwdMsg->Locked = 0;	// Unlock
+			}
+
+			// drop through to send any more
+		}
+		else
+		{
+			WriteLogLine(conn, '<', Buffer, len-1, LOG_BBS);
+	
+			conn->Flags &= !SENDINGSYNCMSG;
+			free(conn->SyncMessage);
+
+			BBSputs(conn, "BYE\r");
+			conn->CloseAfterFlush = 20;			// 2 Secs
+			conn->BBSFlags &= ~SYNCMODE;
+
+			return;
+		}
+	}
+
 	if (strcmp(Buffer, "OK\r") == 0)
 	{
 		WriteLogLine(conn, '<', Buffer, len-1, LOG_BBS);
 
-		// Propose any waiting files
+		// Send Message(?s) to RMS Relay SYNC
+
+/*
+<POSYNCLOGON G8BPQ
+>OK
+>TR AddMessage_V5JLSGH591JR 786 1219 522 True
+<OK
+.. message
+<OK
+?? repeat
+>BYE*/
+		if (FindMessagestoForward(conn) && conn->FwdMsg)
+		{
+			struct MsgInfo * Msg = conn->FwdMsg;
+			char Buffer[128];
+			char * Message;
+
+			Message = FormatSYNCMessage(conn, Msg);
+
+			// Need to compress it
+
+			conn->SyncMessage = malloc(conn->SyncXMLLen + conn->SyncMsgLen + 4096);
+
+			conn->SyncCompressedLen = Encode(Message, conn->SyncMessage, conn->SyncXMLLen + conn->SyncMsgLen, 0, 1);
+
+			sprintf(Buffer, "TR AddMessage_%s %d %d %d True\r",
+				Msg->bid, conn->SyncCompressedLen, conn->SyncXMLLen, conn->SyncMsgLen);
+
+			free(Message);
+
+			conn->Flags |= PROPOSINGSYNCMSG;
+
+			BBSputs(conn, Buffer);
+			return;
+		}
+				
 
 		BBSputs(conn, "BYE\r");
 		conn->CloseAfterFlush = 20;			// 2 Secs
 		conn->BBSFlags &= ~SYNCMODE;
 		return;
 	}
+
+	if (memcmp(Buffer, "TR RMS_Location_", 16) == 0)
+	{
+		// I think this is an xml message giving location of station
+
+		BIDRec * BID;
+		char *ptr1, *ptr2, *context;
+
+		//		TR RMS_Location_OH6IJ3_YIBB50HCCQUS 200 367 0 True
+
+		WriteLogLine(conn, '<', Buffer, len-1, LOG_BBS);
+		
+		ptr1 =  strtok_s(&Buffer[16], " ", &context);	// MID
+
+		// What to do with call bit??
+
+		ptr1 = strlop(ptr1, '_');
+
+		ptr2 =  strtok_s(NULL, " ", &context);
+		conn->SyncCompressedLen = atoi(ptr2);
+		ptr2 =  strtok_s(NULL, " ", &context);
+		conn->SyncXMLLen = atoi(ptr2);
+		ptr2 =  strtok_s(NULL, " ", &context);
+		conn->SyncMsgLen = atoi(ptr2);
+		ptr2 =  strtok_s(NULL, " ", &context);
+
+		BID = LookupBID(ptr1);
+
+		if (BID)
+		{
+			BBSputs(conn, "Rejected - Duplicate BID\r");
+			return;
+		}
+		conn->TempMsg = zalloc(sizeof(struct MsgInfo));
+
+		BBSputs(conn, "OK\r");
+		return;
+
+	}
+
 
 	if (memcmp(Buffer, "TR AddMessage_", 14) == 0) 
 	{
@@ -13590,7 +13787,8 @@ void ProcessSyncModeMessage(CIRCUIT * conn, struct UserInfo * user, char* Buffer
 	{
 		char *ptr1, *ptr2, *context;
 
-		//			TR RequestSync_G8BPQ_14 224 417 0 True
+		//	TR RequestSync_G8BPQ_14 224 417 0 True
+
 		WriteLogLine(conn, '<', Buffer, len-1, LOG_BBS);
 
 		ptr1 =  strtok_s(&Buffer[15], " ", &context);	// MID
@@ -13863,7 +14061,7 @@ VOID SendServerReply(char * Title, char * MailBuffer, int Length, char * To)
 
 int ReformatSyncMessage(CIRCUIT * conn)
 {
-	// Message has been decompressed - reformat to look lime a WLE message
+	// Message has been decompressed - reformat to look like a WLE message
 
 	char * MsgBit;
 	char *ptr1, *ptr2;
@@ -13883,10 +14081,16 @@ int ReformatSyncMessage(CIRCUIT * conn)
 	char DateString[80];
 	struct tm * tm;
 	char Type[16] = "Private";
-	char * part[100];
+	char * part[100] = {""};
+	char * partname[100];
 	int partLen[100];
+	char xml[4096];
 
-	// Message has an XML header which I don't think we need, then the message
+	// Message has an XML header then the message
+
+	// The XML may have control info, so examine it.
+
+
 	/*
 	Date: Mon, 25 Oct 2021 10:22:00 -0000
 	From: GM8BPQ
@@ -13913,9 +14117,20 @@ int ReformatSyncMessage(CIRCUIT * conn)
 
 //	WriteLogLine(conn, '<', conn->MailBuffer, conn->TempMsg->length, LOG_BBS);
 
-	if (conn->SyncMsgLen == 0)
-		return 0;
+	// display the xml for testing
 
+	memcpy(xml, conn->MailBuffer, conn->SyncXMLLen);
+	xml[conn->SyncXMLLen] = 0;
+
+	Debugprintf(xml);
+
+	if (conn->SyncMsgLen == 0)
+	{
+		// No message, Just xml. Looks like a status report
+
+		return 0;
+	}
+	
 	MsgBit = &conn->MailBuffer[conn->SyncXMLLen];
 	conn->TempMsg->length -= conn->SyncXMLLen;
 
@@ -13988,8 +14203,14 @@ Loop:
 
 	// Unpack Body - seems to be multipart even if only one
 
-	Input = MsgBit;
+	// Can't we just send the whole body through ??
+	// No, Attachment format is different
 
+	// Mbo: GM8BPQ
+	// Body: 17
+	// File: 1471 leadercoeffs.txt
+
+	Input = MsgBit;
 	Boundary = initMultipartUnpack(&Input);
 	
 	i = 0;
@@ -14015,6 +14236,12 @@ Loop:
 				{
 					// Found Boundary
 
+					char * p1, *p2, *ptr3, *ptr4;
+					int llen;
+					int Base64 = 0;
+					int QuotedP = 0;
+					char * BoundaryStart = ptr;
+
 					Partlen = ptr - Msgptr;
 
 					ptr += (BLen + 2);			// End of Boundary
@@ -14026,20 +14253,105 @@ Loop:
 
 					// Part Starts with header (content-type, etc), but skip for now
 
-					part[i] = strstr(Msgptr, "\r\n\r\n");	// Over separator
+					// Will check for quoted printable
+
+					p1 = Msgptr;
+Loop2:
+					p2 = strchr(p1, '\r');
+					llen = (int)(p2 - p1);
+
+					if (llen)
+					{
+
+						if (_memicmp(p1, "Content-Transfer-Encoding:", 26) == 0)
+						{
+							if (_memicmp(&p1[27], "base64", 6) == 0)
+								Base64 = TRUE;
+							else if (_memicmp(&p1[27], "quoted", 6) == 0)
+								QuotedP = TRUE;
+						}
+						else if (_memicmp(p1, "Content-Disposition: ", 21) == 0)
+						{
+							ptr3 = strstr(&p1[21], "name");
+
+							if (ptr3)
+							{
+								ptr3 += 5;
+								if (*ptr3 == '"') ptr3++;
+								ptr4 = strchr(ptr3, '"');
+								if (ptr4) *ptr4 = 0;
+
+								partname[i] = ptr3;
+							}
+						}
+
+						if (llen)			// Not Null line
+						{
+							p1 = p2 + 2;		// Skip crlf
+							goto Loop2;
+						}
+					}
+
+					part[i] = strstr(p2, "\r\n");	// Over separator
+			
 					if (part[i])
 					{
-						part[i] += 4;
-						partLen[i] = Partlen - (part[i] - Msgptr) - 2;
+						part[i] += 2;
+						partLen[i] = BoundaryStart - part[i] - 2;
+						if (QuotedP)
+							partLen[i] = decode_quoted_printable(part[i], partLen[i]);
+						else if (Base64)
+						{
+							int Len = partLen[i], NewLen;
+							char * ptr = part[i];
+							char * ptr2 = part[i];
+
+							// WLE sends base64 with embedded crlf, so remove them
+
+							while (Len-- > 0)
+							{
+								if ((*ptr) != 10 && (*ptr) != 13)
+									*(ptr2++) = *(ptr++);
+								else
+									ptr ++;
+							}
+
+							Len = ptr2 - part[i];
+							ptr = part[i];
+							ptr2 = part[i];
+							
+							while (Len > 0)
+							{
+								decodeblock(ptr, ptr2);
+								ptr += 4;
+								ptr2 += 3;
+								Len -= 4;
+							}
+
+							NewLen = (int)(ptr2 - part[i]);
+
+							if (*(ptr-1) == '=')
+								NewLen--;
+
+							if (*(ptr-2) == '=')
+								NewLen--;
+
+							partLen[i] = NewLen;
+						}
 					}
 					Msgptr = ptr = Input;
 					i++;
 				}
+
+				// See if more parts
+
+
 			}
 			else
 				ptr++;
 		}
 	}
+
 
 	// Build the message
 
@@ -14080,22 +14392,29 @@ Loop:
 
 	NewMsg += sprintf(NewMsg, "Body: %d\r\n", partLen[0]);
 
-/*
-	i == 1;
+	i = 1;
 
 	while (part[i])
 	{
-		Msg->B2Flags |= Attachments;
 		NewMsg += sprintf(NewMsg, "File: %d %s\r\n",
-			partn[i], partName[i]);
+			partLen[i], partname[i]);
+
+		i++;
 	}
-*/
+
 	NewMsg += sprintf(NewMsg, "\r\n");		// Blank Line to end header
 
 	// Now add parts
 
-	memmove(NewMsg, part[0], partLen[0]);
-	NewMsg += partLen[0];
+	i = 0;
+
+	while (part[i])
+	{
+		memmove(NewMsg, part[i], partLen[i]);
+		NewMsg += partLen[i];
+		i++;
+		NewMsg += sprintf(NewMsg, "\r\n");		// Blank Line between attachments
+	}
 
 	conn->TempMsg->length = NewMsg - SaveMsg;
 	conn->TempMsg->datereceived = conn->TempMsg->datechanged = time(NULL);
@@ -14110,8 +14429,250 @@ Loop:
 	return TRUE;
 }
 
+char * FormatSYNCMessage(CIRCUIT * conn, struct MsgInfo * Msg)
+{
+	// First an XML Header
+
+	char * Buffer = malloc(4096 + Msg->length);
+	int Len = 0;
+	
+	struct tm *tm;
+	char Date[32];
+	char MsgTime[32];
+	char Separator[33]="";
+	time_t Time = time(NULL);
+	char * MailBuffer;
+	int BodyLen;
+	char * Encoded;
+
+	// Get the message - may need length in header
+
+	MailBuffer = ReadMessageFile(Msg->number);
+
+	BodyLen = Msg->length;
+
+	// Remove any B2 Header
+
+	if (Msg->B2Flags & B2Msg)
+	{
+		// Remove B2 Headers (up to the File: Line)
+			
+		char * ptr;
+		ptr = strstr(MailBuffer, "Body:");
+		if (ptr)
+		{
+			BodyLen = atoi(ptr + 5);
+			ptr = strstr(ptr, "\r\n\r\n");
+		}
+		if (ptr)
+		{
+			memcpy(MailBuffer, ptr + 4, BodyLen);
+			MailBuffer[BodyLen] = 0;
+		}
+	}
+
+	// encode body as quoted printable;
+
+	Encoded = malloc(Msg->length * 3);
+
+	BodyLen = encode_quoted_printable(MailBuffer, Encoded, BodyLen);
+
+	// Create multipart Boundary
+	
+	CreateOneTimePassword(&Separator[0], "Key", 0); 
+	CreateOneTimePassword(&Separator[16], "Key", 1); 
+
+
+	tm = gmtime(&Time);
+
+	sprintf_s(Date, sizeof(Date), "%04d%02d%02d%02d%02d%02d",
+		tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+
+	tm = gmtime(&Msg->datecreated);
+
+	sprintf_s(MsgTime, sizeof(Date), "%04d/%02d/%02d %02d:%02d",
+		tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min);
+
+	Len += sprintf(&Buffer[Len], "<?xml version=\"1.0\"?>\r\n");
+
+	Len += sprintf(&Buffer[Len], "<sync_record>\r\n");
+	Len += sprintf(&Buffer[Len], "  <po_sync>\r\n");
+    Len += sprintf(&Buffer[Len], "    <transaction_type>add_message</transaction_type>\r\n");
+    Len += sprintf(&Buffer[Len], "    <timestamp>%s</timestamp>\r\n", Date);
+    Len += sprintf(&Buffer[Len], "    <originating_station>%s</originating_station>\r\n", Msg->from);
+	Len += sprintf(&Buffer[Len], "  </po_sync>\r\n");
+ 	Len += sprintf(&Buffer[Len], " <add_message>\r\n");
+ 	Len += sprintf(&Buffer[Len], "   <register_entry>\r\n");
+	Len += sprintf(&Buffer[Len], "     <MessageId>%s</MessageId>\r\n", Msg->bid);
+ 	Len += sprintf(&Buffer[Len], "     <Time>%s</Time>\r\n", MsgTime);
+ 	Len += sprintf(&Buffer[Len], "     <Sender>%s</Sender>\r\n", Msg->from);
+  	Len += sprintf(&Buffer[Len], "     <Source>%s</Source>\r\n", Msg->from);
+	Len += sprintf(&Buffer[Len], "     <Precedence>2</Precedence>\r\n");
+	Len += sprintf(&Buffer[Len], "     <Attachment>%s</Attachment>\r\n", (Msg->B2Flags & Attachments) ? "true" : "false");
+	Len += sprintf(&Buffer[Len], "     <CSize>%d</CSize>\r\n", BodyLen);
+	Len += sprintf(&Buffer[Len], "     <Subject>%s</Subject>\r\n", Msg->title);
+	Len += sprintf(&Buffer[Len], "     <RMSOriginator></RMSOriginator>\r\n");
+	Len += sprintf(&Buffer[Len], "     <RMSDestination></RMSDestination>\r\n");
+	Len += sprintf(&Buffer[Len], "   </register_entry>\r\n");
+	Len += sprintf(&Buffer[Len], "   <destinations>\r\n");
+ 	Len += sprintf(&Buffer[Len], "    <destination>\r\n");
+ 	Len += sprintf(&Buffer[Len], "      <MessageId>%s</MessageId>\r\n", Msg->bid);
+	Len += sprintf(&Buffer[Len], "      <Priority>450443</Priority>\r\n");
+	Len += sprintf(&Buffer[Len], "      <Destination>%s</Destination>\r\n", Msg->to);
+ 	Len += sprintf(&Buffer[Len], "      <ForwardedTo></ForwardedTo>\r\n");
+ 	Len += sprintf(&Buffer[Len], "      <DeliveredVia>0</DeliveredVia>\r\n");
+	Len += sprintf(&Buffer[Len], "      <SentToCMS>False</SentToCMS>\r\n");
+	Len += sprintf(&Buffer[Len], "      <SentViaRadio>False</SentViaRadio>\r\n");
+	Len += sprintf(&Buffer[Len], "      <SentViaTelnet>False</SentViaTelnet>\r\n");
+	Len += sprintf(&Buffer[Len], "      <LocalOnly>False</LocalOnly>\r\n");
+	Len += sprintf(&Buffer[Len], "      </destination>\r\n");
+	Len += sprintf(&Buffer[Len], "    </destinations>\r\n");
+ 	Len += sprintf(&Buffer[Len], "   <misc>\r\n");
+	Len += sprintf(&Buffer[Len], "      <Local>True</Local>\r\n");
+	Len += sprintf(&Buffer[Len], "      <LocalOnly>False</LocalOnly>\r\n");
+	Len += sprintf(&Buffer[Len], "    </misc>\r\n");
+	Len += sprintf(&Buffer[Len], "  </add_message>\r\n");
+	Len += sprintf(&Buffer[Len], "</sync_record>\r\n");
+
+//	Debugprintf(Buffer);
+
+	conn->SyncXMLLen = Len;
+
+	Len += sprintf(&Buffer[Len], "Date: Sat, 04 Feb 2023 11:19:00 +0000\r\n");
+	Len += sprintf(&Buffer[Len], "From: %s\r\n", Msg->from);
+	Len += sprintf(&Buffer[Len], "Subject: %s\r\n", Msg->title);
+	Len += sprintf(&Buffer[Len], "To: %s\r\n", Msg->to);
+	Len += sprintf(&Buffer[Len], "Message-ID: %s\r\n", Msg->bid);
+//	Len += sprintf(&Buffer[Len], "X-Source: G8BPQ\r\n");
+//	Len += sprintf(&Buffer[Len], "X-Location: 52.979167N, 1.125000W (GRID SQUARE)\r\n");
+//	Len += sprintf(&Buffer[Len], "X-RMS-Originator: G8BPQ\r\n");
+//	Len += sprintf(&Buffer[Len], "X-RMS-Path: G8BPQ@2023-02-04-11:19:29\r\n");
+	Len += sprintf(&Buffer[Len], "X-Relay: %s\r\n", BBSName);
+
+
+	Len += sprintf(&Buffer[Len], "MIME-Version: 1.0\r\n");
+	Len += sprintf(&Buffer[Len], "Content-Type: multipart/mixed; boundary=\"%s\"\r\n", Separator);
+
+	Len += sprintf(&Buffer[Len], "\r\n");		// Blank line before separator
+	Len += sprintf(&Buffer[Len], "--%s\r\n", Separator);
+	Len += sprintf(&Buffer[Len], "Content-Type: text/plain; charset=\"iso-8859-1\"\r\n");
+	Len += sprintf(&Buffer[Len], "Content-Transfer-Encoding: quoted-printable\r\n");
+	Len += sprintf(&Buffer[Len], "\r\n");		// Blank line before body
+
+	Len += sprintf(&Buffer[Len], "%s\r\n", Encoded);	
+	Len += sprintf(&Buffer[Len], "--%s--\r\n", Separator);
+
+	conn->SyncMsgLen = Len - conn->SyncXMLLen;
+
+	free(Encoded);
+	free(MailBuffer);
+
+
+
+
+/*
+Date: Sat, 04 Feb 2023 11:19:00 +0000
+From: G8BPQ
+Subject: Sync Test 5
+To: GM8BPQ
+Message-ID: E4P6YIYGQ347
+X-Source: G8BPQ
+X-Location: 52.979167N, 1.125000W (GRID SQUARE)
+X-RMS-Originator: G8BPQ
+X-RMS-Path: G8BPQ@2023-02-04-11:19:29
+X-Relay: G8BPQ
+MIME-Version: 1.0
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="boundaryHjgswg=="
+
+--boundaryHjgswg==
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+
+Message 5 with attachments
+
+--boundaryHjgswg==
+Content-Disposition: attachment; name="new1.html";
+ filename="new1.html"
+Content-Type: attachment; name="new1.html"
+Content-Transfer-Encoding: base64
+
+PCFET0NUWVBFIGh0bWw+DQo8aHRtbD4NCg0KDQogIDxoZWFkPg0KICAgIDx0aXRsZT4NCiAgICAg
+IENvbnNwaXJhY3kgVGhlb3JpZXMNCiAgICA8L3RpdGxlPg0KICA8L2hlYWQ+DQogIDxib2R5Pg0K
+ICAgIDxkaXYgc3R5bGU9J3RleHQtYWxpZ246IGNlbnRlcjsnPjxkaXYgc3R5bGU9J2Rpc3BsYXk6
+IGlubGluZS1ibG9jazsnPjxzcGFuIHN0eWxlPSdkaXNwbGF5OmJsb2NrOyB0ZXh0LWFsaWduOiBs
+ZWZ0Oyc+DQoJICBhYWFhYWE8YnI+DQogICAgICBiYjxicj4NCiAgICAgIGNjY2NjY2NjYyBjY2Nj
+Y2NjY2NjY2NjPGJyPg0KCSAgPC9zcGFuPg0KICAgICAgPC9kaXY+DQogICAgPC9kaXY+DQogIDwv
+Ym9keT4NCjwvaHRtbD4=
+--boundaryHjgswg==--
+
+
+*/
 
 
 
 
 
+	return Buffer;
+}
+
+int encode_quoted_printable(char *s, char * out, int Len)
+{
+  int n = 0;
+  char * start = out;
+
+  while(Len--)
+  {
+    if (n >= 73 && *s != 10 && *s != 13)
+		{strcpy(out, "=\r\n"); n = 0; out +=3;}
+    if (*s == 10 || *s == 13) {putchar(*s); n = 0;}
+    else if (*s<32 || *s==61 || *s>126)
+		out += sprintf(out, "=%02x", (unsigned char)*s);
+    else if (*s != 32 || (*(s+1) != 10 && *(s+1) != 13))
+		{*(out++) = *s; n++;}
+    else n += printf("=20");
+
+	s++;
+  }
+  *out = 0;
+
+  return out - start;
+}
+
+int decode_quoted_printable(char *ptr, int len)
+{
+	// overwrite input with decoded version
+
+	char * ptr2 = ptr;
+	char * End = ptr + len;
+	char * Start = ptr;
+
+	while (ptr < End)
+	{
+		if ((*ptr) == '=')
+		{
+			char c = *(++ptr);
+			char d;
+
+			c = c - 48;
+			if (c < 0)
+			{
+				// = CRLF as a soft break
+
+				ptr += 2;
+				continue;
+			}
+			if (c > 9) c -= 7;
+			d  = *(++ptr);
+			d = d - 48;
+			if (d > 9) d -= 7;
+
+			*(ptr2) = c << 4 | d;
+			ptr2++;	
+			ptr++;
+		}
+		else
+			*ptr2++ = *ptr++;
+	}
+	return ptr2 - Start;
+}

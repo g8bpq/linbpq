@@ -66,7 +66,8 @@
 //	Add History (28)
 //	Add connect scripts to config page text (31)
 //	Fix History (31)
-//	Stop buffer overflow in History (
+//	Stop buffer overflow in History 
+//	Allow /History to be shortened to /Hi (45)
 
 #include "BPQChat.h"
 #include "Dbghelp.h"

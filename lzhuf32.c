@@ -927,10 +927,7 @@ void Decode(CIRCUIT * conn, int FromSync)
 		// Refomat Sync message as if from WLE
 		
 		if (ReformatSyncMessage(conn) == 0)
-		{
-			BBSputs(conn, "OK\r");			// only xml - don't need it (i think)
 			return;
-		}
 
 		FBBHeader->B2Message = TRUE;
 		FBBHeader->MsgType = 'P';

@@ -10,8 +10,8 @@
 
 #endif
 
-#define KVers 6,0,23,42
-#define KVerstring "6.0.23.42\0"
+#define KVers 6,0,23,46
+#define KVerstring "6.0.23.46\0"
 
 #ifdef CKernel
 

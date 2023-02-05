@@ -973,7 +973,32 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 		return;
 	}
 */
-	 
+
+	if(memcmp(Buffer, "DATE", 4) == 0)
+	{
+		//This command returns a one-line response code of 111 followed by the
+		//GMT date and time on the server in the form YYYYMMDDhhmmss.
+	    //  111 YYYYMMDDhhmmss
+
+		struct tm *tm;
+		char Date[32];
+		time_t Time = time(NULL);
+
+		tm = gmtime(&Time);
+
+		if (tm)
+		{
+			sprintf_s(Date, sizeof(Date), "111 %04d%02d%02d%02d%02d%02d",
+				tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+
+			SendSock(sockptr, Date);
+		}
+		else
+			SendSock(sockptr, "500 command not recognized");
+
+		return;
+	}
+
 	SendSock(sockptr, "500 command not recognized");
 
 	return;

@@ -730,6 +730,14 @@ VOID ProcessChatLine(ChatCIRCUIT * conn, struct UserInfo * user, char* OrigBuffe
 	{
 		// Process Command
 
+		int cmdLen = 0;
+		char * param = strchr(&Buffer[1], ' ');
+
+		if (param)
+			cmdLen = param - &Buffer[1];
+		else 
+			cmdLen = strlen(&Buffer[1]);
+
 		if (_memicmp(&Buffer[1], "Bye", 1) == 0)
 		{
 			SendUnbuffered(conn->BPQStream, ChatSignoffMsg, (int)strlen(ChatSignoffMsg));
@@ -767,14 +775,19 @@ VOID ProcessChatLine(ChatCIRCUIT * conn, struct UserInfo * user, char* OrigBuffe
 			return;
 		}
 
-		if (_memicmp(&Buffer[1], "History", 7) == 0)
+		if (_memicmp(&Buffer[1], "History", cmdLen) == 0)
 		{
 			// Param is number of minutes to go back (max 24 hours)
 		
 			struct HistoryRec * ptr = History;
-			int interval = atoi(&Buffer[9]) * 60;
-			time_t start = time(NULL) - interval;
+			int interval = 0;
+			time_t start;
 			int n = HistoryCount;
+
+			if (param)
+				interval = atoi(param) * 60;
+
+			start = time(NULL) - interval;
 
 			if (interval < 1)
 			{

@@ -78,6 +78,9 @@ int BadCall(char * Call)
 	if (_memicmp(Call, "MCAST", 5) == 0)
 		return 1;
 
+	if (_memicmp(Call, "SYNC", 5) == 0)
+		return 1;
+
 	return 0;
 }
 

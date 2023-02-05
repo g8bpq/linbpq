@@ -728,7 +728,7 @@ VOID CheckForDetach(struct TNCINFO * TNC, int Stream, struct STREAMINFO * STREAM
 
 			// Create a traffic record
 
-			if (STREAM->Connected)
+			if (STREAM->Connected && STREAM->ConnectTime)
 			{
 				Duration = time(NULL) - STREAM->ConnectTime;
 
@@ -741,6 +741,8 @@ VOID CheckForDetach(struct TNCINFO * TNC, int Stream, struct STREAMINFO * STREAM
 					STREAM->BytesRXed, (int)(STREAM->BytesRXed/Duration), (int)Duration);
 
 				Debugprintf(logmsg);
+
+				STREAM->ConnectTime = 0;
 			}
 
 			if (STREAM->BPQtoPACTOR_Q)					// Still data to send?
@@ -897,7 +899,9 @@ BOOL ProcessIncommingConnectEx(struct TNCINFO * TNC, char * Call, int Stream, BO
 	PMSGWITHLEN buffptr;
 	int Totallen = 0;
 	UCHAR * ptr;
-	struct PORTCONTROL * PORT = &TNC->PortRecord->PORTCONTROL;
+	struct PORTCONTROL * PORT;
+	
+	PORT = &TNC->PortRecord->PORTCONTROL;
 
 	// Stop Scanner
 
@@ -908,6 +912,7 @@ BOOL ProcessIncommingConnectEx(struct TNCINFO * TNC, char * Call, int Stream, BO
 		sprintf(Msg, "%d SCANSTOP", TNC->Port);
 
 		Rig_Command(-1, Msg);
+
 		UpdateMH(TNC, Call, '+', 'I');
 	}
 
@@ -967,7 +972,7 @@ BOOL ProcessIncommingConnectEx(struct TNCINFO * TNC, char * Call, int Stream, BO
 		return TRUE;
 
 	// if Port CTEXT defined, use it
-	
+
 	if (PORT->CTEXT)
 	{
 		Totallen = strlen(PORT->CTEXT);

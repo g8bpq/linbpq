@@ -4259,16 +4259,26 @@ int DataSocket_ReadSync(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, S
 
 	if (sockptr->LoginState == 0)			// Initial connection
 	{
-	//	if (TNC->Streams[Stream].Connected == 0)
+		// First Message should be POSYNCLOGON CALL
 
-		strcpy(sockptr->Callsign, "SYNC");
+		// Extract the callsign
+
+		char * call = strlop(MsgPtr, ' ');
+
+		if (call == NULL || strcmp(MsgPtr, "POSYNCLOGON") !=0)
+		{
+			DataSocket_Disconnect(TNC, sockptr);       //' Tidy up
+			return 0;
+		}
+
+		strcpy(sockptr->Callsign, call);
 
 		sockptr->UserPointer  = &SyncUser;
 
 		SendtoNode(TNC, sockptr->Number, TCP->SyncAPPL, (int)strlen(TCP->SyncAPPL));
 		BuffertoNode(sockptr, MsgPtr, InputLen);
 		STREAM->RelaySyncStream = 1;
-		sockptr->LoginState = 1;
+		sockptr->LoginState = 2;
 
 		ShowConnections(TNC);
 		return 0;

@@ -3325,6 +3325,10 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 				STREAM->BytesRXed, (int)(STREAM->BytesRXed/Duration), (int)Duration);
 
 			Debugprintf(logmsg);
+
+			STREAM->ConnectTime = 0;		// Prevent retrigger
+
+
 		}
 
 

@@ -179,7 +179,7 @@ char LON[] = "00000.00W";	//in standard APRS Format
 char HostName[80];			// for BlueNMEA
 int HostPort = 4352;
 
-char GPSDHost[80];			// for BlueNMEA
+char GPSDHost[80];
 int GPSDPort = 2947;
 
 
@@ -247,6 +247,8 @@ char CFGSYMSET = 'B';
 
 char SYMBOL = '=';						// Unknown Locaton
 char SYMSET = '/';
+
+char * PHG = 0;							// Optional PHG (Power-Height-Gain) string for beacon
 
 BOOL TraceDigi = FALSE;					// Add Trace to packets relayed on Digi Calls
 BOOL SATGate = FALSE;					// Delay Gating to IS directly heard packets
@@ -2413,6 +2415,12 @@ static int APRSProcessLine(char * buf)
 		return TRUE;
 	}
 
+	if (_stricmp(ptr, "PHG") == 0)
+	{
+		PHG = _strdup(p_value);
+		return TRUE;
+	}
+
 	if (_stricmp(ptr, "MaxTraceHops") == 0)
 	{
 		MaxTraceHops = atoi(p_value);
@@ -2652,8 +2660,12 @@ VOID SendBeacon(int toPort, char * BeaconText, BOOL SendStatus, BOOL SendSOGCOG)
 		if (SendSOGCOG | (COG != 0.0))
 			sprintf(SOGCOG, "%03.0f/%03.0f", COG, SOG);
 	
-		Len = sprintf(ISMsg, "%s>%s,TCPIP*:%c%s%c%s%c%s%s\r\n", APRSCall, APRSDest,
-			(APRSApplConnected) ? '=' : '!', LAT, SYMSET, LON, SYMBOL, SOGCOG, BeaconText);
+		if (PHG)			// Send PHG instead of SOG COG	
+			Len = sprintf(ISMsg, "%s>%s,TCPIP*:%c%s%c%s%c%s%s\r\n", APRSCall, APRSDest,
+				(APRSApplConnected) ? '=' : '!', LAT, SYMSET, LON, SYMBOL, PHG, BeaconText);
+		else
+			Len = sprintf(ISMsg, "%s>%s,TCPIP*:%c%s%c%s%c%s%s\r\n", APRSCall, APRSDest,
+				(APRSApplConnected) ? '=' : '!', LAT, SYMSET, LON, SYMBOL, SOGCOG, BeaconText);
 
 		ISSend(sock, ISMsg, Len, 0);
 		Debugprintf(">%s", ISMsg);
@@ -2683,15 +2695,18 @@ void SendBeaconThread(void * Param)
 	int Port;
 	DIGIMESSAGE Msg;
 	int Len;
-	char SOGCOG[10] = "";
+	char SOGCOG[256] = "";
 	struct STATIONRECORD * Station;
 	struct PORTCONTROL * PORT;
 	
 	if (PosnSet == FALSE)
 		return;
 
-	if (SendSOGCOG | (COG != 0.0))
-		sprintf(SOGCOG, "%03.0f/%03.0f", COG, SOG);
+	if (PHG)			// Send PHG instead of SOG COG	
+		strcpy(SOGCOG, PHG);
+	else
+		if (SendSOGCOG | (COG != 0.0))
+			sprintf(SOGCOG, "%03.0f/%03.0f", COG, SOG);
 
 	BeaconCounter = BeaconInterval * 60;
 	

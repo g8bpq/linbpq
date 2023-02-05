@@ -2768,7 +2768,7 @@ void encodeblock( unsigned char in[3], unsigned char out[4], int len )
     out[3] = (unsigned char) (len > 2 ? cb64[ in[2] & 0x3f ] : '=');
 }
 
-void decodeblock( unsigned char in[4], unsigned char out[3] )
+void decodeblock( unsigned char in[4], unsigned char out[3])
 {   
     char Block[5];
 	

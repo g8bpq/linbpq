@@ -1108,7 +1108,7 @@ BOOL Start()
 			ptr3 = (char *)PORT->PORTPOINTER;				// Permitted Calls follows Port Info 
 			PORT->PORTMHEARD = (PMHSTRUC)ptr3;
 
-			ptr3 += MHENTRIES * sizeof(MHSTRUC);
+			ptr3 += (MHENTRIES + 1)* sizeof(MHSTRUC);
 	
 			//	Round to word boundsaty (for ARM5 etc)
 

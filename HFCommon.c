@@ -1358,7 +1358,6 @@ VOID UpdateMHSupport(struct TNCINFO * TNC, UCHAR * Call, char Mode, char Directi
 	int OldCount = 0;
 	char ReportCall[16];
 
-
 	if (MH == 0) return;
 
 	if (Digis)
@@ -1445,7 +1444,6 @@ VOID UpdateMHSupport(struct TNCINFO * TNC, UCHAR * Call, char Mode, char Directi
 		goto NOLOC;
 	}
 
-
  	LOC = memchr(Call, '(', 20);
 
 	if (LOC)
@@ -1500,6 +1498,7 @@ NOLOC:
 		
 	// Move others down and add at front
 DoMove:
+
 	if (i != 0)				// First
 		memmove(MHBASE + 1, MHBASE, i * sizeof(MHSTRUC));
 
