@@ -955,7 +955,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			Buffer = &buffptr->DEST[0];		// Raw Frame
 			Buffer[datalen] = 0;
 
-			*ptr++ = '^';		// delimit fram ewith ^
+			*ptr++ = '^';		// delimit frame with ^
 
 			// Frame has ax.25 format header. Convert to Text
 
@@ -992,7 +992,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 			memcpy(ptr, Buffer, datalen);
 			ptr += datalen;
-			*ptr++ = '^';		// delimit fram ewith ^
+			*ptr++ = '^';		// delimit frame with ^
 
 			ARDOPSendData(TNC, FECMsg, (int)(ptr - FECMsg));
 			TNC->FECPending = 1;

@@ -1144,6 +1144,10 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add PHG to APRS beacons (45)
 //	Dont send DM to stations in exclude list(45)
 //	Improvements to RMS Relay SYNC Mode (46)
+//	Check L4 connects against EXCLUDE list (47)
+//	Add vaidation of LOC in WL2K Session Reports (49)
+//	Change gpsd support for compatibility with Share Gps (50)
+
 
 #define CKernel
 

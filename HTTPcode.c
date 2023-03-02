@@ -2623,7 +2623,7 @@ doHeader:
 			else
 				Compressed = _REPLYBUFFER;
 
-			HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: Text\r\n%s\r\n", ReplyLen, Encoding);
+			HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: %d\r\nContent-Type: Text\r\n%s\r\n", ReplyLen, Encoding);
 			sendandcheck(sock, Header, HeaderLen);
 			sendandcheck(sock, Compressed, ReplyLen);
 
@@ -4359,7 +4359,7 @@ void ProcessWebmailWebSockThread(void * conn)
 	{	
 		if (Sent > 0)					// something sent
 		{
-			InputLen -= Sent;
+			ReplyLen -= Sent;
 			memmove(_REPLYBUFFER, &_REPLYBUFFER[Sent], ReplyLen);
 		}	
 

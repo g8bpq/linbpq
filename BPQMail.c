@@ -1105,7 +1105,9 @@
 //	Fix displaying help and info files with crlf line endings on Linux (28)
 //	Improve validation of extended FC message (32)
 //	Improve WP check for SYSTEM as a callsihn (33)
-//	Improvements to RMS Relay SYNC mode (
+//	Improvements to RMS Relay SYNC mode (47)
+//	Fix BID Hold and Reject filters
+
 
 
 #include "bpqmail.h"

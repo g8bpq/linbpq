@@ -274,6 +274,8 @@ typedef struct ConnectionInfo_S
 	int SyncCompressedLen;
 	int SyncXMLLen;
 	int SyncMsgLen;
+	char * SyncHost;					// Saved so can send "request sync"
+	int SyncPort;
 	UCHAR * SyncMessage;				// Compressed SYNC message to send
 
 	// These are used to detect CRLF split over a packet boundary
@@ -296,7 +298,9 @@ typedef struct ConnectionInfo_S
 #define SENDBODY 128
 #define WAITPROMPT 256				// Waiting for prompt after message
 #define PROPOSINGSYNCMSG 512		// Sent proposal to SYNC, waiting response
-#define SENDINGSYNCMSG 1024			// Sent messagr to SYNC, waiting response
+#define SENDINGSYNCMSG 1024			// Sent message to SYNC, waiting response
+#define REQUESTINGSYNC 2048
+#define GETTINGSYNCMESSAGE 4096		// Receiving body of a SYNC message
 
 // BBSFlags Equates
 

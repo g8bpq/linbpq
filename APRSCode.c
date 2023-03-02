@@ -4431,7 +4431,7 @@ static VOID GPSDConnect(void * unused)
 
 		// Request data 
 
-		send(TCPSock, "?WATCH={\"enable\":true,\"nmea\":true}", 34, 0);
+		send(TCPSock, "?WATCH={\"enable\":true,\"nmea\":true}\r\n", 36, 0);
 	}
 	else
 	{
@@ -4459,7 +4459,7 @@ static VOID GPSDConnect(void * unused)
 		timeout.tv_usec = 0;				// We should get messages more frequently that this
 
 		ret = select((int)TCPSock + 1, &readfs, NULL, &errorfs, &timeout);
-		
+
 		if (ret == SOCKET_ERROR)
 		{
 			goto Lost;
@@ -4472,7 +4472,11 @@ static VOID GPSDConnect(void * unused)
 			{
 				char Buffer[65536];
 				int len = recv(TCPSock, Buffer, 65500, 0);
-			
+				char TCPMsg[8192];
+
+				char * ptr;
+				char * Lastptr;
+
 				if (len == 0)
 				{
 					closesocket(TCPSock);
@@ -4484,15 +4488,45 @@ static VOID GPSDConnect(void * unused)
 				{
 					Buffer[len] = 0;
 
-					if (Buffer[0] == '$' && memcmp(&Buffer[3], "RMC", 3) == 0)
-						if (Check0183CheckSum(Buffer, len))
-							DecodeRMC(Buffer, len);	
+					ptr = Lastptr = Buffer;
+					Buffer[len] = 0;
 
+					while (len > 0)
+					{
+						ptr = strchr(Lastptr, 10);
+
+						if (ptr)
+						{
+							size_t Len = ptr - Lastptr -1;
+
+							if (Len > 8100)
+								return;
+
+							memcpy(TCPMsg, Lastptr, Len);
+							TCPMsg[Len++] = 13;
+							TCPMsg[Len++] = 10;
+							TCPMsg[Len] = 0;
+
+							if (!Check0183CheckSum(TCPMsg, Len))
+							{
+								Debugprintf("Checksum Error %s", TCPMsg);
+							}
+							else
+							{			
+								if (memcmp(&TCPMsg[3], "RMC", 3) == 0)
+									DecodeRMC(TCPMsg, Len);
+							}
+							Lastptr = ptr + 1;
+							len -= (int)Len;
+						}
+						else
+							return;
+					}
+				}
 			}
-		}
 
-		if (FD_ISSET(TCPSock, &errorfs))
-		{
+			if (FD_ISSET(TCPSock, &errorfs))
+			{
 Lost:				
 #ifdef LINBPQ
 				printf("GPSD Connection lost\n");

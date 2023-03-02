@@ -266,6 +266,19 @@ void RegisterAPPLCalls(struct TNCINFO * TNC, BOOL Unregister)
 			memset(AGW->TXHeader.callfrom, 0, 10);
 			strcpy(AGW->TXHeader.callfrom, Appl);
 			send(TNC->TCPSock,(const char FAR *)&AGW->TXHeader,AGWHDDRLEN,0);
+
+			memcpy(Appl, APPL->APPLALIAS_TEXT, 10);
+			ptr=strchr(Appl, ' ');
+
+			if (ptr)
+				*ptr = 0;
+
+			if (Appl[0])
+			{
+				memset(AGW->TXHeader.callfrom, 0, 10);
+				strcpy(AGW->TXHeader.callfrom, Appl);
+				send(TNC->TCPSock,(const char FAR *)&AGW->TXHeader,AGWHDDRLEN,0);
+			}
 		}
 	}
 }

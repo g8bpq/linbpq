@@ -121,6 +121,7 @@ char * FormatSYNCMessage(CIRCUIT * conn, struct MsgInfo * Msg);
 int decode_quoted_printable(char *ptr, int len);
 void decodeblock( unsigned char in[4], unsigned char out[3]);
 int encode_quoted_printable(char *s, char * out, int Len);
+int32_t Encode(char * in, char * out, int32_t inlen, BOOL B1Protocol, int Compress);
 
 
 config_t cfg;
@@ -2108,7 +2109,7 @@ BOOL CheckRejFilters(char * From, char * To, char * ATBBS, char * BID, char Type
 			}
 			else
 			{
-				if (_stricmp(BID, Calls[0]))	
+				if (_stricmp(BID, Calls[0]) == 0)	
 					return TRUE;
 			}
 
@@ -2201,7 +2202,7 @@ BOOL CheckHoldFilters(char * From, char * To, char * ATBBS, char * BID)
 			}
 			else
 			{
-				if (_stricmp(BID, Calls[0]))	
+				if (_stricmp(BID, Calls[0]) == 0)	
 					return TRUE;
 			}
 
@@ -6627,7 +6628,7 @@ BOOL FindMessagestoForwardLoop(CIRCUIT * conn, char Type, int MaxLen)
 
 		Forwardit:
 
-			if (Msg->Defered)			// = response received
+			if (Msg->Defered > 0)			// = response received
 			{
 				Msg->Defered--;
 				Debugprintf("Message %d deferred", Msg->number);
@@ -8129,9 +8130,26 @@ InBand:
 	// an indication of a connect.
 
 	if (strstr(Buffer, " CONNECTED") || strstr(Buffer, "PACLEN") || strstr(Buffer, "IDLETIME") ||
-			strstr(Buffer, "OK") || strstr(Buffer, "###LINK MADE") || strstr(Buffer, "VIRTUAL CIRCUIT ESTABLISHED"))
+		strstr(Buffer, "OK") || strstr(Buffer, "###LINK MADE") || strstr(Buffer, "VIRTUAL CIRCUIT ESTABLISHED"))
 	{
+		// If connected to SYNC, save IP address and port
+
 		char * Cmd;
+
+		if (strcmp(Buffer, "*** CONNECTED TO SYNC ") != 0)
+		{
+			char * IPAddr = &Buffer[22];
+			char * Port = strlop(IPAddr, ':');
+
+			if (Port)
+			{
+				if (conn->SyncHost)
+					free(conn->SyncHost);
+
+				conn->SyncHost = _strdup(IPAddr);
+				conn->SyncPort = atoi(Port);
+			}
+		}
 
 		if (conn->SkipConn)
 		{
@@ -8484,6 +8502,10 @@ CheckForSID:
 	if (strstr(Buffer, "POSYNCHELLO"))			// RMS RELAY Sync process
 	{
 		conn->BBSFlags &= ~RunningConnectScript;	// so it doesn't get reentered
+		conn->NextMessagetoForward = FirstMessageIndextoForward;
+		conn->UserPointer->Total.ConnectsOut++;
+		ForwardingInfo->LastReverseForward = time(NULL);
+
 		ProcessLine(conn, 0, Buffer, len);
 		return FALSE;
 	}
@@ -9091,7 +9113,6 @@ VOID * _zalloc_dbg(size_t len, int type, char * file, int line)
 	return ptr;
 }
 
-
 struct MsgInfo * FindMessageByNumber(int msgno)
  {
 	int m=NumberofMessages;
@@ -9111,6 +9132,25 @@ struct MsgInfo * FindMessageByNumber(int msgno)
 		m--;
 
 	} while (m > 0);
+
+	return NULL;
+}
+
+struct MsgInfo * FindMessageByBID(char * BID)
+{
+	int m = NumberofMessages;
+
+	struct MsgInfo * Msg;
+
+	while (m > 0)
+	{
+		Msg = MsgHddrPtr[m];
+
+		if (strcmp(Msg->bid, BID) == 0)
+			return Msg;
+
+		m--;
+	}
 
 	return NULL;
 }
@@ -10357,7 +10397,7 @@ int Connected(int Stream)
 			else
 				n=sprintf_s(Msg, sizeof(Msg), "Incoming Connect from %s", user->Call);
 			
-			// Send SID and Prompt
+			// Send SID and Prompt (Unless Sync)
 
 			if (user->ForwardingInfo && user->ForwardingInfo->ConTimeout)
 				conn->SIDResponseTimer = user->ForwardingInfo->ConTimeout / 10;			// 10 sec ticks
@@ -10387,12 +10427,12 @@ int Connected(int Stream)
 
 						user->ForwardingInfo = zalloc(sizeof(struct BBSForwardingInfo));
 					}
-				
+
 					if (user->BBSNumber == 0)
 						user->BBSNumber = NBBBS;
 
 					ForwardingInfo = user->ForwardingInfo;
-					
+
 					ForwardingInfo->AllowCompressed = TRUE;
 					B1 = ForwardingInfo->AllowB1 = FALSE;
 					B2 = ForwardingInfo->AllowB2 = TRUE;
@@ -10421,31 +10461,44 @@ int Connected(int Stream)
 
 				if (conn->RadioOnlyMode)
 					nodeprintf(conn,";WL2K-Radio/Internet_Network\r");
-				
-				nodeprintf(conn, BBSSID, "BPQ-",
-					Ver[0], Ver[1], Ver[2], Ver[3],
-					BIN ? "B" : "", B1 ? "1" : "", B2 ? "2" : "",
-					BLOCKED ? "FW": "", WL2KRO ? "" : "J");
 
-//				 if (user->flags & F_Temp_B2_BBS)
-//					 nodeprintf(conn,";PQ: 66427529\r");
+				if (!(conn->BBSFlags & SYNCMODE))
+				{
 
-	//			nodeprintf(conn,"[WL2K-BPQ.1.0.4.39-B2FWIHJM$]\r");
+					nodeprintf(conn, BBSSID, "BPQ-",
+						Ver[0], Ver[1], Ver[2], Ver[3],
+						BIN ? "B" : "", B1 ? "1" : "", B2 ? "2" : "",
+						BLOCKED ? "FW": "", WL2KRO ? "" : "J");
+
+					//				 if (user->flags & F_Temp_B2_BBS)
+					//					 nodeprintf(conn,";PQ: 66427529\r");
+
+					//			nodeprintf(conn,"[WL2K-BPQ.1.0.4.39-B2FWIHJM$]\r");
+				}
 			}
 
 			if ((user->Name[0] == 0) & AllowAnon)
 				strcpy(user->Name, user->Call);
 
-			if (user->Name[0] == 0)
+			if (!(conn->BBSFlags & SYNCMODE))
 			{
-				conn->Flags |= GETTINGUSER;
-				BBSputs(conn, NewUserPrompt);
+				if (user->Name[0] == 0)
+				{
+					conn->Flags |= GETTINGUSER;
+					BBSputs(conn, NewUserPrompt);
+				}
+				else
+					SendWelcomeMsg(Stream, conn, user);
 			}
 			else
-				SendWelcomeMsg(Stream, conn, user);
+			{
+				// Seems to be a timing problem - see if this fixes it
+
+				Sleep(500);
+			}
 
 			RefreshMainWindow();
-			
+
 			return 0;
 		}
 	}
@@ -11379,7 +11432,10 @@ VOID ProcessLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int len)
 		conn->BBSFlags |= SYNCMODE;
 		conn->FBBHeaders = zalloc(5 * sizeof(struct FBBHeaderLine));
 
+		Sleep(500);
+
 		BBSputs(conn, "OK\r");
+		Flush(conn);
 		return;
 	}
 
@@ -13556,10 +13612,71 @@ BOOL ProcessReqDir(struct MsgInfo * Msg)
 	return TRUE;
 }
 
+/*
+      '  Augment Message ID with the Message Pickup Station we're directing this message to.
+        '
+        Dim strAugmentedMessageID As String
+        If GetMidRMS(MessageId) <> "" Then
+            ' The MPS RMS is already set on the message ID
+            strAugmentedMessageID = MessageId
+            strMPS = GetMidRMS(MessageId)
+            ' "@R" at the end of the MID means route message only via radio
+            If GetMidForwarding(MessageId) = "" And (blnRadioOnly Or UploadThroughInternet()) Then
+                strAugmentedMessageID &= "@" & strHFOnlyFlag
+            End If
+        ElseIf strMPS <> "" Then
+            ' Add MPS to the message ID
+            strAugmentedMessageID = MessageId & "@" & strMPS
+            ' "@R" at the end of the MID means route message only via radio
+            If blnRadioOnly Or UploadThroughInternet() Then
+                strAugmentedMessageID &= "@" & strHFOnlyFlag
+            End If
+        Else
+            strAugmentedMessageID = MessageId
+        End If
+  
+*/
 
 void ProcessSyncModeMessage(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int len)
 {
 	Buffer[len] = 0;
+
+	if (conn->Flags & GETTINGSYNCMESSAGE)
+	{
+		// Data
+
+		if ((conn->TempMsg->length + len) > conn->MailBufferSize)
+		{
+			conn->MailBufferSize += 10000;
+			conn->MailBuffer = realloc(conn->MailBuffer, conn->MailBufferSize);
+
+			if (conn->MailBuffer == NULL)
+			{
+				BBSputs(conn, "*** Failed to extend Message Buffer\r");
+				conn->CloseAfterFlush = 20;			// 2 Secs
+
+				return;
+			}
+		}
+
+		memcpy(&conn->MailBuffer[conn->TempMsg->length], Buffer, len);
+
+		conn->TempMsg->length += len;
+
+		if (conn->TempMsg->length >= conn->SyncCompressedLen)
+		{
+			// Complete - decompress it
+
+			conn->BBSFlags |= FBBCompressed;
+			Decode(conn, 1);
+
+			conn->Flags &= !GETTINGSYNCMESSAGE;
+
+			BBSputs(conn, "OK\r");	
+			return;
+		}
+		return;
+	}
 
 	if (conn->Flags & PROPOSINGSYNCMSG)
 	{
@@ -13695,7 +13812,7 @@ void ProcessSyncModeMessage(CIRCUIT * conn, struct UserInfo * user, char* Buffer
 
 			conn->SyncCompressedLen = Encode(Message, conn->SyncMessage, conn->SyncXMLLen + conn->SyncMsgLen, 0, 1);
 
-			sprintf(Buffer, "TR AddMessage_%s %d %d %d True\r",
+			sprintf(Buffer, "TR AddMessage_%s %d %d %d True\r",		// The True on end indicates compressed
 				Msg->bid, conn->SyncCompressedLen, conn->SyncXMLLen, conn->SyncMsgLen);
 
 			free(Message);
@@ -13713,55 +13830,22 @@ void ProcessSyncModeMessage(CIRCUIT * conn, struct UserInfo * user, char* Buffer
 		return;
 	}
 
-	if (memcmp(Buffer, "TR RMS_Location_", 16) == 0)
+	if (memcmp(Buffer, "TR ", 2) == 0) 
 	{
-		// I think this is an xml message giving location of station
+		// Messages have TR_COMMAND_BID Compressed Len XML Len Bosy Len
 
-		BIDRec * BID;
-		char *ptr1, *ptr2, *context;
+		char * Command;
+		char * BIDptr;
 
-		//		TR RMS_Location_OH6IJ3_YIBB50HCCQUS 200 367 0 True
-
-		WriteLogLine(conn, '<', Buffer, len-1, LOG_BBS);
-		
-		ptr1 =  strtok_s(&Buffer[16], " ", &context);	// MID
-
-		// What to do with call bit??
-
-		ptr1 = strlop(ptr1, '_');
-
-		ptr2 =  strtok_s(NULL, " ", &context);
-		conn->SyncCompressedLen = atoi(ptr2);
-		ptr2 =  strtok_s(NULL, " ", &context);
-		conn->SyncXMLLen = atoi(ptr2);
-		ptr2 =  strtok_s(NULL, " ", &context);
-		conn->SyncMsgLen = atoi(ptr2);
-		ptr2 =  strtok_s(NULL, " ", &context);
-
-		BID = LookupBID(ptr1);
-
-		if (BID)
-		{
-			BBSputs(conn, "Rejected - Duplicate BID\r");
-			return;
-		}
-		conn->TempMsg = zalloc(sizeof(struct MsgInfo));
-
-		BBSputs(conn, "OK\r");
-		return;
-
-	}
-
-
-	if (memcmp(Buffer, "TR AddMessage_", 14) == 0) 
-	{
 		BIDRec * BID;
 		char *ptr1, *ptr2, *context;
 
 		//		TR AddMessage_1145_G8BPQ 727 1202 440 True
 
 		WriteLogLine(conn, '<', Buffer, len-1, LOG_BBS);
-		ptr1 =  strtok_s(&Buffer[14], " ", &context);	// MID
+		
+		Command = strtok_s(&Buffer[3], "_", &context);
+		BIDptr = strtok_s(NULL, " ", &context);
 		ptr2 =  strtok_s(NULL, " ", &context);
 		conn->SyncCompressedLen = atoi(ptr2);
 		ptr2 =  strtok_s(NULL, " ", &context);
@@ -13770,89 +13854,35 @@ void ProcessSyncModeMessage(CIRCUIT * conn, struct UserInfo * user, char* Buffer
 		conn->SyncMsgLen = atoi(ptr2);
 		ptr2 =  strtok_s(NULL, " ", &context);
 
-		BID = LookupBID(ptr1);
+		// If addmessage need to check bid doesn't exist
 
-		if (BID)
+		if (strcmp(Command, "AddMessage") == 0)
 		{
-			BBSputs(conn, "Rejected - Duplicate BID\r");
-			return;
+			strlop(BIDptr, '@');			// sometimes has @CALL@R
+			if (strlen(BIDptr) > 12)
+				BIDptr[12] = 0;
+
+			BID = LookupBID(BIDptr);
+
+			if (BID)
+			{
+				BBSputs(conn, "Rejected - Duplicate BID\r");
+				return;
+			}
 		}
+
 		conn->TempMsg = zalloc(sizeof(struct MsgInfo));
+
+		conn->Flags |= GETTINGSYNCMESSAGE;
 
 		BBSputs(conn, "OK\r");
 		return;
 	}
 
-	if (memcmp(Buffer, "TR RequestSync_", 15) == 0) 
-	{
-		char *ptr1, *ptr2, *context;
-
-		//	TR RequestSync_G8BPQ_14 224 417 0 True
-
-		WriteLogLine(conn, '<', Buffer, len-1, LOG_BBS);
-
-		ptr1 =  strtok_s(&Buffer[15], " ", &context);	// MID
-		ptr2 =  strtok_s(NULL, " ", &context);
-		conn->SyncCompressedLen = atoi(ptr2);
-		ptr2 =  strtok_s(NULL, " ", &context);
-		conn->SyncXMLLen = atoi(ptr2);
-		ptr2 =  strtok_s(NULL, " ", &context);
-		conn->SyncMsgLen = atoi(ptr2);
-		ptr2 =  strtok_s(NULL, " ", &context);
-
-		conn->TempMsg = zalloc(sizeof(struct MsgInfo));
-
-		BBSputs(conn, "OK\r");
-		return;
-	}
-
-	if (memcmp(Buffer, "TR Delivered_", 13) == 0) 
-	{
-		char *ptr1, *ptr2, *context;
-
-		//			TR RequestSync_G8BPQ_14 224 417 0 True
-
-		WriteLogLine(conn, '<', Buffer, len-1, LOG_BBS);
-		ptr1 =  strtok_s(&Buffer[13], " ", &context);	// MID
-		ptr2 =  strtok_s(NULL, " ", &context);
-		conn->SyncCompressedLen = atoi(ptr2);
-		ptr2 =  strtok_s(NULL, " ", &context);
-		conn->SyncXMLLen = atoi(ptr2);
-		ptr2 =  strtok_s(NULL, " ", &context);
-		conn->SyncMsgLen = atoi(ptr2);
-		ptr2 =  strtok_s(NULL, " ", &context);
-
-		conn->TempMsg = zalloc(sizeof(struct MsgInfo));
-
-		BBSputs(conn, "OK\r");
-		return;
-	}
-
-	if (memcmp(Buffer, "TR Remove_", 10) == 0) 
-	{
-		char *ptr1, *ptr2, *context;
-
-		//			TR RequestSync_G8BPQ_14 224 417 0 True
-
-		WriteLogLine(conn, '<', Buffer, len-1, LOG_BBS);
-		ptr1 =  strtok_s(&Buffer[10], " ", &context);	// MID
-		ptr2 =  strtok_s(NULL, " ", &context);
-		conn->SyncCompressedLen = atoi(ptr2);
-		ptr2 =  strtok_s(NULL, " ", &context);
-		conn->SyncXMLLen = atoi(ptr2);
-		ptr2 =  strtok_s(NULL, " ", &context);
-		conn->SyncMsgLen = atoi(ptr2);
-		ptr2 =  strtok_s(NULL, " ", &context);
-
-		conn->TempMsg = zalloc(sizeof(struct MsgInfo));
-
-		BBSputs(conn, "OK\r");
-		return;
-	}
-
-	if (strcmp(Buffer, "BYE\r") == 0)
+	if (memcmp(Buffer, "BYE\r", 4) == 0)
 	{
 		WriteLogLine(conn, '<', Buffer, len-1, LOG_BBS);
+		conn->CloseAfterFlush = 20;			// 2 Secs
 		conn->BBSFlags &= ~SYNCMODE;
 		return;
 	}
@@ -13866,41 +13896,14 @@ void ProcessSyncModeMessage(CIRCUIT * conn, struct UserInfo * user, char* Buffer
 		return;
 	}
 
-	// Data
+	WriteLogLine(conn, '<', Buffer, len-1, LOG_BBS);
+	WriteLogLine(conn, '<', "Unexpected SYNC Message", 23, LOG_BBS);
 
-	if ((conn->TempMsg->length + len) > conn->MailBufferSize)
-	{
-		conn->MailBufferSize += 10000;
-		conn->MailBuffer = realloc(conn->MailBuffer, conn->MailBufferSize);
-
-		if (conn->MailBuffer == NULL)
-		{
-			BBSputs(conn, "*** Failed to extend Message Buffer\r");
-			conn->CloseAfterFlush = 20;			// 2 Secs
-
-			return;
-		}
-	}
-
-	memcpy(&conn->MailBuffer[conn->TempMsg->length], Buffer, len);
-
-	conn->TempMsg->length += len;
-
-	if (conn->TempMsg->length >= conn->SyncCompressedLen)
-	{
-		// Complete - decompress it
-
-		conn->BBSFlags |= FBBCompressed;
-		Decode(conn, 1);
-
-		BBSputs(conn, "OK\r");	
-		return;
-	}
-	return;
+	BBSputs(conn, "BYE\r");
+	conn->CloseAfterFlush = 20;			// 2 Secs
+	conn->BBSFlags &= ~SYNCMODE;
+	return;	
 }
-
-
-
 BOOL ProcessReqFile(struct MsgInfo * Msg)
 {
 	char FN[128];
@@ -14059,6 +14062,232 @@ VOID SendServerReply(char * Title, char * MailBuffer, int Length, char * To)
 	free(MailBuffer);
 }
 
+void SendRequestSync(CIRCUIT * conn)
+{
+	// Only need XML Header
+
+	char * Buffer = malloc(4096);
+	int Len = 0;
+	
+	struct tm *tm;
+	char Date[32];
+	char MsgTime[32];
+	time_t Time = time(NULL);
+
+	char * Encoded;
+
+	tm = gmtime(&Time);
+
+	sprintf_s(Date, sizeof(Date), "%04d%02d%02d%02d%02d%02d",
+		tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+
+	sprintf_s(MsgTime, sizeof(Date), "%04d/%02d/%02d %02d:%02d",
+		tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min);
+
+	Len += sprintf(&Buffer[Len], "<?xml version=\"1.0\"?>\r\n");
+
+	Len += sprintf(&Buffer[Len], "<sync_record>\r\n");
+	Len += sprintf(&Buffer[Len], "  <po_sync>\r\n");
+    Len += sprintf(&Buffer[Len], "    <transaction_type>request_sync</transaction_type>\r\n");
+    Len += sprintf(&Buffer[Len], "    <timestamp>%s</timestamp>\r\n", Date);
+    Len += sprintf(&Buffer[Len], "    <originating_station>%s</originating_station>\r\n", BBSName);
+	Len += sprintf(&Buffer[Len], "  </po_sync>\r\n");
+ 	Len += sprintf(&Buffer[Len], "  <request_sync>\r\n");
+ 	Len += sprintf(&Buffer[Len], "    <callsign>BBSName</callsign>\r\n");
+ 	Len += sprintf(&Buffer[Len], "    <password></password>\r\n");
+	Len += sprintf(&Buffer[Len], "    <ip_address>%s</ip_address>\r\n", conn->SyncHost);
+	Len += sprintf(&Buffer[Len], "    <ip_port>%d</ip_port>\r\n", conn->SyncPort);
+ 	Len += sprintf(&Buffer[Len], "    <note></note>\r\n");
+ 	Len += sprintf(&Buffer[Len], "  </request_sync>\r\n");
+ 	Len += sprintf(&Buffer[Len], "</sync_record>\r\n");
+ 
+/*
+<?xml version="1.0"?>
+<sync_record>
+  <po_sync>
+    <transaction_type>request_sync</transaction_type>
+    <timestamp>20230205100652</timestamp>
+    <originating_station>GI8BPQ</originating_station>
+  </po_sync>
+  <request_sync>
+    <callsign>GI8BPQ</callsign>
+    <password></password>
+    <ip_address>127.0.0.1</ip_address>
+    <ip_port>8780</ip_port>
+    <note></note>
+  </request_sync>
+</sync_record>
+*/
+
+	// Need to compress it
+
+	conn->SyncXMLLen = Len;
+	conn->SyncMsgLen = 0;
+
+	conn->SyncMessage = malloc(conn->SyncXMLLen + 4096);
+
+	conn->SyncCompressedLen = Encode(Buffer, conn->SyncMessage, conn->SyncXMLLen, 0, 1);
+
+	sprintf(Buffer, "TR RequestSync_%s_%d %d %d 0 True\r",		// The True on end indicates compressed
+				50, conn->SyncCompressedLen, conn->SyncXMLLen);
+
+	free(Buffer);
+
+	conn->Flags |= REQUESTINGSYNC;
+
+	BBSputs(conn, Buffer);
+	return;
+}
+
+
+void ProcessSyncXML(CIRCUIT * conn, char * XML)
+{
+	// Process XML from RMS Relay Sync
+
+	// All seem to start 
+
+	//<?xml version="1.0"?>
+	//<sync_record>
+	// <po_sync>
+	//  <transaction_type>
+
+	char * Type = strstr(XML, "<transaction_type>");
+
+	if (Type == NULL)
+		return;
+
+	Type += strlen("<transaction_type>");
+
+	if (memcmp(Type, "rms_location", 12) == 0)
+	{
+		return;
+	}
+
+
+	if (memcmp(Type, "request_sync", 12) == 0)
+	{
+		char * Call;
+		struct UserInfo * BBSREC;
+
+		// This isn't requesting a poll, it is asking to be added as a sync partner
+
+		Call = strstr(Type, "<callsign>");
+
+		if (Call == NULL)
+			return;
+	
+		Call += 10;
+		strlop(Call, '<');
+		BBSREC = FindBBS(Call);
+
+		if (BBSREC == NULL)
+			return;
+
+		if (BBSREC->ForwardingInfo->Forwarding == 0)
+			StartForwarding(BBSREC->BBSNumber, NULL);
+
+		return;
+	}
+
+	if (memcmp(Type, "remove_message", 14) == 0)
+	{
+		char * MID = strstr(Type, "<MessageId>");
+		struct MsgInfo * Msg;
+
+		if (MID == NULL)
+			return;
+	
+		MID += 11;
+		strlop(MID, '<');
+
+		strlop(MID, '@');			// sometimes has @CALL@R
+		if (strlen(MID) > 12)
+			MID[12] = 0;
+
+		Msg = FindMessageByBID(MID);
+
+		if (Msg == NULL)
+			return;
+
+		Logprintf(LOG_BBS, conn, '|', "Killing Msg %d %s", Msg->number, Msg->bid);
+
+		FlagAsKilled(Msg, TRUE);
+		return;
+	}
+
+	if (memcmp(Type, "delivered", 9) == 0)
+	{
+		char * MID = strstr(Type, "<MessageId>");
+		struct MsgInfo * Msg;
+
+		if (MID == NULL)
+			return;
+	
+		MID += 11;
+		strlop(MID, '<');
+
+		strlop(MID, '@');			// sometimes has @CALL@R
+		if (strlen(MID) > 12)
+			MID[12] = 0;
+
+		Msg = FindMessageByBID(MID);
+
+		if (Msg == NULL)
+			return;
+
+		Logprintf(LOG_BBS, conn, '|', "Message Msg %d %s Delivered", Msg->number, Msg->bid);
+		return;
+	}
+
+	Debugprintf(Type);
+	return;
+
+/*
+<?xml version="1.0"?>
+<sync_record>
+  <po_sync>
+    <transaction_type>request_sync</transaction_type>
+    <timestamp>20230205100652</timestamp>
+    <originating_station>GI8BPQ</originating_station>
+  </po_sync>
+  <request_sync>
+    <callsign>GI8BPQ</callsign>
+    <password></password>
+    <ip_address>127.0.0.1</ip_address>
+    <ip_port>8780</ip_port>
+    <note></note>
+  </request_sync>
+</sync_record>
+}
+
+<sync_record>
+  <po_sync>
+    <transaction_type>delivered</transaction_type>
+    <timestamp>20230205093113</timestamp>
+    <originating_station>G8BPQ</originating_station>
+  </po_sync>
+  <delivered>
+    <MessageId>10845_GM8BPB</MessageId>
+    <Destination>G8BPQ</Destination>
+    <ForwardedTo>G8BPQ</ForwardedTo>
+    <DeliveredVia>3</DeliveredVia>
+  </delivered>
+</sync_record>
+
+	Public Enum MessageDeliveryMethod
+    '
+    ' Method used to deliver a message.  None if the message hasn't been delivered.
+    '
+    Unspecified = -1
+    None = 0
+    Telnet = 1
+    CMS = 2
+    Radio = 3
+    Email = 4
+End Enum
+*/
+}
+
 int ReformatSyncMessage(CIRCUIT * conn)
 {
 	// Message has been decompressed - reformat to look like a WLE message
@@ -14089,8 +14318,7 @@ int ReformatSyncMessage(CIRCUIT * conn)
 	// Message has an XML header then the message
 
 	// The XML may have control info, so examine it.
-
-
+ 
 	/*
 	Date: Mon, 25 Oct 2021 10:22:00 -0000
 	From: GM8BPQ
@@ -14117,17 +14345,19 @@ int ReformatSyncMessage(CIRCUIT * conn)
 
 //	WriteLogLine(conn, '<', conn->MailBuffer, conn->TempMsg->length, LOG_BBS);
 
-	// display the xml for testing
+	// display the message  for testing
 
+	conn->MailBuffer[conn->TempMsg->length] = 0;
+
+//	OutputDebugString(conn->MailBuffer);
 	memcpy(xml, conn->MailBuffer, conn->SyncXMLLen);
 	xml[conn->SyncXMLLen] = 0;
-
-	Debugprintf(xml);
 
 	if (conn->SyncMsgLen == 0)
 	{
 		// No message, Just xml. Looks like a status report
 
+		ProcessSyncXML(conn, xml);
 		return 0;
 	}
 	
@@ -14251,8 +14481,6 @@ Loop:
 					else
 						Input = ptr + 2;
 
-					// Part Starts with header (content-type, etc), but skip for now
-
 					// Will check for quoted printable
 
 					p1 = Msgptr;
@@ -14341,15 +14569,13 @@ Loop2:
 					}
 					Msgptr = ptr = Input;
 					i++;
-				}
+					continue;				}
 
 				// See if more parts
-
-
 			}
-			else
-				ptr++;
+			ptr++;
 		}
+		ptr++;
 	}
 
 
@@ -14549,7 +14775,6 @@ char * FormatSYNCMessage(CIRCUIT * conn, struct MsgInfo * Msg)
 //	Len += sprintf(&Buffer[Len], "X-RMS-Path: G8BPQ@2023-02-04-11:19:29\r\n");
 	Len += sprintf(&Buffer[Len], "X-Relay: %s\r\n", BBSName);
 
-
 	Len += sprintf(&Buffer[Len], "MIME-Version: 1.0\r\n");
 	Len += sprintf(&Buffer[Len], "Content-Type: multipart/mixed; boundary=\"%s\"\r\n", Separator);
 
@@ -14566,52 +14791,6 @@ char * FormatSYNCMessage(CIRCUIT * conn, struct MsgInfo * Msg)
 
 	free(Encoded);
 	free(MailBuffer);
-
-
-
-
-/*
-Date: Sat, 04 Feb 2023 11:19:00 +0000
-From: G8BPQ
-Subject: Sync Test 5
-To: GM8BPQ
-Message-ID: E4P6YIYGQ347
-X-Source: G8BPQ
-X-Location: 52.979167N, 1.125000W (GRID SQUARE)
-X-RMS-Originator: G8BPQ
-X-RMS-Path: G8BPQ@2023-02-04-11:19:29
-X-Relay: G8BPQ
-MIME-Version: 1.0
-MIME-Version: 1.0
-Content-Type: multipart/mixed; boundary="boundaryHjgswg=="
-
---boundaryHjgswg==
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
-
-Message 5 with attachments
-
---boundaryHjgswg==
-Content-Disposition: attachment; name="new1.html";
- filename="new1.html"
-Content-Type: attachment; name="new1.html"
-Content-Transfer-Encoding: base64
-
-PCFET0NUWVBFIGh0bWw+DQo8aHRtbD4NCg0KDQogIDxoZWFkPg0KICAgIDx0aXRsZT4NCiAgICAg
-IENvbnNwaXJhY3kgVGhlb3JpZXMNCiAgICA8L3RpdGxlPg0KICA8L2hlYWQ+DQogIDxib2R5Pg0K
-ICAgIDxkaXYgc3R5bGU9J3RleHQtYWxpZ246IGNlbnRlcjsnPjxkaXYgc3R5bGU9J2Rpc3BsYXk6
-IGlubGluZS1ibG9jazsnPjxzcGFuIHN0eWxlPSdkaXNwbGF5OmJsb2NrOyB0ZXh0LWFsaWduOiBs
-ZWZ0Oyc+DQoJICBhYWFhYWE8YnI+DQogICAgICBiYjxicj4NCiAgICAgIGNjY2NjY2NjYyBjY2Nj
-Y2NjY2NjY2NjPGJyPg0KCSAgPC9zcGFuPg0KICAgICAgPC9kaXY+DQogICAgPC9kaXY+DQogIDwv
-Ym9keT4NCjwvaHRtbD4=
---boundaryHjgswg==--
-
-
-*/
-
-
-
-
 
 	return Buffer;
 }

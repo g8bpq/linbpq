@@ -2577,6 +2577,7 @@ nosocks:
 
 						if (P2[0])
 						{
+							sockptr->CMSSession = FALSE;
 							STREAM->Connecting = TRUE;
 							STREAM->ConnectionInfo->SyncMode = TRUE;
 							TCPConnect(TNC, TCP, STREAM, P2, atoi(P3), TRUE);
@@ -3205,6 +3206,7 @@ int Socket_Accept(struct TNCINFO * TNC, SOCKET SocketId, int Port)
 			TNC->Streams[n].FramesQueued = 0;
 
 			sockptr->HTTPMode = FALSE;	
+			sockptr->SyncMode = FALSE;	
 			sockptr->DRATSMode = FALSE;	
 			sockptr->FBBMode = FALSE;	
 			sockptr->RelayMode = FALSE;
@@ -4272,6 +4274,9 @@ int DataSocket_ReadSync(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, S
 		}
 
 		strcpy(sockptr->Callsign, call);
+
+		call --;
+		*(call) = ' ';
 
 		sockptr->UserPointer  = &SyncUser;
 
@@ -5469,7 +5474,8 @@ int Telnet_Connected(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, SOCK
 		sockptr->FBBMode = TRUE;
 		sockptr->RelayMode = FALSE;
 		sockptr->ClientSession = FALSE;
-	
+		sockptr->SyncMode = FALSE;	
+
 		if (TCP->CMS)
 			SaveCMSHostInfo(TNC->Port, TNC->TCPInfo, sockptr->CMSIndex);
 
@@ -5500,7 +5506,10 @@ int Telnet_Connected(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, SOCK
 
 		if (sockptr->SyncMode)
 		{
-			buffptr->Len  = sprintf(&buffptr->Data[0], "*** Connected to SYNC\r");
+			char Addr[256];
+			Tel_Format_Addr(sockptr, Addr);
+
+			buffptr->Len  = sprintf(&buffptr->Data[0], "*** Connected to SYNC %s:%d\r", Addr, htons(sockptr->sin.sin_port));
 			send(sockptr->socket, sockptr->Signon, (int)strlen(sockptr->Signon), 0);
 		}
 		else
@@ -6195,12 +6204,12 @@ int TCPConnect(struct TNCINFO * TNC, struct TCPINFO * TCP, struct STREAMINFO * S
 	
 	// Resolve Name if needed
 
-	destaddr.sin_family = AF_INET; 
-	destaddr.sin_port = htons(Port);
+	sockptr->sin.sin_family = AF_INET; 
+	sockptr->sin.sin_port = htons(Port);
 
-	destaddr.sin_addr.s_addr = inet_addr(Host);
+	sockptr->sin.sin_addr.s_addr = inet_addr(Host);
 
-	if (destaddr.sin_addr.s_addr == INADDR_NONE)
+	if (sockptr->sin.sin_addr.s_addr == INADDR_NONE)
 	{
 		struct hostent * HostEnt;
 
@@ -6219,7 +6228,7 @@ int TCPConnect(struct TNCINFO * TNC, struct TCPINFO * TCP, struct STREAMINFO * S
 			    struct in_addr addr;
 				addr.s_addr = *(u_long *) HostEnt->h_addr_list[i++];
 		}
-		memcpy(&destaddr.sin_addr.s_addr, HostEnt->h_addr, 4);
+		memcpy(&sockptr->sin.sin_addr.s_addr, HostEnt->h_addr, 4);
 	}
 
 	ioctl (sockptr->socket, FIONBIO, &param);
@@ -6245,7 +6254,7 @@ int TCPConnect(struct TNCINFO * TNC, struct TCPINFO * TCP, struct STREAMINFO * S
 	}
 
 
-	if (connect(sockptr->socket,(struct sockaddr *) &destaddr, sizeof(destaddr)) == 0)
+	if (connect(sockptr->socket,(struct sockaddr *) &sockptr->sin, sizeof(destaddr)) == 0)
 	{
 		//
 		//	Connected successful
@@ -6941,6 +6950,7 @@ int DoRefreshWebMailIndex();
 int RefreshWebMailIndex()
 {
 	DoRefreshWebMailIndex();
+	return 0;
 }
 
 #else

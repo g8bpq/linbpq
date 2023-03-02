@@ -61,7 +61,7 @@ int RestartTNC(struct TNCINFO * TNC);
 char * GetChallengeResponse(char * Call, char *  ChallengeString);
 
 VOID __cdecl Debugprintf(const char * format, ...);
-VOID FromLOC(char * Locator, double * pLat, double * pLon);
+int FromLOC(char * Locator, double * pLat, double * pLon);
 BOOL ToLOC(double Lat, double Lon , char * Locator);
 
 int GetPosnFromAPRS(char * Call, double * Lat, double * Lon);
@@ -780,8 +780,10 @@ IdTag (random alphanumeric, 12 chars)
 
 	if (LOC[0] && ADIF->LOC[0])
 	{
-		FromLOC(LOC, &myLat, &myLon);
-		FromLOC(ADIF->LOC, &Lat, &Lon);
+		if (FromLOC(LOC, &myLat, &myLon) == 0)  	// Basic checks on LOCs
+			return TRUE;
+		if (FromLOC(ADIF->LOC, &Lat, &Lon) == 0)
+			return TRUE;
 
 		Dist = (int)Distance(myLat, myLon, Lat, Lon, TRUE);
 		intBearing = (int)Bearing(Lat, Lon, myLat, myLon);
