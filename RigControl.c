@@ -303,6 +303,8 @@ VOID Rig_PTTEx(struct RIGINFO * RIG, BOOL PTTState, struct TNCINFO * TNC)
 					{
 						char FreqString[80];
 						char * CmdPtr = onString;
+						UCHAR * Poll = PORT->TXBuffer;
+
 
 						RIG->lastSetFreq = txfreq;
 
@@ -330,6 +332,7 @@ VOID Rig_PTTEx(struct RIGINFO * RIG, BOOL PTTState, struct TNCINFO * TNC)
 							*(CmdPtr++) = (FreqString[9] - 48) | ((FreqString[8] - 48) << 4);
 							*(CmdPtr++) = (FreqString[7] - 48) | ((FreqString[6] - 48) << 4);
 							*(CmdPtr++) = (FreqString[5] - 48) | ((FreqString[4] - 48) << 4);
+		
 							if (RIG->IC735)
 							{
 								*(CmdPtr++) = 0xFD;
@@ -349,6 +352,40 @@ VOID Rig_PTTEx(struct RIGINFO * RIG, BOOL PTTState, struct TNCINFO * TNC)
 
 							break;
 
+						case YAESU:
+
+							*(Poll++) = (FreqString[4] - 48) | ((FreqString[3] - 48) << 4);
+							*(Poll++) = (FreqString[6] - 48) | ((FreqString[5] - 48) << 4);
+							*(Poll++) = (FreqString[8] - 48) | ((FreqString[7] - 48) << 4);
+							*(Poll++) = (FreqString[10] - 48) | ((FreqString[9] - 48) << 4);
+							*(Poll++) = 1;		// Set Freq
+
+							PORT->TXLen = 5;
+							RigWriteCommBlock(PORT);
+
+
+							if (RIG->PTTMode & PTTCI_V)
+							{
+								Sleep(150);
+								Poll = PORT->TXBuffer;
+								*(Poll++) = 0;
+								*(Poll++) = 0;
+								*(Poll++) = 0;
+
+								*(Poll++) = 0;
+								*(Poll++) = PTTState ? 0x08 : 0x88;		// CMD = 08 : PTT ON CMD = 88 : PTT OFF
+
+								PORT->TXLen = 5;
+								RigWriteCommBlock(PORT);
+							}
+
+							PORT->Retries = 1;
+							PORT->Timeout = 0;
+
+							return;
+
+
+
 						case HAMLIB:
 
 							// Dont need to save, as we can send strings separately
@@ -356,6 +393,9 @@ VOID Rig_PTTEx(struct RIGINFO * RIG, BOOL PTTState, struct TNCINFO * TNC)
 							Len = sprintf(cmd, "F %lld\n", txfreq);
 							i = send(PORT->remoteSock, cmd, Len, 0);
 							RIG->PollCounter = 100;		// Don't read for 10 secs to avoid clash with PTT OFF
+
+							break;
+
 						}
 					}
 				}
@@ -395,7 +435,8 @@ VOID Rig_PTTEx(struct RIGINFO * RIG, BOOL PTTState, struct TNCINFO * TNC)
 				{
 					char FreqString[80];
 					char * CmdPtr = offString;
-	
+					UCHAR * Poll = PORT->TXBuffer;
+
 					RIG->lastSetFreq = txfreq;
 
 					// Convert to CAT string
@@ -443,7 +484,41 @@ VOID Rig_PTTEx(struct RIGINFO * RIG, BOOL PTTState, struct TNCINFO * TNC)
 						sprintf(cmd, "<double>%lld</double>", txfreq);
 						FLRIGSendCommand(PORT, "rig.set_vfo", cmd);
 						RIG->PollCounter = 100;		// Don't read for 10 secs to avoid clash with PTT OFF
-	
+
+					case YAESU:
+
+						// Easier to add PTT string, send and return;
+
+						Len = 0;
+
+						if (RIG->PTTMode & PTTCI_V)
+						{
+							*(Poll++) = 0;
+							*(Poll++) = 0;
+							*(Poll++) = 0;
+							*(Poll++) = 0;
+							*(Poll++) = PTTState ? 0x08 : 0x88;		// CMD = 08 : PTT ON CMD = 88 : PTT OFF
+
+							PORT->TXLen = 5;
+							RigWriteCommBlock(PORT);
+							Poll = PORT->TXBuffer;
+							Sleep(100);
+						}
+
+						*(Poll++) = (FreqString[4] - 48) | ((FreqString[3] - 48) << 4);
+						*(Poll++) = (FreqString[6] - 48) | ((FreqString[5] - 48) << 4);
+						*(Poll++) = (FreqString[8] - 48) | ((FreqString[7] - 48) << 4);
+						*(Poll++) = (FreqString[10] - 48) | ((FreqString[9] - 48) << 4);
+						*(Poll++) = 1;		// Set Freq
+
+						PORT->TXLen = 5;
+						RigWriteCommBlock(PORT);
+
+						PORT->Retries = 1;
+						PORT->Timeout = 0;
+
+						return;
+
 					case HAMLIB:
 
 						// Dont need to save, as we can send strings separately
@@ -1632,6 +1707,8 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, int Session, 
 		}
 		
 		C_Q_ADD(&RIG->BPQtoRADIO_Q, buffptr);
+
+		saveNewFreq(RIG, Freq, Mode);
 
 		return TRUE;
 

@@ -2224,16 +2224,27 @@ VOID DOMONITORING(int NeedTrace)
 	BOOL SaveMTX = MTX;
 	BOOL SaveMCOM = MCOM;
 	BOOL SaveMUI = MUIONLY;
+	int BPQStream = 0;
 
 	if (NeedTrace)
 		Tracebit = 0x80;
 
-	if (TNC->CONOK)
-		SetAppl(TNC->BPQPort, TNC->APPLFLAGS | Tracebit, TNC->APPLICATION);
-	else
-		SetAppl(TNC->BPQPort, TNC->APPLFLAGS | Tracebit, 0);
+	if (TNC->Channels[0])
+		BPQStream = TNC->Channels[0]->BPQStream;
+	else if (TNC->TNC2Stream[0])
+		BPQStream = TNC->TNC2Stream[0]->BPQPort;
+	else if (TNC->BPQPort)
+		BPQStream = TNC->BPQPort;
 
-	Stamp = GetRaw(TNC->BPQPort, (char *)&MONITORDATA, &len, &count);
+	if (BPQStream)
+	{
+		if (TNC->CONOK)
+			SetAppl(BPQStream, TNC->APPLFLAGS | Tracebit, TNC->APPLICATION);
+		else
+			SetAppl(BPQStream, TNC->APPLFLAGS | Tracebit, 0);
+	}
+
+	Stamp = GetRaw(BPQStream, (char *)&MONITORDATA, &len, &count);
 
 	if (len == 0)
 		return;

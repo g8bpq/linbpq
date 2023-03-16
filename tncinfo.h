@@ -538,7 +538,13 @@ typedef struct TNCINFO
 	int RXRadio;					// Rigcontrol Radio Number for RX
 
 	long long int TXFreq;			// Freq to set on tx before ptt
-	long long int DefaultFreq;		// Freq to set on tx after ptt 
+	double ActiveTXFreq;			// Freq to set on tx after attach
+	double ActiveRXFreq;			// Freq to set on rx after attach
+
+	double DefaultTXFreq;			// Freq to set on tx after close
+	double DefaultRXFreq;			// Freq to set on rx after close 
+
+
 	int TXOffset;					// Correction to TXFreq
 
 	int PID;						// Process ID for Software TNC

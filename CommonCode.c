@@ -772,6 +772,22 @@ NotConnected:
 
 		CloseComplete(TNC, Stream);
 
+		if (TNC->DefaultRXFreq && TNC->RXRadio)
+		{
+			char Msg[128];
+
+			sprintf(Msg, "R%d %f", TNC->RXRadio, TNC->DefaultRXFreq);
+			Rig_Command(-1, Msg);
+		}
+
+		if (TNC->DefaultTXFreq && TNC->TXRadio && TNC->TXRadio != TNC->RXRadio)
+		{
+			char Msg[128];
+
+			sprintf(Msg, "R%d %f", TNC->TXRadio, TNC->DefaultTXFreq);
+			Rig_Command(-1, Msg);
+		}
+
 		while(STREAM->BPQtoPACTOR_Q)
 		{
 			buffptr=Q_REM(&STREAM->BPQtoPACTOR_Q);

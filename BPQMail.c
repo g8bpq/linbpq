@@ -1104,10 +1104,11 @@
 //	Add auto-refresh option to Webmail index page (25)
 //	Fix displaying help and info files with crlf line endings on Linux (28)
 //	Improve validation of extended FC message (32)
-//	Improve WP check for SYSTEM as a callsihn (33)
+//	Improve WP check for SYSTEM as a callsign (33)
 //	Improvements to RMS Relay SYNC mode (47)
 //	Fix BID Hold and Reject filters
-
+//	Fix Webmail auto-refresh when page exceeds 64K bytes (54)
+//	Fix Webmail send when using both headers/footers and attachmonts (55)
 
 
 #include "bpqmail.h"

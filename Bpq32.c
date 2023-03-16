@@ -1147,7 +1147,10 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Check L4 connects against EXCLUDE list (47)
 //	Add vaidation of LOC in WL2K Session Reports (49)
 //	Change gpsd support for compatibility with Share Gps (50)
-
+//	Switch APRS Map to my Tiles (52)
+//	Fix using ; in UNPROTO Mode messages (52)
+//	Use sha1 code from https://www.packetizer.com/security/sha1/ instead of openssl (53)
+//	Fix TNC Emulator Monitoring (53)
 
 #define CKernel
 
@@ -1162,7 +1165,6 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include <fcntl.h>		
 
 #include "compatbits.h"
-
 #include "AsmStrucs.h"
 
 #include "SHELLAPI.H"

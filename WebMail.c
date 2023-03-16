@@ -3589,7 +3589,7 @@ char * BuildB2Header(WebMailInfo * WebMail, struct MsgInfo * Msg, char ** ToCall
 		"Mbo: %s\r\n",
 		Msg->title, BBSName);
 
-	NewMsg += sprintf(NewMsg, "Body: %d\r\n", (int)strlen(WebMail->Body));
+	NewMsg += sprintf(NewMsg, "Body: %d\r\n", (int)strlen(WebMail->Body) + WebMail->HeaderLen + WebMail->FooterLen);
 
 	Msg->B2Flags = B2Msg;
 
@@ -6063,7 +6063,7 @@ int ProcessWebmailWebSock(char * MsgPtr, char * OutBuffer)
 	struct UserInfo * User;
 	int m;
 	struct MsgInfo * Msg;
-	char * ptr = &OutBuffer[4];
+	char * ptr = &OutBuffer[10];			// allow room for full payload length (64 bit)
 
 	int n = NumberofMessages;
 	char Via[64];
@@ -6145,25 +6145,39 @@ int ProcessWebmailWebSock(char * MsgPtr, char * OutBuffer)
 
 	ptr += sprintf(ptr, "%s</pre> \r\n", ptr);
 
-	Len = ptr - &OutBuffer[4];
+	Len = ptr - &OutBuffer[10];
 
 	OutBuffer[0] = 0x81;		// Fin, Data
 
 	if (Len < 126)
 	{
 		OutBuffer[1] = Len;
-		memmove(&OutBuffer[2], &OutBuffer[4], Len);
+		memmove(&OutBuffer[2], &OutBuffer[10], Len);
 		return Len + 2;
+	}
+	else if (Len < 65536)
+	{
+		OutBuffer[1] = 126;			// Unmasked, Extended Len 16
+		OutBuffer[2] = Len >> 8;
+		OutBuffer[3] = Len & 0xff;
+		memmove(&OutBuffer[4], &OutBuffer[10], Len);
+		return Len + 4;
 	}
 	else
 	{
-		OutBuffer[1] = 126;			// Unmasked, Extended Len
-		OutBuffer[2] = Len >> 8;
-		OutBuffer[3] = Len & 0xff;
+		OutBuffer[1] = 127;			// Unmasked, Extended Len 64 bits
+		// Len is 32 bits, so pad with zeros
+		OutBuffer[2] = 0;
+		OutBuffer[3] = 0;
+		OutBuffer[4] = 0;
+		OutBuffer[5] = 0;
+		OutBuffer[6] = (Len >> 24) & 0xff;
+		OutBuffer[7] = (Len >> 16) & 0xff;
+		OutBuffer[8] = (Len >> 8) & 0xff;
+		OutBuffer[9] = Len & 0xff;
 
-		return Len + 4;
+		return Len + 10;
 	}
-
 }
 
 

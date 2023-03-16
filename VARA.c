@@ -2433,6 +2433,24 @@ static VOID CloseComplete(struct TNCINFO * TNC, int Stream)
 		VARASendCommand(TNC, "BW500\r", TRUE);
 	else if (TNC->DefaultMode == 54)
 		VARASendCommand(TNC, "BW2750\r", TRUE);
+
+	// If a default frequency is specified, set it
+
+	if (TNC->DefaultTXFreq && TNC->TXRadio)
+	{
+		char Msg[128];
+
+		sprintf(Msg, "R%d %f", TNC->TXRadio, TNC->DefaultTXFreq);
+		Rig_Command(-1, Msg);
+	}
+
+	if (TNC->DefaultRXFreq && TNC->RXRadio  && TNC->TXRadio != TNC->RXRadio)
+	{
+		char Msg[128];
+
+		sprintf(Msg, "R%d %f", TNC->RXRadio, TNC->DefaultRXFreq);
+		Rig_Command(-1, Msg);
+	}
 }
 
 

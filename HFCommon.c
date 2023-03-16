@@ -1870,8 +1870,14 @@ int standardParams(struct TNCINFO * TNC, char * buf)
 		TNC->RXRadio = atoi(&buf[8]);
 	else if (_memicmp(buf, "TXFreq", 6) == 0)		// For PTT Sets Freq mode
 		TNC->TXFreq = strtoll(&buf[7], NULL, 10);
-	else if (_memicmp(buf, "DefaultFreq", 11) == 0)	// For PTT Sets Freq mode
-		TNC->DefaultFreq = strtoll(&buf[12], NULL, 10);
+	else if (_memicmp(buf, "DefaultTXFreq", 13) == 0)	// Set at end of session
+		TNC->DefaultTXFreq = atof(&buf[14]);
+	else if (_memicmp(buf, "DefaultRXFreq", 13) == 0)	// Set at end of session
+		TNC->DefaultRXFreq = atof(&buf[14]);
+	else if (_memicmp(buf, "ActiveTXFreq", 12) == 0)	// Set at start of session
+		TNC->ActiveTXFreq = atof(&buf[13]);
+	else if (_memicmp(buf, "ActiveRXFreq", 12) == 0)	// Set at start of session
+		TNC->ActiveRXFreq = atof(&buf[13]);
 	else if (_memicmp(buf, "PTTONHEX", 8) == 0)
 	{
 		// Hex String to use for PTT on for this port
