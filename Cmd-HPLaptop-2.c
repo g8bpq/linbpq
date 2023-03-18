@@ -3769,7 +3769,7 @@ VOID ATTACHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 
 	TRANSPORTENTRY * NewSess;
 	struct _EXTPORTDATA * EXTPORT;
-	struct TNCINFO * TNC = 0;
+	struct TNCINFO * TNC;
 	
 	int Port = 0, sess = 0;
 	char * ptr, *Context;
@@ -4063,24 +4063,6 @@ noFlip1:
 	NewSess->L4TARGET.PORT = PORT;
 
 checkattachandcall:
-
-	// If set freq on attach is defined, do it
-
-	if (TNC && TNC->ActiveRXFreq && TNC->RXRadio)
-	{
-		char Msg[128];
-
-		sprintf(Msg, "R%d %f", TNC->RXRadio, TNC->ActiveRXFreq);
-		Rig_Command(-1, Msg);
-	}
-
-	if (TNC && TNC->ActiveTXFreq && TNC->TXRadio && TNC->TXRadio != TNC->RXRadio)
-	{
-		char Msg[128];
-
-		sprintf(Msg, "R%d %f", TNC->TXRadio, TNC->ActiveTXFreq);
-		Rig_Command(-1, Msg);
-	}
 
 	if (ptr)
 	{
@@ -4546,15 +4528,7 @@ VOID InnerCommandHandler(TRANSPORTENTRY * Session, struct DATAMESSAGE * Buffer)
 //		SendUIModeFrame(Session, (PMESSAGE)Buffer, Session->UNPROTO);
 
 		ReleaseBuffer((UINT *)Buffer);			// Not using buffer for reply
-
-		// Assume we don't allow multiple lines in buffer with UI
-
-		if (Session->PARTCMDBUFFER)
-		{		
-			Buffer = Session->PARTCMDBUFFER;
-			ReleaseBuffer((UINT *)Buffer);			// Not using buffer for reply
-			Session->PARTCMDBUFFER = NULL;
-		}
+	
 		return;
 	}
 

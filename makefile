@@ -28,7 +28,7 @@ noi2c: linbpq
 
 	
 linbpq: $(OBJS)
-	gcc $(OBJS) -Xlinker -Map=output.map -l:libminiupnpc.a -lcrypto -lrt -lm -lz -lpthread -lconfig -lpcap -o linbpq
+	gcc $(OBJS) -Xlinker -Map=output.map -l:libminiupnpc.a -lrt -lm -lz -lpthread -lconfig -lpcap -o linbpq
 	sudo setcap "CAP_NET_ADMIN=ep CAP_NET_RAW=ep CAP_NET_BIND_SERVICE=ep" linbpq		
 
 -include *.d
