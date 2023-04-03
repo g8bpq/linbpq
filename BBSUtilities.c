@@ -11323,7 +11323,7 @@ VOID ProcessTextFwdLine(ConnectionInfo * conn, struct UserInfo * user, char * Bu
 				MsgPtr = MsgBytes;
 		}
 
-		memcpy(&temp, &conn->FwdMsg->datereceived, 4);
+		memcpy(&temp, &conn->FwdMsg->datereceived, sizeof(time_t));
 		tm = gmtime(&temp);	
 
 		nodeprintf(conn, "R:%02d%02d%02d/%02d%02dZ %d@%s.%s %s\r",

@@ -2844,7 +2844,7 @@ int KillTNC(struct TNCINFO * TNC)
 
 		SOCKET sock = socket(AF_INET,SOCK_DGRAM,0);
 		struct sockaddr_in destaddr;
-		char Msg[80];
+		char Msg[256];
 		int Len;
 
 		if (sock == INVALID_SOCKET)

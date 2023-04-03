@@ -1244,7 +1244,7 @@ VOID SendCompressed(CIRCUIT * conn, struct MsgInfo * FwdMsg)
 
 	DataOffset = (int)(Outputptr - Output);	// Used if restarting
 
-	memcpy(&temp, &FwdMsg->datereceived, 4);
+	memcpy(&temp, &FwdMsg->datereceived, sizeof(time_t));
 	tm = gmtime(&temp);	
 	
 	sprintf(Rline, "R:%02d%02d%02d/%02d%02dZ %d@%s.%s %s\r\n",

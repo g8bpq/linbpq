@@ -39,8 +39,6 @@
 
 #define BPQICON 400
 
-WSADATA WsaData;            // receives data from WSAStartup
-
 #define WSA_READ WM_USER + 1
 
 HINSTANCE hInst; 
@@ -569,6 +567,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	BOOL bcopt=TRUE;
 	char Msg[255];
 	int ret, err;
+	WSADATA WsaData;            // receives data from WSAStartup
 
 
 	hInst = hInstance; // Store instance handle in our global variable

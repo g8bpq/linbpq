@@ -1340,9 +1340,11 @@ void * UZ7HOExtInit(EXTPORTDATA * PortEntry)
 	
 	MoveWindows(TNC);
 
+#endif
+
 	if (MasterPort[port] == port)
 	{
-		// First port for this TNC - start TNC if sonfigured and connect
+		// First port for this TNC - start TNC if configured and connect
 
 #ifndef LINBPQ
 		if (EnumWindows(EnumTNCWindowsProc, (LPARAM)TNC))
@@ -1362,10 +1364,8 @@ void * UZ7HOExtInit(EXTPORTDATA * PortEntry)
 		MySetWindowText(TNC->xIDC_COMMSSTATE, TNC->WEB_COMMSSTATE);
 	}
 
-
 	time(&lasttime[port]);			// Get initial time value
 
-#endif
 	return ExtProc;
 }
 

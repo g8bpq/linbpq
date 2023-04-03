@@ -1109,7 +1109,7 @@
 //	Fix BID Hold and Reject filters
 //	Fix Webmail auto-refresh when page exceeds 64K bytes (54)
 //	Fix Webmail send when using both headers/footers and attachmonts (55)
-
+//	Fix R: line corruption on some 64 bit builds
 
 #include "bpqmail.h"
 #define MAIL

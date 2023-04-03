@@ -1152,6 +1152,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Use sha1 code from https://www.packetizer.com/security/sha1/ instead of openssl (53)
 //	Fix TNC Emulator Monitoring (53)
 //	Fix attach and connect on Telnet port bug introduced in .55 (56)
+//	Fix stopping WinRPR TNC and Start/Stop UZ7HO TNCX on Linux (57)
+
 
 #define CKernel
 

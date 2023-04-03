@@ -39,6 +39,12 @@ extern int (WINAPI FAR *EnumProcessesPtr)();
 
 #include "tncinfo.h"
 
+
+#define SD_RECEIVE      0x00
+#define SD_SEND         0x01
+#define SD_BOTH         0x02
+
+
 //#include "bpq32.h"
 
 static char ClassName[]="TRACKERSTATUS";
@@ -106,6 +112,7 @@ VOID TrkExitHost(struct TNCINFO * TNC);
 int ConnecttoWinRPR(int port);
 
 BOOL KillOldTNC(char * Path);
+int KillTNC(struct TNCINFO * TNC);
 
 static BOOL RestartTNC(struct TNCINFO * TNC)
 {
@@ -605,12 +612,19 @@ ok:
 
 		TrkExitHost(TNC);
 		Sleep(50);
-		CloseCOMPort(TNC->hDevice);
-		TNC->hDevice =(HANDLE)0;
 		TNC->ReopenTimer = 250;
 		TNC->HostMode = FALSE;
 
-		return (0);
+		shutdown(TNC->TCPSock, SD_BOTH);
+		Sleep(100);
+		closesocket(TNC->TCPSock);
+
+		if (TNC->WeStartedTNC)
+		{
+			KillTNC(TNC);
+			RestartTNC(TNC);
+		}
+		return 0;
 
 	case 5:				// Close
 
@@ -620,7 +634,14 @@ ok:
 
 		Sleep(25);
 
-		CloseCOMPort(TNC->hDevice);
+		shutdown(TNC->TCPSock, SD_BOTH);
+		Sleep(100);
+		closesocket(TNC->TCPSock);
+		if (TNC->WeStartedTNC)
+			KillTNC(TNC);
+	
+	
+
 		return (0);
 
 	case 6:				// Scan Interface
