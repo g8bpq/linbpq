@@ -1392,8 +1392,10 @@ void * InitializeExtDriver(PEXTPORTDATA PORTVEC)
 	_strupr(Value);
 
 #ifndef FREEBSD
+#ifndef MACBPQ
 	if (strstr(Value, "BPQETHER"))
 		return ETHERExtInit;
+#endif
 #endif
 	if (strstr(Value, "BPQAXIP"))
 		return AXIPExtInit;
@@ -1587,6 +1589,7 @@ struct TNCINFO * TNC;
 #include <time.h>
 #include <sys/time.h>
 
+#ifndef MACBPQ
 #ifdef __MACH__
 
 #include <mach/mach_time.h>
@@ -1605,6 +1608,7 @@ int clock_gettime(int clk_id, struct timespec *t){
     t->tv_nsec = nseconds;
     return 0;
 }
+#endif
 #endif
 
 int GetTickCount()

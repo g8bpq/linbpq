@@ -1437,7 +1437,7 @@ char * ChatConfigtxt()
 		"seperared by |, eg NOTCHT:G8BPQ-4|C 3 GM8BPQ-9|CHAT"
 
 		"<br><br>The Callsign of the Chat Node is not defined here - it is obtained from the bpq32.cfg APPLICATION line corresponding to the Chat Appl Number.<br>\r\n"
-		"<br></div>r\n"
+		"<br></div>\n"
 		"&nbsp;<textarea cols=\"70\" rows=\"5\" name=\"nodes\">%s</textarea><br>\r\n"
 		"<br>\r\n"
 		"&nbsp;Map Position <input onchange=CheckLen() maxlength=\"80\" value=\"%s\" size=\"20\" name=\"Posn\" id=pos> <br>\r\n"

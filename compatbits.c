@@ -139,7 +139,30 @@ pthread_t _beginthread(void(*start_address)(), unsigned stack_size, VOID * argli
 {
 	pthread_t thread;
 
-	if (pthread_create(&thread, NULL, (void * (*)(void *))start_address, (void*) arglist) != 0)
+	// Need to set stack size for Mac
+
+	int s, tnum, opt, num_threads;
+	struct thread_info *tinfo;
+	pthread_attr_t attr;
+	void *res;
+
+	s = pthread_attr_init(&attr);
+	if (s != 0)
+	{
+		perror("pthread_attr_init");
+		return 0;
+	}
+	if (stack_size > 0)
+	{
+		s = pthread_attr_setstacksize(&attr, stack_size);
+		if (s != 0)
+		{
+			perror("pthread_attr_setstacksize");
+			return 0;
+		}
+	}
+
+	if (pthread_create(&thread, &attr, (void * (*)(void *))start_address, (void*) arglist) != 0)
 		perror("New Thread");
 	else
 		pthread_detach(thread);

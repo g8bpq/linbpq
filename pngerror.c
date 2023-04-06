@@ -16,6 +16,8 @@
 #define PNG_INTERNAL
 #include "png.h"
 
+void Myabort();
+
 static void /* PRIVATE */
 png_default_error PNGARG((png_structp png_ptr,
   png_const_charp error_message));

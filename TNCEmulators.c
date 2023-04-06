@@ -228,8 +228,12 @@ typedef struct _SERIAL_STATUS {
 
 #endif
 
+
 #ifndef WIN32
-//	#include <pty.h>
+	
+#ifdef MACBPQ
+#include <util.h>
+#endif
 
 extern int posix_openpt (int __oflag);
 extern int grantpt (int __fd);

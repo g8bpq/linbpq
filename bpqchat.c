@@ -68,6 +68,7 @@
 //	Fix History (31)
 //	Stop buffer overflow in History 
 //	Allow /History to be shortened to /Hi (45)
+//	Fix extra r charater in Chat Config Web Page
 
 #include "BPQChat.h"
 #include "Dbghelp.h"

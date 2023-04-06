@@ -22,6 +22,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 // Normally uses a Raw socket, but that can't send to other apps on same machine.
 // so can use a TAP device instead (or maybe as well??)
+#ifndef MACBPQ
 
 #include <stdio.h>
 
@@ -496,3 +497,4 @@ static int ProcessLine(char * buf, int Port, BOOL CheckPort)
 	
 }
 	
+#endif

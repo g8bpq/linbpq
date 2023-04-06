@@ -12,10 +12,6 @@
 
 #include "asmstrucs.h"
 
-#ifndef WIN32
-__asm__(".symver fcntl,fcntl@GLIBC_2.4");
-#endif
-
 BOOL CheckExcludeList(UCHAR * Call);
 
 Dll int ConvFromAX25(unsigned char * incall,unsigned char * outcall);

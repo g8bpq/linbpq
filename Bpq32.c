@@ -1153,6 +1153,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix TNC Emulator Monitoring (53)
 //	Fix attach and connect on Telnet port bug introduced in .55 (56)
 //	Fix stopping WinRPR TNC and Start/Stop UZ7HO TNCX on Linux (57)
+//	Fix stack size in beginthread for MAC 
 
 
 #define CKernel
