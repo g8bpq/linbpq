@@ -26,7 +26,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 TRANSPORTENTRY * L4TABLE = 0;
 UCHAR NEXTID = 55;
 int MAXCIRCUITS = 50;
-int L4DEFAULTWINDOW = 4;
+int L4DEFAULTWINDOW = 8;
 int L4T1 = 60;
 APPLCALLS APPLCALLTABLE[NumberofAppls];
 char * APPLS;

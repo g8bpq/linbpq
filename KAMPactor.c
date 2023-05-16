@@ -900,7 +900,7 @@ VOID KAMPoll(int Port)
 
 					sprintf(Msg, "%d SCANSTOP", TNC->Port);
 		
-					Rig_Command(-1, Msg);
+					Rig_Command( (TRANSPORTENTRY *) -1, Msg);
 
 			}
 		}
@@ -1051,7 +1051,7 @@ VOID KAMPoll(int Port)
 
 			sprintf(Status, "%d SCANSTART 15", TNC->Port);
 		
-			Rig_Command(-1, Status);
+			Rig_Command( (TRANSPORTENTRY *) -1, Status);
 
 			return;
 		}
@@ -1189,7 +1189,7 @@ VOID KAMPoll(int Port)
 				if ((Stream == 0) && memcmp(MsgPtr, "RADIO ", 6) == 0)
 				{
 					sprintf(&MsgPtr[40], "%d %s", TNC->Port, &MsgPtr[6]);
-					if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK->CIRCUITINDEX, &MsgPtr[40]))
+					if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK, &MsgPtr[40]))
 					{
 						ReleaseBuffer(buffptr);
 					}
@@ -1770,7 +1770,7 @@ VOID ProcessKHOSTPacket(struct TNCINFO * TNC, UCHAR * Msg, int Len)
 				
 				sprintf(Msg, "%d SCANSTOP", TNC->Port);
 		
-				Rig_Command(-1, Msg);
+				Rig_Command( (TRANSPORTENTRY *) -1, Msg);
 
 				sprintf(TNC->WEB_TRAFFIC, "RX %d TX %d ACKED %d ", 
 					TNC->Streams[0].BytesRXed, TNC->Streams[0].BytesTXed, TNC->Streams[0].BytesAcked);

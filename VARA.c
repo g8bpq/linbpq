@@ -50,6 +50,11 @@ extern int (WINAPI FAR *EnumProcessesPtr)();
 #define WSA_DATA WM_USER + 2
 #define WSA_CONNECT WM_USER + 3
 
+#define FEND 0xC0 
+#define FESC 0xDB
+#define TFEND 0xDC
+#define TFESC 0xDD
+
 static int Socket_Data(int sock, int error, int eventcode);
 
 int KillTNC(struct TNCINFO * TNC);
@@ -64,6 +69,9 @@ int VARASendData(struct TNCINFO * TNC, UCHAR * Buff, int Len);
 VOID VARASendCommand(struct TNCINFO * TNC, char * Buff, BOOL Queue);
 VOID VARAProcessDataPacket(struct TNCINFO * TNC, UCHAR * Data, int Length);
 void CountRestarts(struct TNCINFO * TNC);
+int	KissEncode(UCHAR * inbuff, UCHAR * outbuff, int len);
+VOID PROCESSNODEMESSAGE(MESSAGE * Msg, struct PORTCONTROL * PORT);
+VOID NETROMMSG(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG);
 
 #ifndef LINBPQ
 BOOL CALLBACK EnumVARAWindowsProc(HWND hwnd, LPARAM  lParam);
@@ -88,6 +96,7 @@ static RECT Rect;
 
 extern struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
 
+extern void * TRACE_Q;
 
 BOOL VARAStopPort(struct PORTCONTROL * PORT)
 {
@@ -490,7 +499,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 			sprintf(Msg, "%d SCANSTOP", TNC->Port);
 	
-			Rig_Command(-1, Msg);
+			Rig_Command( (TRANSPORTENTRY *) -1, Msg);
 		}
 
 		if (TNC->Streams[0].Attached)
@@ -608,7 +617,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			{
 				sprintf(buff->L2DATA, "%d %s", TNC->Port, &buff->L2DATA[6]);
 
-				if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK->CIRCUITINDEX, buff->L2DATA))
+				if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK, buff->L2DATA))
 				{
 				}
 				else
@@ -763,10 +772,12 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 		if (TNC->CONNECTED)
 		{
+			if (TNC->Streams[0].Connected)
+				VARASendCommand(TNC, "ABORT\r", TRUE);
 //			GetSemaphore(&Semaphore, 52);
 //			VARASendCommand(TNC, "CLOSE", FALSE);
 //			FreeSemaphore(&Semaphore);
-//			Sleep(100);
+			Sleep(100);
 		}
 
 		shutdown(TNC->TCPSock, SD_BOTH);
@@ -984,12 +995,12 @@ void * VARAExtInit(EXTPORTDATA * PortEntry)
 	int i, port;
 	char Msg[255];
 	char * ptr;
+	int line;
 	APPLCALLS * APPL;
 	struct TNCINFO * TNC;
 	int AuxCount = 0;
 	char Appl[11];
 	char * TempScript;
-	int line;
 	struct PORTCONTROL * PORT = &PortEntry->PORTCONTROL;
 	//
 	//	Will be called once for each VARA port 
@@ -1043,7 +1054,6 @@ void * VARAExtInit(EXTPORTDATA * PortEntry)
 		TNC->RXRadio = TNC->TXRadio = PortEntry->PORTCONTROL.PORTINTERLOCK;
 
 	PortEntry->PORTCONTROL.PROTOCOL = 10;
-	PortEntry->PORTCONTROL.PORTQUALITY = 0;
 	PortEntry->MAXHOSTMODESESSIONS = 1;	
 	PortEntry->SCANCAPABILITIES = SIMPLE;			// Scan Control - pending connect only
 
@@ -1059,6 +1069,19 @@ void * VARAExtInit(EXTPORTDATA * PortEntry)
 	PortEntry->PORTCONTROL.PORTSTOPCODE = VARAStopPort;
 
 	TNC->ModemCentre = 1500;				// WINMOR is always 1500 Offset
+
+	if (TNC->NRNeighbour)
+	{
+		// NETROM over VARA Link
+
+		TNC->NetRomMode = 1;
+		TNC->LISTENCALLS = MYNETROMCALL;
+		PORT->PortNoKeepAlive = 1;
+		TNC->DummyLink = zalloc(sizeof(struct _LINKTABLE));
+		TNC->DummyLink->LINKPORT = &TNC->PortRecord->PORTCONTROL;
+	}
+	else
+		PORT->PORTQUALITY = 0;
 
 	ptr=strchr(TNC->NodeCall, ' ');
 	if (ptr) *(ptr) = 0;					// Null Terminate
@@ -1904,7 +1927,7 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 	
 		TNC->HadConnect = TRUE;
 
-		if (TNC->PortRecord->ATTACHEDSESSIONS[0] == 0)
+		if (TNC->PortRecord->ATTACHEDSESSIONS[0] == 0 || (TNC->NetRomMode && STREAM->Connecting == 0))
 		{
 			TRANSPORTENTRY * SESS;
 			
@@ -1916,7 +1939,7 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 						
 			TNC->SessionTimeLimit = TNC->DefaultSessionTimeLimit;		// Reset Limit
 
-			ProcessIncommingConnectEx(TNC, Call, 0, TRUE, TRUE);
+			ProcessIncommingConnectEx(TNC, Call, 0, (TNC->NetRomMode == 0), TRUE);
 				
 			SESS = TNC->PortRecord->ATTACHEDSESSIONS[0];
 
@@ -1961,7 +1984,7 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 
 					TidyClose(TNC, 0);
 					sprintf(Status, "%d SCANSTART 15", TNC->Port);
-					Rig_Command(-1, Status);
+					Rig_Command((TRANSPORTENTRY *) -1, Status);
 					Debugprintf("VARA Call from %s rejected", Call);
 					return;
 				}
@@ -1986,13 +2009,33 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 
 						TidyClose(TNC, 0);
 						sprintf(Status, "%d SCANSTART 15", TNC->Port);
-						Rig_Command(-1, Status);
+						Rig_Command((TRANSPORTENTRY *) -1, Status);
 						Debugprintf("VARA Call from %s not in ValidCalls - rejected", Call);
 						return;
 					}
 				}
 			}
 
+			if (TNC->NetRomMode)
+			{
+				// send any queued data
+
+				int bytes;
+
+				if (TNC->NetRomTxLen)
+				{
+
+					STREAM->PacketsSent++;
+
+					bytes = send(TNC->TCPDataSock, TNC->NetRomTxBuffer, TNC->NetRomTxLen, 0);
+					STREAM->BytesTXed += TNC->NetRomTxLen;
+
+					free(TNC->NetRomTxBuffer);
+					TNC->NetRomTxBuffer = NULL;
+					TNC->NetRomTxLen = 0;
+				}
+				return;
+			}
 
 			// See which application the connect is for
 
@@ -2075,18 +2118,39 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 			char Reply[80];
 			int ReplyLen;
 			
-			buffptr = GetBuff();
 
-			if (buffptr == 0)
+			if (TNC->NetRomMode)
 			{
-				return;			// No buffers, so ignore
+				// send any queued data
+
+				int bytes;
+
+				if (TNC->NetRomTxLen)
+				{
+
+					STREAM->PacketsSent++;
+
+					bytes = send(TNC->TCPDataSock, TNC->NetRomTxBuffer, TNC->NetRomTxLen, 0);
+					STREAM->BytesTXed += TNC->NetRomTxLen;
+					free(TNC->NetRomTxBuffer);
+					TNC->NetRomTxBuffer = NULL;
+					TNC->NetRomTxLen = 0;
+				}
 			}
-			ReplyLen = sprintf(Reply, "*** Connected to %s\r", TNC->TargetCall);
+			else
+			{
+				buffptr = GetBuff();
 
-			buffptr->Len = ReplyLen;
-			memcpy(buffptr->Data, Reply, ReplyLen);
+				if (buffptr == 0)
+					return;			// No buffers, so ignore
 
-			C_Q_ADD(&TNC->WINMORtoBPQ_Q, buffptr);
+				ReplyLen = sprintf(Reply, "*** Connected to %s\r", TNC->TargetCall);
+
+				buffptr->Len = ReplyLen;
+				memcpy(buffptr->Data, Reply, ReplyLen);
+
+				C_Q_ADD(&TNC->WINMORtoBPQ_Q, buffptr);
+			}
 
 			TNC->Streams[0].Connecting = FALSE;
 			TNC->Streams[0].Connected = TRUE;			// Subsequent data to data channel
@@ -2239,11 +2303,13 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 	C_Q_ADD(&TNC->WINMORtoBPQ_Q, buffptr);
 }
 
+
+
 VOID VARAProcessReceivedData(struct TNCINFO * TNC)
 {
 	int InputLen;
 
-	InputLen = recv(TNC->TCPDataSock, TNC->ARDOPDataBuffer, 8192, 0);
+	InputLen = recv(TNC->TCPDataSock, &TNC->ARDOPDataBuffer[TNC->DataInputLen], 8192 - TNC->DataInputLen, 0);
 
 	if (InputLen == 0 || InputLen == SOCKET_ERROR)
 	{
@@ -2265,18 +2331,159 @@ VOID VARAProcessReceivedData(struct TNCINFO * TNC)
 
 		TNC->Streams[0].Disconnecting = FALSE;
 
-
 		closesocket(TNC->TCPDataSock);
 		TNC->TCPSock = 0;
-
 
 		return;					
 	}
 
 	TNC->DataInputLen += InputLen;
+
+	if (TNC->NetRomMode)
+	{
+		// Unpack KISS frames from data stream
+
+		unsigned char c;
+		int n = 0;
+		int Len = TNC->DataInputLen;
+		unsigned char KISSBuffer[600];
+		int KissLen = 0;
+
+		while (Len)
+		{
+			Len--;
+
+			c = TNC->ARDOPDataBuffer[n++];
+
+			if (TNC->ESCFLAG)
+			{
+				//
+				//	FESC received - next should be TFESC or TFEND
+
+				TNC->ESCFLAG = FALSE;
+
+				if (c == TFESC)
+					c = FESC;
+
+				if (c == TFEND)
+					c = FEND;
+
+			}
+			else
+			{
+				switch (c)
+				{
+				case FEND:		
+
+					//
+					//	Either start of message or message complete
+					//
+
+					if (KissLen == 0)
+					{
+						// Start of Message.
+
+						continue;
+					}
+
+					// Have a complete KISS frame - remove from buffer and process
+
+					if (KISSBuffer[0] == 255)
+					{
+						// NODE Message
+
+						MESSAGE * Msg = GetBuff();
+
+						if (Msg)
+						{
+							// Set up header
+
+							Msg->LENGTH = KissLen + (Msg->L2DATA - (unsigned char *)Msg);
+							memcpy(Msg->L2DATA, KISSBuffer, KissLen);
+							ConvToAX25(TNC->NRNeighbour, Msg->ORIGIN);
+							memcpy(Msg->DEST, NETROMCALL, 7);
+
+							PROCESSNODEMESSAGE(Msg, &TNC->PortRecord->PORTCONTROL);
+
+							Msg->PID = 0xcf;
+							Msg->PORT = TNC->Port | 0x80;
+							Msg->CTL = 3;
+							Msg->ORIGIN[6] |= 1;		// set end of address
+							time(&Msg->Timestamp);
+							BPQTRACE(Msg, FALSE);
+						}
+					}
+					else
+					{
+						// Netrom Message
+
+						L3MESSAGEBUFFER * L3MSG = GetBuff();
+						MESSAGE * Buffer = GetBuff();
+
+						if (L3MSG)
+						{
+							// Set up header
+
+							L3MSG->LENGTH = KissLen + (L3MSG->L3SRCE - (unsigned char *)L3MSG);
+							memcpy(L3MSG->L3SRCE, KISSBuffer, KissLen);
+							L3MSG->L3PID = 0xcf;
+
+							// Create copy to pass to monitor
+							// To trace we need to reformat as MESSAGE
+
+							Buffer->PID = 0xcf;
+							Buffer->PORT = TNC->Port;
+							Buffer->CTL = 3;
+							Buffer->LENGTH = KissLen + (Buffer->L2DATA - (unsigned char *)Buffer);
+							memcpy(Buffer->L2DATA, KISSBuffer, KissLen);
+
+							ConvToAX25(TNC->NRNeighbour, Buffer->DEST);
+							memcpy(Buffer->ORIGIN, NETROMCALL, 7);
+							Buffer->ORIGIN[6] |= 1;		// set end of address
+							time(&Buffer->Timestamp);
+							BPQTRACE(Buffer, FALSE);				// TRACE
+							NETROMMSG(TNC->DummyLink, L3MSG);
+						}
+					}
+
+					if (Len == 0)		// All used
+					{
+						TNC->DataInputLen = 0;
+					}
+					else
+					{
+						memmove(TNC->ARDOPDataBuffer, &TNC->ARDOPDataBuffer[n], Len);
+						TNC->DataInputLen = Len;
+						KissLen = 0;
+						n = 0;
+					}
+
+					continue;
+
+				case FESC:
+
+					TNC->ESCFLAG = TRUE;
+					continue;
+
+				}
+			}
+
+			//	Ok, a normal char
+
+			KISSBuffer[KissLen++] = c;
+
+			if (KissLen > 590)
+				KissLen = 0;
+
+		}
+
+		// End of input - if there is stuff left in the input buffer we will add the next block to it
+
+		return;
+	}
 		
 	VARAProcessDataPacket(TNC, TNC->ARDOPDataBuffer, TNC->DataInputLen);
-	TNC->DataInputLen=0;
+	TNC->DataInputLen = 0;
 	return;
 }
 
@@ -2303,7 +2510,9 @@ VOID VARAProcessReceivedControl(struct TNCINFO * TNC)
 		TNC->TCPSock = 0;
 
 		TNC->CONNECTED = FALSE;
-		TNC->Streams[0].ReportDISC = TRUE;
+
+		if (TNC->Streams[0].Connecting || TNC->Streams[0].Connected)
+			TNC->Streams[0].ReportDISC = TRUE;
 
 		TNC->Streams[0].Disconnecting = FALSE;
 
@@ -2434,23 +2643,6 @@ static VOID CloseComplete(struct TNCINFO * TNC, int Stream)
 	else if (TNC->DefaultMode == 54)
 		VARASendCommand(TNC, "BW2750\r", TRUE);
 
-	// If a default frequency is specified, set it
-
-	if (TNC->DefaultTXFreq && TNC->TXRadio)
-	{
-		char Msg[128];
-
-		sprintf(Msg, "R%d %f", TNC->TXRadio, TNC->DefaultTXFreq);
-		Rig_Command(-1, Msg);
-	}
-
-	if (TNC->DefaultRXFreq && TNC->RXRadio  && TNC->TXRadio != TNC->RXRadio)
-	{
-		char Msg[128];
-
-		sprintf(Msg, "R%d %f", TNC->RXRadio, TNC->DefaultRXFreq);
-		Rig_Command(-1, Msg);
-	}
 }
 
 
@@ -2555,13 +2747,145 @@ VOID VARAReleaseTNC(struct TNCINFO * TNC)
 	if (TNC->DefaultRadioCmd)
 	{
 		sprintf(TXMsg, "%d %s", TNC->Port, TNC->DefaultRadioCmd);
-		Rig_Command(-1, TXMsg);
+		Rig_Command( (TRANSPORTENTRY *) -1, TXMsg);
 	}
 
 	sprintf(TXMsg, "%d SCANSTART 15", TNC->Port);
-	Rig_Command(-1, TXMsg);
+	Rig_Command( (TRANSPORTENTRY *) -1, TXMsg);
 
 	ReleaseOtherPorts(TNC);
+}
+
+void SendVARANetrom(struct TNCINFO * TNC, unsigned char * Data, int Len)
+{
+	// Check that PID is 0xcf, then just send the data portion of packet
+
+	// We need to delimit packets, and KISS encoding seems as good as any. Also
+	// need to buffer to avoid sending lots of small packets and maybe to wait for
+	// link to connect
+
+	unsigned char Kiss[600];
+	int KissLen;
+	struct STREAMINFO * STREAM = &TNC->Streams[0];
+
+	if (TNC->CONNECTED == 0)
+		return;					// Don't Queue if no connection to TNC
+	
+	KissLen = KissEncode(Data, Kiss, Len);
+
+	TNC->NetRomTxBuffer = realloc(TNC->NetRomTxBuffer, TNC->NetRomTxLen + KissLen);
+	memcpy(&TNC->NetRomTxBuffer[TNC->NetRomTxLen], Kiss, KissLen);
+	TNC->NetRomTxLen += KissLen;
+
+	if (STREAM->Connected)
+	{
+		int bytes;
+
+		STREAM->PacketsSent++;
+
+		bytes = send(TNC->TCPDataSock, TNC->NetRomTxBuffer, TNC->NetRomTxLen, 0);
+		STREAM->BytesTXed += TNC->NetRomTxLen;
+
+		free(TNC->NetRomTxBuffer);
+		TNC->NetRomTxBuffer = NULL;
+		TNC->NetRomTxLen = 0;
+		return;
+	}
+
+	if (TNC->Streams[0].Connecting == 0 && TNC->Streams[0].Connected == 0)
+	{
+		// Try to connect to Neighbour
+
+		char Connect[32];
+
+		TNC->NetRomMode = 1;
+
+		sprintf(Connect, "CONNECT %s %s\r", MYNETROMCALL, TNC->NRNeighbour);
+
+		// Need to set connecting here as if we delay for busy we may incorrectly process OK response
+
+		TNC->Streams[0].Connecting = TRUE;
+
+		// See if Busy
+				
+		if (InterlockedCheckBusy(TNC))
+		{
+			// Channel Busy. Unless override set, wait
+
+			if (TNC->OverrideBusy == 0)
+			{
+				// Save Command, and wait up to 10 secs
+				
+				sprintf(TNC->WEB_TNCSTATE, "Waiting for clear channel");
+				MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
+
+				TNC->ConnectCmd = _strdup(Connect);
+				TNC->BusyDelay = TNC->BusyWait * 10;		// BusyWait secs
+				return;
+			}
+		}
+		TNC->OverrideBusy = FALSE;
+
+		VARASendCommand(TNC, Connect, TRUE);
+		TNC->Streams[0].ConnectTime = time(NULL); 
+
+		memset(TNC->Streams[0].RemoteCall, 0, 10);
+		strcpy(TNC->Streams[0].RemoteCall, MYNETROMCALL);
+
+		sprintf(TNC->WEB_TNCSTATE, "%s Connecting to %s", TNC->Streams[0].MyCall, TNC->Streams[0].RemoteCall);
+		MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
+	}
+}
+
+void SendVARANetromNodes(struct TNCINFO * TNC, MESSAGE *Buffer)
+{
+	// Check that PID is 0xcf, then just send the data portion of packet
+
+	int Len = Buffer->LENGTH - (Buffer->L2DATA - (unsigned char *)Buffer);
+
+	if (Buffer->PID != 0xcf)
+	{
+		ReleaseBuffer(Buffer);
+		return;
+	}
+
+	SendVARANetrom(TNC, Buffer->L2DATA, Len);
+	time(&Buffer->Timestamp);
+
+	C_Q_ADD(&TRACE_Q, Buffer);
+
+}
+
+void SendVARANetromMsg(struct TNCINFO * TNC, L3MESSAGEBUFFER * MSG)
+{
+	MESSAGE * Buffer = (MESSAGE *)MSG;
+
+	int Len = MSG->LENGTH - (MSG->L3SRCE - (unsigned char *)MSG);
+
+	if (MSG->L3PID != 0xcf)
+	{
+		ReleaseBuffer(MSG);
+		return;
+	}
+
+	SendVARANetrom(TNC, MSG->L3SRCE, Len);
+
+	memmove(Buffer->L2DATA, MSG->L3SRCE, Len);
+
+	// To trace we need to reformat as MESSAGE
+
+	Buffer->PID = 0xcf;
+	Buffer->PORT = TNC->Port | 0x80;
+	Buffer->CTL = 3;
+	Buffer->LENGTH = Len + (Buffer->L2DATA - (unsigned char *)Buffer);
+	ConvToAX25(TNC->NRNeighbour, Buffer->DEST);
+	memcpy(Buffer->ORIGIN, NETROMCALL, 7);
+	Buffer->ORIGIN[6] |= 1;		// set end of address
+
+	time(&Buffer->Timestamp);
+	
+	C_Q_ADD(&TRACE_Q, Buffer);
+
 }
 
 

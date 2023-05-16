@@ -775,7 +775,7 @@ VOID ProcessChatLine(ChatCIRCUIT * conn, struct UserInfo * user, char* OrigBuffe
 			return;
 		}
 
-		if (_memicmp(&Buffer[1], "History", cmdLen) == 0)
+		if (cmdLen > 1 && _memicmp(&Buffer[1], "History", cmdLen) == 0)  // Accept Hi but not H
 		{
 			// Param is number of minutes to go back (max 24 hours)
 		

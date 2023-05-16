@@ -170,6 +170,8 @@ void ListExcludedCalls(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTai
 VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
 VOID RECONFIGTELNET (TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
 VOID HELPCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
+VOID UZ7HOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * UserCMD);
+
 
 
 
@@ -3662,13 +3664,13 @@ VOID MHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CM
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 
-int Rig_Command(int Session, char * Command);
+int Rig_Command(TRANSPORTENTRY * Session, char * Command);
 
 VOID RADIOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * UserCMD)
 {
 	char * ptr;
 	
-	if (Rig_Command(Session->CIRCUITINDEX, CmdTail))
+ 	if (Rig_Command(Session, CmdTail))
 	{
 		ReleaseBuffer((UINT *)REPLYBUFFER);
 		return;
@@ -4071,7 +4073,7 @@ checkattachandcall:
 		char Msg[128];
 
 		sprintf(Msg, "R%d %f", TNC->RXRadio, TNC->ActiveRXFreq);
-		Rig_Command(-1, Msg);
+		Rig_Command( (TRANSPORTENTRY *) -1, Msg);
 	}
 
 	if (TNC && TNC->ActiveTXFreq && TNC->TXRadio && TNC->TXRadio != TNC->RXRadio)
@@ -4079,7 +4081,7 @@ checkattachandcall:
 		char Msg[128];
 
 		sprintf(Msg, "R%d %f", TNC->TXRadio, TNC->ActiveTXFreq);
-		Rig_Command(-1, Msg);
+		Rig_Command( (TRANSPORTENTRY *) -1, Msg);
 	}
 
 	if (ptr)
@@ -4261,6 +4263,8 @@ CMDX COMMANDS[] =
 	"ARP         ",3,SHOWARP,0,
 	"NAT         ",3,SHOWNAT,0,
 	"IPROUTE     ",3,SHOWIPROUTE,0,
+	"UZ7HO       ",5,UZ7HOCMD,0,
+
 	"..FLMSG     ",7,FLMSG,0
 };
 
@@ -4508,6 +4512,10 @@ VOID InnerCommandHandler(TRANSPORTENTRY * Session, struct DATAMESSAGE * Buffer)
 
 	if (Session->UNPROTO)
 	{
+//		char LongMsg[512] =
+//			"VeryLongMessageVeryLongMessageVeryLongMessageVeryLongMessageVeryLongMessageVeryLongMessageVeryLongMessageVeryLongMessageVeryLongMessageVeryLongMessage"
+//			"VeryLongMessageVeryLongMessageVeryLongMessageVeryLongMessageVeryLongMessageVeryLongMessageVeryLongMessageVeryLongMessageVeryLongMessageVeryLongMessage";
+
 		DIGIMESSAGE Msg;
 		int Port = Session->UNPROTO;
 		int Len = Buffer->LENGTH - (MSGHDDRLEN -1);		// Need PID 
@@ -4540,8 +4548,11 @@ VOID InnerCommandHandler(TRANSPORTENTRY * Session, struct DATAMESSAGE * Buffer)
 		memcpy(Msg.ORIGIN, Session->L4USER, 7);
 		memcpy(Msg.DIGIS, &Session->UADDRESS[7], Session->UAddrLen - 7);
 		memcpy(&Msg.PID, &Buffer->PID, Len);
-	
 		Send_AX_Datagram(&Msg, Len, Port);		// Len is Payload - CTL, PID and Data
+	
+//		memcpy(&Msg.PID + 1, LongMsg, 260);
+//		Send_AX_Datagram(&Msg, 241, Port);		// Len is Payload - CTL, PID and Data
+	
 	
 //		SendUIModeFrame(Session, (PMESSAGE)Buffer, Session->UNPROTO);
 
@@ -5613,6 +5624,76 @@ VOID HELPCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 	free(MsgBytes);
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
+
+int UZ7HOSetFreq(int port, struct TNCINFO * TNC, struct AGWINFO * AGW, PDATAMESSAGE buff, PMSGWITHLEN buffptr);
+int UZ7HOSetModem(int port, struct TNCINFO * TNC, struct AGWINFO * AGW, PDATAMESSAGE buff, PMSGWITHLEN buffptr);
+
+
+VOID UZ7HOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+{
+	char * Cmd;
+	int port;
+	struct TNCINFO * TNC;
+	struct AGWINFO * AGW = 0;
+	PDATAMESSAGE buff;
+	PMSGWITHLEN buffptr;
+
+	Cmd = strlop(CmdTail, ' ');
+	port = atoi(CmdTail);
+
+	// remove trailing spaces 
+
+	while(strlen(Cmd) && Cmd[strlen(Cmd) - 1] == ' ')
+		Cmd[strlen(Cmd) - 1] = 0;
+
+	TNC = TNCInfo[port];
+
+	if (TNC)
+		AGW = TNC->AGWInfo; 
+
+	if (TNC == 0 || AGW == 0)
+	{	
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Error - %d is not UZ7HO port\r", port);
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
+	if (_memicmp(Cmd, "FREQ", 4) == 0 || _memicmp(Cmd, "MODEM", 5) == 0)
+	{
+		// Pass to procesing code in UZ7HO driver. This expects command in a PDATAMESSAGE amd places response in a PMSGWITHLEN buffer
+
+		buff = (PDATAMESSAGE)GetBuff();
+		buffptr = (PMSGWITHLEN)GetBuff();
+
+		if (buffptr == 0)
+		{
+			Bufferptr = Cmdprintf(Session, Bufferptr, "UZ7HO Command Failed - no buffers\r");
+			if (buff)
+				ReleaseBuffer(buff);
+			SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+			return;
+		}
+
+		buff->LENGTH = sprintf(buff->L2DATA, "%s\r", Cmd) + MSGHDDRLEN + 1;
+
+		if (_memicmp(Cmd, "FREQ", 4) == 0)
+			UZ7HOSetFreq(port, TNC, AGW, buff, buffptr);
+		else
+			UZ7HOSetModem(port, TNC, AGW, buff, buffptr);
+
+
+		Bufferptr = Cmdprintf(Session, Bufferptr, buffptr->Data);
+
+		ReleaseBuffer(buff);
+		ReleaseBuffer(buffptr);
+	}
+	else
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Invalid UZ7HO Command (not Freq Mode Modem)\r");
+	
+	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+	return;
+}
+
 
 
 

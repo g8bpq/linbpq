@@ -357,6 +357,147 @@ VOID UZ7HOReleasePort(struct TNCINFO * TNC)
 	RegisterAPPLCalls(TNC, FALSE);
 }
 
+int UZ7HOSetFreq(int port, struct TNCINFO * TNC, struct AGWINFO * AGW, PDATAMESSAGE buff, PMSGWITHLEN buffptr)
+{
+	int txlen = GetLengthfromBuffer(buff) - (MSGHDDRLEN + 1);
+
+	// May be read or set frequency
+
+	if (txlen == 5)
+	{
+		// Read Freq
+
+		buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Modem Freqency %d\r", AGW->CenterFreq);
+		return 1;
+	}
+
+	AGW->CenterFreq = atoi(&buff->L2DATA[5]);
+
+	if (AGW->CenterFreq == 0)
+	{
+		buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Invalid Modem Freqency\r");
+		return 1;
+	}
+
+	if (TNCInfo[MasterPort[port]]->AGWInfo->isQTSM == 3)
+	{
+		// QtSM so can send Set Freq Command
+
+		char Buffer[32] = "";
+		int MsgLen = 32;
+
+		memcpy(Buffer, &AGW->CenterFreq, 4);
+
+		AGW->TXHeader.Port = UZ7HOChannel[port];
+		AGW->TXHeader.DataKind = 'g';
+		memset(AGW->TXHeader.callfrom, 0, 10);
+		memset(AGW->TXHeader.callto, 0, 10);
+#ifdef __BIG_ENDIAN__
+		AGW->TXHeader.DataLength = reverse(MsgLen);
+#else
+		AGW->TXHeader.DataLength = MsgLen;
+#endif
+		send(TNCInfo[MasterPort[port]]->TCPSock, (char *)&AGW->TXHeader, AGWHDDRLEN, 0);
+		send(TNCInfo[MasterPort[port]]->TCPSock, Buffer, MsgLen, 0);
+	}
+#ifdef WIN32
+	else if (AGW->hFreq)
+	{
+		//Using real UZ7HO on Windows
+
+		char Freq[16];
+		sprintf(Freq, "%d", AGW->CenterFreq - 1);
+
+		SendMessage(AGW->hFreq, WM_SETTEXT, 0, (LPARAM)Freq);
+		SendMessage(AGW->hSpin, WM_LBUTTONDOWN, 1, 1);
+		SendMessage(AGW->hSpin, WM_LBUTTONUP, 0, 1);
+	}
+#endif
+	else
+	{
+		buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Sorry Setting UZ7HO params not supported on this system\r");
+		return 1;
+	}
+	
+	buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Modem Freq Set Ok\r");
+	return 1;
+}
+
+int UZ7HOSetModem(int port, struct TNCINFO * TNC, struct AGWINFO * AGW, PDATAMESSAGE buff, PMSGWITHLEN buffptr )
+{
+	int txlen = GetLengthfromBuffer(buff) - (MSGHDDRLEN + 1);
+
+	if (txlen == 6)
+	{
+		// Read Modem
+
+		if (AGW->ModemName[0])
+			buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Modem %s\r", AGW->ModemName);
+		else
+			buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Modem Number %d\r", AGW->Modem);
+
+		return 1;
+	}
+	else if (TNCInfo[MasterPort[port]]->AGWInfo->isQTSM == 3)
+	{
+		// Can send modem name to QTSM
+
+		char Buffer[32] = "";
+		int MsgLen = 32;
+
+		strlop(buff->L2DATA, '\r');
+		strlop(buff->L2DATA, '\n');
+
+		if (strlen(&buff->L2DATA[6]) > 20)
+			buff->L2DATA[26] = 0;
+
+		strcpy(&Buffer[4], &buff->L2DATA[6]);
+
+		AGW->TXHeader.Port = UZ7HOChannel[port];
+		AGW->TXHeader.DataKind = 'g';
+		memset(AGW->TXHeader.callfrom, 0, 10);
+		memset(AGW->TXHeader.callto, 0, 10);
+#ifdef __BIG_ENDIAN__
+		AGW->TXHeader.DataLength = reverse(MsgLen);
+#else
+		AGW->TXHeader.DataLength = MsgLen;
+#endif
+		send(TNCInfo[MasterPort[port]]->TCPSock, (char *)&AGW->TXHeader, AGWHDDRLEN, 0);
+		send(TNCInfo[MasterPort[port]]->TCPSock, Buffer, MsgLen, 0);
+	}
+#ifdef WIN32
+	else if (AGW->cbinfo.cbSize)
+	{
+		// Real QTSM on Windows
+
+		AGW->Modem = atoi(&buff->L2DATA[6]);
+
+		if (AGW->cbinfo.cbSize && AGW->cbinfo.hwndCombo)
+		{
+			// Set it
+
+			LRESULT ret = SendMessage(AGW->cbinfo.hwndCombo, CB_SETCURSEL, AGW->Modem, 0);
+			int pos = 13 * AGW->Modem + 7;
+
+			ret = SendMessage(AGW->cbinfo.hwndCombo, WM_LBUTTONDOWN, 1, 1);
+			ret = SendMessage(AGW->cbinfo.hwndCombo, WM_LBUTTONUP, 0, 1);
+			ret = SendMessage(AGW->cbinfo.hwndList, WM_LBUTTONDOWN, 1, pos << 16);
+			ret = SendMessage(AGW->cbinfo.hwndList, WM_LBUTTONUP, 0, pos << 16);
+			ret = 0;
+		}
+	}
+#endif
+	else
+	{
+		buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Sorry Setting UZ7HO params not supported this system\r");
+		return 1;
+	}
+
+	buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Modem Set Ok\r");
+	return 1;
+}
+
+
 static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 {
 	PMSGWITHLEN buffptr;
@@ -396,7 +537,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			// Stop Scanning
 
 			sprintf(Cmd, "%d SCANSTOP", TNC->Port);
-			Rig_Command(-1, Cmd);
+			Rig_Command( (TRANSPORTENTRY *) -1, Cmd);
 
 			SuspendOtherPorts(TNC);			// Prevent connects on other ports in same scan gruop
 
@@ -761,7 +902,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			{
 				sprintf(&buff->L2DATA[0], "%d %s", TNC->Port, &buff->L2DATA[6]);
 
-				if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK->CIRCUITINDEX, &buff->L2DATA[0]))
+				if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK, &buff->L2DATA[0]))
 				{
 				}
 				else
@@ -819,167 +960,20 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			{
 				PMSGWITHLEN buffptr = (PMSGWITHLEN)GetBuff();
 
-				// May be read or set frequency
-
-				if (txlen == 5)
-				{
-					// Read Freq
-
-					if (buffptr)
-					{
-						buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Modem Freqency %d\r", AGW->CenterFreq);
-						C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
-					}
-					return 1;
-				}
-
-				AGW->CenterFreq = atoi(&buff->L2DATA[5]);
-
-				if (AGW->CenterFreq == 0)
-				{
-					if (buffptr)
-					{
-						buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Invalid Modem Freqency\r");
-						C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
-					}
-					return 1;
-				}
-
-				if (TNCInfo[MasterPort[port]]->AGWInfo->isQTSM == 3)
-				{
-					// QtSM so can send Set Freq Command
-
-					char Buffer[32] = "";
-					int MsgLen = 32;
-
-					memcpy(Buffer, &AGW->CenterFreq, 4);
-
-					AGW->TXHeader.Port = UZ7HOChannel[port];
-					AGW->TXHeader.DataKind = 'g';
-					memset(AGW->TXHeader.callfrom, 0, 10);
-					memset(AGW->TXHeader.callto, 0, 10);
-#ifdef __BIG_ENDIAN__
-					AGW->TXHeader.DataLength = reverse(MsgLen);
-#else
-					AGW->TXHeader.DataLength = MsgLen;
-#endif
-					send(TNCInfo[MasterPort[port]]->TCPSock, (char *)&AGW->TXHeader, AGWHDDRLEN, 0);
-					send(TNCInfo[MasterPort[port]]->TCPSock, Buffer, MsgLen, 0);
-				}
-#ifdef WIN32
-				else if (AGW->hFreq)
-				{
-					//Using real UZ7HO on Windows
-
-					char Freq[16];
-					sprintf(Freq, "%d", AGW->CenterFreq - 1);
-
-					SendMessage(AGW->hFreq, WM_SETTEXT, 0, (LPARAM)Freq);
-					SendMessage(AGW->hSpin, WM_LBUTTONDOWN, 1, 1);
-					SendMessage(AGW->hSpin, WM_LBUTTONUP, 0, 1);
-				}
-#endif
-				else
-				{
-					if (buffptr)
-					{
-						buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Sorry Setting UZ7HO params not supported on this system\r");
-						C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
-					}
-
-					return 1;
-				}
-
 				if (buffptr)
 				{
-					buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Modem Freq Set Ok\r");
+					UZ7HOSetFreq(port, TNC, AGW, buff, buffptr);
 					C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 				}
-
 				return 1;
 			}
 
 			if (_memicmp(&buff->L2DATA[0], "MODEM", 5) == 0)
 			{
 				PMSGWITHLEN buffptr = (PMSGWITHLEN)GetBuff();
-
-				if (txlen == 6)
-				{
-					// Read Modem
-
-					if (buffptr)
-					{
-						if (AGW->ModemName[0])
-							buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Modem %s\r", AGW->ModemName);
-						else
-							buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Modem Number %d\r", AGW->Modem);
-
-						C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
-					}
-					return 1;
-				}
-				else if (TNCInfo[MasterPort[port]]->AGWInfo->isQTSM == 3)
-				{
-					// Can send modem name to QTSM
-
-					char Buffer[32] = "";
-					int MsgLen = 32;
-
-					strlop(buff->L2DATA, '\r');
-					strlop(buff->L2DATA, '\n');
-
-					if (strlen(&buff->L2DATA[6]) > 20)
-						buff->L2DATA[26] = 0;
-
-					strcpy(&Buffer[4], &buff->L2DATA[6]);
-
-					AGW->TXHeader.Port = UZ7HOChannel[port];
-					AGW->TXHeader.DataKind = 'g';
-					memset(AGW->TXHeader.callfrom, 0, 10);
-					memset(AGW->TXHeader.callto, 0, 10);
-#ifdef __BIG_ENDIAN__
-					AGW->TXHeader.DataLength = reverse(MsgLen);
-#else
-					AGW->TXHeader.DataLength = MsgLen;
-#endif
-					send(TNCInfo[MasterPort[port]]->TCPSock, (char *)&AGW->TXHeader, AGWHDDRLEN, 0);
-					send(TNCInfo[MasterPort[port]]->TCPSock, Buffer, MsgLen, 0);
-				}
-#ifdef WIN32
-				else if (AGW->cbinfo.cbSize)
-				{
-					// Real QTSM on Windows
-
-					AGW->Modem = atoi(&buff->L2DATA[6]);
-
-					if (AGW->cbinfo.cbSize && AGW->cbinfo.hwndCombo)
-					{
-						// Set it
-
-						LRESULT ret = SendMessage(AGW->cbinfo.hwndCombo, CB_SETCURSEL, AGW->Modem, 0);
-						int pos = 13 * AGW->Modem + 7;
-
-						ret = SendMessage(AGW->cbinfo.hwndCombo, WM_LBUTTONDOWN, 1, 1);
-						ret = SendMessage(AGW->cbinfo.hwndCombo, WM_LBUTTONUP, 0, 1);
-						ret = SendMessage(AGW->cbinfo.hwndList, WM_LBUTTONDOWN, 1, pos << 16);
-						ret = SendMessage(AGW->cbinfo.hwndList, WM_LBUTTONUP, 0, pos << 16);
-						ret = 0;
-					}
-				}
-#endif
-				else
-				{
-					if (buffptr)
-					{
-						buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Sorry Setting UZ7HO params not supported this system\r");
-						C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
-					}
-					return 1;
-				}
-
 				if (buffptr)
 				{
-					buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Modem Set Ok\r");
+					UZ7HOSetModem(port, TNC, AGW, buff, buffptr);
 					C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 				}
 				return 1;
@@ -2870,7 +2864,7 @@ VOID CloseComplete(struct TNCINFO * TNC, int Stream)
 	ReleaseOtherPorts(TNC);
 
 	sprintf(Status, "%d SCANSTART 15", TNC->Port);
-	Rig_Command(-1, Status);
+	Rig_Command( (TRANSPORTENTRY *) -1, Status);
 }
 
 static MESSAGE Monframe;		// I frames come in two parts.

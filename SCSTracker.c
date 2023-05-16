@@ -1037,7 +1037,7 @@ VOID DEDPoll(int Port)
 				TNC->SwitchToPactor = 0;						// Cancel any RP to Pactor switch
 
 				sprintf(Status, "%d SCANSTOP", TNC->Port);
-				Rig_Command(-1, Status);
+				Rig_Command( (TRANSPORTENTRY *) -1, Status);
 
 				SuspendOtherPorts(TNC);			// Prevent connects on other ports in same scan gruop
 			}
@@ -1314,7 +1314,7 @@ reinit:
 			{
 				sprintf(&Buffer[40], "%d %s", TNC->Port, &Buffer[6]);
 
-				if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK->CIRCUITINDEX, &Buffer[40]))
+				if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK, &Buffer[40]))
 				{
 					ReleaseBuffer(buffptr);
 				}
@@ -2027,7 +2027,7 @@ VOID TrkProcessDEDFrame(struct TNCINFO * TNC)
 					TNC->SwitchToPactor = 0;						// Cancel any RP to Pactor switch
 
 					sprintf(Status, "%d SCANSTOP", TNC->Port);
-					Rig_Command(-1, Status);
+					Rig_Command( (TRANSPORTENTRY *) -1, Status);
 
 					memcpy(MHCall, Call, 9);
 					MHCall[9] = 0;
@@ -2315,7 +2315,7 @@ VOID TrkProcessDEDFrame(struct TNCINFO * TNC)
 								Debugprintf("RP SABM is for NODECALL or one of our APPLCalls - setting MYCALL to %s and pausing scan", DestCall);
 
 								sprintf(Status, "%d SCANSTART 60", TNC->Port);	// Pause scan for 60 secs
-								Rig_Command(-1, Status);
+								Rig_Command( (TRANSPORTENTRY *) -1, Status);
 								
 								if ((TNC->RIG == &TNC->DummyRig || TNC->RIG == NULL) && TNC->RobustTime)
 									TNC->SwitchToPactor = 600;		// Don't change modes for 60 secs
@@ -2576,7 +2576,7 @@ VOID TrkCloseComplete(struct TNCINFO * TNC, int Stream)
 	TNC->WEB_CHANGED = TRUE;
 
 	
-	Rig_Command(-1, Status);
+	Rig_Command( (TRANSPORTENTRY *) -1, Status);
 
 	if (TNC->RIG == &TNC->DummyRig)		// Not using Rig control
 		TNC->SwitchToPactor = TNC->RobustTime;

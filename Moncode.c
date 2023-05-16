@@ -177,7 +177,7 @@ KC6OAR*>ID:
 
 	Port &= 0x7F;
 
-	if (((1ll << (Port - 1)) & Mask) == 0)		// Check MMASK
+	if (((1 << (Port - 1)) & Mask) == 0)		// Check MMASK
 		return 0;
 	
 

@@ -67,6 +67,7 @@ BOOL ToLOC(double Lat, double Lon , char * Locator);
 int GetPosnFromAPRS(char * Call, double * Lat, double * Lon);
 char * stristr (char *ch1, char *ch2);
 
+
 static RECT Rect;
 
 extern struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
@@ -1834,6 +1835,42 @@ BOOL UpdateWL2KSYSOPInfo(char * Call, char * SQL)
 
 // Process config lines that are common to a number of HF modes
 
+static char ** SeparateMultiString(char * MultiString)
+{
+	char ** Value;
+	int Count = 0;
+	char * ptr, * ptr1;
+
+	// Convert to string array
+
+	Value = zalloc(sizeof(void *));				// always NULL entry on end even if no values
+	Value[0] = NULL;
+
+	strlop(MultiString, 13);
+	ptr = MultiString;
+
+	while (ptr && strlen(ptr))
+	{
+		ptr1 = strchr(ptr, '|');
+			
+		if (ptr1)
+			*(ptr1++) = 0;
+
+		if (strlen(ptr))
+		{
+			Value = realloc(Value, (Count+2) * sizeof(void *));
+			Value[Count++] = _strdup(ptr);
+		}
+		ptr = ptr1;
+	}
+
+	Value[Count] = NULL;
+	return Value;
+}
+
+
+
+
 extern int nextDummyInterlock;
 
 int standardParams(struct TNCINFO * TNC, char * buf)
@@ -1855,6 +1892,8 @@ int standardParams(struct TNCINFO * TNC, char * buf)
 		TNC->LISTENCALLS = _strdup(&buf[8]);
 		strlop(TNC->LISTENCALLS, '\r');
 	}
+	else if (_memicmp(buf, "NRNEIGHBOUR", 11) == 0)
+		TNC->NRNeighbour = _strdup(&buf[12]);
 	else if (_memicmp(buf, "MAXCONREQ", 9) == 0)		// Hold Time for Busy Detect
 		TNC->MaxConReq = atoi(&buf[9]);
 
@@ -1878,6 +1917,8 @@ int standardParams(struct TNCINFO * TNC, char * buf)
 		TNC->ActiveTXFreq = atof(&buf[13]);
 	else if (_memicmp(buf, "ActiveRXFreq", 12) == 0)	// Set at start of session
 		TNC->ActiveRXFreq = atof(&buf[13]);
+	else if (_memicmp(buf, "DisconnectScript", 16) == 0)	// Set at start of session
+		TNC->DisconnectScript = SeparateMultiString(&buf[17]);
 	else if (_memicmp(buf, "PTTONHEX", 8) == 0)
 	{
 		// Hex String to use for PTT on for this port

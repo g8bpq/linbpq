@@ -1216,7 +1216,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 					sprintf(Msg, "%d SCANSTOP", TNC->Port);
 	
-					Rig_Command(-1, Msg);
+					Rig_Command( (TRANSPORTENTRY *) -1, Msg);
 				}
 				else
 				{
@@ -1468,7 +1468,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			{
 				sprintf(&buff->L2DATA[0], "%d %s", TNC->Port, &buff->L2DATA[6]);
 
-				if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK->CIRCUITINDEX, &buff->L2DATA[0]))
+				if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK, &buff->L2DATA[0]))
 				{
 				}
 				else
@@ -1863,11 +1863,11 @@ VOID ARDOPReleaseTNC(struct TNCINFO * TNC)
 	if (TNC->DefaultRadioCmd)
 	{
 		sprintf(TXMsg, "%d %s", TNC->Port, TNC->DefaultRadioCmd);
-		Rig_Command(-1, TXMsg);
+		Rig_Command( (TRANSPORTENTRY *) -1, TXMsg);
 	}
 
 	sprintf(TXMsg, "%d SCANSTART 15", TNC->Port);
-	Rig_Command(-1, TXMsg);
+	Rig_Command( (TRANSPORTENTRY *) -1, TXMsg);
 
 	ReleaseOtherPorts(TNC);
 
@@ -3116,7 +3116,7 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 
 					TidyClose(TNC, 0);
 					sprintf(Status, "%d SCANSTART 15", TNC->Port);
-					Rig_Command(-1, Status);
+					Rig_Command( (TRANSPORTENTRY *) -1, Status);
 					Debugprintf("ARDOP Call from %s rejected", Call);
 					return;
 				}
@@ -3141,7 +3141,7 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 
 						TidyClose(TNC, 0);
 						sprintf(Status, "%d SCANSTART 15", TNC->Port);
-						Rig_Command(-1, Status);
+						Rig_Command( (TRANSPORTENTRY *) -1, Status);
 						Debugprintf("ARDOP Call from %s not in ValidCalls - rejected", Call);
 						return;
 					}

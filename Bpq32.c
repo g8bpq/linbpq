@@ -1153,8 +1153,14 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix TNC Emulator Monitoring (53)
 //	Fix attach and connect on Telnet port bug introduced in .55 (56)
 //	Fix stopping WinRPR TNC and Start/Stop UZ7HO TNCX on Linux (57)
-//	Fix stack size in beginthread for MAC 
-
+//	Fix stack size in beginthread for MAC (58)
+//	Add NETROM over VARA (60)
+//	Add Disconnect Script (64)
+//	Add node commands to set UZ7HO modem mode and freq (64)
+//	Trap empty NODECALL or NETROMCALL(65)
+//	Trap NODES messages with empty From Call (65)
+//	Add RigControl for SDRConsole (66)
+//  Fix FLRig crash (66)
 
 #define CKernel
 
@@ -6604,6 +6610,4 @@ char * stristr (char *ch1, char *ch2)
 	free (chN2);
 	return chRet;
 }
-
-
 

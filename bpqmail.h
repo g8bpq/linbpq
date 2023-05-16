@@ -324,6 +324,9 @@ typedef struct ConnectionInfo_S
 #define WINLINKRO 0x020000				// WL2K RO (no J in SID)
 #define SYNCMODE  0x040000				// RMS RELAY SYNC
 #define MFJMODE   0x080000				// MFJ PMS
+#define NEWPACCOM 0x100000				// PACCOM PMS 3.2
+#define SETCALLTOSENDER 0x200000		// Set calling call to message sender
+
 
 struct FBBRestartData
 {

@@ -122,7 +122,7 @@ int decode_quoted_printable(char *ptr, int len);
 void decodeblock( unsigned char in[4], unsigned char out[3]);
 int encode_quoted_printable(char *s, char * out, int Len);
 int32_t Encode(char * in, char * out, int32_t inlen, BOOL B1Protocol, int Compress);
-
+int APIENTRY ChangeSessionCallsign(int Stream, unsigned char * AXCall);
 
 config_t cfg;
 config_setting_t * group;
@@ -7890,6 +7890,31 @@ BOOL ConnecttoBBS (struct UserInfo * user)
 			ConnectUsingAppl(conn->BPQStream, BBSApplMask);
 			FreeSemaphore(&ConSemaphore);
 
+			// If we are sending to a dump pms we may need to connect using the message sender's callsign.
+			// But we wont know until we run the connect script, which is a bit late to change call. Could add
+			// flag to forwarding config, but easier to look for SETCALLTOSENDER in the connect script.
+
+			if (strstr(ForwardingInfo->ConnectScript[0], "SETCALLTOSENDER"))
+			{
+				conn->SendB = conn->SendP = conn->SendT = conn->DoReverse = TRUE;
+				conn->MaxBLen = conn->MaxPLen = conn->MaxTLen = 99999999;
+				
+				if (FindMessagestoForward(conn) && conn->FwdMsg)
+				{
+					// We have a message to send
+
+					struct MsgInfo * Msg;
+					unsigned char AXCall[7];
+
+					Msg = conn->FwdMsg;
+					ConvToAX25(Msg->from, AXCall);
+					ChangeSessionCallsign(p, AXCall);
+
+					conn->BBSFlags |= TEXTFORWARDING | SETCALLTOSENDER | NEWPACCOM;
+					conn->NextMessagetoForward = 0;		// was set by FindMessages
+				}
+				conn->SendB = conn->SendP = conn->SendT = conn->DoReverse = FALSE;
+			}
 #ifdef LINBPQ
 			{
 				BPQVECSTRUC * SESS;	
@@ -8136,7 +8161,7 @@ InBand:
 
 		char * Cmd;
 
-		if (strcmp(Buffer, "*** CONNECTED TO SYNC ") != 0)
+		if (strstr(Buffer, "*** CONNECTED TO SYNC"))
 		{
 			char * IPAddr = &Buffer[22];
 			char * Port = strlop(IPAddr, ':');
@@ -8284,6 +8309,12 @@ InBand:
 			if (_memicmp(Cmd, "TEXTFORWARDING", 10) == 0)
 			{
 				conn->BBSFlags |= TEXTFORWARDING;			
+				goto CheckForEnd;
+			}
+
+			if (_memicmp(Cmd, "SETCALLTOSENDER", 15) == 0)
+			{
+				conn->BBSFlags |= TEXTFORWARDING | SETCALLTOSENDER;			
 				goto CheckForEnd;
 			}
 
@@ -8626,7 +8657,11 @@ CheckForSID:
 
 				Msg = conn->FwdMsg;
 		
-				nodeprintf(conn, "S%c %s @ %s < %s $%s\r", Msg->type, Msg->to,
+				if ((conn->BBSFlags & SETCALLTOSENDER))
+					nodeprintf(conn, "S%c %s @ %s \r", Msg->type, Msg->to,
+						(Msg->via[0]) ? Msg->via : conn->UserPointer->Call);
+				else
+					nodeprintf(conn, "S%c %s @ %s < %s $%s\r", Msg->type, Msg->to,
 						(Msg->via[0]) ? Msg->via : conn->UserPointer->Call, 
 						Msg->from, Msg->bid);
 			}
@@ -8834,6 +8869,12 @@ VOID Parse_SID(CIRCUIT * conn, char * SID, int len)
 		conn->OpenBCM = TRUE;
 	}
 
+	if (_memicmp(SID, "PMS-3.2", 7) == 0)
+	{
+		// Paccom TNC that doesn't send newline prompt ater receiving subject
+
+		conn->BBSFlags |= NEWPACCOM;
+	}
 
 	// See if BPQ for selective forwarding 
 
@@ -11262,8 +11303,12 @@ VOID ProcessTextFwdLine(ConnectionInfo * conn, struct UserInfo * user, char * Bu
 	Buffer[len] = 0;
 //	Debugprintf(Buffer);
 
-	if (len == 1 && Buffer[0] == 13)
-		return;
+	// With TNC2 body prompt is a single CR, so that shouldn't be ignored.
+
+	// If thia causes problems with other TNC PMS implementations I'll have to revisit this
+
+//	if (len == 1 && Buffer[0] == 13)
+//		return;
 
 	if (conn->Flags & SENDTITLE)
 	{	
@@ -11275,7 +11320,10 @@ VOID ProcessTextFwdLine(ConnectionInfo * conn, struct UserInfo * user, char * Bu
 		
 		conn->Flags &= ~SENDTITLE;
 		conn->Flags |= SENDBODY;
-		return;
+
+		// New Paccom PMS (V3.2) doesn't prompt for body so drop through and send it
+		if ((conn->BBSFlags & NEWPACCOM) == 0)
+			return;
 
 	}
 	
@@ -11390,13 +11438,34 @@ VOID ProcessTextFwdLine(ConnectionInfo * conn, struct UserInfo * user, char * Bu
 		if (FindMessagestoForward(conn) && conn->FwdMsg)
 		{
 			struct MsgInfo * Msg;
-				
+
+			// If we are using SETCALLTOSENDER make sure this message is from the same sender
+
+#ifdef LINBPQ
+			BPQVECSTRUC * SESS = &BPQHOSTVECTOR[0];
+#else
+			BPQVECSTRUC * SESS = (BPQVECSTRUC *)BPQHOSTVECPTR;
+#endif
+			unsigned char AXCall[7];
+
+			Msg = conn->FwdMsg;	
+			ConvToAX25(Msg->from, AXCall);
+			if (memcmp(SESS[conn->BPQStream - 1].HOSTSESSION->L4USER, AXCall, 7) != 0)
+			{
+				Disconnect(conn->BPQStream);
+				return;
+			}
+
 			// Send S line and wait for response - SB WANT @ USA < W8AAA $1029_N0XYZ 
 
 			conn->Flags |= SENDTITLE;
-			Msg = conn->FwdMsg;
-		
-			nodeprintf(conn, "S%c %s @ %s < %s $%s\r", Msg->type, Msg->to,
+
+
+			if ((conn->BBSFlags & SETCALLTOSENDER))
+				nodeprintf(conn, "S%c %s @ %s \r", Msg->type, Msg->to,
+						(Msg->via[0]) ? Msg->via : conn->UserPointer->Call);
+			else
+				nodeprintf(conn, "S%c %s @ %s < %s $%s\r", Msg->type, Msg->to,
 						(Msg->via[0]) ? Msg->via : conn->UserPointer->Call, 
 						Msg->from, Msg->bid);
 		}

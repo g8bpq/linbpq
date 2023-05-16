@@ -187,7 +187,7 @@ static size_t ExtProc(int fn, int port,  PDATAMESSAGE buff)
 			// Stop Scanning
 
 			sprintf(Cmd, "%d SCANSTOP", TNC->Port);
-			Rig_Command(-1, Cmd);
+			Rig_Command( (TRANSPORTENTRY *) -1, Cmd);
 
 			len = sprintf(Cmd, "%cSTOP_BEACON_ARQ_FAE\x1b", '\x1a');
 	
@@ -415,7 +415,7 @@ static size_t ExtProc(int fn, int port,  PDATAMESSAGE buff)
 			{
 				sprintf(buff->L2DATA, "%d %s", TNC->Port, &buff->L2DATA[6]);
 
-				if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK->CIRCUITINDEX, buff->L2DATA))
+				if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK, buff->L2DATA))
 				{
 				}
 				else
@@ -1537,7 +1537,7 @@ VOID CloseComplete(struct TNCINFO * TNC, int Stream)
 	int Len;
 
 	sprintf(Cmd, "%d SCANSTART 15", TNC->Port);
-	Rig_Command(-1, Cmd);
+	Rig_Command( (TRANSPORTENTRY *) -1, Cmd);
 
 	Cmd[0] = 0;
 	

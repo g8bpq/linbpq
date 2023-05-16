@@ -72,6 +72,7 @@ extern BOOL LogAllConnects;
 
 extern VOID * ENDBUFFERPOOL;
 
+
 //	Read/Write length field in a buffer header
 
 //	Needed for Big/LittleEndian and ARM5 (unaligned operation problem) portability
@@ -777,7 +778,7 @@ NotConnected:
 			char Msg[128];
 
 			sprintf(Msg, "R%d %f", TNC->RXRadio, TNC->DefaultRXFreq);
-			Rig_Command(-1, Msg);
+			Rig_Command( (TRANSPORTENTRY *) -1, Msg);
 		}
 
 		if (TNC->DefaultTXFreq && TNC->TXRadio && TNC->TXRadio != TNC->RXRadio)
@@ -785,7 +786,7 @@ NotConnected:
 			char Msg[128];
 
 			sprintf(Msg, "R%d %f", TNC->TXRadio, TNC->DefaultTXFreq);
-			Rig_Command(-1, Msg);
+			Rig_Command( (TRANSPORTENTRY *) -1, Msg);
 		}
 
 		while(STREAM->BPQtoPACTOR_Q)
@@ -927,7 +928,7 @@ BOOL ProcessIncommingConnectEx(struct TNCINFO * TNC, char * Call, int Stream, BO
 
 		sprintf(Msg, "%d SCANSTOP", TNC->Port);
 
-		Rig_Command(-1, Msg);
+		Rig_Command( (TRANSPORTENTRY *) -1, Msg);
 
 		UpdateMH(TNC, Call, '+', 'I');
 	}

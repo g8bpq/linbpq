@@ -1629,7 +1629,7 @@ static VOID ProcessDEDFrame(struct TNCINFO * TNC)
 								Debugprintf("RP SABM is for NODECALL or one of our APPLCalls - setting MYCALL to %s and pausing scan", DestCall);
 
 								sprintf(Status, "%d SCANSTART 60", TNC->Port);	// Pause scan for 60 secs
-								Rig_Command(-1, Status);
+								Rig_Command( (TRANSPORTENTRY *) -1, Status);
 								TNC->SwitchToPactor = 600;		// Don't change modes for 60 secs
 
 								strcpy(STREAM->MyCall, DestCall);

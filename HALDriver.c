@@ -765,7 +765,7 @@ VOID HALPoll(int Port)
 
 		sprintf(Msg, "%d SCANSTOP", TNC->Port);
 		
-		Rig_Command(-1, Msg);
+		Rig_Command( (TRANSPORTENTRY *) -1, Msg);
 
 		SendCmd(TNC, "\x42", 1);		// Connect Enable off
 
@@ -820,7 +820,7 @@ VOID HALPoll(int Port)
 
 			sprintf(Status, "%d SCANSTART 15", TNC->Port);
 		
-			Rig_Command(-1, Status);
+			Rig_Command( (TRANSPORTENTRY *) -1, Status);
 
 			return;
 		}
@@ -894,7 +894,7 @@ VOID HALPoll(int Port)
 				if (memcmp(MsgPtr, "RADIO ", 6) == 0)
 				{
 					sprintf(&MsgPtr[40], "%d %s", TNC->Port, &MsgPtr[6]);
-					if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK->CIRCUITINDEX, &MsgPtr[40]))
+					if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK, &MsgPtr[40]))
 					{
 						ReleaseBuffer(buffptr);
 					}
@@ -1764,7 +1764,7 @@ BOOL HALConnected(struct TNCINFO * TNC, char * Call)
 
 	sprintf(Msg, "%d SCANSTOP", TNC->Port);
 		
-	Rig_Command(-1, Msg);
+	Rig_Command( (TRANSPORTENTRY *) -1, Msg);
 
 	ShowTraffic(TNC);
 

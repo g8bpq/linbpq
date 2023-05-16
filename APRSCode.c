@@ -4386,6 +4386,7 @@ Lost:
 	}
 }
 
+int GPSDAlerted = 0;
 
 static VOID GPSDConnect(void * unused)
 {
@@ -4426,7 +4427,8 @@ static VOID GPSDConnect(void * unused)
    		printf("GPSD Connected\n");
 #else
    		Debugprintf("GPSD Connected");
-#endif		
+#endif	
+		GPSDAlerted = 0;
 		ioctl(TCPSock, FIONBIO, &param);
 
 		// Request data 
@@ -4436,11 +4438,13 @@ static VOID GPSDConnect(void * unused)
 	else
 	{
 		err=WSAGetLastError();
+   		if (GPSDAlerted == 0)
 #ifdef LINBPQ
-   		printf("GPSD Connect Failed - error code = %d\n", err);
+   			printf("GPSD Connect Failed - error code = %d\n", err);
 #else
-   		Debugprintf("GPSD Connect Failed - error code = %d", err);
-#endif		
+			Debugprintf("GPSD Connect Failed - error code = %d", err);
+#endif
+		GPSDAlerted = 1;
 		closesocket(TCPSock);
 		GPSDOK = FALSE;
 

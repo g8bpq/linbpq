@@ -528,6 +528,13 @@ BOOL ProcessConfig()
 	   GetNextLine(rec);
 	}
 
+	if (xxcfg.C_NODECALL[0] == ' ')		
+	{
+	   Consoleprintf("Missing NODECALL");
+	   heading = 1;
+	}
+
+
 	paramok[6]=1;          /* dont need BUFFERS */
 	paramok[8]=1;          /* dont need TRANSDELAY */
 	paramok[13]=1;			// NodeAlias 

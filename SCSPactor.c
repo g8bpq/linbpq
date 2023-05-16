@@ -1340,7 +1340,7 @@ VOID SCSPoll(int Port)
 				sprintf(Status, "%d SCANSTOP", TNC->Port);
 				TNC->SwitchToPactor = 0;						// Cancel any RP to Pactor switch
 
-				Rig_Command(-1, Status);
+				Rig_Command((TRANSPORTENTRY *) -1, Status);
 			}
 			else
 			{
@@ -1927,7 +1927,7 @@ VOID SCSPoll(int Port)
 			{
 				sprintf(&Buffer[40], "%d %s", TNC->Port, &Buffer[6]);
 
-				if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK->CIRCUITINDEX, &Buffer[40]))
+				if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK, &Buffer[40]))
 				{
 					ReleaseBuffer(buffptr);
 				}
@@ -3368,7 +3368,7 @@ VOID ProcessDEDFrame(struct TNCINFO * TNC, UCHAR * Msg, int framelen)
 					TNC->SwitchToPactor = 0;						// Cancel any RP to Pactor switch
 
 					sprintf(Status, "%d SCANSTOP", TNC->Port);
-					Rig_Command(-1, Status);
+					Rig_Command((TRANSPORTENTRY *) -1, Status);
 
 					SuspendOtherPorts(TNC);			// Prevent connects on other ports in same scan gruop
 
@@ -3394,7 +3394,7 @@ VOID ProcessDEDFrame(struct TNCINFO * TNC, UCHAR * Msg, int framelen)
 						{
 							TidyClose(TNC, Stream);
 							sprintf(Status, "%d SCANSTART 15", TNC->Port);
-							Rig_Command(-1, Status);
+							Rig_Command((TRANSPORTENTRY *) -1, Status);
 							Debugprintf("SCS Call from %s rejected", MHCall);
 							return;
 						}
@@ -3422,7 +3422,7 @@ VOID ProcessDEDFrame(struct TNCINFO * TNC, UCHAR * Msg, int framelen)
 
 								TidyClose(TNC, 0);
 								sprintf(Status, "%d SCANSTART 15", TNC->Port);
-								Rig_Command(-1, Status);
+								Rig_Command((TRANSPORTENTRY *) -1, Status);
 								Debugprintf("Pactor Call from %s not in ValidCalls - rejected", Call);
 								return;
 							}
@@ -3557,7 +3557,7 @@ VOID ProcessDEDFrame(struct TNCINFO * TNC, UCHAR * Msg, int framelen)
 								Debugprintf("RP SABM is for NODECALL or one of our APPLCalls - setting MYCALL to %s and pausing scan", DestCall);
 
 								sprintf(Status, "%d SCANSTART 30", TNC->Port);
-								Rig_Command(-1, Status);
+								Rig_Command((TRANSPORTENTRY *) -1, Status);
 								TNC->SwitchToPactor = 0;		// Stay in RP
 				
 								strcpy(STREAM->MyCall, DestCall);
@@ -4120,7 +4120,7 @@ VOID CloseComplete(struct TNCINFO * TNC, int Stream)
 		SetWindowText(TNC->xIDC_TNCSTATE, "Free");
 		strcpy(TNC->WEB_TNCSTATE, "Free");
 		sprintf(Status, "%d SCANSTART 15", TNC->Port);
-		Rig_Command(-1, Status);
+		Rig_Command((TRANSPORTENTRY *) -1, Status);
 
 		if (TNC->Dragon)
 		{

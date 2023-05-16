@@ -32,6 +32,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include <fcntl.h>					 
 
 #include "CHeaders.h"
+#include "tncinfo.h"
 
 extern BPQVECSTRUC BPQHOSTVECTOR[];
 #define BPQHOSTSTREAMS 64
@@ -65,6 +66,7 @@ VOID ProcessINP3RIF(struct ROUTE * Route, UCHAR * ptr1, int msglen, int Port);
 VOID ProcessRTTMsg(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Buff, int Len, int Port);
 VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask, UCHAR * ApplCall);
 void WriteConnectLog(char * fromCall, char * toCall, UCHAR * Mode);
+void SendVARANetromMsg(struct TNCINFO * TNC, PL3MESSAGEBUFFER MSG);
 
 extern UINT APPLMASK;
 
@@ -440,7 +442,7 @@ VOID SENDL4CONNECT(TRANSPORTENTRY * Session)
 
 	if (DEST->DEST_CALL[0] == 0)
 	{
-		Debugprintf("Trying to send L4CREEQ to NULL Destination");
+		Debugprintf("Trying to send L4CREQ to NULL Destination");
 		ReleaseBuffer(MSG);
 		return;
 	}
@@ -593,7 +595,7 @@ VOID L4BG()
 			{
 				SENDL4MESSAGE(L4, Msg);
 				ReleaseBuffer(Msg);
-				break;
+				continue;
 			}
 
 			LINK = L4->L4TARGET.LINK;
@@ -1387,6 +1389,8 @@ VOID SendConACK(struct _LINKTABLE * LINK, TRANSPORTENTRY * L4, L3MESSAGEBUFFER *
 {
 	//	SEND CONNECT ACK	
 
+	struct TNCINFO * TNC;
+
 	L4CONNECTSIN++;
 	
 	L3MSG->L4TXNO = L4->CIRCUITINDEX;
@@ -1457,7 +1461,12 @@ VOID SendConACK(struct _LINKTABLE * LINK, TRANSPORTENTRY * L4, L3MESSAGEBUFFER *
 		L3MSG->LENGTH++;
 	}
 
-	C_Q_ADD(&LINK->TX_Q, L3MSG);
+	TNC = LINK->LINKPORT->TNC;
+
+	if (TNC && TNC->NetRomMode)
+		SendVARANetromMsg(TNC, L3MSG);
+	else
+		C_Q_ADD(&LINK->TX_Q, L3MSG);
 }
 
 int FINDCIRCUIT(L3MESSAGEBUFFER * L3MSG, TRANSPORTENTRY ** REQL4, int * NewIndex)
@@ -1697,6 +1706,7 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 	L3MESSAGEBUFFER * Saved;
 	L3MESSAGEBUFFER ** Prev;
 	char Call[10];
+	struct TNCINFO * TNC;
 
 	L4FRAMESRX++;
 
@@ -1838,7 +1848,12 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 		 L3SWAPADDRESSES(L3MSG);				// EXCHANGE SOURCE AND DEST
 		 L3MSG->L3TTL = L3LIVES;
 
-		 C_Q_ADD(&LINK->TX_Q, L3MSG);
+		TNC = LINK->LINKPORT->TNC;
+
+		if (TNC && TNC->NetRomMode)
+			SendVARANetromMsg(TNC, L3MSG);
+		else
+			C_Q_ADD(&LINK->TX_Q, L3MSG);
 
 		 CloseSessionPartner(L4);				// SEND CLOSE TO PARTNER (IF PRESENT)
 		 return;

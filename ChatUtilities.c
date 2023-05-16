@@ -346,6 +346,8 @@ char * ReadInfoFile(char * File)
 
 	// First remove cr from crlf
 
+	ptr1 = MsgBytes;
+
 	while(ptr2 = strstr(ptr1, "\r\n"))
 	{
 		memmove(ptr2, ptr2 + 1, strlen(ptr2));

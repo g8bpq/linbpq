@@ -467,7 +467,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 			sprintf(Msg, "%d SCANSTOP", TNC->Port);
 	
-			Rig_Command(-1, Msg);
+			Rig_Command( (TRANSPORTENTRY *) -1, Msg);
 
 		}
 
@@ -628,7 +628,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			{
 				sprintf(buff->L2DATA, "%d %s", TNC->Port, &buff->L2DATA[6]);
 
-				if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK->CIRCUITINDEX, buff->L2DATA))
+				if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK, buff->L2DATA))
 				{
 				}
 				else

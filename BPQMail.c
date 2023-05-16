@@ -1110,6 +1110,9 @@
 //	Fix Webmail auto-refresh when page exceeds 64K bytes (54)
 //	Fix Webmail send when using both headers/footers and attachmonts (55)
 //	Fix R: line corruption on some 64 bit builds
+//	Dont drop empty lines inm TEXTFORWARDING (61)
+//	Dont wait for body prompt for TEXTFORWARDING for SID [PMS-3.2-C$] (62)
+//	Add forwarding mode SETCALLTOSENDER for PMS Systems that don't accept < in SP (63)
 
 #include "bpqmail.h"
 #define MAIL

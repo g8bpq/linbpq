@@ -4970,7 +4970,7 @@ int DataSocket_ReadHTTP(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, S
 				char RigCMD[64];
 				
 				sprintf(RigCMD, "%s PTT", &MsgPtr[6]);
-				Rig_Command(-1, RigCMD);
+				Rig_Command( (TRANSPORTENTRY *) -1, RigCMD);
 			}
 			else if (memcmp(sockptr->WebURL, "WMRefresh", 9) == 0)
 			{
@@ -5521,8 +5521,11 @@ int Telnet_Connected(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, SOCK
 			}
 			else
 			{
-				buffptr->Len = sprintf(&buffptr->Data[0], "Connected to %s\r",
-					TNC->PortRecord->ATTACHEDSESSIONS[Stream]->L4CROSSLINK->APPL);
+				if (TNC->PortRecord->ATTACHEDSESSIONS[Stream]->L4CROSSLINK->APPL[0])
+					buffptr->Len = sprintf(&buffptr->Data[0], "*** Connected to %s\r",
+						TNC->PortRecord->ATTACHEDSESSIONS[Stream]->L4CROSSLINK->APPL);
+				else
+					buffptr->Len = sprintf(&buffptr->Data[0], "*** Connected to APPL\r");
 
 				if (sockptr->NoCallsign == FALSE)
 					send(sockptr->socket, Signon, sprintf(Signon, "%s\r\n", TNC->Streams[Stream].MyCall), 0);

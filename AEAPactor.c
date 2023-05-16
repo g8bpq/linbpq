@@ -731,7 +731,7 @@ VOID AEAPoll(int Port)
 
 		sprintf(Msg, "%d SCANSTOP", TNC->Port);
 		
-		Rig_Command(-1, Msg);
+		Rig_Command( (TRANSPORTENTRY *) -1, Msg);
 
 		// Shouldn't we also take out of standby mode?? PN is Pactor Listen, for monitoring
 
@@ -795,7 +795,7 @@ VOID AEAPoll(int Port)
 
 			sprintf(Status, "%d SCANSTART 15", TNC->Port);
 		
-			Rig_Command(-1, Status);
+			Rig_Command( (TRANSPORTENTRY *) -1, Status);
 
 			return;
 		}
@@ -910,7 +910,7 @@ VOID AEAPoll(int Port)
 				if ((Stream == 0) && memcmp(MsgPtr, "RADIO ", 6) == 0)
 				{
 					sprintf(&MsgPtr[40], "%d %s", TNC->Port, &MsgPtr[6]);
-					if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK->CIRCUITINDEX, &MsgPtr[40]))
+					if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK, &MsgPtr[40]))
 					{
 						ReleaseBuffer(buffptr);
 					}
@@ -1434,7 +1434,7 @@ static VOID ProcessAEAPacket(struct TNCINFO * TNC, UCHAR * Msg, size_t Len)
 				
 				sprintf(Msg, "%d SCANSTOP", TNC->Port);
 
-				Rig_Command(-1, Msg);
+				Rig_Command( (TRANSPORTENTRY *) -1, Msg);
 
 				ShowTraffic(TNC);
 

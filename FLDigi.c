@@ -200,7 +200,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			// Stop Scanning
 
 			sprintf(Cmd, "%d SCANSTOP", TNC->Port);
-			Rig_Command(-1, Cmd);
+			Rig_Command( (TRANSPORTENTRY *) -1, Cmd);
 
 			sprintf(TNC->WEB_TNCSTATE, "In Use by %s", TNC->Streams[0].MyCall);
 			SetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
@@ -536,7 +536,7 @@ pollloop:
 			{
 				sprintf(&buff->L2DATA[0], "%d %s", TNC->Port, &buff->L2DATA[6]);
 
-				if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK->CIRCUITINDEX, &buff->L2DATA[0]))
+				if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK, &buff->L2DATA[0]))
 				{
 				}
 				else
@@ -3214,7 +3214,7 @@ VOID FLReleaseTNC(struct TNCINFO * TNC)
 				
 	sprintf(TXMsg, "%d SCANSTART 15", TNC->Port);
 
-	Rig_Command(-1, TXMsg);
+	Rig_Command( (TRANSPORTENTRY *) -1, TXMsg);
 
 	ReleaseOtherPorts(TNC);
 

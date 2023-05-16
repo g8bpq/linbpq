@@ -50,6 +50,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include <fcntl.h>
 
 #include "CHeaders.h"
+#include "tncinfo.h"
 
 VOID UPDATEDESTLIST();
 VOID MOVEALL(dest_list * DEST);
@@ -57,10 +58,14 @@ VOID MOVE3TO2(dest_list * DEST);
 VOID CLEARTHIRD(dest_list * DEST);
 VOID L3TRYNEXTDEST(struct ROUTE * ROUTE);
 VOID SendNETROMRoute(struct PORTCONTROL * PORT, unsigned char * axcall);
+void SendVARANetromNodes(struct TNCINFO * TNC, MESSAGE *Buffer);
+void SendVARANetromMsg(struct TNCINFO * TNC,L3MESSAGEBUFFER * Buffer);
 
 extern BOOL NODESINPROGRESS ;;
 PPORTCONTROL L3CURRENTPORT;
 extern dest_list * CURRENTNODE;
+
+extern struct TNCINFO * TNCInfo[41];
 
 int L3_10SECS = 10;
 
@@ -73,6 +78,7 @@ VOID L3BG()
 	struct DEST_LIST * DEST = DESTS;		// NODE LIST
 	struct PORTCONTROL * PORT = PORTTABLE;
 	struct ROUTE * ROUTE;
+	struct TNCINFO * TNC;
 
 	struct _LINKTABLE * LINK;
 
@@ -87,6 +93,20 @@ VOID L3BG()
 				if (ActiveRoute)
 				{
 					ROUTE = DEST->NRROUTE[ActiveRoute - 1].ROUT_NEIGHBOUR;
+
+					// if NetROM over VARA pass direct to the driver
+
+					if (ROUTE)
+					{
+						TNC = TNCInfo[ROUTE->NEIGHBOUR_PORT];
+
+						if (TNC && TNC->NetRomMode)
+						{
+							PL3MESSAGEBUFFER MSG = (PL3MESSAGEBUFFER)Q_REM(&DEST->DEST_Q);
+							SendVARANetromMsg(TNC, MSG);
+							return;
+						}
+					}
 					if (ROUTE)
 						LINK = ROUTE->NEIGHBOUR_LINK;
 					else
@@ -138,6 +158,7 @@ BOOL ACTIVATE_DEST(struct DEST_LIST * DEST)
 	struct PORTCONTROL * PORT = PORTTABLE;
 	struct ROUTE * ROUTE;
 	struct _LINKTABLE * LINK;
+	struct TNCINFO * TNC;
 
 	int ActiveRoute;
 
@@ -163,6 +184,15 @@ BOOL ACTIVATE_DEST(struct DEST_LIST * DEST)
 
 		DEST->DEST_ROUTE = 4;			// First INP3
 		ROUTE = DEST->ROUTE[0].ROUT_NEIGHBOUR;
+	}
+
+	// if NetROM over VARA conection is made by the driver
+
+	TNC = TNCInfo[ROUTE->NEIGHBOUR_PORT];
+
+	if (TNC && TNC->NetRomMode)
+	{
+		return TRUE;
 	}
 
 	LINK = ROUTE->NEIGHBOUR_LINK; 
@@ -236,6 +266,12 @@ VOID PROCESSNODEMESSAGE(MESSAGE * Msg, struct PORTCONTROL * PORT)
 	}
 
 	Msg->ORIGIN[6] &= 0x1E;			// MASK OFF LAST ADDR BIT
+
+	// Trap Empty Call
+
+	if (Msg->ORIGIN[0] == 0x40)
+		return;
+
 /*
 	// validate call	ptr = &Buffer->ORIGIN[0];
 	n = 6;
@@ -726,8 +762,9 @@ VOID SENDNEXTNODESFRAGMENT()
 
 		fragmentCount = 0;
 
+		// Don't send NODES to Shared TX or INP3 Port
+
 		while (PORT->PORTQUALITY == 0 || PORT->TXPORT || PORT->INP3ONLY)
-			// Don't send NODES to Shared TX or INP3 Port
 		{
 			// No NODES to this port, so go to next
 
@@ -808,7 +845,7 @@ VOID SENDNEXTNODESFRAGMENT()
 			goto Sendit;
 		}
 
-		if (DEST->NRROUTE[0].ROUT_QUALITY >= TXMINQUAL &&
+		if (DEST->DEST_CALL[0] != 0x40 && DEST->NRROUTE[0].ROUT_QUALITY >= TXMINQUAL &&
 			DEST->NRROUTE[0].ROUT_OBSCOUNT >= OBSMIN &&
 			(NODE == 1 || DEST->DEST_STATE & 0x80))			// Only send appl nodes if DEST = 0;
 		{		
@@ -856,7 +893,11 @@ Sendit:
 
 	if (Buffer->LENGTH > 35 || fragmentCount == 0)		// Always send first even if no other nodes
 	{
-		PUT_ON_PORT_Q(PORT, Buffer);
+		if (PORT->TNC && PORT->TNC->Hardware == H_VARA)
+			SendVARANetromNodes(PORT->TNC, Buffer);
+		else
+			PUT_ON_PORT_Q(PORT, Buffer);
+
 		fragmentCount++;
 	}
 	else
@@ -1020,9 +1061,14 @@ VOID L3FastTimer()
 	//	ID MESSAGE SEQUENCE
 
 	MESSAGE * Msg;
-	struct PORTCONTROL * PORT ;
+	struct PORTCONTROL * PORT = PORTTABLE;
 
 	INP3TIMER();
+
+	// Send Node faster if VARA
+
+	if (NODESINPROGRESS && L3CURRENTPORT->TNC && L3CURRENTPORT->TNC->NetRomMode)
+		SENDNEXTNODESFRAGMENT();
 
 	L3_10SECS--;
 

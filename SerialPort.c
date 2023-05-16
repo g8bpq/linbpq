@@ -390,7 +390,7 @@ ok:
 
 				sprintf(Msg, "%d SCANSTOP", TNC->Port);
 	
-				Rig_Command(-1, Msg);
+				Rig_Command( (TRANSPORTENTRY *) -1, Msg);
 			}
 				
 			if (STREAM->Attached)
@@ -519,7 +519,7 @@ ok:
 		{
 			sprintf(&buff->L2DATA[0], "%d %s", TNC->Port, &buff->L2DATA[6]);
 
-			if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK->CIRCUITINDEX, &buff->L2DATA[0]))
+			if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK, &buff->L2DATA[0]))
 			{
 			}
 			else
@@ -724,7 +724,7 @@ VOID SerialReleaseTNC(struct TNCINFO * TNC)
 				
 	sprintf(TXMsg, "%d SCANSTART 15", TNC->Port);
 
-	Rig_Command(-1, TXMsg);
+	Rig_Command( (TRANSPORTENTRY *) -1, TXMsg);
 
 	ReleaseOtherPorts(TNC);
 

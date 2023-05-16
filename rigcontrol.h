@@ -195,6 +195,7 @@ struct RIGINFO
 #define FT991A 15			// 991A is a varient of FT2000 but easier to have own type
 #define RTLUDP 16
 #define FLRIG 17
+#define SDRRADIO 18
 
 // Yease seem to have lots of variants of the same model
 

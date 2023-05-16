@@ -122,6 +122,9 @@ VOID FLRIGPoll(struct RIGPORTINFO * PORT);
 void ProcessFLRIGFrame(struct RIGPORTINFO * PORT);
 VOID FLRIGSendCommand(struct RIGPORTINFO * PORT, char * Command, char * Value);
 
+VOID ProcessSDRRadioFrame(struct RIGPORTINFO * PORT, int Length);
+VOID SDRRadioPoll(struct RIGPORTINFO * PORT);
+
 VOID SetupPortRIGPointers();
 VOID PTTCATThread(struct RIGINFO *RIG);
 VOID ConnecttoHAMLIB(struct RIGPORTINFO * PORT);
@@ -682,9 +685,9 @@ void saveNewFreq(struct RIGINFO * RIG, double Freq, char * Mode)
 
 // Need version that doesn't need Port Number
 
-int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, int Session, char * Command);
+int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTRY * Session, char * Command);
 
-int Rig_Command(int Session, char * Command)
+int Rig_Command(TRANSPORTENTRY * Session, char * Command)
 {
 	char * ptr;
 	int i, n, p, Port;
@@ -705,8 +708,7 @@ int Rig_Command(int Session, char * Command)
 		{
 			if (CheckOneTimePassword(&Command[5], AuthPassword))
 			{
-				L4 += Session;
-				L4->Secure_Session = 1;
+				Session->Secure_Session = 1;
 
 				sprintf(Command, "Ok\r");
 
@@ -720,11 +722,9 @@ int Rig_Command(int Session, char * Command)
 		return FALSE;
 	}
 
-	if (Session != -1)				// Used for internal Stop/Start
+	if (Session != (TRANSPORTENTRY *) -1)				// Used for internal Stop/Start
 	{		
-		L4 += Session;
-
-		if (L4->Secure_Session == 0)
+		if (Session->Secure_Session == 0)
 		{
 			sprintf(Command, "Sorry - you are not allowed to use this command\r");
 			return FALSE;
@@ -802,7 +802,7 @@ static char Req[] = "<?xml version=\"1.0\"?>\r\n"
 
 
 
-int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, int Session, char * Command)
+int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTRY * Session, char * Command)
 {
 	int n, ModeNo, Filter, Port = 0;
 	double Freq = 0.0;
@@ -833,8 +833,7 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, int Session, 
 		{
 			if (CheckOneTimePassword(&Command[5], AuthPassword))
 			{
-				L4 += Session;
-				L4->Secure_Session = 1;
+				Session->Secure_Session = 1;
 
 				sprintf(Command, "Ok\r");
 
@@ -848,11 +847,9 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, int Session, 
 		return FALSE;
 	}
 
-	if (Session != -1)				// Used for internal Stop/Start
+	if (Session != (TRANSPORTENTRY *) -1)				// Used for internal Stop/Start
 	{		
-		L4 += Session;
-
-		if (L4->Secure_Session == 0)
+		if (Session->Secure_Session == 0)
 		{
 			sprintf(Command, "Sorry - you are not allowed to use this command\r");
 			return FALSE;
@@ -903,7 +900,7 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, int Session, 
 			{
 				RIG->ScanStopped &= (0xffffffff ^ (1 << Port));
 
-				if (Session != -1)				// Used for internal Stop/Start
+				if (Session != (TRANSPORTENTRY *) -1)				// Used for internal Stop/Start
 					RIG->ScanStopped &= 0xfffffffe; // Clear Manual Stopped Bit
 
 				if (n > 2)
@@ -933,7 +930,7 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, int Session, 
 		{
 			RIG->ScanStopped |= (1 << Port);
 
-			if (Session != -1)				// Used for internal Stop/Start
+			if (Session != (TRANSPORTENTRY *) -1)				// Used for internal Stop/Start
 				RIG->ScanStopped |= 1;		// Set Manual Stopped Bit
 
 			MySetWindowText(RIG->hSCAN, "");
@@ -954,7 +951,7 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, int Session, 
 
 	if (RIG->RIGOK == 0)
 	{
-		if (Session != -1)
+		if (Session != (TRANSPORTENTRY *) -1)
 		{
 			if (PORT->Closed)
 				sprintf(Command, "Sorry - Radio port closed\r");
@@ -982,8 +979,15 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, int Session, 
 		return FALSE;
 	}
 
-	RIG->Session = Session;		// BPQ Stream
-	RIG->PollCounter = 50;		// Dont read freq for 5 secs in case clash with Poll
+	if (Session != (void *)-1)
+	{
+		if (Session->CIRCUITINDEX == 255)
+			RIG->Session = -1;
+		else
+			RIG->Session = Session->CIRCUITINDEX;		// BPQ Stream
+	
+		RIG->PollCounter = 50;		// Dont read freq for 5 secs in case clash with Poll
+	}
 
 	if (_stricmp(FreqString, "TUNE") == 0)
 	{
@@ -1834,11 +1838,51 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, int Session, 
 
 		return TRUE;
 
-	case KENWOOD:
-	case FT2000:
-	case FT991A:
-	case FLEX:
+	case SDRRADIO:
 			
+		if (n < 3)
+		{
+			strcpy(Command, "Sorry - Invalid Format - should be Port Freq Mode\r");
+			return FALSE;
+		}
+
+		for (ModeNo = 0; ModeNo < 16; ModeNo++)
+		{
+			if (_stricmp(KenwoodModes[ModeNo], Mode) == 0)
+				break;
+		}
+
+		if (ModeNo > 15)
+		{
+			sprintf(Command, "Sorry -Invalid Mode\r");
+			return FALSE;
+		}
+
+		buffptr = GetBuff();
+
+		if (buffptr == 0)
+		{
+			sprintf(Command, "Sorry - No Buffers available\r");
+			return FALSE;
+		}
+
+		// Build a ScanEntry in the buffer
+
+		FreqPtr = (struct ScanEntry *)buffptr->Data;
+		memset(FreqPtr, 0, sizeof(struct ScanEntry));
+
+		FreqPtr->Freq = Freq;
+		FreqPtr->Bandwidth = Bandwidth;
+		FreqPtr->Antenna = Antenna;
+
+		Poll = FreqPtr->Cmd1 = FreqPtr->Cmd1Msg;
+
+		FreqPtr->Cmd1Len = sprintf(Poll, "F%c00%s;MD%d;F%c;MD;", RIG->RigAddr, FreqString, ModeNo, RIG->RigAddr);
+
+		C_Q_ADD(&RIG->BPQtoRADIO_Q, buffptr);
+
+		return TRUE;
+
 		if (n < 3)
 		{
 			strcpy(Command, "Sorry - Invalid Format - should be Port Freq Mode\r");
@@ -1906,6 +1950,8 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, int Session, 
 		C_Q_ADD(&RIG->BPQtoRADIO_Q, buffptr);
 
 		return TRUE;
+
+
 
 	case NMEA:
 			
@@ -2570,6 +2616,11 @@ BOOL Rig_Poll()
 			KenwoodPoll(PORT);
 			break;
 
+
+		case SDRRADIO:
+			SDRRadioPoll(PORT);
+			break;
+
 		case HAMLIB:
 			HAMLIBPoll(PORT);
 			break;
@@ -2580,10 +2631,7 @@ BOOL Rig_Poll()
 
 		case FLRIG:
 			FLRIGPoll(PORT);
-			break;
-
-
-		}
+			break;		}
 	}
 
 	// Build page for Web Display
@@ -2854,6 +2902,25 @@ void CheckRX(struct RIGPORTINFO * PORT)
 			return;	
 
 		ProcessKenwoodFrame(PORT, Length);	
+
+		PORT->RXLen = 0;		// Ready for next frame	
+		return;
+	
+	case SDRRADIO:
+
+		if (Length < 2)				// Minimum Frame Sise
+			return;
+
+		if (Length > 50)			// Garbage
+		{
+			PORT->RXLen = 0;		// Ready for next frame	
+			return;
+		}
+
+		if (PORT->RXBuffer[Length-1] != ';')
+			return;	
+
+		ProcessSDRRadioFrame(PORT, Length);	
 
 		PORT->RXLen = 0;		// Ready for next frame	
 		return;
@@ -3576,7 +3643,7 @@ SetFinished:
 
 			// Set Mode Response - if scanning read freq, else return OK to user
 
-			if (RIG->ScanStopped == 0)
+			if (RIG->ScanStopped == 0 && PORT->AutoPoll)
 			{
 				ReleasePermission(RIG);	// Release Perrmission
 
@@ -4353,6 +4420,134 @@ VOID ProcessNMEA(struct RIGPORTINFO * PORT, char * Msg, int Length)
 
 //FA00014103000;MD2;
 
+
+VOID ProcessSDRRadioFrame(struct RIGPORTINFO * PORT, int Length)
+{
+	UCHAR * Poll = PORT->TXBuffer;
+	UCHAR * Msg = PORT->RXBuffer;
+	struct RIGINFO * RIG = &PORT->Rigs[0];
+	UCHAR * ptr;
+	int CmdLen;
+	int i;
+
+	Msg[Length] = 0;
+
+	Debugprintf(Msg);
+	
+	if (PORT->PORTOK == FALSE)
+	{
+		// Just come up		
+		PORT->PORTOK = TRUE;
+	}
+
+	if (!PORT->AutoPoll)
+	{
+		// Response to a RADIO Command
+
+		if (Msg[0] == '?')
+			SendResponse(RIG->Session, "Sorry - Command Rejected");
+		else if (Msg[0] == 'A' && Msg[1] == 'C')
+			SendResponse(RIG->Session, "TUNE OK");
+		else if (Msg[0] == 'P' && Msg[1] == 'C') 
+			SendResponse(RIG->Session, "Power Set OK");
+		else
+			SendResponse(RIG->Session, "Mode and Frequency Set OK");
+	
+		PORT->AutoPoll = TRUE;
+		return;
+	}
+
+
+LoopR:
+
+	ptr = strchr(Msg, ';');
+	CmdLen = (int)(ptr - Msg + 1);
+
+	// Find Device. FA to FF for frequency
+
+	// Note. SDRConsole reports the same mode for all receivers, so don't rely on reported mode
+
+	if (Msg[0] == 'F')
+	{
+		for (i = 0; i < PORT->ConfiguredRigs; i++)
+		{
+			RIG = &PORT->Rigs[i];
+			if (Msg[1] == RIG->RigAddr)
+				goto ok;
+		}
+		return;
+ok:
+
+		if (CmdLen > 9)
+		{
+			char CharMHz[16] = "";
+			char CharHz[16] = "";
+
+			int i;
+			long long Freq;
+			long long MHz, Hz;
+
+			RIG->RIGOK = TRUE;
+
+			Freq = strtoll(&Msg[2], NULL, 10) + RIG->rxOffset;
+
+			RIG->RigFreq = Freq / 1000000.0;
+
+			// If we convert to float to display we get rounding errors, so convert to MHz and Hz to display
+
+			MHz = Freq / 1000000;
+
+			Hz = Freq - MHz * 1000000;
+
+			sprintf(CharMHz, "%lld", MHz);
+			sprintf(CharHz, "%06lld", Hz);
+
+			for (i = 5; i > 2; i--)
+			{
+				if (CharHz[i] == '0')
+					CharHz[i] = 0;
+				else
+					break;
+			}
+
+
+			sprintf(RIG->WEB_FREQ,"%lld.%s", MHz, CharHz);
+			SetWindowText(RIG->hFREQ, RIG->WEB_FREQ);
+			strcpy(RIG->Valchar, RIG->WEB_FREQ);
+
+			PORT->Timeout = 0;
+		}
+	}
+	else if (Msg[0] == 'M' && Msg[1] == 'D')
+	{
+		int Mode;
+
+		Mode = Msg[2] - 48;
+		if (Mode > 7) Mode = 7;
+		SetWindowText(RIG->hMODE, KenwoodModes[Mode]);
+		strcpy(RIG->WEB_MODE, KenwoodModes[Mode]);
+		strcpy(RIG->ModeString, RIG->WEB_MODE);
+	
+	}
+
+	if (CmdLen < Length)
+	{
+		// Another Message in Buffer
+
+		ptr++;
+		Length -= (int)(ptr - Msg);
+
+		if (Length <= 0)
+			return;
+
+		memmove(Msg, ptr, Length +1);
+
+		goto LoopR;
+	}
+}
+
+
+
 VOID ProcessKenwoodFrame(struct RIGPORTINFO * PORT, int Length)
 {
 	UCHAR * Poll = PORT->TXBuffer;
@@ -4387,7 +4582,6 @@ VOID ProcessKenwoodFrame(struct RIGPORTINFO * PORT, int Length)
 		PORT->AutoPoll = TRUE;
 		return;
 	}
-
 
 Loop:
 
@@ -4628,6 +4822,162 @@ VOID KenwoodPoll(struct RIGPORTINFO * PORT)
 
 	RIG->PollCounter = 10;			// Once Per Sec
 		
+	// Read Frequency 
+
+	PORT->TXLen = RIG->PollLen;
+	strcpy(Poll, RIG->Poll);
+	
+	RigWriteCommBlock(PORT);
+	PORT->Retries = 1;
+	PORT->Timeout = 10;
+	PORT->CmdSent = 0;
+
+	PORT->AutoPoll = TRUE;
+
+	return;
+}
+
+VOID SDRRadioPoll(struct RIGPORTINFO * PORT)
+{
+	UCHAR * Poll = PORT->TXBuffer;
+	struct RIGINFO * RIG;
+	int i;
+
+	for (i=0; i< PORT->ConfiguredRigs; i++)
+	{
+		RIG = &PORT->Rigs[i];
+
+		if (RIG->ScanStopped == 0)
+			if (RIG->ScanCounter)
+				RIG->ScanCounter--;
+	}
+
+	if (PORT->Timeout)
+	{
+		PORT->Timeout--;
+		
+		if (PORT->Timeout)			// Still waiting
+			return;
+
+		PORT->Retries--;
+
+		if(PORT->Retries)
+		{
+			RigWriteCommBlock(PORT);	// Retransmit Block
+			return;
+		}
+
+		SetWindowText(RIG->hFREQ, "------------------");
+		SetWindowText(RIG->hMODE, "----------");
+		strcpy(RIG->WEB_FREQ, "-----------");;
+		strcpy(RIG->WEB_MODE, "------");
+
+		RIG->RIGOK = FALSE;
+
+		return;
+	}
+
+	// Send Data if avail, else send poll
+
+
+	PORT->CurrentRig++;
+
+	if (PORT->CurrentRig >= PORT->ConfiguredRigs)
+		PORT->CurrentRig = 0;
+
+	RIG = &PORT->Rigs[PORT->CurrentRig];
+
+
+	if (RIG->NumberofBands && RIG->RIGOK && (RIG->ScanStopped == 0))
+	{
+		if (RIG->ScanCounter <= 0)
+		{
+			//	Send Next Freq
+
+			if (GetPermissionToChange(PORT, RIG))
+			{
+				if (RIG->RIG_DEBUG)
+					Debugprintf("BPQ32 Change Freq to %9.4f", PORT->FreqPtr->Freq);
+
+				memcpy(PORT->TXBuffer, PORT->FreqPtr->Cmd1, PORT->FreqPtr->Cmd1Len);
+				PORT->TXLen = PORT->FreqPtr->Cmd1Len;
+
+				_gcvt(PORT->FreqPtr->Freq / 1000000.0, 9, RIG->Valchar); // For MH
+
+				RigWriteCommBlock(PORT);
+				PORT->CmdSent = 1;
+				PORT->Retries = 0;	
+				PORT->Timeout = 0;
+				PORT->AutoPoll = TRUE;
+
+				// There isn't a response to a set command, so clear Scan Lock here
+			
+				ReleasePermission(RIG);			// Release Perrmission
+
+			return;
+			}
+		}
+	}
+	
+	if (RIG->RIGOK && RIG->BPQtoRADIO_Q)
+	{
+		struct MSGWITHOUTLEN * buffptr;
+			
+		buffptr = Q_REM(&RIG->BPQtoRADIO_Q);
+
+		// Copy the ScanEntry struct from the Buffer to the PORT Scanentry
+
+		memcpy(&PORT->ScanEntry, buffptr->Data, sizeof(struct ScanEntry));
+
+		PORT->FreqPtr = &PORT->ScanEntry;		// Block we are currently sending.
+		
+		if (RIG->RIG_DEBUG)
+			Debugprintf("BPQ32 Change Freq to %9.4f", PORT->FreqPtr->Freq);
+
+		DoBandwidthandAntenna(RIG, &PORT->ScanEntry);
+
+		_gcvt(PORT->FreqPtr->Freq / 1000000.0, 9, RIG->Valchar); // For MH
+
+		memcpy(Poll, PORT->FreqPtr->Cmd1, PORT->FreqPtr->Cmd1Len);
+
+		PORT->TXLen = PORT->FreqPtr->Cmd1Len;
+		RigWriteCommBlock(PORT);
+		PORT->CmdSent = Poll[4];
+		PORT->Timeout = 0;
+		RIG->PollCounter = 10;
+
+		ReleaseBuffer(buffptr);
+		PORT->AutoPoll = FALSE;
+	
+		return;
+	}
+		
+	if (RIG->PollCounter)
+	{
+		RIG->PollCounter--;
+		if (RIG->PollCounter > 1)
+			return;
+	}
+
+	if (RIG->RIGOK && RIG->ScanStopped == 0 && RIG->NumberofBands &&
+		RIG->ScanCounter && RIG->ScanCounter < 30)
+		return;						// no point in reading freq if we are about to change it
+
+	// Need to make sure we don't poll multiple rigs on port at the same time
+
+	if (RIG->RIGOK)
+	{
+		PORT->Retries = 2;
+		RIG->PollCounter = 10 / PORT->ConfiguredRigs;			// Once Per Sec
+	}
+	else
+	{
+		PORT->Retries = 1;
+		RIG->PollCounter = 100 / PORT->ConfiguredRigs;			// Slow Poll if down
+	}
+
+	RIG->PollCounter += PORT->CurrentRig * 3;
+
 	// Read Frequency 
 
 	PORT->TXLen = RIG->PollLen;
@@ -5185,7 +5535,7 @@ struct RIGINFO * RigConfig(struct TNCINFO * TNC, char * buf, int Port)
 	else
 		COMPort = ptr;
 
-	// See if port is already defined. We may be adding another radio (ICOM only) or updating an existing one
+	// See if port is already defined. We may be adding another radio (ICOM or SDRRADIO only) or updating an existing one
 
 	// Unless CM108 - they must be on separate Ports
 
@@ -5278,6 +5628,8 @@ PortFound:
 		PORT->PortType = YAESU;
 	else if (strcmp(ptr, "KENWOOD") == 0)
 		PORT->PortType = KENWOOD;
+	else if (strcmp(ptr, "SDRRADIO") == 0)
+		PORT->PortType = SDRRADIO;				// Varient of KENWOOD that supports multiple devices on one serial port
 	else if (strcmp(ptr, "FLEX") == 0)
 		PORT->PortType = FLEX;
 	else if (strcmp(ptr, "NMEA") == 0)
@@ -5378,14 +5730,18 @@ PortFound:
 	}
 
 
-	// If ICOM, we may be adding a new Rig
+	// If ICOM or SDRRADIO, we may be adding a new Rig
 
 	ptr = strtok_s(NULL, " \t\n\r", &Context);
 
-	if (PORT->PortType == ICOM || PORT->PortType == NMEA)
+	if (PORT->PortType == ICOM || PORT->PortType == NMEA || PORT->PortType == SDRRADIO)
 	{
 		if (ptr == NULL) return (FALSE);
-		sscanf(ptr, "%x", &RigAddr);
+
+		if (PORT->PortType == SDRRADIO)
+			RigAddr = ptr[0];
+		else
+			sscanf(ptr, "%x", &RigAddr);
 
 		// See if already defined
 
@@ -5884,7 +6240,29 @@ CheckOtherParams:
 		RIG->PTTOffLen = (int)strlen(RIG->PTTOff);
 
 	}
-	else if	(PORT->PortType == FLEX)
+	else if	(PORT->PortType == SDRRADIO)
+	{	
+		RIG->PollLen = sprintf(RIG->Poll, "F%c;MD;", RIG->RigAddr);
+
+/*		if (PTTControlsInputMUX)
+		{
+			sprintf(RIG->PTTOn, "EX%03d00001;TX1;", RIG->TSMenu); // Select USB before PTT
+			sprintf(RIG->PTTOff, "RX;EX%03d00000;", RIG->TSMenu); // Select ACC after dropping PTT
+		}
+		else
+		{
+			strcpy(RIG->PTTOff, "RX;");
+
+			if (DataPTT)
+				strcpy(RIG->PTTOn, "TX1;");
+			else
+				strcpy(RIG->PTTOn, "TX;");
+		}
+*/
+		RIG->PTTOnLen = (int)strlen(RIG->PTTOn);
+		RIG->PTTOffLen = (int)strlen(RIG->PTTOff);
+
+	}	else if	(PORT->PortType == FLEX)
 	{	
 		RIG->PollLen = 10;
 		strcpy(RIG->Poll, "ZZFA;ZZMD;");
@@ -7234,21 +7612,22 @@ void ProcessFLRIGFrame(struct RIGPORTINFO * PORT)
 		Length = PORT->RXLen;
 
 		msg[Length] = 0;
+
 		ptr1 = strstr(msg, "Content-length:");
 
 		if (ptr1 == NULL)
 			return;
 
-		Len = atoi(&ptr1[15]);
 		ptr2 = strstr(ptr1, "\r\n\r\n");
-		if (ptr2)
-		{
-			TotalLen = ptr2 +4 + Len - msg;
 
-			if (TotalLen > Length)		// Don't have it all
-				return;
-		}
-		else
+		if (ptr2 == NULL)
+			return;
+
+		Len = atoi(&ptr1[15]);
+
+		TotalLen = ptr2 + 4 + Len - msg;
+
+		if (TotalLen > Length)		// Don't have it all
 			return;
 
 		val = strstr(ptr2, "<value>");
@@ -7259,8 +7638,6 @@ void ProcessFLRIGFrame(struct RIGPORTINFO * PORT)
 
 			RIG->RIGOK = 1;
 			PORT->RXLen -= TotalLen;
-
-			memmove(PORT->RXBuffer, &PORT->RXBuffer[TotalLen], PORT->RXLen);
 
 			// It is quite difficult to corrolate responses with commands, but we only poll for freq, mode and bandwidth
 			// and the responses can be easily identified
@@ -7282,7 +7659,7 @@ void ProcessFLRIGFrame(struct RIGPORTINFO * PORT)
 					FLRIGSendCommand(PORT, "rig.set_bandwidth", cmd);
 					PORT->ScanEntry.Cmd3Msg[0] = 0;
 				}
-			
+
 				else if (!PORT->AutoPoll)
 				{
 					GetSemaphore(&Semaphore, 61);
@@ -7319,7 +7696,7 @@ void ProcessFLRIGFrame(struct RIGPORTINFO * PORT)
 						sprintf(RIG->WEB_MODE, "%s/%d:%d", RIG->ModeString, b1, b2);
 					else
 						sprintf(RIG->WEB_MODE, "%s/%d", RIG->ModeString, b1);
-		
+
 					MySetWindowText(RIG->hMODE, RIG->WEB_MODE);
 				}
 			}
@@ -7328,7 +7705,7 @@ void ProcessFLRIGFrame(struct RIGPORTINFO * PORT)
 				// Either freq or mode. See if numeric
 
 				double freq;
-				
+
 				strlop(val, '<');
 
 				freq = atof(val) / 1000000.0;
@@ -7363,7 +7740,7 @@ void ProcessFLRIGFrame(struct RIGPORTINFO * PORT)
 						}
 						else
 							SetWindowText(RIG->hMODE, RIG->WEB_MODE);
-				
+
 						MySetWindowText(RIG->hMODE, RIG->WEB_MODE);
 
 						Len = sprintf(ReqBuf, Req, "rig.get_bw", "");
@@ -7456,32 +7833,37 @@ void ProcessFLRIGFrame(struct RIGPORTINFO * PORT)
 			}
 
 			*/
-			}
-
-		PORT->Timeout = 0;
 		}
 
-		/*
-		POST /RPC2 HTTP/1.1
-		User-Agent: XMLRPC++ 0.8
-		Host: 127.0.0.1:12345
-		Content-type: text/xml
-		Content-length: 89
+		if (PORT->RXLen > 0)
+			memmove(PORT->RXBuffer, &PORT->RXBuffer[TotalLen], PORT->RXLen);
+		else
+			PORT->RXLen = 0;
 
-		<?xml version="1.0"?>
-		<methodCall><methodName>rig.get_vfoA</methodName>
-		</methodCall>
-		HTTP/1.1 200 OK
-		Server: XMLRPC++ 0.8
-		Content-Type: text/xml
-		Content-length: 118
+		PORT->Timeout = 0;
+	}
 
-		<?xml version="1.0"?>
-		<methodResponse><params><param>
-		<value>14070000</value>
-		</param></params></methodResponse>
-		*/
-		
+	/*
+	POST /RPC2 HTTP/1.1
+	User-Agent: XMLRPC++ 0.8
+	Host: 127.0.0.1:12345
+	Content-type: text/xml
+	Content-length: 89
+
+	<?xml version="1.0"?>
+	<methodCall><methodName>rig.get_vfoA</methodName>
+	</methodCall>
+	HTTP/1.1 200 OK
+	Server: XMLRPC++ 0.8
+	Content-Type: text/xml
+	Content-length: 118
+
+	<?xml version="1.0"?>
+	<methodResponse><params><param>
+	<value>14070000</value>
+	</param></params></methodResponse>
+	*/
+
 
 }
 
@@ -7509,7 +7891,7 @@ void HLSetMode(SOCKET Sock, struct RIGINFO * RIG, unsigned char * Msg, char sep)
 		sprintf(Resp, "%d %s %s\n", 0, RIG->Valchar, mode);
 
 	GetSemaphore(&Semaphore, 60);
-	Rig_CommandEx(RIG->PORT, RIG, -1, Resp);
+	Rig_CommandEx(RIG->PORT, RIG, (TRANSPORTENTRY *) -1, Resp);
 	FreeSemaphore(&Semaphore);
 
 	if (sep)
@@ -7531,7 +7913,7 @@ void HLSetFreq(SOCKET Sock, struct RIGINFO * RIG, unsigned char * Msg, char sep)
 
 	sprintf(Resp, "%d %f\n", 0, freq/1000000.0);
 	GetSemaphore(&Semaphore, 60);
-	Rig_CommandEx(RIG->PORT, RIG, -1, Resp);
+	Rig_CommandEx(RIG->PORT, RIG, (TRANSPORTENTRY *) -1, Resp);
 	FreeSemaphore(&Semaphore);
 
 	if (sep)

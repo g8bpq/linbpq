@@ -473,9 +473,9 @@ typedef struct TNCINFO
 	UCHAR * ARDOPBuffer;			// Needs to be pretty big, so Malloc
 	UCHAR * ARDOPDataBuffer;		// Needs to be pretty big, so Malloc
 
-	int InputLen;					// Data we have alreasdy = Offset of end of an incomplete packet;
-	int DataInputLen;				// Data we have alreasdy = Offset of end of an incomplete packet;
-	int KISSInputLen;				// Data we have alreasdy = Offset of end of an incomplete packet;
+	int InputLen;					// Data we have already = Offset of end of an incomplete packet;
+	int DataInputLen;				// Data we have already = Offset of end of an incomplete packet;
+	int KISSInputLen;				// Data we have already = Offset of end of an incomplete packet;
 	int ESCFLAG;					// KISS Escape received
 
 	int	MSGCOUNT;				// DED WORKING FIELD
@@ -544,6 +544,7 @@ typedef struct TNCINFO
 	double DefaultTXFreq;			// Freq to set on tx after close
 	double DefaultRXFreq;			// Freq to set on rx after close 
 
+	char ** DisconnectScript;		// May replace above 2 params
 
 	int TXOffset;					// Correction to TXFreq
 
@@ -822,6 +823,13 @@ typedef struct TNCINFO
 
 	double SNR;						// S/N Ratio (VARA)
 
+	int NetRomMode;
+	unsigned char * NetRomTxBuffer;	// For Netrom over VARA
+	int NetRomTxLen;
+	char * NRNeighbour;
+	int NRCloseTimer;
+	struct _LINKTABLE * DummyLink;	// Simulated link to simplify interface to ax,25 netrom code
+
 } *PTNCINFO;
 
 VOID * zalloc(int len);
@@ -865,7 +873,7 @@ extern BOOL MinimizetoTray;
 int standardParams(struct TNCINFO * TNC, char * buf);
 void DecodePTTString(struct TNCINFO * TNC, char * ptr);
 
-int Rig_Command(int Session, char * Command);
+int Rig_Command(TRANSPORTENTRY * Session, char * Command);
 
 BOOL Rig_Poll();
 

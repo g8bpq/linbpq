@@ -428,7 +428,33 @@ Loop:
 
 			if (Session)
 			{
+				struct TNCINFO * TNC = PORTVEC->PORTCONTROL.TNC;
+
 				CloseSessionPartner(Session);
+
+				// is this the place to run DisconnectScript? 
+
+				if (TNC->DisconnectScript)
+				{
+					int n = 0;
+					char command[256];
+					struct DATAMESSAGE * Buffer;
+
+					TRANSPORTENTRY Session = {0};		//	= TNC->PortRecord->ATTACHEDSESSIONS[Sessno];
+
+					while (TNC->DisconnectScript[n])
+					{
+						Buffer = GetBuff();
+						if (Buffer)
+						{
+							Session.Secure_Session = 1;
+							Session.CIRCUITINDEX = -1;
+							Buffer->LENGTH = sprintf(Buffer->L2DATA, "%s\r", TNC->DisconnectScript[n++]) + (sizeof(void *) + 4);
+							CommandHandler(&Session, Buffer);
+						};
+					}
+				}
+
 				PORTVEC->ATTACHEDSESSIONS[Sessno] = NULL;
 			}
 			return;
@@ -698,8 +724,10 @@ BOOL Start()
 	
 	//	if NETROMCALL Defined, use it
 
-	if (cfg->C_NETROMCALL[0])
+	if (cfg->C_NETROMCALL[0] && cfg->C_NETROMCALL[0] != ' ')
 		memcpy(MYNETROMCALL, cfg->C_NETROMCALL, 10);
+
+	strlop(MYNETROMCALL, ' ');
 
 	APPLCALLTABLE[0].APPLQUAL = BBSQUAL;
 
