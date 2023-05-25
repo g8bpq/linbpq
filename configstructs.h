@@ -152,10 +152,10 @@ struct CONFIGTABLE
 	char C_IDMSG[512];
 	char C_CTEXT[512];
 	char C_INFOMSG[2048];
-	UCHAR CfgBridgeMap[33][33];
+	UCHAR CfgBridgeMap[MaxBPQPortNo][MaxBPQPortNo];
 	struct ROUTECONFIG C_ROUTE[MaxLockedRoutes];
 	struct APPLCONFIG C_APPL[NumberofAppls];
-	struct PORTCONFIG C_PORT[36];
+	struct PORTCONFIG C_PORT[MaxBPQPortNo + 4];
 
 //#define ApplOffset 80000			// Applications offset in config buffer
 //#define InfoOffset 85000			// Infomsg offset in  buffer

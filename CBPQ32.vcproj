@@ -303,7 +303,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\BPQTermMDI.c"
+				RelativePath=".\BPQTermMDI.c"
 				>
 			</File>
 			<File

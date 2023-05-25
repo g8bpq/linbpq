@@ -1113,8 +1113,11 @@
 //	Dont drop empty lines inm TEXTFORWARDING (61)
 //	Dont wait for body prompt for TEXTFORWARDING for SID [PMS-3.2-C$] (62)
 //	Add forwarding mode SETCALLTOSENDER for PMS Systems that don't accept < in SP (63)
+//	QtTerm Monitoring fixed for 63 port version of BPQ (69)
+
 
 #include "bpqmail.h"
+#include "winstdint.h"
 #define MAIL
 #include "Versions.h"
 

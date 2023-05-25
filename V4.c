@@ -72,8 +72,6 @@ extern int SemHeldByAPI;
 
 static RECT Rect;
 
-extern struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
-
 static int ProcessLine(char * buf, int Port);
 
 // RIGCONTROL COM60 19200 ICOM IC706 5e 4 14.103/U1w 14.112/u1 18.1/U1n 10.12/l1
@@ -205,8 +203,6 @@ VOID ReleaseTNC(struct TNCINFO * TNC);
 VOID SuspendOtherPorts(struct TNCINFO * ThisTNC);
 VOID ReleaseOtherPorts(struct TNCINFO * ThisTNC);
 VOID WritetoTrace(struct TNCINFO * TNC, char * Msg, int Len);
-
-#define MAXBPQPORTS 32
 
 static time_t ltime;
 

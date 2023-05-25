@@ -149,12 +149,9 @@ static int RigControlRow = 205;
 #include <commctrl.h>
 #endif
 
-extern char * PortConfig[33];
 extern int SemHeldByAPI;
 
 static RECT Rect;
-
-extern struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
 
 static int ProcessLine(char * buf, int Port);
 
@@ -352,9 +349,6 @@ VOID SuspendOtherPorts(struct TNCINFO * ThisTNC);
 VOID ReleaseOtherPorts(struct TNCINFO * ThisTNC);
 VOID WritetoTrace(struct TNCINFO * TNC, char * Msg, int Len);
 
-
-
-#define MAXBPQPORTS 32
 
 static time_t ltime;
 

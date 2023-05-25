@@ -90,15 +90,6 @@ extern BOOL IncludesChat;
 extern BOOL APRSWeb;  
 extern BOOL RigActive;
 
-extern char * UIUIDigi[33];
-extern char UIUIDEST[33][11];		// Dest for Beacons
-extern UCHAR FN[33][256];			// Filename
-extern int Interval[33];			// Beacon Interval (Mins)
-extern char Message[33][1000];		// Beacon Text
-
-extern int MinCounter[33];			// Interval Countdown
-extern BOOL SendFromFile[33];
-
 extern HKEY REGTREE;
 
 extern BOOL APRSActive;
@@ -1288,10 +1279,7 @@ int RefreshTermWindow(struct TCPINFO * TCP, struct HTTPConnectionInfo * Session,
 	}
 	else
 		return 0;
-}
-
-
-extern struct TNCINFO * TNCInfo[41];	
+}	
 
 int SetupNodeMenu(char * Buff, int LOCAL)
 {
@@ -2298,7 +2286,7 @@ doHeader:
 
 				input += 4;
 	
-				if (port > 0 && port < 33)
+				if (port > 0 && port <= MaxBPQPortNo)
 				{
 					struct TNCINFO * TNC = TNCInfo[port];
 					char value[6];
@@ -2327,7 +2315,7 @@ doHeader:
 
 				input += 4;
 
-				if (port > 0 && port < 33)
+				if (port > 0 && port <= MaxBPQPortNo)
 				{
 					struct TNCINFO * TNC = TNCInfo[port];
 
@@ -2431,14 +2419,6 @@ doHeader:
 				GetParam(input, "Every", &Param[0]);
 				Interval[Slot] = atoi(&Param[1]);
 
-
-				//extern char * UIUIDigi[33];
-				//extern char UIUIDEST[33][11];		// Dest for Beacons
-				//extern UCHAR FN[33][256];			// Filename
-				//extern int [33];			// Beacon Interval (Mins)
-				//extern char Message[33][1000];		// Beacon Text
-
-
 				GetParam(input, "Dest", &Param[0]);
 				_strupr(Param);
 				strcpy(UIUIDEST[Slot], &Param[1]);
@@ -2525,7 +2505,7 @@ doHeader:
 			{
 				int port = atoi(Context);
 
-				if (port > 0 && port < 33)
+				if (port > 0 && port <= MaxBPQPortNo)
 				{
 					struct TNCINFO * TNC = TNCInfo[port];
 
@@ -2718,7 +2698,7 @@ doHeader:
 			{
 				int port = atoi(Context);
 
-				if (port > 0 && port < 33)
+				if (port > 0 && port <= MaxBPQPortNo)
 				{
 					struct TNCINFO * TNC = TNCInfo[port];
 
@@ -2736,7 +2716,7 @@ doHeader:
 			{
 				int port = atoi(Context);
 
-				if (port > 0 && port < 33)
+				if (port > 0 && port <= MaxBPQPortNo)
 				{
 					struct TNCINFO * TNC = TNCInfo[port];
 
@@ -3235,7 +3215,7 @@ doHeader:
 				}
 
 				if (RigActive)
-					ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], RigControlLine, 33, "Rig Control", "Rig Control", 600, 350, 200, 200);
+					ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], RigControlLine, 64, "Rig Control", "Rig Control", 600, 350, 200, 200);
 
 			}
 

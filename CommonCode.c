@@ -49,7 +49,7 @@ extern struct CONFIGTABLE xxcfg;
 
 #endif
 
-struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
+struct TNCINFO * TNCInfo[70];		// Records are Malloc'd
 
 extern int ReportTimer;
 
@@ -895,9 +895,6 @@ VOID SetApplPorts()
 		App++;
 	}
 }
-
-
-extern struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
 
 
 char Modenames[19][10] = {"WINMOR", "SCS", "KAM", "AEA", "HAL", "TELNET", "TRK",
@@ -3761,23 +3758,23 @@ typedef struct _MESSAGEX
 #pragma pack()
 
 
-int PortNum[33] = {0};				// Tab nunber to port
+int PortNum[MaxBPQPortNo + 1] = {0};	// Tab nunber to port
 
-char * UIUIDigi[33]= {0};
-char * UIUIDigiAX[33] = {0};		// ax.25 version of digistring
-int UIUIDigiLen[33] = {0};			// Length of AX string
+char * UIUIDigi[MaxBPQPortNo + 1]= {0};
+char * UIUIDigiAX[MaxBPQPortNo + 1] = {0};		// ax.25 version of digistring
+int UIUIDigiLen[MaxBPQPortNo + 1] = {0};			// Length of AX string
 
-char UIUIDEST[33][11] = {0};		// Dest for Beacons
+char UIUIDEST[MaxBPQPortNo + 1][11] = {0};		// Dest for Beacons
 
-char UIAXDEST[33][7] = {0};
+char UIAXDEST[MaxBPQPortNo + 1][7] = {0};
 
 
-UCHAR FN[33][256];			// Filename
-int Interval[33];			// Beacon Interval (Mins)
-int MinCounter[33];			// Interval Countdown
+UCHAR FN[MaxBPQPortNo + 1][256];			// Filename
+int Interval[MaxBPQPortNo + 1];			// Beacon Interval (Mins)
+int MinCounter[MaxBPQPortNo + 1];			// Interval Countdown
 
-BOOL SendFromFile[33];
-char Message[33][1000];		// Beacon Text
+BOOL SendFromFile[MaxBPQPortNo + 1];
+char Message[MaxBPQPortNo + 1][1000];		// Beacon Text
 
 VOID SendUIBeacon(int Port);
 
@@ -3945,7 +3942,7 @@ typedef struct tag_dlghdr
 	HWND hwndDisplay; // current child dialog box
 	RECT rcDisplay; // display rectangle for the tab control
 
-	DLGTEMPLATE *apRes[33];
+	DLGTEMPLATE *apRes[MaxBPQPortNo + 1];
 
 } DLGHDR;
 

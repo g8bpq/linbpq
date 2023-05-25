@@ -186,7 +186,6 @@ VOID * zalloc(int len);
 int ResetExtDriver(int num);
 BOOL ProcessConfig();
 VOID FreeConfig();
-extern char * PortConfig[35];
 
 extern UCHAR BPQDirectory[];
 
@@ -308,7 +307,7 @@ char CantReplyList[512] = "";		// To suppress duplicate "Can't Reply" messages
 
 DWORD n;
 
-struct AXIPPORTINFO * Portlist[33];
+struct AXIPPORTINFO * Portlist[MaxBPQPortNo + 1];
 
 int InitAXIP(int Port);
 

@@ -65,8 +65,6 @@ extern BOOL NODESINPROGRESS ;;
 PPORTCONTROL L3CURRENTPORT;
 extern dest_list * CURRENTNODE;
 
-extern struct TNCINFO * TNCInfo[41];
-
 int L3_10SECS = 10;
 
 

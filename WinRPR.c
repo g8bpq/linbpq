@@ -57,12 +57,10 @@ static int RigControlRow = 140;
 extern UCHAR LogDirectory[];
 
 extern APPLCALLS APPLCALLTABLE[];
-extern char * PortConfig[33];
+
 extern char LOC[];
 
 static RECT Rect;
-
-extern struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
 
 VOID __cdecl Debugprintf(const char * format, ...);
 char * strlop(char * buf, char delim);

@@ -1161,6 +1161,10 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Trap NODES messages with empty From Call (65)
 //	Add RigControl for SDRConsole (66)
 //  Fix FLRig crash (66)
+//	Fix VARA disconnect handling (67)
+//	Support 64 ports (69)
+//	Fix Node commands for setting UZ7HO Modem (70)
+
 
 #define CKernel
 
@@ -1566,7 +1570,7 @@ char PopupText[30][100] = {""};
 
 UCHAR	MCOM;
 UCHAR	MTX;
-ULONG	MMASK;
+uint64_t MMASK;
 UCHAR	MUIONLY;
 
 UCHAR AuthorisedProgram;			// Local Variable. Set if Program is on secure list
@@ -2019,7 +2023,7 @@ VOID TimerProcX()
 
 			GetWindowRect(FrameWnd, &FRect);
 
-			SaveWindowPos(40);		// Rigcontrol
+			SaveWindowPos(64);		// Rigcontrol
 
 			for (i=0;i<NUMBEROFPORTS;i++)
 			{
@@ -2830,7 +2834,7 @@ SkipInit:
 		
 		MCOM=1;
 		MTX=1;
-		MMASK=0xffffffff;
+		MMASK=0xffffffffffffffff;
 
 //		if (StartMinimized)
 //			if (MinimizetoTray)

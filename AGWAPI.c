@@ -108,7 +108,7 @@ extern int SemHeldByAPI;
 
 char szBuff[80];
 
-static int VisiblePortToRealPort[32];
+static int VisiblePortToRealPort[MaxBPQPortNo + 1];
 
 int SetUpHostSessions();
 int DisplaySessions();

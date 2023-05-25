@@ -57,11 +57,6 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 extern int (WINAPI FAR *GetModuleFileNameExPtr)();
 
-//int ResetExtDriver(int num);
-extern char * PortConfig[33];
-
-extern struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
-
 void ConnecttoUZ7HOThread(void * portptr);
 
 void CreateMHWindow();
@@ -85,7 +80,6 @@ int standardParams(struct TNCINFO * TNC, char * buf);
 
 extern UCHAR BPQDirectory[];
 
-#define MAXBPQPORTS 32
 #define MAXUZ7HOPORTS 16
 
 static char ClassName[]="ARDOPSTATUS";

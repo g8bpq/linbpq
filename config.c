@@ -151,14 +151,14 @@ struct WL2KInfo * DecodeWL2KReportLine(char *  buf);
 
 // Dummy file routines - write to buffer instead
 
-char * PortConfig[36];
-char * RadioConfigMsg[36];
-char * WL2KReportLine[36];
+char * PortConfig[70];
+char * RadioConfigMsg[70];
+char * WL2KReportLine[70];
 
 int nextRadioPort = 0;
 int nextDummyInterlock = 233; 
 
-BOOL PortDefined[36];
+BOOL PortDefined[70];
 
 extern BOOL IncludesMail;
 extern BOOL IncludesChat;
@@ -457,7 +457,7 @@ BOOL ProcessConfig()
 	routeindex = 0;
 	portindex = 0;
 
-	for (i = 0; i < 35; i++)
+	for (i = 0; i < 70; i++)
 	{
 		if (PortConfig[i])
 		{
@@ -710,7 +710,7 @@ int decode_rec(char * rec)
 
 		char * ptr;
 		
-		PortConfig[33] = ptr = malloc(50000);
+		PortConfig[IPConfigSlot] = ptr = malloc(50000);
 
 		*ptr = 0;
 
@@ -720,7 +720,7 @@ int decode_rec(char * rec)
 		{
 			if (_memicmp(rec, "****", 3) == 0)
 			{
-				PortConfig[33] = realloc(PortConfig[33], (strlen(ptr) + 1));
+				PortConfig[IPConfigSlot] = realloc(PortConfig[IPConfigSlot], (strlen(ptr) + 1));
 				xxcfg.C_IP = 1;
 				return 0;
 			}
@@ -744,7 +744,7 @@ int decode_rec(char * rec)
 
 		char * ptr;
 		
-		PortConfig[35] = ptr = malloc(50000);
+		PortConfig[PortMapConfigSlot] = ptr = malloc(50000);
 
 		*ptr = 0;
 
@@ -754,7 +754,7 @@ int decode_rec(char * rec)
 		{
 			if (_memicmp(rec, "****", 3) == 0)
 			{
-				PortConfig[35] = realloc(PortConfig[35], (strlen(ptr) + 1));
+				PortConfig[PortMapConfigSlot] = realloc(PortConfig[PortMapConfigSlot], (strlen(ptr) + 1));
 				xxcfg.C_PM = 1;
 				return 0;
 			}
@@ -778,7 +778,7 @@ int decode_rec(char * rec)
 
 		char * ptr;
 		
-		PortConfig[34] = ptr = malloc(50000);
+		PortConfig[APRSConfigSlot] = ptr = malloc(50000);
 
 		*ptr = 0;
 
@@ -791,7 +791,7 @@ int decode_rec(char * rec)
 		{
 			if (_memicmp(rec, "****", 3) == 0)
 			{
-				PortConfig[34] = realloc(PortConfig[34], (strlen(ptr) + 1));
+				PortConfig[APRSConfigSlot] = realloc(PortConfig[APRSConfigSlot], (strlen(ptr) + 1));
 				return 0;
 			}
 			if (strlen(rec) > 1)
@@ -963,7 +963,7 @@ NextAPRS:
 
 		Port = atoi(p_value);
 
-		if (Port > 32)
+		if (Port > MaxBPQPortNo)
 			return FALSE;
 
 		if (Context == NULL)
@@ -975,7 +975,7 @@ NextAPRS:
 		{
 			DigiTo = atoi(ptr);
 	
-			if (DigiTo > 32)
+			if (DigiTo > MaxBPQPortNo)
 				return 0;
 
 			if (Port != DigiTo)				// Not to our port!
@@ -1556,9 +1556,9 @@ int routes(int i)
 	      err_flag = 1;
 	   }
 
-	   if (Route->port < 1 || Route->port > 32)
+	   if (Route->port < 1 || Route->port > MaxBPQPortNo)
 	   {
-			Consoleprintf("Port number must be between 1 and 32");
+			Consoleprintf("Port number must be between 1 and 64");
 			Consoleprintf("%s\r\n",rec);
 			err_flag = 1;
 	   }
@@ -1616,6 +1616,12 @@ int ports(int i)
 	xxp.PORTNUM = portnum;
 
 	LogicalPortNum = portnum;
+
+	if (LogicalPortNum > MaxBPQPortNo)
+	{
+		Consoleprintf("Port Number must be between 1 and %d", MaxBPQPortNo);
+		heading = 1;
+	}
 
 	while (endport == 0 && !feof(fp1))
 	{
@@ -1957,7 +1963,7 @@ int decode_port_rec(char * rec)
 		char * ptr;
 		int i;
 
-		if (LogicalPortNum > 32)
+		if (LogicalPortNum > 64)
 		{
 			Consoleprintf("Portnum %d is invalid", LogicalPortNum);
 			LogicalPortNum = 0;

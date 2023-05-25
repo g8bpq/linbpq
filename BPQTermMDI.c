@@ -158,7 +158,7 @@ int	DoStateChange(int Stream);
 int ToggleFlags(HWND hWnd, int Item, int mask);
 int CopyScreentoBuffer(char * buff);
 int DoMonData(int Stream);
-int TogglePort(HWND hWnd, int Item, int mask);
+int TogglePort(HWND hWnd, int Item, uint64_t mask);
 int ToggleMTX(HWND hWnd);
 int ToggleMCOM(HWND hWnd);
 int ToggleParam(HMENU hMenu, BOOL * Param, int Item);
@@ -175,6 +175,7 @@ struct ConsoleInfo * CreateChildWindow(int Stream, BOOL DuringInit);
 BOOL CreateMonitorWindow(char * MonSize);
 VOID SaveMDIWindowPos(HWND hWnd, char * RegKey, char * Value, BOOL Minimized);
 int ToggleMON_UI_ONLY(HWND hWnd);
+IntSetTraceOptionsEx(portmask,mtxparam,mcomparam, monUI);
 
 COLORREF Colours[256] = {0,
 		RGB(0,0,0), RGB(0,0,128), RGB(0,0,192), RGB(0,0,255),				// 1 - 4
@@ -260,7 +261,7 @@ SOCKET sock;
 BOOL MonData = FALSE;
 
 static char Key[80];
-int portmask=1;
+uint64_t portmask = 1;
 int mtxparam=1;
 int mcomparam=1;
 int monUI=0;
@@ -332,7 +333,7 @@ extern HANDLE hInstance;
 
 extern byte	MCOM;
 extern char	MTX;
-extern ULONG MMASK;
+extern uint64_t MMASK;
 extern byte	MUIONLY;
 
 HMENU hPopMenu1;
@@ -461,7 +462,8 @@ extern int SessHandle;
 
 VOID CALLBACK SetupTermSessions(HWND hwnd, UINT  uMsg, UINT  idEvent,  DWORD  dwTime)
 {
-	int i, n, tempmask=0xffff;
+	int i, n;
+	uint64_t tempmask = 0xffff;
 	char msg[50];
 	int retCode,Type,Vallen;
 	HKEY hKey=0;
@@ -529,7 +531,7 @@ VOID CALLBACK SetupTermSessions(HWND hwnd, UINT  uMsg, UINT  idEvent,  DWORD  dw
 		retCode = RegQueryValueEx(hKey,"MONUIONLY",0,			
 			(ULONG *)&Type,(UCHAR *)&monUI,(ULONG *)&Vallen);
 		
-		Vallen=4;
+		Vallen=8;
 		retCode = RegQueryValueEx(hKey,"PortMask",0,			
 			(ULONG *)&Type,(UCHAR *)&tempmask,(ULONG *)&Vallen);
 		
@@ -612,7 +614,7 @@ VOID CALLBACK SetupTermSessions(HWND hwnd, UINT  uMsg, UINT  idEvent,  DWORD  dw
 
 		sprintf(msg,"Port %d %s ",i, PORT->PORTDESCRIPTION);
 
-		if (tempmask & (1<<(i-1)))
+		if (tempmask & ((uint64_t)1 << (i-1)))
 			AppendMenu(hMonCfgMenu,MF_STRING | MF_CHECKED,BPQBASE + i,msg);
 		else
 			AppendMenu(hMonCfgMenu,MF_STRING | MF_UNCHECKED,BPQBASE + i,msg);
@@ -722,7 +724,7 @@ SaveHostSessions()
 	RegCreateKeyEx(REGTREE, Key, 0, 0, 0, KEY_ALL_ACCESS,  NULL, &hKey, &disp);
 
 	RegSetValueEx(hKey,"ChatMode",0,REG_DWORD,(BYTE *)&ChatMode,4);
-	RegSetValueEx(hKey,"PortMask",0,REG_DWORD,(BYTE *)&portmask,4);
+	RegSetValueEx(hKey,"PortMask", 0, REG_DWORD, (BYTE *)&portmask, 8);
 	RegSetValueEx(hKey,"Bells",0,REG_DWORD,(BYTE *)&Bells,4);
 	RegSetValueEx(hKey,"StripLF",0,REG_DWORD,(BYTE *)&StripLF,4);
 	RegSetValueEx(hKey,"SendDisconnected",0,REG_DWORD,(BYTE *)&SendDisconnected,4);
@@ -1123,7 +1125,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	SetAppl(Stream, applflags, APPLMASK);
 
-	SetTraceOptionsEx(portmask,mtxparam,mcomparam, monUI);
+	IntSetTraceOptionsEx(portmask,mtxparam,mcomparam, monUI);
 
 	if (MinimizetoTray)
 	{
@@ -1501,7 +1503,7 @@ BOOL InitInstancex(HINSTANCE hInstance, int nCmdShow)
 
 	SetAppl(Stream, applflags, APPLMASK);
 
-	SetTraceOptionsEx(portmask,mtxparam,mcomparam, monUI);
+	IntSetTraceOptionsEx(portmask,mtxparam,mcomparam, monUI);
 	
 
 
@@ -1682,9 +1684,9 @@ LRESULT CALLBACK MonWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 		wmEvent = HIWORD(wParam); // ...different for Win32!
 
 		
-		if (wmId > BPQBASE && wmId < BPQBASE + 33)
+		if (wmId > BPQBASE && wmId < BPQBASE + 64)
 		{
-			TogglePort(hWnd, wmId, 0x1 << (wmId - (BPQBASE + 1)));
+			TogglePort(hWnd, wmId, (uint64_t)1 << (wmId - (BPQBASE + 1)));
 			break;
 		}
 
@@ -4233,7 +4235,7 @@ static CopyScreentoBuffer(char * buff)
 	return (0);
 }
 	
-int TogglePort(HWND hWnd, int Item, int mask)
+int TogglePort(HWND hWnd, int Item, uint64_t mask)
 {
 	portmask ^= mask;
 	
@@ -4249,7 +4251,7 @@ int TogglePort(HWND hWnd, int Item, int mask)
 
 	SetAppl(Stream,applflags,APPLMASK);
 
-	SetTraceOptionsEx(portmask,mtxparam,mcomparam, monUI);
+	IntSetTraceOptionsEx(portmask,mtxparam,mcomparam, monUI);
 
     return (0);
   
@@ -4266,7 +4268,7 @@ int ToggleMTX(HWND hWnd)
 
 		CheckMenuItem(hMonCfgMenu,BPQMTX,MF_UNCHECKED);
 
-	SetTraceOptionsEx(portmask,mtxparam,mcomparam, monUI);
+	IntSetTraceOptionsEx(portmask,mtxparam,mcomparam, monUI);
 
     return (0);
   
@@ -4283,7 +4285,7 @@ int ToggleMCOM(HWND hWnd)
 
 		CheckMenuItem(hMonCfgMenu,BPQMCOM,MF_UNCHECKED);
 
-	SetTraceOptionsEx(portmask,mtxparam,mcomparam, monUI);
+	IntSetTraceOptionsEx(portmask,mtxparam,mcomparam, monUI);
 
     return (0);
   
@@ -4300,7 +4302,7 @@ int ToggleMON_UI_ONLY(HWND hWnd)
 
 		CheckMenuItem(hMonCfgMenu,MON_UI_ONLY,MF_UNCHECKED);
 
-	SetTraceOptionsEx(portmask,mtxparam,mcomparam, monUI);
+	IntSetTraceOptionsEx(portmask,mtxparam,mcomparam, monUI);
 
     return (0);
   

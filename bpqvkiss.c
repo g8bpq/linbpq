@@ -60,7 +60,7 @@ PVCOMINFO CreateInfo( int port,int speed, int bpqport )	;
 
 static BOOL Win98 = FALSE;
 
-struct PORTCONTROL * PORTVEC[33];
+struct PORTCONTROL * PORTVEC[MaxBPQPortNo + 1];
 
 static size_t ExtProc(int fn, int port, PMESSAGE buff)
 {

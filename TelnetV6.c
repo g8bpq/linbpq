@@ -56,8 +56,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 extern UCHAR LogDirectory[];
 
-extern char * PortConfig[];
-  
+ 
 static char ClassName[]="TELNETSERVER";
 static char WindowTitle[] = "Telnet Server";
 static int RigControlRow = 190;
@@ -67,8 +66,6 @@ static BOOL OpenSockets(struct TNCINFO * TNC);
 static BOOL OpenSockets6(struct TNCINFO * TNC);
 void ProcessHTTPMessage(void * conn);
 static VOID SetupListenSet(struct TNCINFO * TNC);
-int IntDecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp, unsigned long long Mask, BOOL APRS, BOOL MCTL);
-DllExport int APIENTRY SetTraceOptionsEx(int mask, int mtxparam, int mcomparam, int monUIOnly);
 int WritetoConsoleLocal(char * buff);
 BOOL TelSendPacket(int Stream, struct STREAMINFO * STREAM, PMSGWITHLEN buffptr, struct ADIF * ADIF);
 int GetCMSHash(char * Challenge, char * Password);
@@ -105,8 +102,6 @@ static RECT Rect;
 #endif
 
 extern int REALTIMETICKS;
-
-extern struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
 
 #define MaxSockets 26
 
@@ -2216,7 +2211,7 @@ nosocks:
 
 						IntSetTraceOptionsEx(sockptr->MMASK, sockptr->MTX, sockptr->MCOM, sockptr->MUIOnly);
 						len = IntDecodeFrame((MESSAGE *)monbuff, &buffer[3], stamp, sockptr->MMASK, FALSE, FALSE);
-						SetTraceOptionsEx(SaveMMASK, SaveMTX, SaveMCOM, SaveMUI);
+						IntSetTraceOptionsEx(SaveMMASK, SaveMTX, SaveMCOM, SaveMUI);
 
 						if (len)
 						{

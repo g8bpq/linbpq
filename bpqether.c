@@ -61,8 +61,6 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //#include "packet32.h"
 //#include "ntddndis.h"
  
-extern char * PortConfig[33];
-
 typedef struct PCAPStruct
 {
    pcap_t	*adhandle;

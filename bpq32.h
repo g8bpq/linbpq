@@ -158,8 +158,8 @@ int APIENTRY DecodeFrame(char * msg, char * buffer, time_t Stamp);
 //	as well as info frames.
 
 int APIENTRY SetTraceOptions(long mask, int mtxparam, int mcomparam);
-int APIENTRY SetTraceOptionsEx(long mask, int mtxparam, int mcomparam, int monUIOnly);
-
+int APIENTRY SetTraceOptionsEx(uint64_t mask, int mtxparam, int mcomparam, int monUIOnly);
+int APIENTRY SetTraceOptions64(uint64_t mask, int mtxparam, int mcomparam, int monUIOnly);
 
 //	Returns number of first unused BPQHOST stream. If none available,
 //	returns 255. See API function 13.

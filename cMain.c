@@ -238,7 +238,7 @@ int BTLENGTH = 9; //	DW	9		; LENGTH
 //			DB	0F0H		; PID
 char BTEXTFLD[256] ="\r";
 
-char BridgeMap[33][33] = {0};
+char BridgeMap[MaxBPQPortNo + 1][MaxBPQPortNo + 1] = {0};
 
 // Keep Buffers at end
 	
@@ -260,9 +260,6 @@ extern UINT BPQMsg;
 extern int NUMBEROFTNCPORTS;
 
 extern APPLCALLS APPLCALLTABLE[];
-
-int IntDecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp, unsigned long long Mask, BOOL APRS, BOOL MINI);
-DllExport int APIENTRY SetTraceOptionsEx(int mask, int mtxparam, int mcomparam, int monUIOnly);
 
 //	LOOPBACK PORT ROUTINES
 
@@ -2233,10 +2230,10 @@ L2Packet:
 			{
 				MESSAGE * Buffer = (PMESSAGE)Q_REM((void *)&PORT->PORTTX_Q);
 
-				Debugprintf("Busy but not connected - discard message");
-
 				if (Buffer == 0)
 					break;						// WOT!!
+
+//				Debugprintf("Busy but not connected - discard message %s", Buffer->L2DATA);
 
 				ReleaseBuffer(Buffer);
 				break;
@@ -2372,7 +2369,7 @@ ENDOFLIST:
 
 VOID DoListenMonitor(TRANSPORTENTRY * L4, MESSAGE * Msg)
 {
-	unsigned long long SaveMMASK = MMASK;
+	uint64_t SaveMMASK = MMASK;
 	BOOL SaveMTX = MTX;
 	BOOL SaveMCOM = MCOM;
 	BOOL SaveMUI = MUIONLY;
@@ -2388,11 +2385,11 @@ VOID DoListenMonitor(TRANSPORTENTRY * L4, MESSAGE * Msg)
 	if (monchars[21] == 3 && monchars[22] == 0xcf && monchars[23] == 0xff) // Netrom Nodes
 		return;
 
-	SetTraceOptionsEx(L4->LISTEN, 1, 0, 0);
+	IntSetTraceOptionsEx(L4->LISTEN, 1, 0, 0);
 	
 	len = IntDecodeFrame(Msg, MonBuffer, Msg->Timestamp, L4->LISTEN, FALSE, TRUE);
 	
-	SetTraceOptionsEx(SaveMMASK, SaveMTX, SaveMCOM, SaveMUI);
+	IntSetTraceOptionsEx(SaveMMASK, SaveMTX, SaveMCOM, SaveMUI);
 
 	if (len == 0)
 		return;
@@ -2472,7 +2469,7 @@ int BPQTRACE(MESSAGE * Msg, BOOL TOAPRS)
 	while (i--)
 	{
 		if (L4->LISTEN)
-			if (((1 << ((Msg->PORT & 0x7f) - 1)) & L4->LISTEN))
+			if ((((uint64_t)1 << ((Msg->PORT & 0x7f) - 1)) & L4->LISTEN))
 			//	if ((Msg->PORT & 0x7f) == L4->LISTEN)	
 				DoListenMonitor(L4, Msg);
 			

@@ -132,8 +132,6 @@ extern UCHAR * ALIASPTR;
 UCHAR QSTCALL[7] = {'Q'+'Q','S'+'S','T'+'T',0x40,0x40,0x40,0xe0};	// QST IN AX25
 UCHAR NODECALL[7] = {0x9C, 0x9E, 0x88, 0x8A, 0xA6, 0x40, 0xE0};		// 'NODES' IN AX25 FORMAT
 
-extern struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
-
 extern BOOL LogAllConnects;
 
 APPLCALLS * APPL;
@@ -3856,7 +3854,7 @@ BOOL CheckForListeningSession(struct PORTCONTROL * PORT, MESSAGE * Msg)
 
 	while (i--)
 	{
-		if ((CountBits(L4->LISTEN) == 1) && ((1 << ((Msg->PORT & 0x7f) - 1) && L4->LISTEN)))
+		if ((CountBits64(L4->LISTEN) == 1) && ((1 << ((Msg->PORT & 0x7f) - 1) && L4->LISTEN)))
 		{
 			// See if he is calling our call
 
@@ -3900,7 +3898,7 @@ BOOL CheckForListeningSession(struct PORTCONTROL * PORT, MESSAGE * Msg)
 	
 						//	SET UP NEW SESSION (OR RESET EXISTING ONE)
 
-						FindLink(Msg->ORIGIN, ourcall, L4->LISTEN, &LINK);
+						FindLink(Msg->ORIGIN, ourcall, PORT->PORTNUMBER, &LINK);
 	
 						if (LINK == NULL)
 							return FALSE;

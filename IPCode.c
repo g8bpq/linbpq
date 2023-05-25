@@ -128,11 +128,10 @@ VOID RecalcUDPChecksum(PIPMSG IPptr);
 BOOL Send_ETH(VOID * Block, DWORD len, BOOL SendToTAP);
 VOID ProcessEthARPMsg(PETHARP arpptr, BOOL FromTAP);
 VOID WriteIPRLine(PROUTEENTRY RouteRecord, FILE * file);
-int CountBits(uint64_t in);
+int CountBits(uint32_t in);
 VOID SendARPMsg(PARPDATA ARPptr, BOOL ToTAP);;
 BOOL DecodeCallString(char * Calls, BOOL * Stay, BOOL * Spy, UCHAR * AXCalls);
 int C_Q_ADD_NP(VOID *PQ, VOID *PBUFF);
-int CountBits(uint64_t in);
 
 #define ARPTIMEOUT 3600
 
@@ -195,8 +194,6 @@ int FramesForwarded = 0;
 int FramesDropped = 0;
 int ARPTimeouts = 0;
 int SecTimer = 10;
-
-extern char * PortConfig[];
 
 int baseline=0;
 
@@ -556,9 +553,11 @@ Dll BOOL APIENTRY Init_IP()
 
 //#ifdef WIN32
 
-	if (Adapter[0])
-		if (GetPCAP() == FALSE)
-			return FALSE;
+	if (Adapter[0] == 0)
+		return FALSE;
+
+	if (GetPCAP() == FALSE)
+		return FALSE;
 
 	// on Windows create a NAT entry for IPADDR.
 	// on linux enable the TAP device (on Linux you can't use pcap to talk to 
@@ -3228,7 +3227,7 @@ static BOOL ReadConfigFile()
 	BOOL Found;
 	char buf[256],errbuf[256];
 
-	Config = PortConfig[33];		// Config fnom bpq32.cfg
+	Config = PortConfig[IPConfigSlot];		// Config fnom bpq32.cfg
 
 	if (Config)
 	{
@@ -4856,7 +4855,18 @@ VOID SHOWNAT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 
-int CountBits(uint64_t in)
+int CountBits64(uint64_t in)
+{
+	int n = 0;
+	while (in)
+	{
+		if (in & 1) n ++;
+		in >>=1;
+	}
+	return n;
+}
+
+int CountBits(uint32_t in)
 {
 	int n = 0;
 	while (in)
@@ -4993,8 +5003,8 @@ int sysNameLen = 8;
 
 extern time_t TimeLoaded;
 
-int InOctets[32] = {0};
-int OutOctets[32] = {0};
+int InOctets[64] = {0};
+int OutOctets[64] = {0};
 
 //	ASN PDUs have to be constructed backwards, as each header included a length
 

@@ -59,7 +59,6 @@ VOID DOMONITORING(int NeedTrace);
 int APIENTRY DecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp);
 time_t APIENTRY GetRaw(int stream, char * msg, int * len, int * count);
 BOOL TfPut(struct TNCDATA * TNC, UCHAR character);
-int IntDecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp, unsigned long long Mask, BOOL APRS, BOOL MCTL);
 int DATAPOLL(struct TNCDATA * TNC, struct StreamInfo * Channel);
 int STATUSPOLL(struct TNCDATA * TNC, struct StreamInfo * Channel);
 int DEDPROCESSHOSTPACKET(struct StreamInfo * Channel, struct TNCDATA * TNC);
@@ -2214,9 +2213,6 @@ void CheckForDataFromTerminal(struct TNCDATA * TNC)
 }
 
 
-int APIENTRY SetTraceOptionsEx(int mask, int mtxparam, int mcomparam, int monUIOnly);
-
-
 VOID DOMONITORING(int NeedTrace)
 {
 	//	IF ANY PORTS HAVE MONITOR ENABLED, SET MONITOR BIT ON FIRST PORT
@@ -2224,7 +2220,7 @@ VOID DOMONITORING(int NeedTrace)
 	struct TNCDATA * TNC = TNC2TABLE;		// malloc'ed
 	int Tracebit = 0, len, count, n;
 	time_t Stamp;
-	ULONG SaveMMASK = MMASK;
+	uint64_t SaveMMASK = MMASK;
 	BOOL SaveMTX = MTX;
 	BOOL SaveMCOM = MCOM;
 	BOOL SaveMUI = MUIONLY;
@@ -2259,10 +2255,10 @@ VOID DOMONITORING(int NeedTrace)
 	{
 		if (TNC->Mode == TNC2 && TNC->TRACEFLAG)
 		{
-			SetTraceOptionsEx(TNC->MMASK, TNC->MTX, TNC->MCOM, 0);
+			IntSetTraceOptionsEx(TNC->MMASK, TNC->MTX, TNC->MCOM, 0);
 			len = IntDecodeFrame(&MONITORDATA, MONBUFFER, Stamp, TNC->MMASK, FALSE, FALSE);
 //			printf("%d %d %d %d %d\n", len, MMASK, MTX, MCOM, MUIONLY);
-			SetTraceOptionsEx(SaveMMASK, SaveMTX, SaveMCOM, SaveMUI);
+			IntSetTraceOptionsEx(SaveMMASK, SaveMTX, SaveMCOM, SaveMUI);
 
 			if (len)
 			{
@@ -3160,7 +3156,6 @@ unsigned char ALREADYCONMSG[]="You are already connected on another port\r";
 byte * EncodeCall(byte * Call);
 VOID SENDENFORCINGPACLEN(struct StreamInfo * Channel, char * Msg, int Len);
 VOID SENDCMDREPLY(struct TNCDATA * TNC, char * Msg, int Len);
-int APIENTRY SetTraceOptionsEx(int mask, int mtxparam, int mcomparam, int monUIOnly);
 int DOCOMMAND(struct TNCDATA * conn);
 int PROCESSPOLL(struct TNCDATA * TNC, struct StreamInfo * Channel);
 
@@ -4977,15 +4972,15 @@ NOMONITOR:
 		{
 			// Use Normal Decode, then reformat to DED standard
 
-			ULONG SaveMMASK = MMASK;
+			uint64_t SaveMMASK = MMASK;
 			BOOL SaveMTX = MTX;
 			BOOL SaveMCOM = MCOM;
 			BOOL SaveMUI = MUIONLY;
 			unsigned char Decoded[1000];
 
-			SetTraceOptionsEx(TNC->MMASK, TNC->MTX, TNC->MCOM, 0);
+			IntSetTraceOptionsEx(TNC->MMASK, TNC->MTX, TNC->MCOM, 0);
 			Len = IntDecodeFrame(&MONITORDATA, Decoded, stamp, TNC->MMASK, FALSE, FALSE);
-			SetTraceOptionsEx(SaveMMASK, SaveMTX, SaveMCOM, SaveMUI);
+			IntSetTraceOptionsEx(SaveMMASK, SaveMTX, SaveMCOM, SaveMUI);
 
 			if (Len)	
 			{

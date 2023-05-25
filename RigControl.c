@@ -62,8 +62,6 @@ char *fcvt(double number, int ndigits, int *decpt, int *sign);
 
 #include "hidapi.h"
 
-extern struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
-
 int Row = -20;
 
 extern struct PORTCONTROL * PORTTABLE;
@@ -1838,51 +1836,11 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 
 		return TRUE;
 
-	case SDRRADIO:
+	case KENWOOD:
+	case FT2000:
+	case FT991A:
+	case FLEX:
 			
-		if (n < 3)
-		{
-			strcpy(Command, "Sorry - Invalid Format - should be Port Freq Mode\r");
-			return FALSE;
-		}
-
-		for (ModeNo = 0; ModeNo < 16; ModeNo++)
-		{
-			if (_stricmp(KenwoodModes[ModeNo], Mode) == 0)
-				break;
-		}
-
-		if (ModeNo > 15)
-		{
-			sprintf(Command, "Sorry -Invalid Mode\r");
-			return FALSE;
-		}
-
-		buffptr = GetBuff();
-
-		if (buffptr == 0)
-		{
-			sprintf(Command, "Sorry - No Buffers available\r");
-			return FALSE;
-		}
-
-		// Build a ScanEntry in the buffer
-
-		FreqPtr = (struct ScanEntry *)buffptr->Data;
-		memset(FreqPtr, 0, sizeof(struct ScanEntry));
-
-		FreqPtr->Freq = Freq;
-		FreqPtr->Bandwidth = Bandwidth;
-		FreqPtr->Antenna = Antenna;
-
-		Poll = FreqPtr->Cmd1 = FreqPtr->Cmd1Msg;
-
-		FreqPtr->Cmd1Len = sprintf(Poll, "F%c00%s;MD%d;F%c;MD;", RIG->RigAddr, FreqString, ModeNo, RIG->RigAddr);
-
-		C_Q_ADD(&RIG->BPQtoRADIO_Q, buffptr);
-
-		return TRUE;
-
 		if (n < 3)
 		{
 			strcpy(Command, "Sorry - Invalid Format - should be Port Freq Mode\r");
@@ -1951,6 +1909,51 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 
 		return TRUE;
 
+
+	case SDRRADIO:
+			
+		if (n < 3)
+		{
+			strcpy(Command, "Sorry - Invalid Format - should be Port Freq Mode\r");
+			return FALSE;
+		}
+
+		for (ModeNo = 0; ModeNo < 16; ModeNo++)
+		{
+			if (_stricmp(KenwoodModes[ModeNo], Mode) == 0)
+				break;
+		}
+
+		if (ModeNo > 15)
+		{
+			sprintf(Command, "Sorry -Invalid Mode\r");
+			return FALSE;
+		}
+
+		buffptr = GetBuff();
+
+		if (buffptr == 0)
+		{
+			sprintf(Command, "Sorry - No Buffers available\r");
+			return FALSE;
+		}
+
+		// Build a ScanEntry in the buffer
+
+		FreqPtr = (struct ScanEntry *)buffptr->Data;
+		memset(FreqPtr, 0, sizeof(struct ScanEntry));
+
+		FreqPtr->Freq = Freq;
+		FreqPtr->Bandwidth = Bandwidth;
+		FreqPtr->Antenna = Antenna;
+
+		Poll = FreqPtr->Cmd1 = FreqPtr->Cmd1Msg;
+
+		FreqPtr->Cmd1Len = sprintf(Poll, "F%c00%s;MD%d;F%c;MD;", RIG->RigAddr, FreqString, ModeNo, RIG->RigAddr);
+
+		C_Q_ADD(&RIG->BPQtoRADIO_Q, buffptr);
+
+		return TRUE;
 
 
 	case NMEA:
@@ -4432,8 +4435,6 @@ VOID ProcessSDRRadioFrame(struct RIGPORTINFO * PORT, int Length)
 
 	Msg[Length] = 0;
 
-	Debugprintf(Msg);
-	
 	if (PORT->PORTOK == FALSE)
 	{
 		// Just come up		

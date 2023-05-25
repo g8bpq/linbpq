@@ -54,9 +54,6 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 extern int (WINAPI FAR *GetModuleFileNameExPtr)();
 
 //int ResetExtDriver(int num);
-extern char * PortConfig[33];
-
-extern struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
 
 static void ConnecttoMPSKThread(void * portptr);
 
@@ -78,7 +75,6 @@ char * strlop(char * buf, char delim);
 
 extern UCHAR BPQDirectory[];
 
-#define MAXBPQPORTS 32
 #define MAXMPSKPORTS 16
 
 //LOGFONT LFTTYFONT ;

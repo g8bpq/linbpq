@@ -163,8 +163,6 @@ HWND hIPResWnd = 0;
 
 BOOL IPMinimized;
 
-extern char * PortConfig[];
-
 static int baseline=0;
 
 static unsigned char  hostaddr[64];
@@ -1237,7 +1235,7 @@ static BOOL ReadConfigFile()
 
 	map_table_len = 0;				// For reread
 
-	Config = PortConfig[35];		// Config fnom bpq32.cfg
+	Config = PortConfig[PortMapConfigSlot];		// Config from bpq32.cfg
 
 	if (Config)
 	{

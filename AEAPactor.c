@@ -68,10 +68,6 @@ char OverMsg[3] = " \x1a";
 
 static RECT Rect;
 
-extern struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
-
-
-
 static char status[8][8] = {"STANDBY",  "PHASING", "CHGOVER", "IDLE", "TRAFFIC", "ERROR", "RQ", "XXXX"};
 
 struct TNCINFO * CreateTTYInfo(int port, int speed);

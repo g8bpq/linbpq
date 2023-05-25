@@ -67,7 +67,7 @@ void GetPortCTEXT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CM
 VOID WriteMiniDump();
 
 char COMMANDBUFFER[81] = "";		// Command Hander input buffer
-char OrigCmdBuffer[81] = "";		// Command Hander input buffer
+char OrigCmdBuffer[81] = "";		// Command Hander input buffer before toupper
 
 struct DATAMESSAGE * REPLYBUFFER = NULL;
 UINT APPLMASK = 0;
@@ -75,7 +75,6 @@ UCHAR SAVEDAPPLFLAGS = 0;
 
 UCHAR ALIASINVOKED = 0;
 
-extern struct TNCINFO * TNCInfo[41];	
 
 VOID * CMDPTR = 0;
 
@@ -1705,7 +1704,7 @@ VOID LISTENCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 	// for monitoring a remote ax.25 port
 
 	int Port = 0, index =0;
-	unsigned int ListenMask = 0;
+	uint64_t ListenMask = 0;
 	char * ptr, *Context;
 	struct PORTCONTROL * PORT = NULL;
 	char ListenPortList[128] = "";
@@ -1729,7 +1728,7 @@ VOID LISTENCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 		if (Port == 0 && NUMBEROFPORTS == 1)
 			Port = 1;
 
-		ptr = strtok_s(NULL, ", ", &Context);		// Get Unproto String
+		ptr = strtok_s(NULL, ", ", &Context);		// Get port String
 
 		if (Port)
 			PORT = GetPortTableEntryFromPortNum(Port);
@@ -1740,7 +1739,7 @@ VOID LISTENCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 			continue;
 		}
 
-		if (PORT->PROTOCOL == 10  && PORT->UICAPABLE == 0)
+		if (PORT->PROTOCOL == 10 && PORT->UICAPABLE == 0)
 		{
 			Bufferptr = Cmdprintf(Session, Bufferptr, "Sorry, port %d is not an ax.25 port\r", Port);
 			continue;
@@ -1763,15 +1762,14 @@ VOID LISTENCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 
 		sprintf(ListenPortList, "%s %d", ListenPortList, Port);
 
-
-		ListenMask |= (1 << (Port - 1));
+		ListenMask |= ((uint64_t)1 << (Port - 1));
 	}
 
 	Session->LISTEN = ListenMask;
 
 	if (ListenMask)
 	{
-		if (CountBits(ListenMask) == 1)
+		if (CountBits64(ListenMask) == 1)
 			Bufferptr = Cmdprintf(Session, Bufferptr, "Listening on port%s. Use CQ to send a beacon, LIS to disable\r", ListenPortList);
 		else
 			Bufferptr = Cmdprintf(Session, Bufferptr, "Listening on ports%s. Use LIS to disable\r", ListenPortList);
@@ -1911,7 +1909,7 @@ VOID CQCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CM
 	DIGIMESSAGE Msg;
 	int Port = 0;
 	int OneBits = 0;
-	unsigned int MaskCopy = Session->LISTEN;
+	uint64_t MaskCopy = Session->LISTEN;
 	int Len;
 	UCHAR CQCALL[7];
 	char Empty[] = "";
@@ -4904,8 +4902,6 @@ VOID AXMHEARD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX *
 
 #pragma pack()
 
-extern struct TNCINFO * TNCInfo[41];	
-
 extern char WL2KCall[10];
 extern char WL2KLoc[7];
 
@@ -5638,6 +5634,8 @@ VOID UZ7HOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX *
 	PDATAMESSAGE buff;
 	PMSGWITHLEN buffptr;
 
+	CmdTail = CmdTail + (OrigCmdBuffer - COMMANDBUFFER); // Replace with original case version
+
 	Cmd = strlop(CmdTail, ' ');
 	port = atoi(CmdTail);
 
@@ -5674,6 +5672,8 @@ VOID UZ7HOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX *
 			return;
 		}
 
+
+
 		buff->LENGTH = sprintf(buff->L2DATA, "%s\r", Cmd) + MSGHDDRLEN + 1;
 
 		if (_memicmp(Cmd, "FREQ", 4) == 0)
@@ -5688,7 +5688,7 @@ VOID UZ7HOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX *
 		ReleaseBuffer(buffptr);
 	}
 	else
-		Bufferptr = Cmdprintf(Session, Bufferptr, "Invalid UZ7HO Command (not Freq Mode Modem)\r");
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Invalid UZ7HO Command (not Freq or Modem)\r");
 	
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 	return;

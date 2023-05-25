@@ -9,6 +9,7 @@
 
 #include "winsock2.h"
 #include "ws2tcpip.h"
+#include "winstdint.h"
 
 #endif
 
@@ -164,7 +165,7 @@ typedef struct _TRANSPORTENTRY
 	int UAddrLen;				//
 	char UADDRESS[64];			// Unproto Address String - Dest + Digis
 
-	UINT LISTEN;				// Port Mask if in Listen Mode
+	uint64_t LISTEN;			// Port Mask if in Listen Mode
 	
 	char APPL[16];				// Set if session initiated by an APPL
 	int L4LIMIT;				// Idle time for this Session
@@ -1161,7 +1162,7 @@ struct TNCDATA
 	BOOL BBSMON;			//  SPECIAL SHORT MONITOR FOR BBS
 	BOOL MTX;				//  MONITOR TRANSMITTED FRAMES
 	BOOL MTXFORCE;			//  MONITOR TRANSMITTED FRAMES EVEN IF M OFF
-	unsigned long long MMASK;				//  MONITOR PORT MASK
+	uint64_t MMASK;				//  MONITOR PORT MASK
 	BOOL HEADERLN;			//  PUT MONITORED DATA ON NEW LINE FLAG
 	BOOL InEscape;			//  PASS Char received (treat next char as normal char not ctrl char)
 	BOOL InStreamSW;		//  StreamSW Char received (treat next char as new stream)

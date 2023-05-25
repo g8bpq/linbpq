@@ -302,7 +302,7 @@ void WriteLogLine(CIRCUIT * conn, int Flag, char * Msg, int MsgLen, int Flags)
 		MESSAGE Monframe;
 		memset(&Monframe, 0, sizeof(Monframe));
 
-		Monframe.PORT = 33;	
+		Monframe.PORT = 64;	
 		Monframe.LENGTH = 12 + MsgLen;
 		Monframe.DEST[0] = 1;			// Plain Text Monitor
 

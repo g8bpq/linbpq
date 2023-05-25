@@ -78,7 +78,6 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //uintptr_t _beginthread(void( *start_address )( int ), unsigned stack_size, int arglist);
 
 //int ResetExtDriver(int num);
-extern char * PortConfig[33];
 
 void ConnecttoAGWThread(void * portptr);
 
@@ -117,8 +116,6 @@ static struct AGWHEADER RXHeader;
 
 #pragma pack()
 
-
-#define MAXBPQPORTS 32
 #define MAXAGWPORTS 16
 
 //LOGFONT LFTTYFONT ;

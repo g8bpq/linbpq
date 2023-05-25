@@ -65,7 +65,7 @@ UCHAR * DisplayINP3RIF(UCHAR * ptr1, UCHAR * ptr2, int msglen);
 char * DISPLAY_NETROM(MESSAGE * ADJBUFFER, UCHAR * Output, int MsgLen);
 UCHAR * DISPLAYIPDATAGRAM(IPMSG * IP, UCHAR * Output, int MsgLen);
 char * DISPLAYARPDATAGRAM(UCHAR * Datagram, UCHAR * Output);
-int CountBits(uint64_t in);
+
 
 DllExport int APIENTRY SetTraceOptions(int mask, int mtxparam, int mcomparam)
 {
@@ -76,6 +76,8 @@ DllExport int APIENTRY SetTraceOptions(int mask, int mtxparam, int mcomparam)
 //	enables monitoring of protocol control frames (eg SABM, UA, RR),
 //	as well as info frames.
 
+//  *** For external use only, supports portnum up to 31 ***
+
 	MMASK = mask;
 	MTX = mtxparam;
 	MCOM = mcomparam;
@@ -83,8 +85,28 @@ DllExport int APIENTRY SetTraceOptions(int mask, int mtxparam, int mcomparam)
 	return (0);
 }
 
+DllExport int APIENTRY SetTraceOptions64(uint64_t mask, int mtxparam, int mcomparam, int monUIOnly)
+{
+
+//	Sets the tracing options for DecodeFrame. Mask is a bit
+//	mask of ports to monitor (ie 101 binary will monitor ports
+//	1 and 3). MTX enables monitoring on transmitted frames. MCOM
+//	enables monitoring of protocol control frames (eg SABM, UA, RR),
+//	as well as info frames.
+
+//  *** For external use only, supports portnum up to 63 ***
+
+	MMASK = mask;
+	MTX = mtxparam;
+	MCOM = mcomparam;
+	MUIONLY = monUIOnly;
+
+	return (0);
+}
 DllExport int APIENTRY SetTraceOptionsEx(int mask, int mtxparam, int mcomparam, int monUIOnly)
 {
+
+//  *** For external use only, supports portnum up to 31 ***
 
 //	Sets the tracing options for DecodeFrame. Mask is a bit
 //	mask of ports to monitor (ie 101 binary will monitor ports
@@ -118,9 +140,8 @@ int IntSetTraceOptionsEx(uint64_t mask, int mtxparam, int mcomparam, int monUIOn
 
 	return 0;
 }
-int IntDecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp, unsigned long long Mask, BOOL APRS, BOOL MCTL);
 
-int APRSDecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp, UINT Mask)
+int APRSDecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp, uint64_t Mask)
 {
 	return IntDecodeFrame(msg, buffer, Stamp, Mask, TRUE, FALSE);
 }
@@ -129,7 +150,7 @@ DllExport int APIENTRY DecodeFrame(MESSAGE * msg, char * buffer, int Stamp)
 	return IntDecodeFrame(msg, buffer, Stamp, MMASK, FALSE, FALSE);
 }
 
-int IntDecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp, unsigned long long Mask, BOOL APRS, BOOL MINI)
+int IntDecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp, uint64_t Mask, BOOL APRS, BOOL MINI)
 {
 	UCHAR * ptr;
 	int n;
@@ -177,7 +198,7 @@ KC6OAR*>ID:
 
 	Port &= 0x7F;
 
-	if (((1 << (Port - 1)) & Mask) == 0)		// Check MMASK
+	if ((((uint64_t)1 << (Port - 1)) & Mask) == 0)		// Check MMASK
 		return 0;
 	
 
@@ -201,7 +222,7 @@ KC6OAR*>ID:
 
 		SS = (int)(Stamp - MM * 60);
 
-		// Add Port: unless Mail Mon (port 33)
+		// Add Port: unless Mail Mon (port 64)
 
 		Output += sprintf((char *)Output, "%02d:%02d:%02d%c ", HH, MM, SS, TR);
 
@@ -211,7 +232,7 @@ KC6OAR*>ID:
 		if (buffer[strlen(buffer) -1] == '\r')
 			Output--;
 
-		if (Port == 33)
+		if (Port == 64)
 			Output += sprintf((char *)Output, " \r");
 		else
 			Output += sprintf((char *)Output, " Port=%d\r", Port);
@@ -278,7 +299,7 @@ KC6OAR*>ID:
 	if (MINI == 0)
 		Output += sprintf((char *)Output, "%02d:%02d:%02d%c ", HH, MM, SS, TR);
 	else
-		if (CountBits(Mask) > 1)
+		if (CountBits64(Mask) > 1)
 			Output += sprintf((char *)Output, "%d:", Port);
 
 	From[ConvFromAX25(msg->ORIGIN, From)] = 0;

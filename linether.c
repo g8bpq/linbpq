@@ -33,8 +33,6 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include <linux/if_ether.h>
 #include <linux/if_arp.h>
 
-extern char * PortConfig[33];
-
 extern int tap_fd;
 
 typedef struct PCAPStruct

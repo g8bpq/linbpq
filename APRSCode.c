@@ -64,7 +64,7 @@ VOID __cdecl Consoleprintf(const char * format, ...);
 BOOL APIENTRY  Send_AX(PMESSAGE Block, DWORD Len, UCHAR Port);
 VOID Send_AX_Datagram(PDIGIMESSAGE Block, DWORD Len, UCHAR Port);
 char * strlop(char * buf, char delim);
-int APRSDecodeFrame(char * msg, char * buffer, time_t Stamp, UINT Mask);		// Unsemaphored DecodeFrame
+int APRSDecodeFrame(char * msg, char * buffer, time_t Stamp, uint64_t Mask);		// Unsemaphored DecodeFrame
 APRSHEARDRECORD * UpdateHeard(UCHAR * Call, int Port);
 BOOL CheckforDups(char * Call, char * Msg, int Len);
 VOID ProcessQuery(char * Query);
@@ -123,7 +123,6 @@ extern int MONDECODE();
 extern VOID * zalloc(int len);
 extern BOOL StartMinimized;
 
-extern char * PortConfig[];
 extern char TextVerstring[];
 
 extern HWND hConsWnd;
@@ -140,7 +139,7 @@ BOOL APRSWeb = FALSE;
 
 void * APPL_Q = 0;				// Queue of frames for APRS Appl
 void * APPLTX_Q = 0;			// Queue of frames from APRS Appl
-UINT APRSPortMask = 0;
+uint64_t APRSPortMask = 0;
 
 char APRSCall[10] = "";
 char APRSDest[10] = "APBPQ1";
@@ -169,7 +168,7 @@ int WXCounter = 29 * 60;
 char APRSCall[10];
 char LoppedAPRSCall[10];
 
-BOOL WXPort[32];				// Ports to send WX to
+BOOL WXPort[MaxBPQPortNo + 1];				// Ports to send WX to
 
 BOOL GPSOK = 0;
 
@@ -230,16 +229,16 @@ extern BOOL IGateEnabled;
 char StatusMsg[256] = "";			// Must be in shared segment
 int StatusMsgLen = 0;
 
-char * BeaconPath[33] = {0};
+char * BeaconPath[65] = {0};
 
-char CrossPortMap[33][33] = {0};
-char APRSBridgeMap[33][33] = {0};
+char CrossPortMap[65][65] = {0};
+char APRSBridgeMap[65][65] = {0};
 
-UCHAR BeaconHeader[33][10][7] = {""};	//	Dest, Source and up to 8 digis 
-int BeaconHddrLen[33] = {0};			// Actual Length used
+UCHAR BeaconHeader[65][10][7] = {""};	//	Dest, Source and up to 8 digis 
+int BeaconHddrLen[65] = {0};			// Actual Length used
 
-UCHAR GatedHeader[33][10][7] = {""};	//	Dest, Source and up to 8 digis for messages gated from IS
-int GatedHddrLen[33] = {0};			    // Actual Length used
+UCHAR GatedHeader[65][10][7] = {""};	//	Dest, Source and up to 8 digis for messages gated from IS
+int GatedHddrLen[65] = {0};			    // Actual Length used
 
 
 char CFGSYMBOL = 'a';
@@ -371,7 +370,7 @@ struct OBJECT
 	UCHAR Path[10][7];		//	Dest, Source and up to 8 digis 
 	int PathLen;			// Actual Length used
 	char Message[81];
-	char PortMap[33];
+	char PortMap[MaxBPQPortNo + 1];
 	int	Interval;
 	int Timer;
 };
@@ -1221,7 +1220,7 @@ Dll VOID APIENTRY Poll_APRS()
 			continue;
 		}
 
-		if ((APRSPortMask & (1 << (Port - 1))) == 0)// Port in use for APRS?
+		if ((APRSPortMask & ((uint64_t)1 << (Port - 1))) == 0)// Port in use for APRS?
 		{
 			ReleaseBuffer(monbuff);
 			continue;
@@ -1296,7 +1295,7 @@ Dll VOID APIENTRY Poll_APRS()
 
 		// Bridge if requested
 
-		for (toPort = 1; toPort <= 32; toPort++)
+		for (toPort = 1; toPort <= MaxBPQPortNo; toPort++)
 		{
 			if (APRSBridgeMap[Port][toPort])
 			{
@@ -1735,7 +1734,7 @@ static VOID SendtoDigiPorts(PDIGIMESSAGE Block, DWORD Len, UCHAR Port)
 
 //	Block->CTL = 3;		//UI
 
-	for (toPort = 1; toPort <= 32; toPort++)
+	for (toPort = 1; toPort <= MaxBPQPortNo; toPort++)
 	{
 		if (CrossPortMap[Port][toPort])
 			Send_AX((PMESSAGE)Block, Len, toPort);
@@ -1782,7 +1781,7 @@ static BOOL APRSReadConfigFile()
 
 	char buf[256],errbuf[256];
 
-	Config = PortConfig[34];		// Config fnom bpq32.cfg
+	Config = PortConfig[APRSConfigSlot];		// Config from bpq32.cfg
 
 	sprintf(StatusMsg, "BPQ32 Igate V %s", VersionString);		// Set Default Status Message
 
@@ -2081,7 +2080,7 @@ static int APRSProcessLine(char * buf)
 		if (GetPortTableEntryFromPortNum(Port) == NULL)
 			return FALSE;
 
-		APRSPortMask |= 1 << (Port - 1);
+		APRSPortMask |= (uint64_t)1 << (Port - 1);
 
 		if (Context == NULL || Context[0] == 0)
 			return TRUE;					// No dest - a receive-only port
@@ -2481,7 +2480,7 @@ static int APRSProcessLine(char * buf)
 		char * ptr;
 		int index = 0;
 
-		for (index = 0; index < 32; index++)
+		for (index = 0; index < MaxBPQPortNo; index++)
 			WXPort[index] = FALSE;
 	
 		if (strlen(p_value) > 79)
@@ -2536,7 +2535,7 @@ VOID SendAPRSMessageEx(char * Message, int toPort, char * FromCall, int Gated)
 
 	if (toPort == -1)
 	{
-		for (Port = 1; Port <= 32; Port++)
+		for (Port = 1; Port <= MaxBPQPortNo; Port++)
 		{
 			if (Gated && GatedHddrLen[Port])
 				memcpy(Msg.DEST, &GatedHeader[Port][0][0],  10 * 7);
@@ -2757,7 +2756,7 @@ void SendBeaconThread(void * Param)
 		return;
 	}
 
-	for (Port = 1; Port <= 32; Port++)	// Check all ports
+	for (Port = 1; Port <= MaxBPQPortNo; Port++)	// Check all ports
 	{
 		if (BeaconHddrLen[Port])		// Only send to ports with a DEST defined
 		{
@@ -2800,7 +2799,7 @@ VOID SendObject(struct OBJECT * Object)
 
 	CheckforDups(APRSCall, Object->Message, (int)strlen(Object->Message));
 
-	for (Port = 1; Port <= 32; Port++)
+	for (Port = 1; Port <= MaxBPQPortNo; Port++)
 	{
 		if (Object->PortMap[Port])
 		{
@@ -2869,7 +2868,7 @@ VOID SendIStatus()
 
 		Len = sprintf(Msg.L2DATA, "<IGATE,MSG_CNT=%d,LOC_CNT=%d", MessageCount , CountLocalStations());
 
-		for (Port = 1; Port <= 32; Port++)
+		for (Port = 1; Port <= MaxBPQPortNo; Port++)
 		{
 			if (BeaconHddrLen[Port])		// Only send to ports with a DEST defined
 			{
@@ -6420,7 +6419,7 @@ VOID SendWeatherBeacon()
 
 	Debugprintf(Msg);
 
-	for (index = 0; index < 32; index++)
+	for (index = 0; index < MaxBPQPortNo; index++)
 	{
 		if (WXPort[index])
 			SendAPRSMessageEx(Msg, index, WXCall, FALSE);

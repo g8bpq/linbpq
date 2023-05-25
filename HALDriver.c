@@ -47,8 +47,6 @@ static char ClassName[]="HALSTATUS";
 static char WindowTitle[] = "HAL";
 static int RigControlRow = 185;
 
-extern struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
-
 #define	SOH	0x01	// CONTROL CODES 
 #define	ETB	0x17
 #define	DLE	0x10

@@ -26,7 +26,9 @@ void * InitializeExtDriver(PEXTPORTDATA PORTVEC);
 
 VOID PutLengthinBuffer(PDATAMESSAGE buff, USHORT datalen);			// Needed for arm5 portability
 int GetLengthfromBuffer(PDATAMESSAGE buff);	
-
+int IntDecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp, uint64_t Mask, BOOL APRS, BOOL MCTL);
+int IntSetTraceOptionsEx(uint64_t mask, int mtxparam, int mcomparam, int monUIOnly);
+int CountBits64(uint64_t in);
 
 #define GetBuff() _GetBuff(__FILE__, __LINE__)
 #define ReleaseBuffer(s) _ReleaseBuffer(s, __FILE__, __LINE__)
@@ -374,7 +376,7 @@ extern char PACTORCALL[];
 extern UCHAR MCOM;
 extern UCHAR MUIONLY;
 extern UCHAR MTX;
-extern unsigned long long MMASK;
+extern uint64_t MMASK;
 
 extern UCHAR NODECALL[];			//  NODES in ax.25
 
@@ -395,11 +397,32 @@ extern int REALTIMETICKS;
 extern time_t CurrentSecs;
 extern time_t lastSlowSecs;
 
-
 // SNMP Variables
 
-extern int InOctets[32];
-extern int OutOctets[32];
+extern int InOctets[64];
+extern int OutOctets[64];
 
 extern BOOL CloseAllNeeded;
 extern int CloseOnError;
+
+extern char * PortConfig[70];
+extern struct TNCINFO * TNCInfo[70];		// Records are Malloc'd
+
+#define MaxBPQPortNo 63		// Port 64 reserved for BBS Mon
+#define MAXBPQPORTS 63
+
+// IP, APRS use port ocnfig slots above the real port range
+
+#define IPConfigSlot MaxBPQPortNo + 1
+#define PortMapConfigSlot MaxBPQPortNo + 2
+#define APRSConfigSlot MaxBPQPortNo + 3
+
+
+extern char * UIUIDigi[MaxBPQPortNo + 1];
+extern char UIUIDEST[MaxBPQPortNo + 1][11];		// Dest for Beacons
+extern UCHAR FN[MaxBPQPortNo + 1][256];			// Filename
+extern int Interval[MaxBPQPortNo + 1];			// Beacon Interval (Mins)
+extern char Message[MaxBPQPortNo + 1][1000];		// Beacon Text
+
+extern int MinCounter[MaxBPQPortNo + 1];			// Interval Countdown
+extern BOOL SendFromFile[MaxBPQPortNo + 1];

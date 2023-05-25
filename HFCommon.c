@@ -39,7 +39,6 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include "bpq32.h"
 #include "adif.h"
 
-extern char * PortConfig[33];
 
 HANDLE hInstance;
 extern HBRUSH bgBrush;
@@ -69,8 +68,6 @@ char * stristr (char *ch1, char *ch2);
 
 
 static RECT Rect;
-
-extern struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
 
 #define WSA_ACCEPT WM_USER + 1
 #define WSA_DATA WM_USER + 2

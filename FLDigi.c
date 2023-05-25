@@ -62,10 +62,8 @@ extern int (WINAPI FAR *EnumProcessesPtr)();
 extern int (WINAPI FAR *GetModuleFileNameExPtr)();
 
 //int ResetExtDriver(int num);
-extern char * PortConfig[33];
+;
 int SemHeldByAPI;
-
-extern struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
 
 static void ConnecttoFLDigiThread(void * portptr);
 
@@ -107,7 +105,6 @@ char * strlop(char * buf, char delim);
 
 extern UCHAR BPQDirectory[];
 
-#define MAXBPQPORTS 32
 #define MAXMPSKPORTS 16
 
 //LOGFONT LFTTYFONT ;

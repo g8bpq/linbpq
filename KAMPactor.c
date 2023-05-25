@@ -68,8 +68,6 @@ static int RigControlRow = 165;
 extern UCHAR LogDirectory[];
 static RECT Rect;
 
-extern struct TNCINFO * TNCInfo[41];		// Records are Malloc'd
-
 int DoScanLine(struct TNCINFO * TNC, char * Buff, int Len);
 VOID WritetoTrace(struct TNCINFO * TNC, char * Msg, int Len);
 

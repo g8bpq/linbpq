@@ -69,7 +69,7 @@ int memicmp(unsigned char *a, unsigned char *b, int n)
 {
 	if (n)
 	{
-		while (n && toupper(*a) == toupper(*b))
+		while (n && (toupper(*a) == toupper(*b)))
 			n--, a++, b++;
 
 		if (n)
