@@ -3756,7 +3756,7 @@ BOOL ProcessChatConnectScript(ChatCIRCUIT * conn, char * Buffer, int len)
 		
 		// Some other response to *RTL - disconnect
 			
-		Logprintf(LOG_CHAT, conn, '|', "Unexpected Response %s to *RTL - Dropping link", conn->Callsign), Buffer;
+		Logprintf(LOG_CHAT, conn, '|', "Unexpected Response %s to *RTL - Dropping link", Buffer);
 		Disconnect(conn->BPQStream);
 		return FALSE;
 

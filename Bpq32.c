@@ -1164,6 +1164,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix VARA disconnect handling (67)
 //	Support 64 ports (69)
 //	Fix Node commands for setting UZ7HO Modem (70)
+//	Fix processing SABM on an existing session (71)
 
 
 #define CKernel
