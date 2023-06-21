@@ -495,7 +495,7 @@ static int ProcessLine(char * buf, int Port, BOOL CheckPort)
 		BPQport = Port;
 		p_ipad = ptr;
 	}
-	if(BPQport > 0 && BPQport <33)
+	if(BPQport > 0 && BPQport < MAXBPQPORTS)
 	{	
 		p_udpport = strtok(NULL, " \t\n\r");
 			

@@ -4,7 +4,7 @@ char VersionStringWithBuild[50]="";
 int Ver[4] = {Vers};
 char TextVerstring[50] = "";
 
-VOID GetVersionInfo(TCHAR * File)
+void GetVersionInfo(char * File)
 {
 #ifndef LINBPQ
 

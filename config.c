@@ -255,6 +255,7 @@ int simple(int i);
 int C_Q_ADD_NP(VOID *PQ, VOID *PBUFF);
 int doSerialPortName(int i, char * value, char * rec);
 int doPermittedAppls(int i, char * value, char * rec);
+int doKissCommand(int i, char * value, char * rec);
 
 BOOL ProcessAPPLDef(char * rec);
 BOOL ToLOC(double Lat, double Lon , char * Locator);
@@ -360,7 +361,7 @@ static char *pkeywords[] =
 "BCALL", "DIGIMASK", "NOKEEPALIVES", "COMPORT", "DRIVER", "WL2KREPORT", "UIONLY",
 "UDPPORT", "IPADDR", "I2CBUS", "I2CDEVICE", "UDPTXPORT", "UDPRXPORT", "NONORMALIZE",
 "IGNOREUNLOCKEDROUTES", "INP3ONLY", "TCPPORT", "RIGPORT", "PERMITTEDAPPLS", "HIDE",
-"SMARTID"};           /* parameter keywords */
+"SMARTID", "KISSCOMMAND"};           /* parameter keywords */
 
 static void * poffset[] =
 {
@@ -374,7 +375,7 @@ static void * poffset[] =
 &xxp.BCALL, &xxp.DIGIMASK, &xxp.DefaultNoKeepAlives, &xxp.IOADDR, &xxp.DLLNAME, &xxp.WL2K, &xxp.UIONLY,
 &xxp.IOADDR, &xxp.IPADDR, &xxp.INTLEVEL, &xxp.IOADDR, &xxp.IOADDR, &xxp.ListenPort, &xxp.NoNormalize,
 &xxp.IGNOREUNLOCKED, &xxp.INP3ONLY, &xxp.TCPPORT, &xxp.RIGPORT, &xxp.PERMITTEDAPPLS, &xxp.Hide,
-&xxp.SmartID};	/* offset for corresponding data in config file */
+&xxp.SmartID, &xxp.KissParams};	/* offset for corresponding data in config file */
 
 static int proutine[] = 
 {
@@ -388,7 +389,7 @@ static int proutine[] =
 0, 1, 2, 18, 15, 16, 2,
 1, 17, 1, 1, 1, 1, 2,
 2, 2, 1, 1, 19, 2,
-1};							/* routine to process parameter */
+1, 20};							/* routine to process parameter */
 
 int PPARAMLIM = sizeof(proutine)/sizeof(int);
 
@@ -2209,7 +2210,11 @@ int decode_port_rec(char * rec)
 			break;
 
 		case 19:
-            cn = doPermittedAppls(i,value,rec);              // COMPORT
+            cn = doPermittedAppls(i,value,rec);              // Permitted Apps
+			break;
+
+		case 20:
+            cn = doKissCommand(i, value, rec);              // Permitted Apps
 			break;
 
 
@@ -2365,7 +2370,7 @@ int doPermittedAppls(int i, char * value, char * rec)
 	char * Context;		
 	char * ptr1 = strtok_s(value, " ,=\t\n\r", &Context);
 
-	// Param is a comma separated list of Appl Numbers allowes to connect on this port
+	// Param is a comma separated list of Appl Numbers allowed to connect on this port
 
 	while (ptr1 && ptr1[0])
 	{
@@ -2376,6 +2381,13 @@ int doPermittedAppls(int i, char * value, char * rec)
 	xxp.HavePermittedAppls = 1;		// indicate used
 	xxp.PERMITTEDAPPLS = Mask;
 
+	return 1;
+}
+int doKissCommand(int i, char * value, char * rec)
+{
+	// Param is kiss command and any operands as decimal bytes
+
+	xxp.KissParams = _strdup(strlop(rec, '='));
 	return 1;
 }
 
@@ -2612,7 +2624,7 @@ static int troutine[] =
 
 #define TPARAMLIM 6
 
-extern CMDX COMMANDLIST[];
+extern CMDX TNCCOMMANDLIST[];
 extern int NUMBEROFTNCCOMMANDS;
 
 int decode_tnc_rec(char * rec)
@@ -2689,7 +2701,7 @@ int decode_tnc_rec(char * rec)
 			// Try process as TNC2 Command
 
 			int n = 0;
-			CMDX * CMD = &COMMANDLIST[0];
+			CMDX * CMD = &TNCCOMMANDLIST[0];
 			char * ptr1 = key_word;
 			UCHAR * valueptr;
 

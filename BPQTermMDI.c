@@ -92,7 +92,6 @@ HBRUSH bgBrush;
 extern BOOL FrameMaximized;
 
 char RTFHeader[4000];
-
 int RTFHddrLen;
 
 struct ConsoleInfo * ConsHeader = NULL;
@@ -240,11 +239,6 @@ int ClientHeight, ClientWidth;
 
 #define MAXLINES 1000
 #define LINELEN 200
-
-char RTFHeader[4000];
-
-int RTFHddrLen;
-
 
 char FontName[100] = "FixedSys";
 int FontSize = 20;

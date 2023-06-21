@@ -1,4 +1,7 @@
 
+#ifndef CONFIGSTRUCT
+#define CONFIGSTRUCT
+
 
 // MAKE SURE SHORTS ARE CORRECTLY ALLIGNED FOR ARMV5
 
@@ -73,6 +76,7 @@ struct PORTCONFIG
 	long long txOffset;		// Transverter tx offset 
 	long long rxOffset;		// Transverter rx offset ppa
 	int SmartID;
+	unsigned char * KissParams;
 };
 
 struct ROUTECONFIG
@@ -176,6 +180,8 @@ struct UPNP
 	char * LANport;
 	char * WANPort;
 };
+
+#endif
 
 
 

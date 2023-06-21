@@ -25,7 +25,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #include "CHeaders.h"
 
-int (WINAPI FAR *GetModuleFileNameExPtr)();
+extern int (WINAPI FAR *GetModuleFileNameExPtr)();
 extern int (WINAPI FAR *EnumProcessesPtr)();
 
 

@@ -1050,6 +1050,30 @@ BOOL Start()
 
 		PORT->SmartIDInterval = PortRec->SmartID;
 
+		if (PortRec->KissParams && (PORT->PORTTYPE == 0 || PORT->PORTTYPE == 22))
+		{
+			struct KISSINFO * KISS = (struct KISSINFO *)PORT;
+			UCHAR KissString[128];
+			int KissLen = 0;
+			unsigned char * Kissptr = KissString;
+			char * ptr;
+			char * Context;
+
+			ptr = strtok_s(PortRec->KissParams, " ", &Context);
+
+			while (ptr && ptr[0] && KissLen < 120)
+			{
+				*(Kissptr++) = atoi (ptr);
+				KissLen++;
+				ptr = strtok_s(NULL, " ", &Context);
+			}
+
+			KISS->KISSCMD = malloc(256);
+
+			KISS->KISSCMDLEN = KissEncode(KissString, KISS->KISSCMD, KissLen);
+			realloc(KISS->KISSCMD, KISS->KISSCMDLEN);
+		}
+
 		if (PortRec->BBSFLAG)						// Appl 1 no permitted - BBSFLAG=NOBBS
 			PORT->PERMITTEDAPPLS &= 0xfffffffe;		// Clear bottom bit
 

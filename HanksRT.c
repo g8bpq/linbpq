@@ -135,10 +135,10 @@ int AddtoHistory(struct user_t * user, char * text)
 	struct tm * tm;
 	time_t Now = time(NULL);
 
-	// Don't want to grow indefinitely and fill memory. We only allow display upt 24 hours back, so if first record is older that that 
+	// Don't want to grow indefinitely and fill memory. We only allow display up to 24 hours back, so if first record is older that that 
 	// remove and reuse it
 
-	if (History && History->Time  < Now - 86400)
+	if (History && History->Time < Now - 86400)
 	{
 		Rec = History;
 		History = Rec->next;		// Remove from front of chain 
@@ -180,9 +180,6 @@ int AddtoHistory(struct user_t * user, char * text)
 
 	return n;
 }
-
-
-
 
 
 
@@ -785,9 +782,7 @@ VOID ProcessChatLine(ChatCIRCUIT * conn, struct UserInfo * user, char* OrigBuffe
 			int n = HistoryCount;
 
 			if (param)
-				interval = atoi(param) * 60;
-
-			start = time(NULL) - interval;
+				interval = atoi(param);
 
 			if (interval < 1)
 			{
@@ -801,6 +796,8 @@ VOID ProcessChatLine(ChatCIRCUIT * conn, struct UserInfo * user, char* OrigBuffe
 				nprintf(conn, "History is only held for 24 Hours (1440 Minutes)\r");
 				interval = 1440;				// Limit to 1 day
 			}
+
+			start = time(NULL) - (interval * 60);
 
 			// Find first record to send
 

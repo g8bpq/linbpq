@@ -339,8 +339,13 @@ BOOL UZ7HOStartPort(struct PORTCONTROL * PORT)
 
 
 
-VOID UZ7HOSuspendPort(struct TNCINFO * TNC)
+VOID UZ7HOSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
 {
+	// We don't want to suspend port if on same TNC
+
+	if (MasterPort[TNC->Port] == MasterPort[ThisTNC->Port])
+		return;
+
 	TNC->PortRecord->PORTCONTROL.PortSuspended = TRUE;
 	RegisterAPPLCalls(TNC, TRUE);
 }
@@ -2315,6 +2320,16 @@ GotStream:
 	
 					if (_stricmp(RXHeader->callto, Appl) == 0)
 						break;
+
+					memcpy(Appl, APPL->APPLALIAS_TEXT, 10);
+					ptr=strchr(Appl, ' ');
+
+					if (ptr)
+						*ptr = 0;
+
+					if (_stricmp(RXHeader->callto, Appl) == 0)
+						break;
+
 				}
 
 				if (App < 32)

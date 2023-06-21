@@ -117,7 +117,7 @@ BOOL LogAPRSIS = FALSE;
 
 static char ConfigClassName[]="CONFIG";
 
-BPQVECSTRUC * APRSMONVECPTR;
+extern BPQVECSTRUC * APRSMONVECPTR;
 
 extern int MONDECODE();
 extern VOID * zalloc(int len);

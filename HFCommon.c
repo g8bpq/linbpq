@@ -1623,7 +1623,7 @@ BOOL InterlockedCheckBusy(struct TNCINFO * ThisTNC)
 	if (rxInterlock == 0 && txInterlock == 0)
 		return ThisTNC->Busy;		// No Interlock
 
-	for (i=1; i<33; i++)
+	for (i=1; i <= MAXBPQPORTS; i++)
 	{
 		TNC = TNCInfo[i];
 	

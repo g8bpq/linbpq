@@ -190,8 +190,8 @@ BOOL ChatInit();
 VOID CloseChat();
 VOID CloseTNCEmulator();
 
-config_t cfg;
-config_setting_t * group;
+static config_t cfg;
+static config_setting_t * group;
 
 BOOL MonBBS = TRUE;
 BOOL MonCHAT = TRUE;
@@ -256,6 +256,26 @@ int Slowtimer = 0;
 
 #define REPORTINTERVAL 15 * 549;	// Magic Ticks Per Minute for PC's nominal 100 ms timer
 int ReportTimer = 0;
+
+// Console Terminal Support
+
+struct ConTermS 
+{
+	int BPQStream;
+	BOOL Active;
+	int Incoming;
+
+	char kbbuf[INPUTLEN];
+	int kbptr;
+
+	char * KbdStack[MAXSTACK];
+	int StackIndex;
+
+	BOOL CONNECTED;
+	int SlowTimer;
+};
+
+struct ConTermS ConTerm = {0, 0};
 
 
 VOID CheckProgramErrors()
@@ -486,7 +506,7 @@ int SESSHDDRLEN = 0;
 UCHAR MCOM;
 UCHAR MUIONLY;
 UCHAR MTX;
-unsigned long long  MMASK;
+uint64_t MMASK;
 
 
 UCHAR AuthorisedProgram;			// Local Variable. Set if Program is on secure list
@@ -516,7 +536,178 @@ UCHAR * GetLogDirectory()
 {
 	return LogDirectory;
 }
-extern int POP3Timer;	
+extern int POP3Timer;
+
+// Console Terminal Stuff
+
+#ifndef WIN32
+
+#define _getch getchar
+
+/**
+ Linux (POSIX) implementation of _kbhit().
+ Morgan McGuire, morgan@cs.brown.edu
+ */
+
+#include <stdio.h>
+#include <sys/select.h>
+#include <termios.h>
+#include <stropts.h>
+
+int _kbhit() {
+    static const int STDIN = 0;
+    static int initialized = 0;
+
+    if (! initialized) {
+        // Use termios to turn off line buffering
+        struct termios term;
+        tcgetattr(STDIN, &term);
+        term.c_lflag &= ~ICANON;
+ 
+        tcsetattr(STDIN, TCSANOW, &term);
+        setbuf(stdin, NULL);
+        initialized = 1;
+    }
+
+    int bytesWaiting;
+    ioctl(STDIN, FIONREAD, &bytesWaiting);
+    return bytesWaiting;
+}
+
+#endif
+
+void ConTermInput(char * Msg)
+{
+	int i;
+
+	if (ConTerm.BPQStream == 0)
+	{
+		ConTerm.BPQStream = FindFreeStream();
+
+		if (ConTerm.BPQStream == 255)
+		{
+			ConTerm.BPQStream = 0;
+			printf("No Free Streams\n");
+			return;
+		}
+	}
+	
+	if (!ConTerm.CONNECTED)
+		SessionControl(ConTerm.BPQStream, 1, 0);
+
+	ConTerm.StackIndex = 0;
+
+	// Stack it
+
+	if (ConTerm.KbdStack[19])
+		free(ConTerm.KbdStack[19]);
+
+	for (i = 18; i >= 0; i--)
+	{
+		ConTerm.KbdStack[i+1] = ConTerm.KbdStack[i];
+	}
+
+	ConTerm.KbdStack[0] = _strdup(ConTerm.kbbuf);
+
+	ConTerm.kbbuf[ConTerm.kbptr]=13;
+
+	SendMsg(ConTerm.BPQStream, ConTerm.kbbuf, ConTerm.kbptr+1);
+}
+
+void ConTermPoll()
+{
+	int port, sesstype, paclen, maxframe, l4window, len;
+	int state, change, InputLen, count;
+	char callsign[11] = "";
+	char Msg[300];
+
+	//	Get current Session State. Any state changed is ACK'ed
+	//	automatically. See BPQHOST functions 4 and 5.
+	
+	SessionState(ConTerm.BPQStream, &state, &change);
+		
+	if (change == 1)
+	{
+		if (state == 1)
+		{
+			// Connected
+
+			ConTerm.CONNECTED = TRUE;
+			ConTerm.SlowTimer = 0;
+		}
+		else
+		{
+			ConTerm.CONNECTED = FALSE;
+			printf("*** Disconnected\n");		
+		}
+	}
+
+	GetMsg(ConTerm.BPQStream, Msg, &InputLen, &count);
+
+	if (InputLen)
+	{
+		char * ptr = Msg;
+		char * ptr2 = ptr;
+		Msg[InputLen] = 0;
+		
+		while (ptr)
+		{
+			ptr2 = strlop(ptr, 13);
+
+		// Replace CR with CRLF
+
+			printf(ptr);
+
+			if (ptr2)
+				printf("\r\n");
+
+			ptr = ptr2;
+		}
+	}
+
+	if (_kbhit())
+	{
+        unsigned char c = _getch();
+
+		if (c == 0xe0)
+		{
+			// Cursor control 
+
+			c = _getch();
+
+			if (c == 75)		// cursor left
+				c = 8;
+		}
+
+#ifdef WIN32
+		printf("%c", c);
+#endif
+		if (c == 8)
+		{
+			if (ConTerm.kbptr)
+				ConTerm.kbptr--;
+			printf(" \b");		// Already echoed bs - clear typed char from screen
+			return;
+		}
+
+		if (c == 13  || c == 10)
+		{
+			 ConTermInput(ConTerm.kbbuf);
+			 ConTerm.kbptr = 0;
+			 return;
+		}
+
+		ConTerm.kbbuf[ConTerm.kbptr++] = c;
+		fflush(NULL);
+
+	}
+
+	return;
+
+}
+		
+
+int Redirected = 0;
 
 int main(int argc, char * argv[])
 {
@@ -556,6 +747,12 @@ int main(int argc, char * argv[])
 	prctl(PR_SET_DUMPABLE, 1);					// Enable Core Dumps even with setcap
 #endif
 #endif
+
+	// Disable Console Terminal if stdout redirected
+
+	if (!isatty(STDOUT_FILENO))
+		Redirected = 1;
+
 #endif
 
 	printf("G8BPQ AX25 Packet Switch System Version %s %s\n", TextVerstring, Datestring);
@@ -1213,6 +1410,9 @@ int main(int argc, char * argv[])
 		TIMERINTERRUPT();
 
 		FreeSemaphore(&Semaphore);
+
+		if (Redirected == 0)
+			ConTermPoll();
 
 		if (NUMBEROFTNCPORTS)
 			TNCTimer();

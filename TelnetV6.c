@@ -99,6 +99,9 @@ extern HWND ClientWnd, FrameWnd;
 
 extern HANDLE hInstance;
 static RECT Rect;
+
+LRESULT CALLBACK TelWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
 #endif
 
 extern int REALTIMETICKS;
@@ -126,9 +129,6 @@ static int ProcessLine(char * buf, int Port);
 VOID __cdecl Debugprintf(const char * format, ...);
 char * strlop(char * buf, char delim);
 
-#ifndef LINBPQ
-LRESULT CALLBACK TelWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-#endif
 
 int DisplaySessions(struct TNCINFO * TNC);
 int DoStateChange(int Stream);
@@ -185,7 +185,9 @@ void DeleteTelnetLogFiles()
 
 int DeleteLogFile(char * Log)
 {
-   WIN32_FIND_DATA ffd;
+
+	
+	WIN32_FIND_DATA ffd;
 
    char szDir[MAX_PATH];
    char File[MAX_PATH];
@@ -287,7 +289,6 @@ int DeleteTelnetLogFiles()
 	return 0;
 }
 #endif
-
 
 
 
@@ -792,23 +793,12 @@ scanCTEXT:
 
 static int MaxStreams = 26;
 
-struct TNCINFO * CreateTTYInfo(int port, int speed);
-BOOL OpenConnection(int);
-BOOL SetupConnection(int);
-BOOL CloseConnection(struct TNCINFO * conn);
-BOOL WriteCommBlock(struct TNCINFO * TNC);
-BOOL DestroyTTYInfo(int port);
 void CheckRX(struct TNCINFO * TNC);
 VOID TelnetPoll(int Port);
 VOID ProcessTermModeResponse(struct TNCINFO * TNC);
 VOID DoTNCReinit(struct TNCINFO * TNC);
 VOID DoTermModeTimeout(struct TNCINFO * TNC);
 
-VOID ProcessPacket(struct TNCINFO * TNC, UCHAR * rxbuffer, int Len);
-VOID ProcessKPacket(struct TNCINFO * TNC, UCHAR * rxbuffer, int Len);
-VOID ProcessKHOSTPacket(struct TNCINFO * TNC, UCHAR * rxbuffer, int Len);
-VOID ProcessKNormCommand(struct TNCINFO * TNC, UCHAR * rxbuffer);
-VOID ProcessHostFrame(struct TNCINFO * TNC, UCHAR * rxbuffer, int Len);
 VOID DoMonitor(struct TNCINFO * TNC, UCHAR * Msg, int Len);
 
 
@@ -1672,6 +1662,7 @@ BOOL OpenSockets(struct TNCINFO * TNC)
 
 SOCKET OpenSocket6(struct TNCINFO * TNC, int port)
 {
+
 	struct sockaddr_in6 local_sin;  /* Local socket - internet style */
 	struct sockaddr_in6 * psin;
 	SOCKET sock;
@@ -2774,7 +2765,7 @@ LRESULT CALLBACK TelWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
 //	struct ConnectionInfo * ConnectionInfo;
 
-	for (i=1; i<33; i++)
+	for (i=1; i <= MAXBPQPORTS; i++)
 	{
 		TNC = TNCInfo[i];
 		if (TNC == NULL)
@@ -3122,7 +3113,6 @@ LRESULT CALLBACK TelWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	return DefMDIChildProc(hWnd, message, wParam, lParam);
 
 }
-
 #endif
 
 int Socket_Accept(struct TNCINFO * TNC, SOCKET SocketId, int Port)

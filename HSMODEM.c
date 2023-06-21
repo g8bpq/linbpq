@@ -115,7 +115,7 @@ struct HSMODEMINFO
 int KillTNC(struct TNCINFO * TNC);
 int RestartTNC(struct TNCINFO * TNC);
 
-int (WINAPI FAR *GetModuleFileNameExPtr)();
+extern int (WINAPI FAR *GetModuleFileNameExPtr)();
 extern int (WINAPI FAR *EnumProcessesPtr)();
 
 #include "bpq32.h"
@@ -283,7 +283,7 @@ static int ProcessLine(char * buf, int Port)
 	return (TRUE);	
 }
 
-char * Config;
+static char * Config;
 static char * ptr1, * ptr2;
 
 int HSMODEMGetLine(char * buf)
@@ -413,7 +413,15 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 			// 100 mS Timer. May now be needed, as Poll can be called more frequently in some circumstances
 
-			if (TNC->CONNECTED)
+		// G7TAJ's code to record activity for stats display
+			
+		if ( TNC->BusyFlags && CDBusy )
+			TNC->PortRecord->PORTCONTROL.ACTIVE += 2;
+
+		if ( TNC->PTTState )
+			TNC->PortRecord->PORTCONTROL.SENDING += 2;
+
+		if (TNC->CONNECTED)
 			{
 				TNC->CONNECTED--;
 
@@ -890,7 +898,7 @@ VOID HSMODEMReleaseTNC(struct TNCINFO * TNC)
 
 }
 
-VOID HSMODEMSuspendPort(struct TNCINFO * TNC)
+VOID HSMODEMSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
 {
 	HSMODEMSendCommand(TNC, "CONOK OFF\r");
 }

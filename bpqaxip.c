@@ -1344,7 +1344,7 @@ LRESULT FAR PASCAL ConfigWndProc(HWND hWnd,UINT message,WPARAM wParam,LPARAM lPa
 	BOOL UDPFlag, BCFlag;
 	struct AXIPPORTINFO * PORT;
 
-	for (i=1; i<33; i++)
+	for (i=1; i <= MAXBPQPORTS; i++)
 	{
 		PORT = Portlist[i];
 		if (PORT == NULL)
@@ -1648,7 +1648,7 @@ LRESULT CALLBACK MHWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 
 	int i;
 
-	for (i=1; i<33; i++)
+	for (i=1; i <= MAXBPQPORTS; i++)
 	{
 		PORT = Portlist[i];
 		if (PORT == NULL)

@@ -114,7 +114,7 @@ int DoScanLine(struct TNCINFO * TNC, char * Buff, int Len);
 VOID SuspendOtherPorts(struct TNCINFO * ThisTNC);
 VOID ReleaseOtherPorts(struct TNCINFO * ThisTNC);
 
-VOID PTCSuspendPort(struct TNCINFO * TNC);
+VOID PTCSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC);
 VOID PTCReleasePort(struct TNCINFO * TNC);
 int	KissEncode(UCHAR * inbuff, UCHAR * outbuff, int len);
 int CheckMode(struct TNCINFO * TNC);
@@ -467,6 +467,14 @@ ok:
 	case 7:			
 
 		// 100 mS Timer. May now be needed, as Poll can be called more frequently in some circumstances
+
+		// G7TAJ's code to record activity for stats display
+			
+		if ( TNC->BusyFlags && CDBusy )
+			TNC->PortRecord->PORTCONTROL.ACTIVE += 2;
+
+		if ( TNC->PTTState )
+			TNC->PortRecord->PORTCONTROL.SENDING += 2;
 
 		SCSCheckRX(TNC);
 		SCSPoll(port);
@@ -4147,7 +4155,7 @@ VOID CloseComplete(struct TNCINFO * TNC, int Stream)
 
 }
 
-VOID PTCSuspendPort(struct TNCINFO * TNC)
+VOID PTCSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
 {
 	struct STREAMINFO * STREAM = &TNC->Streams[0];
 

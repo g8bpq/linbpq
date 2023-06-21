@@ -528,8 +528,8 @@ VOID FreeList(char ** Hddr)
 #include "libconfig.h"
 
 
-config_t cfg;
-config_setting_t * group;
+static config_t cfg;
+static config_setting_t * group;
 
 extern char ChatWelcomeMsg[1000];
 

@@ -76,8 +76,8 @@ typedef unsigned __STDINT_LONGLONG   uint_least64_t;
  */
 typedef char int_fast8_t;
 typedef unsigned char uint_fast8_t;
-typedef short  int_fast16_t;
-typedef unsigned short  uint_fast16_t;
+//typedef short  int_fast16_t;
+//typedef unsigned short  uint_fast16_t;
 typedef int  int_fast32_t;
 typedef unsigned  int  uint_fast32_t;
 typedef __STDINT_LONGLONG  int_fast64_t;

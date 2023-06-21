@@ -11,7 +11,7 @@
 			<DebugSettings
 				Command="$(TargetPath)"
 				WorkingDirectory="C:\linbpq"
-				CommandArguments=""
+				CommandArguments="mail"
 				Attach="false"
 				DebuggerType="3"
 				Remote="1"

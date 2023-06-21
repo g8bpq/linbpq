@@ -40,7 +40,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include "tncinfo.h"
 #include "bpq32.h"
 
-int (WINAPI FAR *GetModuleFileNameExPtr)();
+extern int (WINAPI FAR *GetModuleFileNameExPtr)();
 
 #define WSA_ACCEPT WM_USER + 1
 #define WSA_DATA WM_USER + 2

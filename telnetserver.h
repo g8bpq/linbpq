@@ -1,3 +1,5 @@
+#ifndef TELNETSERVER
+#define TELNETSERVER
 
 #ifndef LINBPQ
 //#include "resource.h"
@@ -80,7 +82,7 @@ struct ConnectionInfo
 #define NOP 241 //No operation
 #define xDM 242 //Data mark Indicates the position of a Synch event within the data stream. This should always be accompanied by a TCP urgent notification.
 #define BRK 243 //Break Indicates that the "break" or "attention" key was hi.
-#define IP 244 //Suspend Interrupt or abort the process to which the NVT is connected.
+#define IPx 244 //Suspend Interrupt or abort the process to which the NVT is connected.
 #define AO 245 //Abort output Allows the current process to run to completion but does not send its output to the user.
 #define AYT 246 //Are you there Send back to the NVT some visible evidence that the AYT was received.
 #define EC 247 //Erase character The receiver should delete the last preceding undeleted character from the data stream.
@@ -103,4 +105,6 @@ struct ConnectionInfo
 #define remoteflowcontrol 33 //1372
 #define linemode 34 //1184
 #define environmentvariables 36 //1408
+
+#endif
 

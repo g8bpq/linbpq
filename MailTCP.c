@@ -39,9 +39,8 @@ int CurrentSockets=0;
 #define VERSION_MAJOR         2
 #define VERSION_MINOR         0
 
-SOCKADDR_IN local_sin;  /* Local socket - internet style */
-
-PSOCKADDR_IN psin;
+static SOCKADDR_IN local_sin;  /* Local socket - internet style */
+static PSOCKADDR_IN psin;
 
 SOCKET smtpsock, pop3sock;
 

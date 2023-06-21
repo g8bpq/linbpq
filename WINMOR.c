@@ -76,8 +76,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include <Psapi.h>
 #endif
 
-int (WINAPI FAR *GetModuleFileNameExPtr)();
-int (WINAPI FAR *EnumProcessesPtr)();
+extern int (WINAPI FAR *GetModuleFileNameExPtr)();
+extern int (WINAPI FAR *EnumProcessesPtr)();
 
 
 #define SD_RECEIVE      0x00
@@ -1339,7 +1339,7 @@ VOID SuspendOtherPorts(struct TNCINFO * ThisTNC)
 	if (rxInterlock == 0 || txInterlock == 0)
 		return;
 
-	for (i=1; i<33; i++)
+	for (i = 1; i <= MAXBPQPORTS; i++)
 	{
 		TNC = TNCInfo[i];
 		if (TNC == NULL)
@@ -1350,7 +1350,7 @@ VOID SuspendOtherPorts(struct TNCINFO * ThisTNC)
 
 		if (rxInterlock == TNC->RXRadio || txInterlock == TNC->TXRadio)	// Same Group	
 			if (TNC->SuspendPortProc)
-				TNC->SuspendPortProc(TNC);
+				TNC->SuspendPortProc(TNC, ThisTNC);
 	}
 }
 
@@ -1366,7 +1366,7 @@ VOID ReleaseOtherPorts(struct TNCINFO * ThisTNC)
 	if (rxInterlock == 0 && txInterlock == 0)
 		return;
 
-	for (i=1; i<33; i++)
+	for (i=1; i <= MAXBPQPORTS; i++)
 	{
 		TNC = TNCInfo[i];
 		if (TNC == NULL)
@@ -1381,7 +1381,7 @@ VOID ReleaseOtherPorts(struct TNCINFO * ThisTNC)
 	}
 }
 
-VOID WinmorSuspendPort(struct TNCINFO * TNC)
+VOID WinmorSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
 {
 	if (TNC->CONNECTED)
 		send(TNC->TCPSock, "CODEC FALSE\r\n", 14, 0);

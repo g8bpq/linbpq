@@ -913,9 +913,8 @@ BOOL ProcessIncommingConnectEx(struct TNCINFO * TNC, char * Call, int Stream, BO
 	PMSGWITHLEN buffptr;
 	int Totallen = 0;
 	UCHAR * ptr;
-	struct PORTCONTROL * PORT;
+	struct PORTCONTROL * PORT = TNC->PortRecord;
 	
-	PORT = &TNC->PortRecord->PORTCONTROL;
 
 	// Stop Scanner
 
@@ -3264,7 +3263,7 @@ VOID SendReportMsg(char * buff, int txlen)
 	buff[txlen++] = (crc&0xff);
 	buff[txlen++] = (crc>>8);
 
-	sendto(ReportSocket, buff, txlen, 0, (LPSOCKADDR)&reportdest, sizeof(reportdest));
+	sendto(ReportSocket, buff, txlen, 0, (struct sockaddr *)&reportdest, sizeof(reportdest));
 
 }
 VOID SendLocation()
@@ -4160,7 +4159,7 @@ VOID GetUIConfig()
 	}
 
 #else
-	
+
 	int retCode, Vallen, Type, i;
 	char Key[80];
 	char Size[80];

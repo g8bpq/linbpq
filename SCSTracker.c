@@ -108,7 +108,7 @@ BOOL TrkWriteCommBlock(struct TNCINFO * TNC)
 }
 
 
-VOID TRKSuspendPort(struct TNCINFO * TNC)
+VOID TRKSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
 {
 	struct STREAMINFO * STREAM = &TNC->Streams[0];
 
@@ -366,6 +366,14 @@ ok:
 	case 7:			
 
 		// 100 mS Timer. 
+
+		// G7TAJ's code to record activity for stats display
+			
+		if ( TNC->BusyFlags && CDBusy )
+			TNC->PortRecord->PORTCONTROL.ACTIVE += 2;
+
+		if ( TNC->PTTState )
+			TNC->PortRecord->PORTCONTROL.SENDING += 2;
 
 		//	See if waiting for connect after changing MYCALL
 

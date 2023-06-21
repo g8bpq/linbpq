@@ -34,7 +34,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include "CHeaders.h"
 
 
-int (WINAPI FAR *GetModuleFileNameExPtr)();
+extern int (WINAPI FAR *GetModuleFileNameExPtr)();
 extern int (WINAPI FAR *EnumProcessesPtr)();
 
 #include "tncinfo.h"
@@ -98,7 +98,7 @@ BOOL KAMStartPort(struct PORTCONTROL * PORT);
 BOOL KAMStopPort(struct PORTCONTROL * PORT);
 
 
-extern VOID TRKSuspendPort(struct TNCINFO * TNC);
+extern VOID TRKSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC);
 extern VOID TRKReleasePort(struct TNCINFO * TNC);
 extern VOID CloseDebugLogFile(int Port);
 extern BOOL OpenDebugLogFile(int Port);
@@ -494,6 +494,14 @@ ok:
 	case 7:			
 
 		// 100 mS Timer. 
+
+		// G7TAJ's code to record activity for stats display
+			
+		if ( TNC->BusyFlags && CDBusy )
+			TNC->PortRecord->PORTCONTROL.ACTIVE += 2;
+
+		if ( TNC->PTTState )
+			TNC->PortRecord->PORTCONTROL.SENDING += 2;
 
 		//	See if waiting for connect after changing MYCALL
 

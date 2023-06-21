@@ -31,6 +31,9 @@ BOOL FlashOnConnect;
 BOOL WrapInput;
 BOOL CloseWindowOnBye;
 
+char RTFHeader[4000];
+int RTFHddrLen = 0;
+
 RECT ConsoleRect;
 	
 char chatMsg[] = "\rSysop wants to chat to you\r";

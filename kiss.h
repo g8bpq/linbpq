@@ -45,7 +45,7 @@ typedef struct tagASYINFO
 
 } ASYINFO, *NPASYINFO ;
 
-NPASYINFO KISSInfo[33] = {0};
+NPASYINFO KISSInfo[MAXBPQPORTS] = {0};
 
 
 #define _fmemset   memset
@@ -59,6 +59,6 @@ NPASYINFO CreateKISSINFO( int port, int speed );
 BOOL DestroyKISSINFO(NPASYINFO npKISSINFO) ;
 int ReadCommBlock(NPASYINFO npKISSINFO, char * lpszBlock, int nMaxLength);
 static BOOL WriteCommBlock(NPASYINFO npKISSINFO, char * lpByte, DWORD dwBytesToWrite);
-HANDLE OpenConnection(struct PORTCONTROL * PortVector, int port);
+HANDLE OpenConnection(struct PORTCONTROL * PortVector);
 BOOL SetupConnection(NPASYINFO npKISSINFO);
 BOOL CloseConnection(NPASYINFO npKISSINFO);

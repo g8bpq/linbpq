@@ -483,9 +483,8 @@ typedef struct user_t
 #define MAXLINES 1000
 #define LINELEN 200
 
-char RTFHeader[4000];
-
-int RTFHddrLen;
+extern char RTFHeader[4000];
+extern int RTFHddrLen;
 
 struct ConsoleInfo 
 {

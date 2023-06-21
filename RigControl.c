@@ -896,10 +896,10 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 		{
 			if (RIG->NumberofBands)
 			{
-				RIG->ScanStopped &= (0xffffffff ^ (1 << Port));
+				RIG->ScanStopped &= (0xffffffffffffffff ^ ((uint64_t)1 << Port));
 
 				if (Session != (TRANSPORTENTRY *) -1)				// Used for internal Stop/Start
-					RIG->ScanStopped &= 0xfffffffe; // Clear Manual Stopped Bit
+					RIG->ScanStopped &= 0xfffffffffffffffe;			// Clear Manual Stopped Bit
 
 				if (n > 2)
 					RIG->ScanCounter = atoi(Mode) * 10;  //Start Delay
@@ -926,7 +926,7 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 
 		if (_stricmp(FreqString, "SCANSTOP") == 0)
 		{
-			RIG->ScanStopped |= (1 << Port);
+			RIG->ScanStopped |= ((uint64_t)1 << Port);
 
 			if (Session != (TRANSPORTENTRY *) -1)				// Used for internal Stop/Start
 				RIG->ScanStopped |= 1;		// Set Manual Stopped Bit
@@ -2800,7 +2800,7 @@ void CheckRX(struct RIGPORTINFO * PORT)
 			return;
 
 		if (PORT->RXBuffer[Length-1] != 0xfd)
-			return;	
+			return;					// Echo
 
 		ProcessICOMFrame(PORT, PORT->RXBuffer, Length);	// Could have multiple packets in buffer
 

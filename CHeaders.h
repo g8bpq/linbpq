@@ -291,7 +291,7 @@ extern int FULL_CTEXT;				// CTEXT ON ALL CONNECTS IF NZ
 
 // Although externally streams are numbered 1 to 64, internally offsets are 0 - 63
 
-extern BPQVECSTRUC DUMMY;					// Needed to force correct order of following
+extern BPQVECSTRUC DUMMYVEC;					// Needed to force correct order of following
 
 extern BPQVECSTRUC BPQHOSTVECTOR[BPQHOSTSTREAMS + 5];
 
@@ -370,8 +370,8 @@ extern int MINBUFFCOUNT;
 extern UCHAR BPQDirectory[];
 extern UCHAR BPQProgramDirectory[];
 
-extern char WINMOR[];
-extern char PACTORCALL[]; 
+extern UCHAR WINMOR[];
+extern UCHAR PACTORCALL[]; 
 
 extern UCHAR MCOM;
 extern UCHAR MUIONLY;

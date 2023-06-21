@@ -350,6 +350,17 @@ struct B2RestartData
 	int Count;						// Give up if too many restarts
 };
 
+//------ TAJ -----
+typedef struct PGARGS
+{
+	CIRCUIT  * conn;
+	struct UserInfo * user;
+	char InputBuffer[80];
+	int Len;
+}RUNPGARGS, *RUNPGARGS_PTR;
+
+//---------------
+
 #pragma pack(1)
 
 struct TempUserInfo
@@ -375,7 +386,11 @@ struct TempUserInfo
 	int LLCount;					// Number still to send in List Last N
 	int UpdateLatest;				// if set, save last listed as latest
 	BOOL IncludeKilled;				// Show Killed Messages if SYSOP
-
+	//--- TAJ ---
+	int PG_INDEX;		// current index of PG server
+	int PG_SERVER;		// PG server to run
+	RUNPGARGS_PTR RUNPGPARAMS; 	// pointer to RUNPGARGS for dealloc
+	//-----------
 };
 
 #define PMSG 1
@@ -759,9 +774,8 @@ struct FBBHeaderLine
 #define MAXLINES 1000
 #define LINELEN 200
 
-char RTFHeader[4000];
-
-int RTFHddrLen;
+extern char RTFHeader[4000];
+extern int RTFHddrLen;
 
 struct ConsoleInfo 
 {
@@ -1577,7 +1591,7 @@ extern BOOL WarnNoRoute;
 extern BOOL SendPtoMultiple;
 extern BOOL Localtime;
 
-struct ConsoleInfo * ConsHeader[2];
+extern struct ConsoleInfo * ConsHeader[2];
 
 extern BOOL NeedHomeBBS;
 extern char ConfigName[250];

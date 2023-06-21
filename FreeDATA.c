@@ -43,7 +43,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 int KillTNC(struct TNCINFO * TNC);
 static int RestartTNC(struct TNCINFO * TNC);
 
-int (WINAPI FAR *GetModuleFileNameExPtr)();
+extern int (WINAPI FAR *GetModuleFileNameExPtr)();
 extern int (WINAPI FAR *EnumProcessesPtr)();
 static int Socket_Data(int sock, int error, int eventcode);
 VOID MoveWindows(struct TNCINFO * TNC);
@@ -73,7 +73,7 @@ int FreeDataDisconnect(struct TNCINFO * TNC);
 int FreeGetData(struct TNCINFO * TNC);
 static void SendBeacon(struct TNCINFO * TNC, int Interval);
 void buildParamString(struct TNCINFO * TNC, char * line);
-VOID FreeDataSuspendPort(struct TNCINFO * TNC);
+VOID FreeDataSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC);
 VOID FreeDataReleasePort(struct TNCINFO * TNC);
 
 
@@ -450,9 +450,17 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 	{
 		case 7:			
 
-			// 100 mS Timer. May now be needed, as Poll can be called more frequently in some circumstances
+		// 100 mS Timer. May now be needed, as Poll can be called more frequently in some circumstances
 
-			SendPoll(TNC);
+		// G7TAJ's code to record activity for stats display
+			
+		if ( TNC->BusyFlags && CDBusy )
+			TNC->PortRecord->PORTCONTROL.ACTIVE += 2;
+
+		if ( TNC->PTTState )
+			TNC->PortRecord->PORTCONTROL.SENDING += 2;
+		
+		SendPoll(TNC);
 
 			// Check for buffered data to send
 
@@ -599,7 +607,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 				// Stop Listening, and set MYCALL to user's call
 
-				FreeDataSuspendPort(TNC);	
+				FreeDataSuspendPort(TNC, TNC);	
 				FreeDataChangeMYC(TNC, TNC->Streams[0].MyCall);
 				TNC->SessionTimeLimit = TNC->DefaultSessionTimeLimit;		// Reset Limit
 
@@ -1049,7 +1057,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			
 			if (TNC->ConnectPending == 0 && TNC->PTTState == 0)
 			{
-				FreeDataSuspendPort(TNC);
+				FreeDataSuspendPort(TNC, TNC);
 				TNC->GavePermission = TRUE;
 				return 0;	// OK to Change
 			}
@@ -1098,7 +1106,7 @@ VOID FreeDataReleaseTNC(struct TNCINFO * TNC)
 
 }
 
-VOID FreeDataSuspendPort(struct TNCINFO * TNC)
+VOID FreeDataSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
 {
 //	char CMD[] = "{\"type\" : \"set\", \"command\" : \"listen\", \"state\": \"False\"}\n";
 //	send(TNC->TCPDataSock, CMD, strlen(CMD), 0);

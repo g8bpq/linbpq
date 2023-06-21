@@ -198,6 +198,10 @@ char WindowSize[32];
 
 extern config_setting_t * group;
 
+char RTFHeader[4000];
+int RTFHddrLen;
+
+
 int ProgramErrors = 0;
 
 // Forward declarations of functions included in this code module:
@@ -1255,9 +1259,8 @@ int RefreshMainWindow()
 #define VERSION_MAJOR         2
 #define VERSION_MINOR         0
 
-SOCKADDR_IN local_sin;  /* Local socket - internet style */
-
-PSOCKADDR_IN psin;
+static SOCKADDR_IN local_sin;  /* Local socket - internet style */
+static PSOCKADDR_IN psin;
 
 SOCKET sock;
 

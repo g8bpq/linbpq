@@ -50,7 +50,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\CInclude;..\CommonSource;..\CKernel"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;BPQ32_EXPORTS;MDIKERNEL;_USE_32BIT_TIME_T"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;BPQ32_EXPORTS;MDIKERNEL;_USE_32BIT_TIME_T;BPQ32"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"

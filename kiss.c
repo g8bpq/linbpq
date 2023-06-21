@@ -34,12 +34,15 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#ifndef RP2040
 #include <sys/ioctl.h>
 #include <termios.h>
+#include <syslog.h>
+#endif
 #include <fcntl.h>
 #include <signal.h>
 #include <ctype.h>
-#include <syslog.h>
+
 
 
 //#include <netax25/ttyutils.h>
@@ -113,7 +116,7 @@ int ConnecttoTCP(NPASYINFO ASY);
 int KISSGetTCPMessage(NPASYINFO ASY);
 VOID CloseKISSPort(struct PORTCONTROL * PortVector);
 int ReadCOMBlockEx(HANDLE fd, char * Block, int MaxLength, BOOL * Error);
-void processDRATSFrame(unsigned char * Message, int Len);
+void processDRATSFrame(unsigned char * Message, int Len, struct ConnectionInfo * sockptr);
 
 extern struct PORTCONTROL * PORTTABLE;
 extern int	NUMBEROFPORTS;
@@ -157,7 +160,7 @@ int ASYSEND(struct PORTCONTROL * PortVector, char * buffer, int count)
 			if (ret == -1)
 			{
 				Debugprintf ("i2c Write Error\r");
-				usleep(1000);
+				Sleep(1);
 				ret = i2c_smbus_write_byte(Port->idComDev, *(ptr));
 			}		
 			ptr++;
@@ -306,10 +309,14 @@ int	ASYINIT(int comport, int speed, struct PORTCONTROL * PortVector, char Channe
 	}
 	else if (PortVector->PORTIPADDR.s_addr || PortVector->KISSSLAVE)
 	{
+
+#ifndef RP2040
+
 		SOCKET sock;
 		u_long param=1;
 		BOOL bcopt=TRUE;
 		struct sockaddr_in sinx;
+
 
 		// KISS over UDP or TCP
 
@@ -423,8 +430,8 @@ int	ASYINIT(int comport, int speed, struct PORTCONTROL * PortVector, char Channe
 		npKISSINFO->RXBPTR=&npKISSINFO->RXBUFFER[0]; 
 		npKISSINFO->RXMPTR=&npKISSINFO->RXMSG[0];
 
-		OpenConnection(PortVector, comport);
-
+		OpenConnection(PortVector);
+#endif
 	}
 
 	npKISSINFO->Portvector = PortVector; 
@@ -452,9 +459,10 @@ NPASYINFO CreateKISSINFO( int port,int speed )
 
 
 
-HANDLE OpenConnection(struct PORTCONTROL * PortVector, int port)
+HANDLE OpenConnection(struct PORTCONTROL * PortVector)
 {
 	NPASYINFO npKISSINFO = KISSInfo[PortVector->PORTNUMBER];
+	struct KISSINFO * KISS = (struct KISSINFO *) PortVector;
 	HANDLE  ComDev = 0 ;
 
 	if (npKISSINFO == NULL)
@@ -474,8 +482,6 @@ HANDLE OpenConnection(struct PORTCONTROL * PortVector, int port)
 	{
 		// RFM22/23 module  or TNC-PI- send a reset
 
-		struct KISSINFO * KISS = (struct KISSINFO *) PortVector;
-
 		ENCBUFF[0] = FEND;
 		ENCBUFF[1] = KISS->OURCTRL | 15;	// Action command
 		ENCBUFF[2] = 2;						// Reset command
@@ -487,12 +493,14 @@ HANDLE OpenConnection(struct PORTCONTROL * PortVector, int port)
 	{
 		// SCS Tracker - Send Enter KISS (CAN)(ESC)@K(CR)
 
-		struct KISSINFO * KISS = (struct KISSINFO *) PortVector;
-
 		memcpy(ENCBUFF, "\x18\x1b@K\r", 5);	// Enter KISS
 
 		ASYSEND(PortVector, ENCBUFF, 5);
 	}
+
+	if (KISS->KISSCMD && KISS->KISSCMDLEN)
+		ASYSEND(PortVector, KISS->KISSCMD, KISS->KISSCMDLEN);
+
 
 	return ComDev;
 }
@@ -509,7 +517,7 @@ int ReadCommBlock(NPASYINFO npKISSINFO, char * lpszBlock, int nMaxLength )
 
 		if (npKISSINFO->ReopenTimer > 300)	// about 30 secs
 		{
-			npKISSINFO->idComDev = OpenConnection(npKISSINFO->Portvector, npKISSINFO->bPort);
+			npKISSINFO->idComDev = OpenConnection(npKISSINFO->Portvector);
 			npKISSINFO->ReopenTimer = 0;
 		}
 	}
@@ -1573,7 +1581,7 @@ SeeifMore:
 				
 				VEC = PORT->Session->L4TARGET.HOST;
 				C_Q_ADD(&PORT->Session->L4TX_Q, (UINT *)Buffer);
-#ifndef LINBPQ
+#ifdef BPQ32
 				if (VEC)
 					PostMessage(VEC->HOSTHANDLE, BPQMsg, VEC->HOSTSTREAM, 2);  
 #endif
@@ -1588,13 +1596,13 @@ SeeifMore:
 	}
 
 	//	checksum if necessary
-
+#ifndef RP2040
 	if (KISS->PORT.KISSFLAGS & DRATS)
 	{
-		processDRATSFrame(&Port->RXMSG[1], len - 2);
+		processDRATSFrame(&Port->RXMSG[1], len - 2, 0);
 		return 0;
 	}
-
+#endif
 	if (len < 15)
 		return 0;					// too short for AX25
 
@@ -1821,6 +1829,7 @@ int ConnecttoTCP(NPASYINFO ASY)
 
 VOID ConnecttoTCPThread(NPASYINFO ASY)
 {
+#ifndef RP2040
 	char Msg[255];
 	int err,i;
 	u_long param=1;
@@ -1829,6 +1838,7 @@ VOID ConnecttoTCPThread(NPASYINFO ASY)
 //	struct hostent * HostEnt;
 	SOCKADDR_IN sinx; 
 	int addrlen=sizeof(sinx);
+	struct KISSINFO * KISS = (struct KISSINFO *) ASY->Portvector;
 
 	sinx.sin_family = AF_INET;
 	sinx.sin_addr.s_addr = INADDR_ANY;
@@ -1886,9 +1896,15 @@ VOID ConnecttoTCPThread(NPASYINFO ASY)
 				ASY->Connecting = FALSE;
 
 				ioctlsocket (sock, FIONBIO, &param);
+
+				// If configured send TNC command
+
+				if (KISS->KISSCMD && KISS->KISSCMDLEN)
+					send(sock, KISS->KISSCMD, KISS->KISSCMDLEN, 0);
+
 				continue;
 			}
-				else
+			else
 			{
 				err=WSAGetLastError();
 
@@ -1910,10 +1926,13 @@ VOID ConnecttoTCPThread(NPASYINFO ASY)
 		}
 		Sleep (57000/2);						// 1/2 Mins
 	}
+#endif
 }
 
 int KISSGetTCPMessage(NPASYINFO ASY)
 {
+#ifndef RP2040
+
 	int index=0;
 	ULONG param = 1;
 
@@ -1989,6 +2008,8 @@ int KISSGetTCPMessage(NPASYINFO ASY)
 	{
 		// Reopen Listening Socket
 
+
+
 		SOCKET sock;
 		u_long param=1;
 		BOOL bcopt=TRUE;
@@ -2020,7 +2041,7 @@ int KISSGetTCPMessage(NPASYINFO ASY)
 			else
 				ASY->Listening = TRUE;	
 		}
-
 	}
+#endif
 	return 0;
 }

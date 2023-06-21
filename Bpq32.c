@@ -89,8 +89,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 // 410c		December 2007
 
-//				Fix problem with NT introduced in V410a
-//				Display location of DLL on Console
+//			Fix problem with NT introduced in V410a
+//			Display location of DLL on Console
 
 // 410d		January 2008
 
@@ -1165,7 +1165,14 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Support 64 ports (69)
 //	Fix Node commands for setting UZ7HO Modem (70)
 //	Fix processing SABM on an existing session (71)
-
+//	Extend KISS Node command to send more than one parameter byte (72)
+//	Add G7TAJ's code to record activity of HF ports for stats display (72)
+//	Add option to send KISS command to TNC on startup (73)
+//	Fix Bug in DED Emulator Monitor code (74)
+//	Add Filters to DED Monitor code (75)
+//	Detect loss of DED application (76)
+//	Fix connects to Application Alias with UZ7HO Driver (76)
+//	Fix Interlock of ports on same UZ7HO modem. (76)
 
 #define CKernel
 

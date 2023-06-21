@@ -331,6 +331,14 @@ ok:
 
 		// 100 mS Timer. May now be needed, as Poll can be called more frequently in some circumstances
 
+		// G7TAJ's code to record activity for stats display
+			
+		if ( TNC->BusyFlags && CDBusy )
+			TNC->PortRecord->PORTCONTROL.ACTIVE += 2;
+
+		if ( TNC->PTTState )
+			TNC->PortRecord->PORTCONTROL.SENDING += 2;
+
 		CheckRXKAM(TNC);
 		KAMPoll(port);
 

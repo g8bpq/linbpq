@@ -3963,7 +3963,7 @@ VOID ATTACHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 
 		if (rxInterlock || txInterlock)
 		{
-			for (i=1; i<33; i++)
+			for (i=1; i <= MAXBPQPORTS; i++)
 			{
 				OtherTNC = TNCInfo[i];
 
@@ -5059,7 +5059,6 @@ VOID WL2KSYSOP(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 }
 
 VOID CloseKISSPort(struct PORTCONTROL * PortVector);
-int OpenConnection(struct PORTCONTROL * PortVector);
 
 VOID STOPCMS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
 {
@@ -5330,7 +5329,7 @@ VOID STARTPORT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 						return;
 					}
 
-					if (OpenConnection(PORT), TRUE)
+					if (OpenConnection(PORT))
 						Bufferptr = Cmdprintf(Session, Bufferptr, "Port Opened\r");
 					else
 						Bufferptr = Cmdprintf(Session, Bufferptr, "Port Open Failed\r");
@@ -5355,9 +5354,8 @@ VOID STARTPORT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 
 
 
-#define FEND 0xC0 
 int ASYSEND(struct PORTCONTROL * PortVector, char * buffer, int count);
-
+int	KissEncode(UCHAR * inbuff, UCHAR * outbuff, int len);
 
 VOID KISSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
 {
@@ -5365,9 +5363,12 @@ VOID KISSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 	char * ptr, * Context;
 
 	int portno = 0;
-	int cmd = 0, val = 0;
 	struct PORTCONTROL * PORT = PORTTABLE;
 	int n = NUMBEROFPORTS;
+	UCHAR KissString[128];
+	UCHAR ENCBUFF[256];
+	int KissLen = 0;
+	unsigned char * Kissptr = KissString;
 
 	// Send KISS Command to TNC
 
@@ -5380,17 +5381,16 @@ VOID KISSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 		portno = atoi (ptr);
 		ptr = strtok_s(NULL, " ", &Context);
 
-		if (ptr)
+		while (ptr && ptr[0] && KissLen < 120)
 		{
-			cmd = atoi (ptr);
+			*(Kissptr++) = atoi (ptr);
+			KissLen++;
 			ptr = strtok_s(NULL, " ", &Context);
 
-			if (ptr)
-				val = atoi (ptr);
 		}
 	}
 
-	if (portno == 0 || cmd == 0)
+	if (portno == 0 || KissLen == 0)
 	{
 		strcpy(Bufferptr, BADMSG);
 		Bufferptr += (int)strlen(BADMSG);
@@ -5403,8 +5403,6 @@ VOID KISSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 		if (PORT->PORTNUMBER == portno)
 		{
 			struct KISSINFO * KISS;
-			UCHAR ENCBUFF[16];
-			unsigned char * ptr = ENCBUFF;
 
 			if (PORT->PORTTYPE != 0 && PORT->PORTTYPE != 22)
 			{
@@ -5424,17 +5422,14 @@ VOID KISSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 
 			// Send Command
 
-			*(ptr++) = FEND;
-			*(ptr++) = KISS->OURCTRL | cmd;
-			*(ptr++) = (UCHAR)val;
-			*(ptr++) = FEND;
+			KissLen = KissEncode(KissString, ENCBUFF, KissLen);
 
 			PORT = (struct PORTCONTROL *)KISS->FIRSTPORT;			// ALL FRAMES GO ON SAME Q
 
 			PORT->Session = Session;
 			PORT->LastKISSCmdTime = time(NULL);
 
-			ASYSEND(PORT, ENCBUFF, 4);
+			ASYSEND(PORT, ENCBUFF, KissLen);
 
 			Bufferptr = Cmdprintf(Session, Bufferptr, "Command Sent\r");
 			SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));

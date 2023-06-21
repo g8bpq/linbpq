@@ -276,9 +276,9 @@ VOID Poll_AGW()
 }
 
 
-SOCKADDR_IN local_sin;  /* Local socket - internet style */
+static SOCKADDR_IN local_sin;  /* Local socket - internet style */
 
-PSOCKADDR_IN psin;
+static PSOCKADDR_IN psin;
 
 
 BOOL AGWAPIInit()
@@ -343,19 +343,19 @@ BOOL AGWAPIInit()
 	{
 		if (PORT->Hide == 0)
 		{
-		VisiblePortToRealPort[v++] = i - 1;
-		memcpy(ptr,"Port",4);
-		ptr += sprintf(ptr, "%d", i);
-		memcpy(ptr, " with ", 6);
-		ptr+=6;
-		memcpy(ptr, PORT->PORTDESCRIPTION, 29);		// ";"
-		ptr+=29;
-					
-		while (*(--ptr) == ' ') {}
+			VisiblePortToRealPort[v++] = i - 1;
+			memcpy(ptr,"Port",4);
+			ptr += sprintf(ptr, "%d", i);
+			memcpy(ptr, " with ", 6);
+			ptr+=6;
+			memcpy(ptr, PORT->PORTDESCRIPTION, 29);		// ";"
+			ptr+=29;
 
-		ptr++;
+			while (*(--ptr) == ' ') {}
 
-		*(ptr++)=';';
+			ptr++;
+
+			*(ptr++)=';';
 		}
 		i++;
 		PORT=PORT->PORTPOINTER;
@@ -364,16 +364,15 @@ BOOL AGWAPIInit()
 	*(ptr)=0;
 
 	AGWMONVECPTR->HOSTAPPLFLAGS = 0x80;		// Requext Monitoring
-          
+
 	return TRUE;
 }
-
 int SetUpHostSessions()
 {
 	int Stream, i;
 
 	if (AGWMask == 0) return 0;
-	
+
 	for (i = 1; i <= AGWSessions; i++)
 	{ 
 		strcpy(pgm, "AGW");

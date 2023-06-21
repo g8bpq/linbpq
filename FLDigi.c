@@ -25,7 +25,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #include "CHeaders.h"
 
-int (WINAPI FAR *GetModuleFileNameExPtr)();
+extern int (WINAPI FAR *GetModuleFileNameExPtr)();
 extern int (WINAPI FAR *EnumProcessesPtr)();
 
 
@@ -217,6 +217,14 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 	case 7:			
 
 		// 100 mS Timer. 
+
+		// G7TAJ's code to record activity for stats display
+			
+		if ( TNC->BusyFlags && CDBusy )
+			TNC->PortRecord->PORTCONTROL.ACTIVE += 2;
+
+		if ( TNC->PTTState )
+			TNC->PortRecord->PORTCONTROL.SENDING += 2;
 
 		//	See if waiting for busy to clear before sending a connect
 
@@ -1122,7 +1130,7 @@ static int WebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
 	return Len;
 }
 
-VOID FLDIGISuspendPort(struct TNCINFO * TNC)
+VOID FLDIGISuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
 {
 	TNC->FLInfo->CONOK = FALSE;
 }

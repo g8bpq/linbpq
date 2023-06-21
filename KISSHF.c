@@ -30,7 +30,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include "CHeaders.h"
 
 
-int (WINAPI FAR *GetModuleFileNameExPtr)();
+extern int (WINAPI FAR *GetModuleFileNameExPtr)();
 extern int (WINAPI FAR *EnumProcessesPtr)();
 
 #include "bpq32.h"
@@ -720,7 +720,7 @@ VOID KISSHFReleaseTNC(struct TNCINFO * TNC)
 	ReleaseOtherPorts(TNC);
 }
 
-VOID KISSHFSuspendPort(struct TNCINFO * TNC)
+VOID KISSHFSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
 {
 }
 

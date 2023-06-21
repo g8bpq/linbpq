@@ -34,7 +34,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include <Psapi.h>
 #endif
 
-int (WINAPI FAR *GetModuleFileNameExPtr)();
+extern int (WINAPI FAR *GetModuleFileNameExPtr)();
 extern int (WINAPI FAR *EnumProcessesPtr)();
 
 #define SD_RECEIVE      0x00
@@ -341,9 +341,16 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 	case 7:
 
 		// approx 100 mS Timer. May now be needed, as Poll can be called more frequently in some circumstances
+
+		// G7TAJ's code to record activity for stats display
+			
+		if ( TNC->BusyFlags && CDBusy )
+			TNC->PortRecord->PORTCONTROL.ACTIVE += 2;
+
+		if ( TNC->PTTState )
+			TNC->PortRecord->PORTCONTROL.SENDING += 2;
 		
 		// Check session limit timer
-
 
 		if ((STREAM->Connecting || STREAM->Connected) && !STREAM->Disconnecting)
 		{
@@ -970,7 +977,7 @@ static int WebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
 	return Len;
 }
 
-VOID VARASuspendPort(struct TNCINFO * TNC)
+VOID VARASuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
 {
 	VARASendCommand(TNC, "LISTEN OFF\r", TRUE);
 }

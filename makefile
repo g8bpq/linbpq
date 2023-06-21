@@ -23,7 +23,7 @@ all: CFLAGS = -DLINBPQ -MMD -g -fcommon
 all: linbpq
 
 
-noi2c: CFLAGS = -DLINBPQ -MMD -DNOI2C -g
+noi2c: CFLAGS = -DLINBPQ -MMD -DNOI2C -g -fcommon
 noi2c: linbpq
 
 	

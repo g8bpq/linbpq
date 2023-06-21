@@ -1,3 +1,6 @@
+#ifndef RIGCONTROL
+#define RIGCONTROL
+
 #ifndef LINBPQ
 #include "Rigresource.h"
 #endif
@@ -75,7 +78,7 @@ struct RIGINFO
 	struct _EXTPORTDATA * PortRecord[32]; // BPQ32 port record(s) for this rig (null terminated list)
 
 	UCHAR RigAddr;
-	int ScanStopped;			// Scanning enabled if zero. Bits used for interlocked scanning (eg winmor/pactor on same port
+	uint64_t ScanStopped;			// Scanning enabled if zero. Bits used for interlocked scanning (eg winmor/pactor on same port
 	int ScanCounter;
 	int PollCounter;			// Don't poll too often;
 	int ScanFreq;				// Scan Rate
@@ -261,3 +264,5 @@ struct RIGPORTINFO
 
 #define W98_SERIAL_GETDATA     0x801
 #define W98_SERIAL_SETDATA     0x802
+
+#endif

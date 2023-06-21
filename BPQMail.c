@@ -1355,6 +1355,7 @@ BOOL CreateMulticastConsole();
 char * CheckToAddress(CIRCUIT * conn, char * Addr);
 BOOL CheckifPacket(char * Via);
 int GetHTMLForms();
+VOID GetPGConfig();
 
 struct _EXCEPTION_POINTERS exinfox;
 	
@@ -1708,6 +1709,14 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 			FreeForwardingStruct(user);
 			free(user->ForwardingInfo); 
 		}
+		/* ---------- TAJ --PG Server------*/
+
+			if ( user->Temp->RUNPGPARAMS ) {
+
+				printf("Also freeing RUNPGARGS\n");
+				free(user->Temp->RUNPGPARAMS);
+			}
+		/* --------------------------------*/
 
 		free(user->Temp);
 
@@ -3003,9 +3012,9 @@ int RefreshMainWindow()
 #define VERSION_MAJOR         2
 #define VERSION_MINOR         0
 
-SOCKADDR_IN local_sin;  /* Local socket - internet style */
+static SOCKADDR_IN local_sin;  /* Local socket - internet style */
 
-PSOCKADDR_IN psin;
+static PSOCKADDR_IN psin;
 
 SOCKET sock;
 
@@ -3333,6 +3342,7 @@ BOOL Initialise()
 //	CreateWPReport();
 
 	CreatePipeThread();
+	GetPGConfig();
 
 	return TRUE;
 }

@@ -730,6 +730,9 @@ typedef struct KISSINFO
 	struct KISSINFO * POLLPOINTER;			// LAST GROUP POLLED
 	int POLLED;					// SET WHEN POLL RECEIVED
 
+	UCHAR * KISSCMD;			// Commands to be sent when port opened
+	int KISSCMDLEN;
+
 //	UCHAR WIN32INFO[16];		//	FOR WINDOWS DRIVER
 } *PKISSINFO;
 
@@ -1158,6 +1161,7 @@ struct TNCDATA
 	BOOL MCON;				//  TRACE MODE FLAGS 
 	BOOL MCOM;
 	BOOL MALL;
+	BOOL MUIONLY;
 	BOOL AUTOLF;			//  Add LF after CR
 	BOOL BBSMON;			//  SPECIAL SHORT MONITOR FOR BBS
 	BOOL MTX;				//  MONITOR TRANSMITTED FRAMES
@@ -1209,6 +1213,8 @@ struct TNCDATA
 	unsigned char MONBUFFER[258]; //="\x6";
 	int MONLENGTH;
 	int MONFLAG;
+
+	time_t LastDEDPollTime;	// To detect lost host program
 
 	// Kantronics Fields
 

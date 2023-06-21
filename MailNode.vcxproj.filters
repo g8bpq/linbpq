@@ -1,0 +1,324 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="adif.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AEAPactor.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AGWAPI.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AGWMoncode.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AISCommon.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Alloc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="APRSCode.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="APRSIconData.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="APRSStdPages.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ARDOP.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base64.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BBSHTMLConfig.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BBSUtilities.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bpqaxip.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bpqether.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bpqhdlc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BPQINP3.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BPQNRR.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BPQtoAGW.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bpqvkiss.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ChatHTMLConfig.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cMain.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Cmd.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CMSAuth.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CommonCode.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="compatbits.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="config.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="datadefs.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DRATS.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Events.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FBBRoutines.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FLDigi.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FreeDATA.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HALDriver.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HanksRT.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HFCommon.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hid.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Housekeeping.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HSMODEM.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HTMLCommonCode.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HTTPcode.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="IPCode.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="KAMPactor.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="kiss.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="KISSHF.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="L2Code.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="L3Code.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="L4Code.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LinBPQ.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LzFind.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="lzhuf32.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LzmaDec.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LzmaEnc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LzmaLib.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MailCommands.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MailDataDefs.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MailRouting.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MailTCP.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MBLRoutines.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="md5.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Moncode.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Multicast.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MULTIPSK.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="NNTPRoutines.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pibits.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="png.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pngerror.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pnggccrd.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pngget.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pngmem.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pngpread.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pngread.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pngrio.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pngrtran.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pngrutil.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pngset.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pngtrans.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pngvcrd.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pngwio.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pngwrite.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pngwtran.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pngwutil.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RigControl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SCSPactor.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SCSTrackeMulti.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SCSTracker.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SerialPort.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TelnetV6.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TNCCode.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TNCEmulators.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UIRoutines.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="upnp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utf8Routines.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UZ7HODrv.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="V4.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VARA.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WebMail.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WINMOR.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WinRPR.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WPRoutines.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="png.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

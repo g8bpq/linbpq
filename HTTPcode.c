@@ -1382,7 +1382,7 @@ int SetupNodeMenu(char * Buff, int LOCAL)
 
 	Len = sprintf(Buff, NodeMenuHeader, Mycall);
 
-	for (i=1; i<33; i++)
+	for (i=1; i <= MAXBPQPORTS; i++)
 	{
 		TNC = TNCInfo[i];
 		if (TNC == NULL)

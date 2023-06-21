@@ -23,7 +23,6 @@
     <ProjectGuid>{3766AA10-C777-4ED8-A83D-F1452DE9B666}</ProjectGuid>
     <RootNamespace>MailNode</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -68,23 +67,20 @@
     <_ProjectFileVersion>15.0.28307.799</_ProjectFileVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
-    <IntDir>C:\Dev\Msdev2005\Intermed\LinBPQ\$(Configuration)\</IntDir>
+    <OutDir>C:\Dev\Msdev2005\$(SolutionName)\$(ProjectName)\$(Configuration)\</OutDir>
+    <IntDir>C:\Dev\Msdev2005\Intermed\$(SolutionName)\$(ProjectName)\$(Configuration)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IntDir>C:\Dev\Msdev2005\Intermed\LinBPQ\$(Configuration)\</IntDir>
-    <OutDir>c:\LinBPQ</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
-    <IntDir>C:\Dev\Msdev2005\Intermed\LinBPQ\$(Configuration)\</IntDir>
+    <OutDir>C:\Dev\Msdev2005\$(SolutionName)\$(ProjectName)\$(Configuration)\</OutDir>
+    <IntDir>C:\Dev\Msdev2005\Intermed\$(SolutionName)\$(ProjectName)\$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IntDir>C:\Dev\Msdev2005\Intermed\LinBPQ\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -99,7 +95,7 @@
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>kernel32.lib;WS2_32.Lib;C:\Dev\Msdev2005\Projects\BPQ32\CKernel\Debug\libconfig.lib;DbgHelp.lib;setupapi.lib;miniupnpc.lib;zlibstat.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;WS2_32.Lib;..\lib\libconfigd.lib;DbgHelp.lib;setupapi.lib;miniupnpc.lib;zlibstat.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>c:\LINBPQ\$(ProjectName).exe</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <GenerateMapFile>true</GenerateMapFile>
@@ -120,10 +116,10 @@
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>kernel32.lib;WS2_32.Lib;C:\Dev\Msdev2005\Projects\BPQ32\CKernel\x64\Debug\libconfig.lib;DbgHelp.lib;setupapi.lib;C:\Users\John\OneDrive\Dev\Source\miniupnpc-2.2.3\msvc\x64\Debug\miniupnpc.lib;zlibstat64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;WS2_32.Lib;C:\OneDrive\Dev\Source\bpq32\libconfig\x64\Release\libconfig.lib;DbgHelp.lib;setupapi.lib;C:\OneDrive\Dev\Source\miniupnpc-2.2.3\msvc\x64\Debug\miniupnpc.lib;C:\Users\johnw\Downloads\zlib-1.2.11-binaries-x64-release\zlib-1.2.11\binaries\x64\Release\zlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>c:\LINBPQ\$(ProjectName).exe</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <GenerateMapFile>true</GenerateMapFile>
@@ -131,7 +127,7 @@
       <SubSystem>Console</SubSystem>
       <StackReserveSize>4000000</StackReserveSize>
       <StackCommitSize>0</StackCommitSize>
-      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -144,7 +140,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>kernel32.lib;WS2_32.Lib;..\lib\libconfig.lib;DbgHelp.lib;Setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;WS2_32.Lib;..\lib\libconfig.lib;DbgHelp.lib;Setupapi.lib;miniupnpc.lib;zlibstat.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>c:\devprogs\bpq32\LinBPQ.exe</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -158,7 +154,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <AdditionalIncludeDirectories>..\CKernel;..\CommonSource;..\CInclude;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;LINBPQ;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;LINBPQ;_USE_32BIT_TIME_T;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -166,7 +162,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>kernel32.lib;WS2_32.Lib;..\lib\libconfig.lib;DbgHelp.lib;Setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;WS2_32.Lib;..\lib\libconfig.lib;DbgHelp.lib;Setupapi.lib;miniupnpc.lib;zlibstat.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>c:\devprogs\bpq32\LinBPQ.exe</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -215,6 +211,7 @@
     <ClCompile Include="config.c" />
     <ClCompile Include="datadefs.c" />
     <ClCompile Include="DRATS.c" />
+    <ClCompile Include="Events.c" />
     <ClCompile Include="FBBRoutines.c" />
     <ClCompile Include="FLDigi.c" />
     <ClCompile Include="FreeDATA.c" />
@@ -288,7 +285,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="png.h" />
-    <ClInclude Include="pngconf.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -219,3 +219,4 @@ char ** HoldTo;						// Hold on TO Call
 char ** HoldAt;						// Hold on AT Call
 char ** HoldBID;					// Hold on BID
 
+struct ConsoleInfo * ConsHeader[2];

@@ -39,7 +39,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include "CHeaders.h"
 
 
-int (WINAPI FAR *GetModuleFileNameExPtr)();
+extern int (WINAPI FAR *GetModuleFileNameExPtr)();
 extern int (WINAPI FAR *EnumProcessesPtr)();
 
 #include "bpq32.h"
@@ -722,7 +722,7 @@ VOID SerialReleaseTNC(struct TNCINFO * TNC)
 
 }
 
-VOID SerialSuspendPort(struct TNCINFO * TNC)
+VOID SerialSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
 {
 	SerialSendCommand(TNC, "CONOK OFF\r");
 }

@@ -222,10 +222,25 @@ extern BOOL EventsEnabled;
 
 extern BPQVECSTRUC BPQHOSTVECTOR[BPQHOSTSTREAMS + 5];
 
+/* --- TAJ PG Server--- */
+
+void run_pg( CIRCUIT * conn, struct UserInfo * user );
+void startrun_pgThread( RUNPGARGS_PTR Args );
+
+char * SERVERLIST[256][3];
+
+int NUM_SERVERS = 0;
+
+/*------- TAJ END ----------*/
+
+
 #ifdef LINBPQ
 extern BPQVECSTRUC ** BPQHOSTVECPTR;
 extern char WL2KModes [54][18];
+
+
 #else
+
 __declspec(dllimport) BPQVECSTRUC ** BPQHOSTVECPTR;
 
 
@@ -1020,6 +1035,20 @@ Next:
 	}
 
 	SortBBSChain();
+
+/*------- TAJ PG SERVER ----------*/
+
+#ifndef WIN32
+ printf("Number of PG Servers = %d\n", NUM_SERVERS );
+
+ for ( int i=0; i< NUM_SERVERS; i++ ) {
+   printf("Server #%d\t%s\tExec->%s\tDESC->%s\n", i, SERVERLIST[i][0], SERVERLIST[i][1], SERVERLIST[i][2]);
+ }
+
+
+#endif
+/*------- TAJ END ----------*/
+
 }
 
 VOID CopyUserDatabase()
@@ -9946,7 +9975,7 @@ BOOL GetConfig(char * ConfigName)
 		return(EXIT_FAILURE);
 	}
 
-#if IBCONFIG_VER_MINOR > 4
+#if LIBCONFIG_VER_MINOR > 5
 	config_set_option(&cfg, CONFIG_OPTION_AUTOCONVERT, 1);
 #else
 	config_set_auto_convert (&cfg, 1);
@@ -10624,6 +10653,15 @@ int Disconnected (int Stream)
 				conn->InputBufferLen = 0;
 			}
 
+			/* ---- TAJ PG SERVER ---- */
+			if ( conn->UserPointer->Temp->RUNPGPARAMS ) {
+				printf("Freeing RUNPGPARAMS\n");
+				free(conn->UserPointer->Temp->RUNPGPARAMS);
+				conn->UserPointer->Temp->RUNPGPARAMS = NULL;
+			}
+
+			/*------- TAJ END --------- */
+
 			if (conn->InputMode == 'B')
 			{
 				// Save partly received message for a restart
@@ -10737,6 +10775,17 @@ int DoReceivedData(int Stream)
 
 					return 0;
 				}
+
+
+			/* ---------- TAJ START - PG server  --------- */
+
+				if (conn->InputMode == 'P')			// Inside PG Server
+				{
+					user = conn->UserPointer;
+					run_pg(conn, user);
+					return 0;
+				}
+			/* ---------- TAJ END --------- */
 
 				if (conn->InputMode == 'B')
 				{
@@ -11486,6 +11535,527 @@ VOID ProcessTextFwdLine(ConnectionInfo * conn, struct UserInfo * user, char * Bu
 extern UCHAR * infile;
 
 BOOL CheckforMIME(SocketConn * sockptr, char * Msg, char ** Body, int * MsgLen);
+
+/* ---TAJ PG Server --- */
+#ifndef WIN32
+
+#define verbose 1
+#define TRUE 1
+#define FALSE 0
+#include <sys/wait.h>
+#include <signal.h>
+
+typedef struct _POPENRET
+{
+	FILE * fp;
+	pid_t pid;
+} POPENRET;
+
+/*
+* Check if the PG is still running after 5 sec
+* if so, kill it
+*/
+void run_pgTimeoutThread( pid_t process )
+{
+
+   printf("watchdog thread: PID of subprocess: %d\n", process);
+   fflush(stdout);
+   Sleep(5000);
+   // if still running PID (?) then kill.
+   if ( getpgid(process) >= 0 ) {
+	   printf("watchdog thread: Still running, so killing %d ... ", process);
+//	   if ( kill( process, SIGTERM  ) == 0 ) {
+	   if ( kill( -process, SIGKILL ) == 0 ) {
+		printf("Killed\n");
+	   } else {
+		printf("Failed\n");
+   	   }
+   }
+   printf("watchdog thread: PID=%d Exit\n", process);
+   fflush(stdout);
+   //return;
+}
+
+
+//https://sources.debian.org/src/cron/3.0pl1-45/popen.c/
+
+POPENRET my_popen(char *program, char *type, CIRCUIT *conn)
+{
+	register char *cp;
+	FILE *iop;
+	int argc, pdes[2];
+	pid_t pid;
+	POPENRET PRET;
+
+	if (*type != 'r' && *type != 'w' || type[1])
+		return(PRET);
+	if (pipe(pdes) < 0)
+		return(PRET);
+
+	iop = NULL;
+	switch(pid = fork()) {
+	case -1:			/* error */
+		(void)close(pdes[0]);
+		(void)close(pdes[1]);
+		return PRET;
+	case 0:				/* child */
+		if (*type == 'r') {
+			if (pdes[1] != 1) {
+				dup2(pdes[1], 1);
+				dup2(pdes[1], 2);	/* stderr, too! */
+				(void)close(pdes[1]);
+			}
+			(void)close(pdes[0]);
+		} else {
+			if (pdes[0] != 0) {
+				dup2(pdes[0], 0);
+				(void)close(pdes[0]);
+			}
+			(void)close(pdes[1]);
+		}
+		setpgid(-pid,pid);
+	        char *args[] = {"sh", "-c", program, NULL};
+                execve("/bin/sh", args, NULL);
+		_exit(1);
+	}
+
+	/* parent; assume fdopen can't fail...  */
+
+        printf("PID=%d\n", pid );
+       _beginthread((void (*)(void *))run_pgTimeoutThread, 0, (VOID *) pid );
+
+	if (*type == 'r') {
+		iop = fdopen(pdes[0], type);
+		(void)close(pdes[1]);
+	} else {
+		iop = fdopen(pdes[1], type);
+		(void)close(pdes[0]);
+	}
+
+  	char buffer[128];
+	while (fgets(buffer, sizeof(buffer), iop) != NULL) {
+	   BBSputs(conn, buffer);
+//           printf("%s", buffer);
+//	   sleep(200);
+	  buffer[0] = '\0';
+  	}
+//	BBSputs(conn,"\n");
+	PRET.fp = iop;
+	PRET.pid= pid;
+//	(void)close(pdes[0]);
+//	(void)close(pdes[1]);
+
+	return(PRET);
+}
+
+int
+my_pclose( POPENRET pret )
+{
+	register int fdes;
+	sigset_t omask, mask;
+	int stat_loc;
+	pid_t pid;
+	FILE * iop = pret.fp;
+
+	fdes = fileno(iop);
+	(void)fclose(iop);
+
+	sigemptyset(&mask);
+	sigaddset(&mask, SIGQUIT);
+	sigaddset(&mask, SIGINT);
+	sigaddset(&mask, SIGHUP);
+	sigprocmask(SIG_BLOCK, &mask, &omask);
+	pid = waitpid(pret.pid, &stat_loc, 0);
+	sigprocmask(SIG_SETMASK, &omask, NULL);
+	if (pid == -1 || !WIFEXITED(stat_loc))
+		return -1;
+//	return WEXITSTATUS(stat_loc);
+	printf( "return = %d\n", WEXITSTATUS(stat_loc));
+	return stat_loc;
+}
+
+
+int run_server (char **cmd, int nb_cmd, int mode, char *log, char *pgdir, char *data, CIRCUIT * conn)
+{
+        int i;
+        int ret = 0;
+        FILE *fp;
+	POPENRET PRET;
+	pid_t pid;
+        char *ptr;
+        char file[256];
+        char buf[256];
+        char dir[256];
+        char arg[256];
+
+        if (mode)
+//              sprintf (file, " </dev/null >%s", log);
+//              sprintf (file, " >>%s", log);
+//              sprintf (file, " | tee -a %s", log);
+		sprintf(file, "" );
+        else
+                sprintf (file, " </dev/null");
+
+        if (pgdir)
+        {
+                /* remove ';' security reasons */
+                ptr = strchr(pgdir, ';');
+                if (ptr)
+                        *ptr = '\0';
+
+                sprintf (dir, "cd %s ; ", pgdir);
+        }
+        else
+                *dir = '\0';
+
+        *arg = '\0';
+
+        if (data)
+        {
+                /* remove ';' security reasons */
+                ptr = strchr(data, ';');
+                if (ptr)
+                        *ptr = '\0';
+
+                sprintf (arg, " %s ", data);
+        }
+
+
+        for (i = 0; i < nb_cmd; i++)
+        {
+                /* remove ';' security reasons */
+                ptr = strchr(cmd[i], ';');
+                if (ptr)
+                        *ptr = '\0';
+
+                sprintf (buf, "%s%s%s%s", dir, cmd[i], arg, file);
+
+                PRET = my_popen (buf, "r", conn);
+
+                if (PRET.fp == NULL)
+                    printf ("Failed to run command\n" );
+//                else {
+		/* start timeout thread to kill process if it runs for more than 5 sec (make configurable?)*/
+		  // _beginthread((void (*)(void *))run_pgTimeoutThread, 0, (VOID *) PRET.pid );
+ //               }
+
+
+		//ret = (int)PRET.pid;
+                //wait(&ret);
+		ret = my_pclose( PRET );
+		ret = ret >> 8;
+
+                if (verbose) {
+                        printf ("Debug: command = {%s}\n", buf);
+                        printf ("Debug: exit code = %d\n", ret);
+                }
+
+                /* fail-safe bypass if filter executable isn't found (exit code 127) (was ret ==127)*/
+                if (ret > 5)      // should never be more than 5
+                        ret = 0;
+         }
+         return ( ret );
+}
+
+
+void run_pg( CIRCUIT * conn, struct UserInfo * user )
+{
+
+  if (!user->Temp->RUNPGPARAMS) {
+//	printf("Allocating new RUNPGPARAMS\n");
+	user->Temp->RUNPGPARAMS = (RUNPGARGS_PTR) zalloc(sizeof(RUNPGARGS));
+  }
+
+  user->Temp->RUNPGPARAMS->user = user;
+  user->Temp->RUNPGPARAMS->conn = conn;
+  strncpy(user->Temp->RUNPGPARAMS->InputBuffer, conn->InputBuffer, 80); // needs to be length of actual input!
+  user->Temp->RUNPGPARAMS->Len = conn->InputLen;
+
+  if ( conn == 0 || user == 0 ) {
+ 	printf("run_pg null err\n");
+	return;
+  }
+
+  _beginthread((void (*)(void *))startrun_pgThread, 0, user->Temp->RUNPGPARAMS );
+
+  return;
+}
+
+
+void startrun_pgThread( RUNPGARGS_PTR Args ) {
+
+  CIRCUIT * conn = Args->conn;
+  struct UserInfo * user = Args->user;
+
+  char cmd[20];
+  sprintf( cmd, "./%s", SERVERLIST[user->Temp->PG_SERVER][1] );
+  char *ptr = cmd;
+  char pg_dir[] = "/home/pi/linbpq/linbpq/downloads/new/linbpq/pg/";
+  char log_file[50] = "pg.log";
+  char call[6];
+  char data[80];
+  char line[80];
+  char *line_ptr = line;
+  int  index;
+  char *data_ptr = data;
+  size_t bufsize = 80;
+
+  strcpy( call, conn->UserPointer->Call);
+//  sprintf( log_file, "%s-%d.log", call, conn);
+  index = user->Temp->PG_INDEX;
+
+  line[0] = '\0';
+  int Len = Args->Len;
+  UCHAR * Msg = Args->InputBuffer;
+  strncpy( line, Msg, Len);
+  line[ Len - 1 ] = 0;   //remove LF
+
+  sprintf( data, "%s %d 0 0 %s", call, index, line);
+
+  // clear the input queue
+  conn->InputLen = 0;
+  conn->InputBufferLen = 0;
+
+  int ret = run_server (&ptr, 1, 1, log_file, pg_dir, data_ptr, conn);
+
+  switch (ret)
+      {
+		 case -1:	// ERROR or forced closed
+                  case 0:       index=0;			// Goodbye/Exit
+				conn->InputMode=0;
+				SendPrompt(conn, user);
+                                break;
+                  case 1:       index++;			// inc & keep in PG
+                                break;
+                  case 2:       index=0;			// disconnect
+				conn->InputMode=0;
+				Disconnect(conn->BPQStream);
+                                break;
+                  case 3:       printf("data->BBS & end\n");
+                                break;
+                  case 4:       printf("data->BBS and inc %d\n", index++);
+                                break;
+                  case 5:       printf("call no inc %d\n", ret);
+                                break;
+
+         }
+
+	user->Temp->PG_INDEX=index;
+}
+/*---- TAJ END ----- */
+
+#else
+
+#define BUFSIZE 4096 
+ 
+HANDLE g_hChildStd_IN_Rd = NULL;
+HANDLE g_hChildStd_IN_Wr = NULL;
+HANDLE g_hChildStd_OUT_Rd = NULL;
+HANDLE g_hChildStd_OUT_Wr = NULL;
+
+HANDLE g_hInputFile = NULL;
+ 
+int CreateChildProcess(void); 
+void WriteToPipe(void); 
+void ReadFromPipe(void);
+	
+
+void run_pg( CIRCUIT * conn, struct UserInfo * user )
+{
+	// Run PG program, rend anything from program's stdout to the user
+
+	int retcode = -1;
+	SECURITY_ATTRIBUTES saAttr; 
+	char szCmdline[256] = "C:\\test\\hello.exe g8bpq 0";
+	PROCESS_INFORMATION piProcInfo; 
+	STARTUPINFO siStartInfo;
+	BOOL bSuccess = FALSE; 
+	DWORD dwRead, dwWritten; 
+	CHAR chBuf[BUFSIZE]; 
+	int index = 0;
+	int ret = 0;
+
+	// if first entay allocate RUNPGPARAMS
+	if (!user->Temp->RUNPGPARAMS)
+	{
+		user->Temp->RUNPGPARAMS = (RUNPGARGS_PTR) zalloc(sizeof(RUNPGARGS));
+	}
+
+	user->Temp->RUNPGPARAMS->user = user;
+	user->Temp->RUNPGPARAMS->conn = conn;
+	strncpy(user->Temp->RUNPGPARAMS->InputBuffer, conn->InputBuffer, 80); // needs to be length of actual input!
+	user->Temp->RUNPGPARAMS->Len = conn->InputLen;
+	index = user->Temp->PG_INDEX;
+
+	conn->InputBuffer[conn->InputLen] = 0;
+	strlop(conn->InputBuffer, 13);
+	conn->InputLen = 0;
+
+	// Build command line. Parmas are:
+
+	// - Callsign (format as F6FBB-8).
+	// - Level number (0 is the first time, up to 99).
+	// - Flags of the user (binary number as user`s mask of INIT.SRV).
+	// - Record number of the user in INF.SYS.
+	// - Received data (each word is a new argument).
+
+	// BPQ doesn't support params 3 and 4 (but may supply copy of user record later)
+
+	sprintf(szCmdline, "%s/PG/%s %s %d 0 0 %s", BaseDir,
+		SERVERLIST[user->Temp->PG_SERVER][1], user->Call, index, conn->InputBuffer);
+
+	// Set the bInheritHandle flag so pipe handles are inherited. 
+
+	saAttr.nLength = sizeof(SECURITY_ATTRIBUTES); 
+	saAttr.bInheritHandle = TRUE; 
+	saAttr.lpSecurityDescriptor = NULL; 
+
+	// Create a pipe for the child process's STDOUT. 
+
+	if ( ! CreatePipe(&g_hChildStd_OUT_Rd, &g_hChildStd_OUT_Wr, &saAttr, 0) ) 
+		return; 
+
+	// Ensure the read handle to the pipe for STDOUT is not inherited.
+
+	if ( ! SetHandleInformation(g_hChildStd_OUT_Rd, HANDLE_FLAG_INHERIT, 0) )
+		return;
+
+	// Create the child process. 
+
+
+	// Set up members of the PROCESS_INFORMATION structure. 
+
+	ZeroMemory( &piProcInfo, sizeof(PROCESS_INFORMATION) );
+
+	// Set up members of the STARTUPINFO structure. 
+	// This structure specifies the STDIN and STDOUT handles for redirection.
+
+	ZeroMemory( &siStartInfo, sizeof(STARTUPINFO) );
+	siStartInfo.cb = sizeof(STARTUPINFO); 
+	siStartInfo.hStdError = g_hChildStd_OUT_Wr;
+	siStartInfo.hStdOutput = g_hChildStd_OUT_Wr;
+	siStartInfo.hStdInput = g_hChildStd_IN_Rd;
+	siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
+
+	// Create the child process. 
+
+	bSuccess = CreateProcess(NULL, 
+		szCmdline,     // command line 
+		NULL,          // process security attributes 
+		NULL,          // primary thread security attributes 
+		TRUE,          // handles are inherited 
+		0,             // creation flags 
+		NULL,          // use parent's environment 
+		NULL,          // use parent's current directory 
+		&siStartInfo,  // STARTUPINFO pointer 
+		&piProcInfo);  // receives PROCESS_INFORMATION 
+
+	// If an error occurs, exit the application. 
+
+	if (!bSuccess) 
+		retcode = -1;
+	else 
+	{
+		// Wait until child process exits.
+
+		if (WaitForSingleObject(piProcInfo.hProcess, 5000) == 0)		// Wait max 5 seconds
+		{
+			// Success
+
+			GetExitCodeProcess(piProcInfo.hProcess, &retcode);
+		}
+		else
+		{
+			// Failed or ran too long - kill
+
+			TerminateProcess(piProcInfo.hProcess, 0);
+		}
+
+		// Close handles to the child process and its primary thread.
+		// Some applications might keep these handles to monitor the status
+		// of the child process, for example. 
+
+		CloseHandle(piProcInfo.hProcess);
+		CloseHandle(piProcInfo.hThread);
+
+		// Close handles to the stdin and stdout pipes no longer needed by the child process.
+		// If they are not explicitly closed, there is no way to recognize that the child process has ended.
+
+		CloseHandle(g_hChildStd_OUT_Wr);
+
+		// Send output to User
+
+		for (;;) 
+		{ 
+			bSuccess = ReadFile( g_hChildStd_OUT_Rd, chBuf, BUFSIZE, &dwRead, NULL);
+			if( ! bSuccess || dwRead == 0 ) break; 
+
+			chBuf[dwRead] = 0;
+			
+			if (retcode == 4)
+				ProcessLine(conn, user, chBuf, dwRead);
+			else
+				BBSputs(conn, chBuf);
+
+			if (! bSuccess ) break; 
+		}
+	}
+
+
+	switch (retcode)
+	{
+	case -1:	// ERROR or forced closed
+
+		BBSputs(conn, "Problem running PG program\r");
+		index=0;
+		conn->InputMode=0;
+		SendPrompt(conn, user);
+		break;
+
+	case 0:
+
+		// Goodbye/Exit
+
+		index=0;
+		conn->InputMode=0;
+		SendPrompt(conn, user);
+		break;
+
+	case 1:
+		index++;			// inc & keep in PG
+		break;
+
+	case 2:
+		index=0;			// disconnect
+		conn->InputMode=0;
+		Disconnect(conn->BPQStream);
+		break;
+
+	case 3:
+		printf("data->BBS & end\n");
+		break;
+
+	case 4: 
+
+		// Send Output to BBS - was down above
+		break;
+
+	case 5:
+		printf("call no inc %d\n", ret);
+		break;
+	}
+
+	user->Temp->PG_INDEX=index;
+
+	// The remaining open handles are cleaned up when this process terminates. 
+	// To avoid resource leaks in a larger application, close handles explicitly. 
+
+	return; 
+}
+
+
+ 
+#endif
 
 
 VOID ProcessLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int len)
@@ -12292,6 +12862,55 @@ VOID ProcessLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int len)
 		SendPrompt(conn, user);
 		return;
 	}
+
+	/*---- TAJ PG Server ----- */
+
+
+	if (_stricmp(Cmd, "PG") == 0)
+	{
+		if ( NUM_SERVERS == 0 )
+		{
+			BBSputs(conn, "No PG Servers currently defined\r");
+			SendPrompt(conn, user);
+			Flush(conn);
+			return;
+		}
+
+		if ( !Arg1 ) 
+		{
+			char reply[80];
+			int i;
+			for (i=0; i< NUM_SERVERS; i++ )
+			{
+				sprintf(reply, "%s   ->   %s\r", SERVERLIST[i][0], SERVERLIST[i][2]);
+				BBSputs(conn, reply);
+			}
+			SendPrompt(conn, user);
+			return;
+		}
+		else
+		{
+			int i;
+			for (i=0; i < NUM_SERVERS; i++ )
+			{
+				if ( _stricmp( _strupr(Arg1), SERVERLIST[i][0] ) == 0 ) {
+					user->Temp->PG_SERVER = i;	// index to server to run
+					user->Temp->PG_INDEX  = 0;	// newly starting PG
+					conn->InputMode = 'P';	// Inside PG Server
+
+					// conn->InputBuffer is altered above and split into Cmd,Arg1,Context
+					// so put it back and call PG (removing PG)
+					sprintf( conn->InputBuffer, "%s", Context);
+					conn->InputLen = strlen(Context);
+					run_pg( conn, user );
+					return;
+				}
+			}
+		}
+
+	}
+
+	/*---- TAJ END ---- */
 
 	if (conn->Flags == 0)
 	{
@@ -14923,4 +15542,48 @@ int decode_quoted_printable(char *ptr, int len)
 			*ptr2++ = *ptr++;
 	}
 	return ptr2 - Start;
+}
+
+
+VOID GetPGConfig()
+{
+	char FN[256];
+	FILE *file;
+	char buf[256],errbuf[256];
+	char * p_prog, * p_name, * p_desc;
+	int n = 0;
+
+
+	strcpy(FN, BaseDir);
+	strcat(FN, "/");
+	strcat(FN, "PG/PGList.txt");
+
+	if ((file = fopen(FN, "r")) == NULL)
+		return;
+	
+	while(fgets(buf, 255, file) != NULL)
+	{
+		strcpy(errbuf,buf);			// save in case of error
+
+		p_prog = strtok(buf, ",\n\r");
+		p_name = strtok(NULL, ",\n\r");
+		p_desc = strtok(NULL, ",\n\r");
+
+
+		if (p_desc && p_desc[0])
+		{
+			while(*(p_name) == ' ')		// Remove leading spaces
+				p_name++;
+			while(*(p_desc) == ' ')
+				p_desc++;
+			SERVERLIST[n][0] = _strdup(p_prog);
+			SERVERLIST[n][1] = _strdup(p_name);
+			SERVERLIST[n++][2] = _strdup(p_desc);
+		}
+		if (n > 255)
+			break;
+	}
+
+	NUM_SERVERS = n;
+	fclose(file);
 }

@@ -861,6 +861,14 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 		// approx 100 mS Timer. May now be needed, as Poll can be called more frequently in some circumstances
 
+		// G7TAJ's code to record activity for stats display
+			
+		if ( TNC->BusyFlags && CDBusy )
+			TNC->PortRecord->PORTCONTROL.ACTIVE += 2;
+
+		if ( TNC->PTTState )
+			TNC->PortRecord->PORTCONTROL.SENDING += 2;
+
 		// Check session limit timer
 
 		if ((STREAM->Connecting || STREAM->Connected) && !STREAM->Disconnecting)
@@ -1867,7 +1875,7 @@ VOID ARDOPReleaseTNC(struct TNCINFO * TNC)
 
 }
 
-VOID ARDOPSuspendPort(struct TNCINFO * TNC)
+VOID ARDOPSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
 {
 	ARDOPSendCommand(TNC, "LISTEN FALSE", TRUE);
 }
