@@ -71,7 +71,6 @@ static RECT Rect;
 static char status[8][8] = {"STANDBY",  "PHASING", "CHGOVER", "IDLE", "TRAFFIC", "ERROR", "RQ", "XXXX"};
 
 struct TNCINFO * CreateTTYInfo(int port, int speed);
-BOOL OpenConnection(int);
 BOOL SetupConnection(int);
 BOOL CloseConnection(struct TNCINFO * conn);
 static BOOL WriteCommBlock(struct TNCINFO * TNC);

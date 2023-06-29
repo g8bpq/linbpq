@@ -1173,6 +1173,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Detect loss of DED application (76)
 //	Fix connects to Application Alias with UZ7HO Driver (76)
 //	Fix Interlock of ports on same UZ7HO modem. (76)
+//	Add extended Ports command 
 
 #define CKernel
 
@@ -2576,6 +2577,22 @@ BOOL APIENTRY DllMain(HANDLE hInst, DWORD ul_reason_being_called, LPVOID lpReser
 			return 0;
 		}
 			  
+		if (sizeof(struct KISSINFO) > PORTENTRYLEN + 200)	// 200 bytes of Hardwaredata
+		{
+			// Catastrophic - Refuse to load
+			
+			MessageBox(NULL,"BPQ32 Too much KISS data - Recompile","BPQ32", MB_OK);
+			return 0;
+		}
+
+		if (sizeof(struct _EXTPORTDATA) > PORTENTRYLEN + 200)	// 200 bytes of Hardwaredata
+		{
+			// Catastrophic - Refuse to load
+			
+			MessageBox(NULL,"BPQ32 Too much _EXTPORTDATA data - Recompile","BPQ32", MB_OK);
+			return 0;
+		}
+		  
 		if (sizeof(LINKTABLE) != LINK_TABLE_LEN)
 		{
 			// Catastrophic - Refuse to load

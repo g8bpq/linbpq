@@ -552,7 +552,6 @@ extern int POP3Timer;
 #include <stdio.h>
 #include <sys/select.h>
 #include <termios.h>
-#include <stropts.h>
 
 int _kbhit() {
     static const int STDIN = 0;

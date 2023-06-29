@@ -37,7 +37,6 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #define IDM_DISCONNECT			2000
 #define IDM_LOGGING				2100
 
-#define MAXBLOCK 4096
 #include "CHeaders.h"
 #include "tncinfo.h"
 

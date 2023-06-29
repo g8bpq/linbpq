@@ -34,16 +34,12 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
-#ifndef RP2040
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <syslog.h>
-#endif
 #include <fcntl.h>
 #include <signal.h>
 #include <ctype.h>
-
-
 
 //#include <netax25/ttyutils.h>
 //#include <netax25/daemon.h>
@@ -131,6 +127,9 @@ int lastcount;
 
 UCHAR ENCBUFF[600];
 
+NPASYINFO KISSInfo[MAXBPQPORTS] = {0};
+
+
 int ASYSEND(struct PORTCONTROL * PortVector, char * buffer, int count)
 {
 	NPASYINFO Port = KISSInfo[PortVector->PORTNUMBER];
@@ -160,7 +159,7 @@ int ASYSEND(struct PORTCONTROL * PortVector, char * buffer, int count)
 			if (ret == -1)
 			{
 				Debugprintf ("i2c Write Error\r");
-				Sleep(1);
+				usleep(1000);
 				ret = i2c_smbus_write_byte(Port->idComDev, *(ptr));
 			}		
 			ptr++;
@@ -309,14 +308,10 @@ int	ASYINIT(int comport, int speed, struct PORTCONTROL * PortVector, char Channe
 	}
 	else if (PortVector->PORTIPADDR.s_addr || PortVector->KISSSLAVE)
 	{
-
-#ifndef RP2040
-
 		SOCKET sock;
 		u_long param=1;
 		BOOL bcopt=TRUE;
 		struct sockaddr_in sinx;
-
 
 		// KISS over UDP or TCP
 
@@ -431,7 +426,6 @@ int	ASYINIT(int comport, int speed, struct PORTCONTROL * PortVector, char Channe
 		npKISSINFO->RXMPTR=&npKISSINFO->RXMSG[0];
 
 		OpenConnection(PortVector);
-#endif
 	}
 
 	npKISSINFO->Portvector = PortVector; 
@@ -621,7 +615,7 @@ static void CheckReceivedData(struct PORTCONTROL * PORT, NPASYINFO npKISSINFO)
 				struct sockaddr_in rxaddr;
 				int addrlen = sizeof(struct sockaddr_in);
 
-				nLength = recvfrom(npKISSINFO->sock, &npKISSINFO->RXBUFFER[0], MAXBLOCK - 1, 0, (struct sockaddr *)&rxaddr, &addrlen);
+				nLength = recvfrom(npKISSINFO->sock, &npKISSINFO->RXBUFFER[0], KISSMAXBLOCK - 1, 0, (struct sockaddr *)&rxaddr, &addrlen);
 	
 				if (nLength < 0)
 				{
@@ -633,7 +627,7 @@ static void CheckReceivedData(struct PORTCONTROL * PORT, NPASYINFO npKISSINFO)
 			}
 		}
 		else
-			nLength = ReadCommBlock(npKISSINFO, (char *) &npKISSINFO->RXBUFFER, MAXBLOCK - 1);;
+			nLength = ReadCommBlock(npKISSINFO, (char *) &npKISSINFO->RXBUFFER, KISSMAXBLOCK - 1);;
 	
 		npKISSINFO->RXBCOUNT = nLength;
 		npKISSINFO->RXBPTR = (UCHAR *)&npKISSINFO->RXBUFFER; 
@@ -1359,7 +1353,7 @@ int KISSRX(struct KISSINFO * KISS)
 	PMESSAGE Buffer;
 	int len;
 	NPASYINFO Port = KISSInfo[PORT->PORTNUMBER];
-	struct KISSINFO * SAVEKISS = KISS;		// Save so we can restore at SeeifMode
+	struct KISSINFO * SAVEKISS = KISS;		// Save so we can restore at SeeifMore
 
 	if (Port == NULL)
 		return 0;
@@ -1596,13 +1590,13 @@ SeeifMore:
 	}
 
 	//	checksum if necessary
-#ifndef RP2040
+
 	if (KISS->PORT.KISSFLAGS & DRATS)
 	{
 		processDRATSFrame(&Port->RXMSG[1], len - 2, 0);
 		return 0;
 	}
-#endif
+
 	if (len < 15)
 		return 0;					// too short for AX25
 
@@ -1829,7 +1823,6 @@ int ConnecttoTCP(NPASYINFO ASY)
 
 VOID ConnecttoTCPThread(NPASYINFO ASY)
 {
-#ifndef RP2040
 	char Msg[255];
 	int err,i;
 	u_long param=1;
@@ -1926,13 +1919,10 @@ VOID ConnecttoTCPThread(NPASYINFO ASY)
 		}
 		Sleep (57000/2);						// 1/2 Mins
 	}
-#endif
 }
 
 int KISSGetTCPMessage(NPASYINFO ASY)
 {
-#ifndef RP2040
-
 	int index=0;
 	ULONG param = 1;
 
@@ -1973,7 +1963,7 @@ int KISSGetTCPMessage(NPASYINFO ASY)
 
 		// May have several messages per packet, or message split over packets
 
-		InputLen = recv(ASY->sock, ASY->RXBUFFER, MAXBLOCK - 1, 0);
+		InputLen = recv(ASY->sock, ASY->RXBUFFER, KISSMAXBLOCK - 1, 0);
 
 		if (InputLen < 0)
 		{
@@ -2008,8 +1998,6 @@ int KISSGetTCPMessage(NPASYINFO ASY)
 	{
 		// Reopen Listening Socket
 
-
-
 		SOCKET sock;
 		u_long param=1;
 		BOOL bcopt=TRUE;
@@ -2042,6 +2030,5 @@ int KISSGetTCPMessage(NPASYINFO ASY)
 				ASY->Listening = TRUE;	
 		}
 	}
-#endif
 	return 0;
 }

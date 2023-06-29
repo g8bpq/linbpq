@@ -37,6 +37,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #include "CHeaders.h"
 #include "bpqaprs.h"
+#include "kiss.h"
 
 #pragma pack()
 
@@ -1313,18 +1314,181 @@ CMDS60:
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 
+extern int MasterPort[MAXBPQPORTS+1];	// Pointer to first BPQ port for a specific MPSK or UZ7HO host
+
 VOID CMDP00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
 {
 	// Process PORTS Message
 
+	// If extended show state of TNC (Open, Active, etc)
+
 	struct PORTCONTROL * PORT = PORTTABLE;
+	char Extended = CmdTail[0];
+	struct PORTCONTROL * SAVEPORT;
 
 	Bufferptr = Cmdprintf(Session, Bufferptr, "Ports\r");
 
 	while (PORT)
 	{
-		if (PORT->Hide == 0) 
+		char Status[32] = "???????";
+		int Portno = PORT->PORTNUMBER;
+
+		if (PORT->Hide) 
+		{
+			PORT = PORT->PORTPOINTER;
+			continue;
+		}
+
+		if (Extended != 'E')
+		{
 			Bufferptr = Cmdprintf(Session, Bufferptr, " %2d %s\r", PORT->PORTNUMBER, PORT->PORTDESCRIPTION);
+
+			PORT = PORT->PORTPOINTER;
+			continue;
+		}
+
+		// Try to get port status - may not be possible with some
+
+		if (PORT->PortStopped)
+		{
+			strcpy(Status, "Stopped");
+			Bufferptr = Cmdprintf(Session, Bufferptr, " %2d %-7s %s\r", PORT->PORTNUMBER, Status, PORT->PORTDESCRIPTION);
+
+			PORT = PORT->PORTPOINTER;
+			continue;
+		}
+
+		if (PORT->PORTTYPE == 0)
+		{
+			struct KISSINFO * KISS = (struct KISSINFO *)PORT;
+			NPASYINFO Port;
+
+			SAVEPORT = PORT;
+
+			if (KISS->FIRSTPORT && KISS->FIRSTPORT != KISS)
+			{
+				// Not first port on device
+
+				PORT = (struct PORTCONTROL *)KISS->FIRSTPORT;
+				Port = KISSInfo[Portno];
+			}
+
+			Port = KISSInfo[PORT->PORTNUMBER];
+
+			if (Port)
+			{
+				// KISS like - see if connected 
+
+				if (PORT->PORTIPADDR.s_addr || PORT->KISSSLAVE)
+				{
+					// KISS over UDP or TCP
+
+					if (PORT->KISSTCP)
+					{
+						if (Port->Connected)
+							strcpy(Status, "Open  ");
+						else
+							if (PORT->KISSSLAVE)
+								strcpy(Status, "Listen");
+							else
+								strcpy(Status, "Closed");
+					}
+					else
+						strcpy(Status, "UDP");
+				}
+				else
+					if (Port->idComDev)			// Serial port Open
+						strcpy(Status, "Open  ");
+					else
+						strcpy(Status, "Closed");
+
+				PORT = SAVEPORT;
+			}		
+		}
+		else if (PORT->PORTTYPE == 14)		// Loopback 
+			strcpy(Status, "Open  ");
+
+		else if (PORT->PORTTYPE == 16)		// External
+		{
+			if (PORT->PROTOCOL == 10)		// 'HF' Port
+			{
+				struct TNCINFO * TNC = TNCInfo[Portno];
+
+				if (TNC == NULL)
+				{
+					PORT = PORT->PORTPOINTER;
+					continue;
+				}
+
+				switch (TNC->Hardware)				// Hardware Type
+				{
+				case H_SCS:
+				case H_KAM:
+				case H_AEA:
+				case H_HAL:
+				case H_TRK:
+				case H_SERIAL:
+
+					// Serial
+
+					if (TNC->hDevice)
+						strcpy(Status, "Open  ");
+					else
+						strcpy(Status, "Closed");
+
+					break;
+
+				case H_UZ7HO:
+
+					if (TNCInfo[MasterPort[Portno]]->CONNECTED)
+						strcpy(Status, "Open  ");
+					else
+						strcpy(Status, "Closed");
+
+					break;
+
+				case H_WINMOR:
+				case H_V4:
+
+				case H_MPSK:
+				case H_FLDIGI:
+				case H_UIARQ:
+				case H_ARDOP:
+				case H_VARA:
+				case H_KISSHF:
+				case H_WINRPR:
+				case H_FREEDATA:
+
+					// TCP
+
+					if (TNC->CONNECTED)
+					{
+						if (TNC->Streams[0].Attached)
+							strcpy(Status, "In Use");
+						else
+							strcpy(Status, "Open  ");
+					}
+					else
+						strcpy(Status, "Closed");
+
+					break;
+
+				case H_TELNET:
+
+					strcpy(Status, "Open  ");
+				}
+			}
+			else
+			{
+				// External but not HF - AXIP, BPQETHER VKISS, ??
+
+				struct _EXTPORTDATA * EXTPORT = (struct _EXTPORTDATA *)PORT;
+
+				strcpy(Status, "Open  ");
+			}
+		}
+
+			Bufferptr = Cmdprintf(Session, Bufferptr, " %2d %-7s %s\r", PORT->PORTNUMBER, Status, PORT->PORTDESCRIPTION);
 
 		PORT = PORT->PORTPOINTER;
 	}

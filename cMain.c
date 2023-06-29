@@ -1071,10 +1071,10 @@ BOOL Start()
 			KISS->KISSCMD = malloc(256);
 
 			KISS->KISSCMDLEN = KissEncode(KissString, KISS->KISSCMD, KissLen);
-			realloc(KISS->KISSCMD, KISS->KISSCMDLEN);
+			KISS->KISSCMD = realloc(KISS->KISSCMD, KISS->KISSCMDLEN);
 		}
 
-		if (PortRec->BBSFLAG)						// Appl 1 no permitted - BBSFLAG=NOBBS
+		if (PortRec->BBSFLAG)						// Appl 1 not permitted - BBSFLAG=NOBBS
 			PORT->PERMITTEDAPPLS &= 0xfffffffe;		// Clear bottom bit
 
 			

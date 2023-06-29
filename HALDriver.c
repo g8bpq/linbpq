@@ -64,7 +64,6 @@ static char status[23][50] = {"IDLE", "TFC", "RQ", "ERR", "PHS", "OVER", "FSK TX
 		"FREE SIGNAL TX (AMTOR)", "FREE SIGNAL TX TIMED OUT (AMTOR)"};
 
 struct TNCINFO * CreateTTYInfo(int port, int speed);
-BOOL OpenConnection(int);
 BOOL SetupConnection(int);
 static BOOL WriteCommBlock(struct TNCINFO * TNC);
 static void CheckRX(struct TNCINFO * TNC);

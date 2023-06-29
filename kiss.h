@@ -1,6 +1,6 @@
 
 
-#define MAXBLOCK        512
+#define KISSMAXBLOCK        512
 
 // KISS over TCP Slave now allows multiple connections
 // so need a struct to keep track of them
@@ -9,7 +9,7 @@ typedef struct _KISSTCPSess
 {
 	struct _KISSTCPSesssion * Next;
 	SOCKET Socket;
-	UCHAR RXBuffer[MAXBLOCK];
+	UCHAR RXBuffer[KISSMAXBLOCK];
 	int RXLen;
 
 	time_t Timeout;
@@ -30,7 +30,7 @@ typedef struct tagASYINFO
 	struct sockaddr_in destaddr;
 	struct PORTCONTROL * Portvector;
 	UCHAR	RXMSG[512];				// Msg being built
-	UCHAR	RXBUFFER[MAXBLOCK];		// Raw chars from Comms
+	UCHAR	RXBUFFER[KISSMAXBLOCK];	// Raw chars from Comms
 	int		RXBCOUNT;				// chars in RXBUFFER
 	UCHAR * RXBPTR;					// get pointer for RXBUFFER (put ptr is RXBCOUNT) 
 	UCHAR * RXMPTR;					// put pointer for RXMSG
@@ -45,8 +45,7 @@ typedef struct tagASYINFO
 
 } ASYINFO, *NPASYINFO ;
 
-NPASYINFO KISSInfo[MAXBPQPORTS] = {0};
-
+extern NPASYINFO KISSInfo[MAXBPQPORTS];
 
 #define _fmemset   memset
 #define _fmemmove  memmove

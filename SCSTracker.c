@@ -56,9 +56,6 @@ char * strlop(char * buf, char delim);
 
 char NodeCall[11];		// Nodecall, Null Terminated
 
-struct TNCINFO * CreateTTYInfo(int port, int speed);
-BOOL OpenConnection(int);
-BOOL SetupConnection(int);
 BOOL CloseConnection(struct TNCINFO * conn);
 BOOL TrkWriteCommBlock(struct TNCINFO * TNC);
 BOOL DestroyTTYInfo(int port);

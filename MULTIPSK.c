@@ -84,7 +84,7 @@ extern UCHAR BPQDirectory[];
 static int MPSKChannel[MAXBPQPORTS+1];			// BPQ Port to MPSK Port
 static int BPQPort[MAXMPSKPORTS][MAXBPQPORTS+1];	// MPSK Port and Connection to BPQ Port
 
-static int MasterPort[MAXBPQPORTS+1];			// Pointer to first BPQ port for a specific MPSK host
+extern int MasterPort[MAXBPQPORTS+1];			// Pointer to first BPQ port for a specific MPSK host
 
 //	Each port may be on a different machine. We only open one connection to each MPSK instance
 

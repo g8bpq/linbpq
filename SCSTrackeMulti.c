@@ -140,9 +140,7 @@ ConfigLine:
 
 }
 
-struct TNCINFO * CreateTTYInfo(int port, int speed);
-BOOL OpenConnection(int);
-BOOL SetupConnection(int);
+
 BOOL CloseConnection(struct TNCINFO * conn);
 static BOOL WriteCommBlock(struct TNCINFO * TNC);
 BOOL DestroyTTYInfo(int port);

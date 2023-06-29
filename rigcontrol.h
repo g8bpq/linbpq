@@ -7,7 +7,6 @@
 
 #define IDI_ICON2 2
 
-#define MAXBLOCK 4096
 
 struct TimeScan
 {

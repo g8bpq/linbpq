@@ -70,8 +70,6 @@ VOID __cdecl Debugprintf(const char * format, ...);
 
 struct RIGINFO * RigConfig(struct TNCINFO * TNC, char * buf, int Port);
 struct RIGPORTINFO * CreateTTYInfo(int port, int speed);
-BOOL OpenConnection(int);
-BOOL SetupConnection(int);
 BOOL RigCloseConnection(struct RIGPORTINFO * PORT);
 BOOL RigWriteCommBlock(struct RIGPORTINFO * PORT);
 BOOL DestroyTTYInfo(int port);

@@ -96,7 +96,7 @@ static int BPQPort[MAXUZ7HOPORTS][MAXBPQPORTS+1];	// UZ7HO Port and Connection t
 static void * UZ7HOtoBPQ_Q[MAXBPQPORTS+1];			// Frames for BPQ, indexed by BPQ Port
 static void * BPQtoUZ7HO_Q[MAXBPQPORTS+1];			// Frames for UZ7HO. indexed by UZ7HO port. Only used it TCP session is blocked
 
-static int MasterPort[MAXBPQPORTS+1];			// Pointer to first BPQ port for a specific UZ7HO host
+int MasterPort[MAXBPQPORTS+1];						// Pointer to first BPQ port for a specific UZ7HO host
 static struct TNCINFO * SlaveTNC[MAXBPQPORTS+1];// TNC Record Slave if present
 
 //	Each port may be on a different machine. We only open one connection to each UZ7HO instance
