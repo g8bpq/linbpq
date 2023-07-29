@@ -215,7 +215,7 @@ BEGIN
         MENUITEM "Strip Linefeeds",             BPQStripLF
         MENUITEM "Log Output",                  BPQLogOutput
         MENUITEM "Send Disconnected",           BPQSendDisconnected
-        MENUITEM "Chat Terminal Mode",          CHATTERM
+        MENUITEM "Chat Terminal Mode (Send Keppalives)",          CHATTERM
         MENUITEM "Restore Windows on load",     ID_WINDOWS_RESTORE
         MENUITEM "Beep if input too long",      ID_WARNWRAP
         MENUITEM "Wrap Input",                  ID_WRAP

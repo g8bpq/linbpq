@@ -9668,7 +9668,7 @@ VOID SaveConfig(char * ConfigName)
 
 	// Save UI config
 
-	for (i=1; i<=32; i++)
+	for (i=1; i <= GetNumberofPorts(); i++)
 	{
 		char Key[100];
 			
@@ -10192,7 +10192,7 @@ BOOL GetConfig(char * ConfigName)
 	GetStringValue(group, "Version", Size);
 	sscanf(Size,"%d,%d,%d,%d", &LastVer[0], &LastVer[1], &LastVer[2], &LastVer[3]);
 
-	for (i=1; i<=32; i++)
+	for (i =1 ; i <= GetNumberofPorts(); i++)
 	{
 		char Key[100];
 			
@@ -10654,7 +10654,8 @@ int Disconnected (int Stream)
 			}
 
 			/* ---- TAJ PG SERVER ---- */
-			if ( conn->UserPointer->Temp->RUNPGPARAMS ) {
+			if (conn->UserPointer && conn->UserPointer->Temp && conn->UserPointer->Temp->RUNPGPARAMS)
+			{
 				printf("Freeing RUNPGPARAMS\n");
 				free(conn->UserPointer->Temp->RUNPGPARAMS);
 				conn->UserPointer->Temp->RUNPGPARAMS = NULL;

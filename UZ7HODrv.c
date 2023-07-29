@@ -2914,12 +2914,14 @@ UZ7HO T GM8BPQ-2 APRS  1:Fm GM8BPQ-2 To APRS Via WIDE2-2 <UI F pid=F0 Len=28 >[1
 	AdjMsg = &Monframe;					// Adjusted for digis
 	ptr = strstr(Msg, "Fm ");
 
+	if (ptr == 0) return;
 	ConvToAX25(&ptr[3], Monframe.ORIGIN);
 
 	memcpy(MHCall, &ptr[3], 11);
 	strlop(MHCall, ' ');
 
 	ptr = strstr(ptr, "To ");
+	if (ptr == 0) return;
 
 	ConvToAX25(&ptr[3], Monframe.DEST);
 
@@ -2934,6 +2936,8 @@ UZ7HO T GM8BPQ-2 APRS  1:Fm GM8BPQ-2 To APRS Via WIDE2-2 <UI F pid=F0 Len=28 >[1
 		memcpy(Save, &ptr[4], 60);
 
 		ptr = strtok_s(Save, ", ", &context);
+		if (ptr == 0) return;
+
 DigiLoop:
 
 		temp = (char *)AdjMsg;
@@ -2952,6 +2956,7 @@ DigiLoop:
 			AdjMsg->ORIGIN[6] |= 0x80;				// Set end of address
 
 		ptr = strtok_s(NULL, ", ", &context);
+		if (ptr == 0) return;
 
 		if (ptr[0] != '<')
 			goto DigiLoop;
@@ -3012,18 +3017,21 @@ DigiLoop:
 	if (memcmp(&ptr[1], "RR", 2) == 0)
 	{
 		nrptr = strchr(&ptr[3], '>');
+		if (nrptr == 0) return;
 		AdjMsg->CTL = 0x1 | (nrptr[-2] << 5);
 	}
 	else 
 	if (memcmp(&ptr[1], "RNR", 3) == 0)
 	{
 		nrptr = strchr(&ptr[4], '>');
+		if (nrptr == 0) return;
 		AdjMsg->CTL = 0x5 | (nrptr[-2] << 5);
 	}
 	else 
 	if (memcmp(&ptr[1], "REJ", 3) == 0)
 	{
 		nrptr = strchr(&ptr[4], '>');
+		if (nrptr == 0) return;
 		AdjMsg->CTL = 0x9 | (nrptr[-2] << 5);
 	}
 	else 
@@ -3058,12 +3066,18 @@ DigiLoop:
 	if ((AdjMsg->CTL & 1) == 0 || AdjMsg->CTL == 3)	// I or UI
 	{
 		ptr = strstr(ptr, "pid");	
+		if (ptr == 0) return;
+
 		sscanf(&ptr[4], "%x", (unsigned int *)&AdjMsg->PID);
 	
 		ptr = strstr(ptr, "Len");	
+		if (ptr == 0) return;
+	
 		ILen = atoi(&ptr[4]);
 
 		ptr = strstr(ptr, "]");
+		if (ptr == 0) return;
+
 		ptr += 2;						// Skip ] and cr
 		memcpy(AdjMsg->L2DATA, ptr, ILen);
 		Monframe.LENGTH += ILen;
@@ -3071,6 +3085,8 @@ DigiLoop:
 	else if (AdjMsg->CTL == 0x97)		// FRMR
 	{
 		ptr = strstr(ptr, ">");
+		if (ptr == 0) return;
+
 		sscanf(ptr+1, "%hhx %hhx %hhx", &AdjMsg->PID, &AdjMsg->L2DATA[0], &AdjMsg->L2DATA[1]);
 		Monframe.LENGTH += 3;
 	}

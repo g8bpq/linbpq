@@ -34,6 +34,8 @@
 
 #include "asmstrucs.h"
 
+#define MaxBPQPortNo 63		// Port 64 reserved for BBS Mon
+#define MAXBPQPORTS 63
 
 #define NEWROUTING
 

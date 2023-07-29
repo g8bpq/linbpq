@@ -1110,10 +1110,12 @@
 //	Fix Webmail auto-refresh when page exceeds 64K bytes (54)
 //	Fix Webmail send when using both headers/footers and attachmonts (55)
 //	Fix R: line corruption on some 64 bit builds
-//	Dont drop empty lines inm TEXTFORWARDING (61)
+//	Dont drop empty lines in TEXTFORWARDING (61)
 //	Dont wait for body prompt for TEXTFORWARDING for SID [PMS-3.2-C$] (62)
 //	Add forwarding mode SETCALLTOSENDER for PMS Systems that don't accept < in SP (63)
 //	QtTerm Monitoring fixed for 63 port version of BPQ (69)
+//	Fix to UI system to support up to 63 ports (79)
+//	Fix recently introduced crash when "Don't allow new users" is set (81)
 
 
 #include "bpqmail.h"
@@ -1711,7 +1713,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 		}
 		/* ---------- TAJ --PG Server------*/
 
-			if ( user->Temp->RUNPGPARAMS ) {
+			if (user->Temp && user->Temp->RUNPGPARAMS ) {
 
 				printf("Also freeing RUNPGARGS\n");
 				free(user->Temp->RUNPGPARAMS);

@@ -2220,8 +2220,17 @@ L2Packet:
 						memcpy(BBuffer, Message, Message->LENGTH);
 						BBuffer->PORT = toPort;
 						BPORT = GetPortTableEntryFromPortNum(toPort);
+					
 						if (BPORT)
+						{
+							if (BPORT->SmartIDInterval && BPORT->SmartIDNeeded == 0)
+							{
+								// Using Smart ID, but none scheduled
+
+								BPORT->SmartIDNeeded = time(NULL) + BPORT->SmartIDInterval;
+							}
 							PUT_ON_PORT_Q(BPORT, BBuffer);
+						}
 						else
 							ReleaseBuffer(BBuffer);
 					}	

@@ -342,7 +342,7 @@ BOOL SendAndCheck(struct ConnectionInfo * sockptr, unsigned char * MsgPtr, int l
 
 VOID SendPortsForMonitor(SOCKET sock, int Secure)
 {
-	UCHAR PortInfo[1500] = {0xff, 0xff};
+	UCHAR PortInfo[3000] = {0xff, 0xff};
 	UCHAR * ptr = &PortInfo[2];
 	char ID[31] = "";
 	struct PORTCONTROL * PORT;

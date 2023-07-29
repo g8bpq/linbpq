@@ -552,6 +552,12 @@ ok:
 
 		txlen = GetLengthfromBuffer(buff) - (MSGHDDRLEN + 1);		// 1 as no PID
 
+		if (txlen == 1 && buff->L2DATA[0] == 0)			// Keepalive Packet
+		{
+			ReleaseBuffer(buffptr);
+			return 0;
+		}
+
 		buffptr->Len = txlen;
 		memcpy(buffptr->Data, buff->L2DATA, txlen);
 		
@@ -1092,6 +1098,56 @@ void SCSCheckRX(struct TNCINFO * TNC)
 	// we haen't checked CRC. All I can think of is to check the CRC and if it is ok, assume frame is
 	// complete. If CRC is duff, we will eventually time out and get a retry. The retry code
 	// can clear the RC buffer
+
+	if (TNC->UsingTermMode)
+	{
+		// Send response to Host if connected
+
+		PMSGWITHLEN buffptr;
+		int Len = TNC->RXLen;
+		int Posn = 0;
+
+		// First message is probably ACK of JHO4T -  AA AA 1F 00 1E 19
+
+		if (TNC->RXBuffer[0] == 0xaa && Len > 6)
+		{
+			memmove(TNC->RXBuffer, &TNC->RXBuffer[6], Len - 6);
+			Len -= 6;
+		}
+
+		// TNC seems to send 1e f7 or 1e 87 regularly
+
+		while (TNC->RXBuffer[0] == 0x1e && Len > 1)
+		{
+			memmove(TNC->RXBuffer, &TNC->RXBuffer[2], Len - 2);
+			Len -= 2;
+		}
+
+		if (Len == 0)
+		{
+			TNC->RXLen = 0;		// Ready for next frame
+			return;
+		}
+
+		while (Len > 250)
+		{
+			buffptr = GetBuff();
+			buffptr->Len = 250;
+			memcpy(buffptr->Data, &TNC->RXBuffer[Posn], 250);
+			C_Q_ADD(&TNC->Streams[0].PACTORtoBPQ_Q, buffptr);
+			Len -= 250;
+			Posn += 250;
+		}
+
+		buffptr = GetBuff();
+		buffptr->Len = Len;
+		memcpy(buffptr->Data, &TNC->RXBuffer[Posn], Len);
+		C_Q_ADD(&TNC->Streams[0].PACTORtoBPQ_Q, buffptr);
+
+		TNC->RXLen = 0;		// Ready for next frame
+		return;
+	}
+
 			
 	if (TNC->RXBuffer[0] != 170)
 	{
@@ -1246,6 +1302,51 @@ VOID SCSPoll(int Port)
 	int Stream = 0;
 	int nn;
 	struct STREAMINFO * STREAM;
+
+	if (TNC->UsingTermMode)
+	{
+		if (TNC->Streams[Stream].BPQtoPACTOR_Q)
+		{
+			PMSGWITHLEN buffptr = Q_REM(&TNC->Streams[Stream].BPQtoPACTOR_Q);
+
+			// See if enter host mode command
+
+			if (_memicmp(buffptr->Data, "ENTERHOST\r", buffptr->Len) == 0)
+			{
+				TNC->UsingTermMode = FALSE;	
+				
+				memcpy(Poll, "JHOST4\r", 7);
+				TNC->TXLen = 7;
+				WriteCommBlock(TNC);
+
+				// No response expected
+
+				Sleep(10);
+
+				Poll[2] = 255;			// Channel
+				TNC->Toggle = 0;
+				Poll[3] = 0x41;
+				Poll[4] = 0;			// Len-1
+				Poll[5] = 'G';			// Poll
+
+				CRCStuffAndSend(TNC, Poll, 6);
+				TNC->InternalCmd = FALSE;
+				TNC->Timeout = 5;		// 1/2 sec - In case missed
+
+
+			}
+			else
+			{
+				// Send to TNC
+
+				memcpy(&Poll[0], buffptr->Data, buffptr->Len);
+				TNC->TXLen = buffptr->Len;;
+				WriteCommBlock(TNC);
+			}
+			ReleaseBuffer(buffptr);
+		}
+		return;
+	}
 
 	if (TNC->MinLevelTimer)
 	{
@@ -1721,6 +1822,10 @@ VOID SCSPoll(int Port)
 
 		// But we cant set digipeated bit in call, so if we find one, skip message
 
+		// This doesn't seem to work
+
+/*
+
 		ConvFromAX25(Buffer + 7, ICall);		// Origin
 		strlop(ICall, ' ');
 
@@ -1762,7 +1867,7 @@ VOID SCSPoll(int Port)
 				1, Buffer,			// Flag CmdSet as Data
 				2, TNC->NodeCall);	// Flag as Chan 0 Command
 		}
-
+*/
 		ReleaseBuffer((UINT *)buffptr);
 		return;
 	}
@@ -2006,6 +2111,24 @@ VOID SCSPoll(int Port)
 				return;
 			}
 
+
+			if ((Stream == 0) && memcmp(Buffer, "EXITHOST", 8) == 0)
+			{
+				UCHAR * Poll = TNC->TXBuffer;
+
+				TNC->UsingTermMode = 1;
+				
+				ExitHost(TNC);
+
+				// Send CR to get prompt from TNC
+				
+				Poll[0] = 13;
+				TNC->TXLen = 1;
+				WriteCommBlock(TNC);
+				
+				ReleaseBuffer(buffptr);
+				return;
+			}
 			if (Stream == 0 && Buffer[0] == 'C' && datalen > 2)	    // Pactor Connect
 				Poll[2] = TNC->Streams[0].DEDStream = 31;			// Pactor Channel
 
@@ -2086,8 +2209,7 @@ VOID SCSPoll(int Port)
 					return;
 				}
 			}
-
-			// Anything else send to tnc.
+	
 
 			Poll[4] = datalen - 1;
 			memcpy(&Poll[5], buffptr->Data, datalen);

@@ -3592,7 +3592,7 @@ ok:
 			else
 			{
 				if (!PORT->AutoPoll)
-					SendResponse(RIG->Session, "Frequency Set OK");
+ 					SendResponse(RIG->Session, "Frequency Set OK");
 		
 				PORT->Timeout = 0;
 			}
@@ -5286,6 +5286,7 @@ void DecodeCM108(int Port, char * ptr)
 	char * next;
 	int32_t  VID = 0, PID = 0;
 	char product[256];
+	char sernum[256] = "NULL";
 
 	struct hid_device_info *devs, *cur_dev;
 	const char *path_to_open = NULL;
@@ -5306,11 +5307,13 @@ void DecodeCM108(int Port, char * ptr)
 		while (cur_dev)
 		{
 			wcstombs(product, cur_dev->product_string, 255);
+			if (cur_dev->serial_number)
+				wcstombs(sernum, cur_dev->serial_number, 255);
 
 			if (product)
-				Debugprintf("HID Device %s VID %X PID %X %s", product, cur_dev->vendor_id, cur_dev->product_id, cur_dev->path);
+				Debugprintf("HID Device %s VID %X PID %X Ser %s %s", product, cur_dev->vendor_id, cur_dev->product_id, sernum, cur_dev->path);
 			else
-				Debugprintf("HID Device %s VID %X PID %X %s", "Missing Product", cur_dev->vendor_id, cur_dev->product_id, cur_dev->path);
+				Debugprintf("HID Device %s VID %X PID %X Ser %s %s", "Missing Product", cur_dev->vendor_id, cur_dev->product_id, sernum, cur_dev->path);
 				
 			if (cur_dev->vendor_id == VID && cur_dev->product_id == PID)
 				path_to_open = cur_dev->path;

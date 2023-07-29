@@ -749,7 +749,10 @@ int main(int argc, char * argv[])
 
 	// Disable Console Terminal if stdout redirected
 
-	if (!isatty(STDOUT_FILENO))
+//	printf("STDOUT %d\n",isatty(STDOUT_FILENO));
+//	printf("STDIN %d\n",isatty(STDIN_FILENO));
+
+	if (!isatty(STDOUT_FILENO) || !isatty(STDIN_FILENO))
 		Redirected = 1;
 
 #endif

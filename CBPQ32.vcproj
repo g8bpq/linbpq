@@ -321,10 +321,26 @@
 			<File
 				RelativePath="..\CommonSource\Cmd.c"
 				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="0"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\CommonSource\CMSAuth.c"
 				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="0"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\CommonSource\CommonCode.c"

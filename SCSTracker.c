@@ -290,6 +290,9 @@ ConfigLine:
 		if (_memicmp(buf, "UPDATEMAP", 9) == 0)
 			TNC->PktUpdateMap = TRUE;
 		else
+		if (_memicmp(buf, "TeensyRPR", 9) == 0)
+			TNC->TeensyRPR = TRUE;
+		else
 		if (_memicmp(buf, "WL2KREPORT", 10) == 0)
 			TNC->WL2K = DecodeWL2KReportLine(buf);
 		else
@@ -1655,10 +1658,12 @@ VOID TrkExitHost(struct TNCINFO * TNC)
 	TNC->TXBuffer[0] = 1;
 	TNC->TXBuffer[1] = 1;
 	TNC->TXBuffer[2] = 1;
-	memcpy(&TNC->TXBuffer[3], "%R", 2);
 
-	StuffAndSend(TNC, Poll, 5);
-
+	if (!TNC->TeensyRPR)		// %R puts TNC into Program Mode.
+	{
+		memcpy(&TNC->TXBuffer[3], "%R", 2);
+		StuffAndSend(TNC, Poll, 5);
+	}
 	return;
 }
 

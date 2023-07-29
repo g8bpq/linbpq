@@ -626,9 +626,10 @@ typedef struct TNCINFO
 
 
 	HANDLE hDevice;
-	int ReopenTimer;			//	Used to reopen device if failed (eg USB port removed)
+	int ReopenTimer;				// Used to reopen device if failed (eg USB port removed)
 	BOOL HostMode;					// Set if in DED Host Mode
 //	BOOL CRCMode;					// Set if using SCS Extended DED Mode (JHOST4)
+	BOOL UsingTermMode;				// Set if tnc should be left in term mode
 	int Timeout;					// Timeout response counter
 	int Retries;
 	int Window;						// Window Size for ARQ
@@ -676,6 +677,7 @@ typedef struct TNCINFO
 	BOOL Robust;					// Set if SCS Tracker is in Robust Packet mode or WINMOR TNC is in Robust Mode
 	BOOL RobustDefault;				// Set if SCS Tracker default is Robust Packet mode
 	BOOL ForceRobust;				// Don't allow Normal Packet even if scan requests it.
+	BOOL TeensyRPR;					// Teensy RPR TNC - don't send %R
 	char NormSpeed[8];				// Speed Param for Normal Packet on Tracker
 	char RobustSpeed[8];			// Speed Param for Robust Packet on Tracker
 	BOOL RPBEACON;					// Send Beacon after each session 

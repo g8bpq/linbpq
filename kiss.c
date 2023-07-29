@@ -492,7 +492,7 @@ HANDLE OpenConnection(struct PORTCONTROL * PortVector)
 		ASYSEND(PortVector, ENCBUFF, 5);
 	}
 
-	if (KISS->KISSCMD && KISS->KISSCMDLEN)
+	if (KISS && KISS->KISSCMD && KISS->KISSCMDLEN)
 		ASYSEND(PortVector, KISS->KISSCMD, KISS->KISSCMDLEN);
 
 
@@ -1890,9 +1890,7 @@ VOID ConnecttoTCPThread(NPASYINFO ASY)
 
 				ioctlsocket (sock, FIONBIO, &param);
 
-				// If configured send TNC command
-
-				if (KISS->KISSCMD && KISS->KISSCMDLEN)
+				if (KISS && KISS->KISSCMD && KISS->KISSCMDLEN)
 					send(sock, KISS->KISSCMD, KISS->KISSCMDLEN, 0);
 
 				continue;

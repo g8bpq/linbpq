@@ -2269,6 +2269,13 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 		return;
 	}
 
+	if (_memicmp(Buffer, "ENCRYPTION ", 11) == 0)
+	{
+		strcat(Buffer, "\r");
+		WritetoTrace(TNC, Buffer, (int)strlen(Buffer));
+		return;
+	}
+
 	if (_memicmp(Buffer, "MISSING SOUNDCARD", 17) == 0)
 	{
 		strcat(Buffer, "\r");

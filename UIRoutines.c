@@ -32,14 +32,14 @@ static char MAILMYCALL[7];
 
 #pragma pack(1)
 
-UINT UIPortMask = 0;
-BOOL UIEnabled[33];
-BOOL UIMF[33];
-BOOL UIHDDR[33];
-BOOL UINull[33];
-char * UIDigi[33];
-char * UIDigiAX[33];		// ax.25 version of digistring
-int UIDigiLen[33];			// Length of AX string
+uint64_t UIPortMask = 0;
+BOOL UIEnabled[MaxBPQPortNo + 1];
+BOOL UIMF[MaxBPQPortNo + 1];
+BOOL UIHDDR[MaxBPQPortNo + 1];
+BOOL UINull[MaxBPQPortNo + 1];
+char * UIDigi[MaxBPQPortNo + 1];
+char * UIDigiAX[MaxBPQPortNo + 1];		// ax.25 version of digistring
+int UIDigiLen[MaxBPQPortNo + 1];		// Length of AX string
 
 
 
@@ -52,14 +52,13 @@ struct SEM DGSemaphore = {0, 0}; // For locking access to DG_Q;
 VOID UnQueueRaw(void * Param);
 
 static VOID Send_AX_Datagram(UCHAR * Msg, DWORD Len, UCHAR Port, UCHAR * HWADDR, BOOL Queue);
-DllExport char * APIENTRY GetApplName(int Appl);
-
-int APIENTRY SendRaw(int port, char * msg, int len);
+char * APIENTRY GetApplName(int Appl);
 int APIENTRY GetNumberofPorts();
+int APIENTRY GetPortNumber(int portslot);
 
 VOID SetupUIInterface()
 {
-	int i, NumPorts = GetNumberofPorts();
+	int i;
 #ifndef LINBPQ
 	struct _EXCEPTION_POINTERS exinfo;
 #endif
@@ -70,13 +69,13 @@ VOID SetupUIInterface()
 
 	UIPortMask = 0;
 
-	for (i = 1; i <= NumPorts; i++)
+	for (i = 1; i <= MaxBPQPortNo; i++)
 	{
 		if (UIEnabled[i])
 		{
 			char DigiString[100], * DigiLeft;
 
-			UIPortMask |= 1 << (i-1);
+			UIPortMask |= (uint64_t)1 << (i-1);
 			UIDigiLen[i] = 0;
 
 			if (UIDigi[i])
@@ -122,7 +121,7 @@ VOID Free_UI()
 	int i;
 	PMESSAGEX AXMSG;
 
-	for (i = 1; i <= 32; i++)
+	for (i = 1; i <= MaxBPQPortNo; i++)
 	{
 		if (UIDigi[i])
 		{
@@ -179,18 +178,25 @@ VOID SendMsgUI(struct MsgInfo * Msg)
 {
 	char msg[200];
 	int len, i;
-	int Mask = UIPortMask;
-	int NumPorts = GetNumberofPorts();
+	uint64_t Mask = UIPortMask;
 
 	//12345 B 2053 TEST@ALL F6FBB 920325 This is the subject
 
+	char Via[80] = "";
 	struct tm *tm = gmtime((time_t *)&Msg->datecreated);	
-	
-	len = sprintf_s(msg, sizeof(msg),"%-6d %c %6d %-13s %-6s %02d%02d%02d %s\r",
-		Msg->number, Msg->type, Msg->length, Msg->to,
+
+	if (Msg->via[0])
+	{
+		Via[0] = '@';
+		strcpy(&Via[1], Msg->via);
+		strlop(Via, '.');			// Only show first part of via
+	}
+
+	len = sprintf_s(msg, sizeof(msg),"%-6d %c %6d %-6s%-7s %-6s %02d%02d%02d %s\r",
+		Msg->number, Msg->type, Msg->length, Msg->to, Via,
 		Msg->from, tm->tm_year-100, tm->tm_mon+1, tm->tm_mday, Msg->title);
 
-	for (i=1; i <= NumPorts; i++)
+	for (i=1; i <= MaxBPQPortNo; i++)
 	{
 		if ((Mask & 1) && UIHDDR[i])
 			Send_AX_Datagram(msg, len, i, AXDEST, TRUE);
@@ -212,10 +218,19 @@ VOID SendHeaders(int Number, int Port)
 
 	while (Number <= LatestMsg)
 	{
+		char Via[80] = "";
+
 		Msg = FindMessageByNumber(Number);
 	
 		if (Msg)
 		{
+			if (Msg->via[0])
+			{
+				Via[0] = '@';
+				strcpy(&Via[1], Msg->via);
+				strlop(Via, '.');			// Only show first part of via
+			}
+
 			if (len > (200 - strlen(Msg->title)))
 			{
 				Send_AX_Datagram(msg, len, Port, AXDEST, FALSE);
@@ -224,8 +239,8 @@ VOID SendHeaders(int Number, int Port)
 
 			tm = gmtime((time_t *)&Msg->datecreated);	
 	
-			len += sprintf(&msg[len], "%-6d %c %6d %-13s %-6s %02d%02d%02d %s\r",
-				Msg->number, Msg->type, Msg->length, Msg->to,
+			len += sprintf(&msg[len], "%-6d %c %6d %-6s%-7s %-6s %02d%02d%02d %s\r",
+				Msg->number, Msg->type, Msg->length, Msg->to, Via,
 				Msg->from, tm->tm_year-100, tm->tm_mon+1, tm->tm_mday, Msg->title);
 		}
 		else
@@ -248,12 +263,11 @@ VOID SendDummyUI(int num)
 {
 	char msg[100];
 	int len, i;
-	int Mask = UIPortMask;
-	int NumPorts = GetNumberofPorts()
-;
+	uint64_t Mask = UIPortMask;
+
 	len = sprintf_s(msg, sizeof(msg),"%-6d #\r", num);
 
-	for (i=1; i <= NumPorts; i++)
+	for (i=1; i <= MaxBPQPortNo; i++)
 	{
 		if (Mask & 1)
 			Send_AX_Datagram(msg, len, i, AXDEST, TRUE);
@@ -266,9 +280,8 @@ VOID SendLatestUI(int Port)
 {
 	char msg[20];
 	int len, i;
-	int Mask = UIPortMask;
-	int NumPorts = GetNumberofPorts();
-	
+	uint64_t Mask = UIPortMask;
+
 	len = sprintf_s(msg, sizeof(msg),"%-6d !!\r", LatestMsg);
 
 	if (Port)
@@ -277,12 +290,12 @@ VOID SendLatestUI(int Port)
 		return;
 	}
 
-	for (i=1; i <= NumPorts; i++)
+	for (i = 1; i <= MaxBPQPortNo; i++)
 	{
-		if ((Mask & 1) && UIHDDR[i])
+		if ((Mask & (uint64_t)1) && UIHDDR[i])
 			Send_AX_Datagram(msg, len, i, AXDEST, TRUE);
 		
-		Mask>>=1;
+		Mask >>= 1;
 	}
 }
 
@@ -324,9 +337,7 @@ static VOID Send_AX_Datagram(UCHAR * Msg, DWORD Len, UCHAR Port, UCHAR * HWADDR,
 		QueueRaw(Port, &AXMSG, Len + 16);
 	else
 		SendRaw(Port, (char *)&AXMSG.DEST, Len + 16);
-
-	return;
-
+	
 }
 
 VOID UnQueueRaw(void * Param)
@@ -366,6 +377,20 @@ VOID ProcessUItoFBB(char * msg, int len, int Port)
 
 	int Number, Sum, Sent = 0;
 	char cksum[3];
+	int n, i;
+
+	// Send_AX_Datagram uses Port Slot, not Port Number
+
+	for (n = 1 ; n <= GetNumberofPorts(); n++)
+	{
+		i = GetPortNumber(n);
+
+		if (i == Port)
+		{
+			Port = n;
+			break;
+		}
+	}
 	
 	if (msg[0] == '?')
 	{
@@ -523,8 +548,7 @@ VOID ExpandMailFor()
 	
 VOID SendMailFor(char * Msg, BOOL HaveCalls)
 {
-	int Mask = UIPortMask;
-	int NumPorts = GetNumberofPorts();
+	uint64_t Mask = UIPortMask;
 	int i;
 
 	if (!HaveCalls)
@@ -532,7 +556,7 @@ VOID SendMailFor(char * Msg, BOOL HaveCalls)
 
 	Sleep(1000);
 	
-	for (i=1; i <= NumPorts; i++)
+	for (i=1; i <= MaxBPQPortNo; i++)
 	{
 		if (Mask & 1)
 		{

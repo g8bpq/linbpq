@@ -1115,7 +1115,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix processing C command if first port driver is SCSPACTROR (20)
 //	Fix crash in UZ7HO driver if bad raw frame received (21)
 //	Fix using FLARQ chat mode with FLDIGI ddriover (22)
-//	Fixed to KISSHF driver (23)
+//	Fix to KISSHF driver (23)
 //	Fix for application buffer loss (24)
 //	Add Web Sockets auto-refresh option for Webmail index page (25)
 //	Fix FREEDATA driver for compatibility with FreeData TNC version 0.6.4-alpha.3 (25)
@@ -1173,7 +1173,10 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Detect loss of DED application (76)
 //	Fix connects to Application Alias with UZ7HO Driver (76)
 //	Fix Interlock of ports on same UZ7HO modem. (76)
-//	Add extended Ports command 
+//	Add extended Ports command (77)
+//	Fix crash in Linbpq when stdout is redirected to /dev/tty? and stdin ia redirected (78)
+//	Fix Web Terminal (80)
+//	Trap ENCRYPTION message from VARA (81)
 
 #define CKernel
 
