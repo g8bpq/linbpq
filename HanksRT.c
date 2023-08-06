@@ -3044,7 +3044,7 @@ int rt_cmd(ChatCIRCUIT *circuit, char * Buffer)
 				nputs(circuit, "/T Name - Join Topic or Create new Topic. Topic Names are not case sensitive\r/P - Show Ports and Links.\r");
 				nprintf(circuit, "/A - Toggle Alert on user join - %s.\r",
 					(user->rtflags & u_bells) ? "Enabled" : "Disabled");
-				nprintf(circuit, "/C - Toggle Colour Mode on or off (only works on Console or BPQTerminal - %s.\r",
+				nprintf(circuit, "/C - Toggle Colour Mode on or off (only works on Console or BPQTerm/TermTCP/QtTermTCP - %s.\r",
 					(user->rtflags & u_colour) ? "Enabled" : "Disabled");
 				nputs(circuit, "/Codepage CPnnnn - Set Codepage to use if UTF-8 is disabled.\r");
 				nprintf(circuit, "/E - Toggle Echo - %s .\r",

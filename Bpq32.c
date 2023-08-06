@@ -1177,6 +1177,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix crash in Linbpq when stdout is redirected to /dev/tty? and stdin ia redirected (78)
 //	Fix Web Terminal (80)
 //	Trap ENCRYPTION message from VARA (81)
+//	Fix processing of the Winlink API /account/exists response (82)
 
 #define CKernel
 
