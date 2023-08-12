@@ -1417,7 +1417,7 @@ VOID SendConACK(struct _LINKTABLE * LINK, TRANSPORTENTRY * L4, L3MESSAGEBUFFER *
 	}
 
 
-	if (CTEXTLEN && (Applmask == 0) && FULL_CTEXT)	// Any connect, or call to alias
+	if (CTEXTLEN && Applmask == 0)	// Connects to Node (not application)
 	{
 		struct DATAMESSAGE * Msg;
 		int Totallen = CTEXTLEN;

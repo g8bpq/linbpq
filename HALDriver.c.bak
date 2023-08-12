@@ -1,5 +1,5 @@
 /*
-Copyright 2001-2018 John Wiseman G8BPQ
+Copyright 2001-2022 John Wiseman G8BPQ
 
 This file is part of LinBPQ/BPQ32.
 
@@ -47,8 +47,6 @@ static char ClassName[]="HALSTATUS";
 static char WindowTitle[] = "HAL";
 static int RigControlRow = 185;
 
-struct TNCINFO * TNCInfo[34];		// Records are Malloc'd
-
 #define	SOH	0x01	// CONTROL CODES 
 #define	ETB	0x17
 #define	DLE	0x10
@@ -66,7 +64,6 @@ static char status[23][50] = {"IDLE", "TFC", "RQ", "ERR", "PHS", "OVER", "FSK TX
 		"FREE SIGNAL TX (AMTOR)", "FREE SIGNAL TX TIMED OUT (AMTOR)"};
 
 struct TNCINFO * CreateTTYInfo(int port, int speed);
-BOOL OpenConnection(int);
 BOOL SetupConnection(int);
 static BOOL WriteCommBlock(struct TNCINFO * TNC);
 static void CheckRX(struct TNCINFO * TNC);
@@ -313,7 +310,7 @@ ConfigLine:
 	return (TRUE);	
 }
 
-static size_t ExtProc(int fn, int port , PDATAMESSAGE buff)
+static size_t ExtProc(int fn, int port,unsigned char * buff)
 {
 	int txlen = 0;
 	PMSGWITHLEN buffptr;
@@ -345,7 +342,7 @@ static size_t ExtProc(int fn, int port , PDATAMESSAGE buff)
 			if (STREAM->ReportDISC)
 			{
 				STREAM->ReportDISC = FALSE;
-				buff->PORT = 0;
+				buff[4] = 0;
 
 				return -1;
 			}
@@ -362,15 +359,17 @@ static size_t ExtProc(int fn, int port , PDATAMESSAGE buff)
 			
 				buffptr=Q_REM(&STREAM->PACTORtoBPQ_Q);
 
-				datalen = (int)buffptr->Len;
+				datalen=buffptr->Len;
 
-				buff->PORT = 0;						// Compatibility with Kam Driver
-				buff->PID = 0xf0;
-				memcpy(&buff->L2DATA, &buffptr->Data[0], datalen);		// Data goes to + 7, but we have an extra byte
-				datalen += sizeof(void *) + 4;
+				buff[4] = 0;
+				buff[7] = 0xf0;
+				memcpy(&buff[8],buffptr->Data,datalen);		// Data goes to +7, but we have an extra byte
+				datalen+=8;
 
-				PutLengthinBuffer(buff, datalen);
+				PutLengthinBuffer((PDATAMESSAGE)buff, datalen);
 
+	//			buff[5]=(datalen & 0xff);
+	//			buff[6]=(datalen >> 8);
 		
 				ReleaseBuffer(buffptr);
 	
@@ -388,27 +387,24 @@ static size_t ExtProc(int fn, int port , PDATAMESSAGE buff)
 
 		// Find TNC Record
 
-		Stream = buff->PORT;
-
+		Stream = buff[4];
+		
 		if (!TNC->TNCOK)
 		{
 			// Send Error Response
+
+			buffptr->Len = 36;
+			memcpy(buffptr->Data, "No Connection to PACTOR TNC\r", 36);
+
+			C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 			
-			PMSGWITHLEN buffptr = (PMSGWITHLEN)GetBuff();
-
-			if (buffptr == 0) return (0);			// No buffers, so ignore
-
-			buffptr->Len = 27;
-			memcpy(&buffptr->Data[0], "No Connection to PACTOR TNC\r", 27);
-
-			C_Q_ADD(&TNC->Streams[Stream].PACTORtoBPQ_Q, buffptr);
 			return 0;
 		}
 
-		txlen = GetLengthfromBuffer(buff) - (sizeof(void *) + 4);
+		txlen = GetLengthfromBuffer((PDATAMESSAGE)buff) - 8;
 
 		buffptr->Len = txlen;
-		memcpy(&buffptr->Data[0], &buff->L2DATA[0], txlen);
+		memcpy(buffptr->Data, &buff[8], txlen);
 		
 		C_Q_ADD(&STREAM->BPQtoPACTOR_Q, buffptr);
 
@@ -419,7 +415,7 @@ static size_t ExtProc(int fn, int port , PDATAMESSAGE buff)
 
 	case 3:				// CHECK IF OK TO SEND. Also used to check if TNC is responding
 		
-		Stream = (int)(size_t)buff;
+		Stream = (int)buff;
 			
 		if (STREAM->FramesQueued  > 4)
 			return (1 | TNC->HostMode << 8);
@@ -467,7 +463,7 @@ static int WebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
 }
 
 
-VOID * HALExtInit(EXTPORTDATA *  PortEntry)
+UINT HALExtInit(EXTPORTDATA *  PortEntry)
 {
 	char msg[500];
 	struct TNCINFO * TNC;
@@ -475,9 +471,8 @@ VOID * HALExtInit(EXTPORTDATA *  PortEntry)
 	char * ptr;
 	int len;
 	char Msg[80];
-#ifndef LINBPQ
 	HWND x;
-#endif
+
 	//
 	//	Will be called once for each Pactor Port
 	//	The COM port number is in IOBASE
@@ -498,14 +493,15 @@ VOID * HALExtInit(EXTPORTDATA *  PortEntry)
 		sprintf(msg," ** Error - no info in BPQ32.cfg for this port");
 		WritetoConsole(msg);
 
-		return ExtProc;
+		return (int)ExtProc;
 	}
 	
 	TNC->Port = port;
 
 	TNC->Hardware = H_HAL;
 
-	TNC->Interlock = PortEntry->PORTCONTROL.PORTINTERLOCK;
+	if (PortEntry->PORTCONTROL.PORTINTERLOCK && TNC->RXRadio == 0 && TNC->TXRadio == 0)
+		TNC->RXRadio = TNC->TXRadio = PortEntry->PORTCONTROL.PORTINTERLOCK;
 
 	PortEntry->MAXHOSTMODESESSIONS = 1;		// Default
 
@@ -602,7 +598,7 @@ VOID * HALExtInit(EXTPORTDATA *  PortEntry)
 
 	WritetoConsole("\n");
 
-	return ExtProc;
+	return ((int)ExtProc);
 }
 
 
@@ -766,7 +762,7 @@ VOID HALPoll(int Port)
 
 		sprintf(Msg, "%d SCANSTOP", TNC->Port);
 		
-		Rig_Command(-1, Msg);
+		Rig_Command( (TRANSPORTENTRY *) -1, Msg);
 
 		SendCmd(TNC, "\x42", 1);		// Connect Enable off
 
@@ -821,7 +817,7 @@ VOID HALPoll(int Port)
 
 			sprintf(Status, "%d SCANSTART 15", TNC->Port);
 		
-			Rig_Command(-1, Status);
+			Rig_Command( (TRANSPORTENTRY *) -1, Status);
 
 			return;
 		}
@@ -834,13 +830,13 @@ VOID HALPoll(int Port)
 		if (TNC->TNCOK && STREAM->BPQtoPACTOR_Q && (STREAM->BytesTXed - STREAM->BytesAcked < 600))
 		{
 			int datalen;
-			UINT * buffptr;
+			PMSGWITHLEN buffptr;
 			UCHAR * MsgPtr;
 			unsigned char TXMsg[500];
 			
-			buffptr = (UINT * )STREAM->BPQtoPACTOR_Q;
-			datalen=buffptr[1];
-			MsgPtr = (UCHAR *)&buffptr[2];
+			buffptr = (PMSGWITHLEN)STREAM->BPQtoPACTOR_Q;
+			datalen = buffptr->Len;
+			MsgPtr = buffptr->Data;
 
 			if (STREAM->Connected)
 			{
@@ -895,13 +891,13 @@ VOID HALPoll(int Port)
 				if (memcmp(MsgPtr, "RADIO ", 6) == 0)
 				{
 					sprintf(&MsgPtr[40], "%d %s", TNC->Port, &MsgPtr[6]);
-					if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK->CIRCUITINDEX, &MsgPtr[40]))
+					if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK, &MsgPtr[40]))
 					{
 						ReleaseBuffer(buffptr);
 					}
 					else
 					{
-						buffptr[1] = sprintf((UCHAR *)&buffptr[2], "%s", &MsgPtr[40]);
+						buffptr->Len = sprintf((UCHAR *)buffptr->Data, "%s", &MsgPtr[40]);
 						C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 					}
 					return;
@@ -910,7 +906,7 @@ VOID HALPoll(int Port)
 				if (memcmp(MsgPtr, "MODE CLOVER", 11) == 0)
 				{
 					TNC->CurrentMode = Clover;
-					buffptr[1] = sprintf((UCHAR *)&buffptr[2],"HAL} Ok\r");
+					buffptr->Len = sprintf((UCHAR *)buffptr->Data,"HAL} Ok\r");
 					C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 			
 					MySetWindowText(TNC->xIDC_MODE, "Clover");
@@ -926,7 +922,7 @@ VOID HALPoll(int Port)
 				if (memcmp(MsgPtr, "MODE PACTOR", 11) == 0)
 				{
 					TNC->CurrentMode = Pactor;
-					buffptr[1] = sprintf((UCHAR *)&buffptr[2],"HAL} Ok\r");
+					buffptr->Len = sprintf((UCHAR *)buffptr->Data,"HAL} Ok\r");
 					C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 
 					SendCmd(TNC, "\x84", 1);		// FSK
@@ -938,7 +934,7 @@ VOID HALPoll(int Port)
 				if (memcmp(MsgPtr, "MODE AMTOR", 11) == 0)
 				{
 					TNC->CurrentMode = AMTOR;
-					buffptr[1] = sprintf((UCHAR *)&buffptr[2],"HAL} Ok\r");
+					buffptr->Len = sprintf((UCHAR *)buffptr->Data,"HAL} Ok\r");
 					C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 
 					return;
@@ -1081,7 +1077,7 @@ VOID ProcessHALData(struct TNCINFO * TNC)
 {
 	// Received Data just pass to Appl
 
-	UINT * buffptr;
+	PMSGWITHLEN buffptr;
 	int Len = TNC->DataLen;
 	struct STREAMINFO * STREAM = &TNC->Streams[0];
 
@@ -1119,13 +1115,13 @@ VOID ProcessHALData(struct TNCINFO * TNC)
 			if (buffptr == NULL) 
 				return;	// No buffers, so ignore
 
-			buffptr[1] = Len;				// Length
+			buffptr->Len = Len;				// Length
 
 			WriteLogLine(1, TNC->DataBuffer, Len);
 
 			STREAM->BytesRXed += Len;
 
-			memcpy(&buffptr[2], TNC->DataBuffer, Len);
+			memcpy(buffptr->Data, TNC->DataBuffer, Len);
 
 			C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 		}
@@ -1195,7 +1191,7 @@ NotData:
 
 		DataChar:
 
-			TNC->CmdLen = (int)(cmdptr - TNC->CmdBuffer);
+			TNC->CmdLen = cmdptr - TNC->CmdBuffer;
 			ProcessHALCmd(TNC);
 			cmdptr = &TNC->CmdBuffer[TNC->CmdLen];
 			dataptr = &TNC->DataBuffer[TNC->DataLen];
@@ -1221,7 +1217,7 @@ NotData:
 				{
 					// Process any data we have, then loop back
 
-					TNC->DataLen = (int)(dataptr - TNC->DataBuffer);
+					TNC->DataLen = dataptr - TNC->DataBuffer;
 					ProcessHALData(TNC);
 
 					goto NotData;
@@ -1231,7 +1227,7 @@ NotData:
 
 			// Used all data
 
-			TNC->DataLen = (int)(dataptr - TNC->DataBuffer);
+			TNC->DataLen = dataptr - TNC->DataBuffer;
 
 			ProcessHALData(TNC);
 			TNC->CmdEsc = CmdEsc;
@@ -1243,7 +1239,7 @@ NotData:
 
 	// Save State
 
-	TNC->CmdLen = (int)(cmdptr - TNC->CmdBuffer);
+	TNC->CmdLen = cmdptr - TNC->CmdBuffer;
 
 	TNC->CmdEsc = CmdEsc;
 	TNC->DataEsc = DataEsc;
@@ -1405,7 +1401,7 @@ CmdLoop:
 			return;					// Wait for more
 
 		Call = &TNC->CmdBuffer[1];
-		Used = (int)strlen(Call) + 2;	// Opcode and Null
+		Used = strlen(Call) + 2;	// Opcode and Null
 
 		UpdateMH(TNC, Call, '!', 0);
 
@@ -1462,7 +1458,7 @@ CmdLoop:
 			return;					// Wait for more
 
 		Call = &TNC->CmdBuffer[1];
-		Used = (int)strlen(Call) + 2;	// Opcode and Null
+		Used = strlen(Call) + 2;	// Opcode and Null
 
 		HALConnected(TNC, Call);
 
@@ -1709,7 +1705,7 @@ VOID HALDisconnected(struct TNCINFO * TNC)
 
 	if (STREAM->Connecting && STREAM->Disconnecting == FALSE)
 	{
-		UINT * buffptr;
+		PMSGWITHLEN buffptr;
 
 		// Connect Failed - actually I think HAL uses another code for connect failed, but leave here for now
 			
@@ -1717,7 +1713,7 @@ VOID HALDisconnected(struct TNCINFO * TNC)
 	
 		if (buffptr)
 		{
-			buffptr[1]  = sprintf((UCHAR *)&buffptr[2], "*** Failure with %s\r", STREAM->RemoteCall);
+			buffptr->Len  = sprintf(buffptr->Data, "*** Failure with %s\r", STREAM->RemoteCall);
 
 			C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 		}
@@ -1751,7 +1747,7 @@ VOID HALDisconnected(struct TNCINFO * TNC)
 BOOL HALConnected(struct TNCINFO * TNC, char * Call)
 {
 	char Msg[80];
-	UINT * buffptr;
+	PMSGWITHLEN buffptr;
 	struct STREAMINFO * STREAM = &TNC->Streams[0];
 	char CallCopy[80];
 
@@ -1765,7 +1761,7 @@ BOOL HALConnected(struct TNCINFO * TNC, char * Call)
 
 	sprintf(Msg, "%d SCANSTOP", TNC->Port);
 		
-	Rig_Command(-1, Msg);
+	Rig_Command( (TRANSPORTENTRY *) -1, Msg);
 
 	ShowTraffic(TNC);
 
@@ -1794,7 +1790,7 @@ BOOL HALConnected(struct TNCINFO * TNC, char * Call)
 			buffptr = GetBuff();
 			if (buffptr == 0) return TRUE;			// No buffers, so ignore
 
-			buffptr[1] = sprintf((UCHAR *)&buffptr[2], "%s\r", TNC->ApplCmd);
+			buffptr->Len = sprintf((UCHAR *)buffptr->Data, "%s\r", TNC->ApplCmd);
 			C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 			TNC->SwallowSignon = TRUE;
 
@@ -1816,7 +1812,7 @@ BOOL HALConnected(struct TNCINFO * TNC, char * Call)
 	buffptr = GetBuff();
 	if (buffptr == 0) return TRUE;			// No buffers, so ignore
 
-	buffptr[1]  = sprintf((UCHAR *)&buffptr[2], "*** Connected to %s\r", Call);;
+	buffptr->Len  = sprintf((UCHAR *)buffptr->Data, "*** Connected to %s\r", Call);;
 
 	C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 	

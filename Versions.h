@@ -10,8 +10,8 @@
 
 #endif
 
-#define KVers 6,0,23,82
-#define KVerstring "6.0.23.82\0"
+#define KVers 6,0,24,1
+#define KVerstring "6.0.24.1\0"
 
 #ifdef CKernel
 
@@ -27,8 +27,8 @@
 
 #ifdef TermTCP
 
-#define Vers 1,0,16,1
-#define Verstring "1.0.16.1\0"
+#define Vers 1,0,16,2
+#define Verstring "1.0.16.2\0"
 #define VerComments "Internet Terminal for G8BPQ Packet Switch\0"
 #define VerCopyright "Copyright © 2011-2023 John Wiseman G8BPQ\0"
 #define VerDesc "Simple TCP Terminal Program for G8BPQ Switch\0"

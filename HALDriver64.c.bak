@@ -1444,7 +1444,7 @@ CmdLoop:
 			return;					// Wait for more
 
 		Call = &TNC->CmdBuffer[1];
-		Used = strlen(Call) + 2;	// Opcode and Null
+		Used = (int)strlen(Call) + 2;	// Opcode and Null
 
 		// Could possibly be used for APPLCALLS by changing MYCALL when we see a call to one of our calls
 

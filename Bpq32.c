@@ -1086,7 +1086,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add ? and * wildcards to NODES command (74)
 //  Add Port RADIO config parameter (74)
 
-//  Version 6.0.24.1 ??
+//  Version 6.0.24.1 August 2023
 
 //	Apply NODES command wildcard to alias as well a call (2)
 //	Add STOPPORT/STARTPORT to VARA Driver (2)
@@ -1178,6 +1178,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix Web Terminal (80)
 //	Trap ENCRYPTION message from VARA (81)
 //	Fix processing of the Winlink API /account/exists response (82)
+//	Fix sending CTEXT to L4 connects to Node when FULL_CTEXT is not set
 
 #define CKernel
 

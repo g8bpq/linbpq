@@ -58,7 +58,7 @@
 //  Add Connect Scripts
 //	Improve connect timeouts and add link validation polls
 
-//  Version 6.0.24.1 ??
+//  Version 6.0.24.1 August 23
 
 //	Restore CMD_TO_APPL flag to Applflags (13)
 //	Check for and remove names set to *RTL 

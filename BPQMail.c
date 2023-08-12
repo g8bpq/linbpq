@@ -1097,7 +1097,7 @@
 //	Disconnect immediately if "Invalid Command" "*** Protocol Error" or "Already Connected" received (.70)
 //	Check Badword and Reject filters before processing WP Messages
 
-//  6.0.24.1  ?? 2022
+//  6.0.24.1  August 2023
 
 //	Fix ' in Webmail subject (8)
 //	Change web buttons to white on black when pressed (10)
@@ -1116,6 +1116,7 @@
 //	QtTerm Monitoring fixed for 63 port version of BPQ (69)
 //	Fix to UI system to support up to 63 ports (79)
 //	Fix recently introduced crash when "Don't allow new users" is set (81)
+//	Skip comments before TIMES at start of Connect Script (83)
 
 
 #include "bpqmail.h"

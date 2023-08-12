@@ -310,7 +310,7 @@ ConfigLine:
 	return (TRUE);	
 }
 
-static size_t ExtProc(int fn, int port,unsigned char * buff)
+static size_t ExtProc(int fn, int port , PDATAMESSAGE buff)
 {
 	int txlen = 0;
 	PMSGWITHLEN buffptr;
@@ -342,7 +342,7 @@ static size_t ExtProc(int fn, int port,unsigned char * buff)
 			if (STREAM->ReportDISC)
 			{
 				STREAM->ReportDISC = FALSE;
-				buff[4] = 0;
+				buff->PORT = 0;
 
 				return -1;
 			}
@@ -359,17 +359,15 @@ static size_t ExtProc(int fn, int port,unsigned char * buff)
 			
 				buffptr=Q_REM(&STREAM->PACTORtoBPQ_Q);
 
-				datalen=buffptr->Len;
+				datalen = (int)buffptr->Len;
 
-				buff[4] = 0;
-				buff[7] = 0xf0;
-				memcpy(&buff[8],buffptr->Data,datalen);		// Data goes to +7, but we have an extra byte
-				datalen+=8;
+				buff->PORT = 0;						// Compatibility with Kam Driver
+				buff->PID = 0xf0;
+				memcpy(&buff->L2DATA, &buffptr->Data[0], datalen);		// Data goes to + 7, but we have an extra byte
+				datalen += sizeof(void *) + 4;
 
-				PutLengthinBuffer((PDATAMESSAGE)buff, datalen);
+				PutLengthinBuffer(buff, datalen);
 
-	//			buff[5]=(datalen & 0xff);
-	//			buff[6]=(datalen >> 8);
 		
 				ReleaseBuffer(buffptr);
 	
@@ -387,24 +385,27 @@ static size_t ExtProc(int fn, int port,unsigned char * buff)
 
 		// Find TNC Record
 
-		Stream = buff[4];
-		
+		Stream = buff->PORT;
+
 		if (!TNC->TNCOK)
 		{
 			// Send Error Response
-
-			buffptr->Len = 36;
-			memcpy(buffptr->Data, "No Connection to PACTOR TNC\r", 36);
-
-			C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 			
+			PMSGWITHLEN buffptr = (PMSGWITHLEN)GetBuff();
+
+			if (buffptr == 0) return (0);			// No buffers, so ignore
+
+			buffptr->Len = 27;
+			memcpy(&buffptr->Data[0], "No Connection to PACTOR TNC\r", 27);
+
+			C_Q_ADD(&TNC->Streams[Stream].PACTORtoBPQ_Q, buffptr);
 			return 0;
 		}
 
-		txlen = GetLengthfromBuffer((PDATAMESSAGE)buff) - 8;
+		txlen = GetLengthfromBuffer(buff) - (sizeof(void *) + 4);
 
 		buffptr->Len = txlen;
-		memcpy(buffptr->Data, &buff[8], txlen);
+		memcpy(&buffptr->Data[0], &buff->L2DATA[0], txlen);
 		
 		C_Q_ADD(&STREAM->BPQtoPACTOR_Q, buffptr);
 
@@ -415,7 +416,7 @@ static size_t ExtProc(int fn, int port,unsigned char * buff)
 
 	case 3:				// CHECK IF OK TO SEND. Also used to check if TNC is responding
 		
-		Stream = (int)buff;
+		Stream = (int)(size_t)buff;
 			
 		if (STREAM->FramesQueued  > 4)
 			return (1 | TNC->HostMode << 8);
@@ -463,7 +464,7 @@ static int WebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
 }
 
 
-UINT HALExtInit(EXTPORTDATA *  PortEntry)
+VOID * HALExtInit(EXTPORTDATA *  PortEntry)
 {
 	char msg[500];
 	struct TNCINFO * TNC;
@@ -471,8 +472,9 @@ UINT HALExtInit(EXTPORTDATA *  PortEntry)
 	char * ptr;
 	int len;
 	char Msg[80];
+#ifndef LINBPQ
 	HWND x;
-
+#endif
 	//
 	//	Will be called once for each Pactor Port
 	//	The COM port number is in IOBASE
@@ -493,7 +495,7 @@ UINT HALExtInit(EXTPORTDATA *  PortEntry)
 		sprintf(msg," ** Error - no info in BPQ32.cfg for this port");
 		WritetoConsole(msg);
 
-		return (int)ExtProc;
+		return ExtProc;
 	}
 	
 	TNC->Port = port;
@@ -598,7 +600,7 @@ UINT HALExtInit(EXTPORTDATA *  PortEntry)
 
 	WritetoConsole("\n");
 
-	return ((int)ExtProc);
+	return ExtProc;
 }
 
 
@@ -1401,7 +1403,7 @@ CmdLoop:
 			return;					// Wait for more
 
 		Call = &TNC->CmdBuffer[1];
-		Used = strlen(Call) + 2;	// Opcode and Null
+		Used = (int)strlen(Call) + 2;	// Opcode and Null
 
 		UpdateMH(TNC, Call, '!', 0);
 
@@ -1458,7 +1460,7 @@ CmdLoop:
 			return;					// Wait for more
 
 		Call = &TNC->CmdBuffer[1];
-		Used = strlen(Call) + 2;	// Opcode and Null
+		Used = (int)strlen(Call) + 2;	// Opcode and Null
 
 		HALConnected(TNC, Call);
 
