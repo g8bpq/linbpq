@@ -1180,6 +1180,10 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix processing of the Winlink API /account/exists response (82)
 //	Fix sending CTEXT to L4 connects to Node when FULL_CTEXT is not set
 
+//  Version 6.0.25.? 
+
+//	Fix 64 bit compatibility problems in SCSTracker and UZ7HO drivers
+
 #define CKernel
 
 #include "Versions.h"

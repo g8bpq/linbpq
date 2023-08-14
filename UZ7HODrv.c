@@ -840,7 +840,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 			Sock = TNCInfo[MasterPort[port]]->TCPSock;
 
-			MsgLen = buffptr->LENGTH - 6;	// 7 Header, need extra Null
+			MsgLen = buffptr->LENGTH - (MSGHDDRLEN - 1); // Need extra Null	
 			buffptr->LENGTH = 0;				// Need a NULL on front	
 			Buffer = &buffptr->DEST[0];		// Raw Frame
 			Buffer--;						// Need to send an extra byte on front
