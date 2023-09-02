@@ -2927,7 +2927,7 @@ BOOL ProcessAPPLDef(char * buf)
 
 	Appl = atoi(Param[0]);
 
-	if (Appl < 1 || Appl > 32) return FALSE;
+	if (Appl < 1 || Appl > NumberofAppls) return FALSE;
 
 	App = &xxcfg.C_APPL[Appl - 1];		// Recs from zero
 

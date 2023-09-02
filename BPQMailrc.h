@@ -255,6 +255,8 @@
 #define IDC_REJFROM                     7077
 #define IDC_REJTO                       7078
 #define IDC_REJAT                       7079
+#define IDC_HOLDFROM2                   7080
+#define IDC_REJSYS                      7080
 #define IDM_HOUSEKEEPING                9000
 #define IDM_PR                          9001
 #define IDM_PUR                         9002
@@ -322,7 +324,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        30012
+#define _APS_NEXT_RESOURCE_VALUE        30013
 #define _APS_NEXT_COMMAND_VALUE         40027
 #define _APS_NEXT_CONTROL_VALUE         1093
 #define _APS_NEXT_SYMED_VALUE           101

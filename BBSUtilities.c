@@ -45,6 +45,7 @@ BOOL OpenMon;
 
 int reportNewMesageEvents = 0;
 
+FBBFilter * Filters = NULL;
 
 extern struct ConsoleInfo BBSConsole;
 
@@ -2078,10 +2079,37 @@ int CountConnectionsOnPort(int CheckPort)
 	return Count;
 }
 
+/*
+REJECT.SYS (\FBB\SYSTEM).
 
-BOOL CheckRejFilters(char * From, char * To, char * ATBBS, char * BID, char Type)
+ This file is in SYSTEM-directory. With this file it is possible to reject or
+hold certain types or sizes of messages.
+
+The first letter of each valid line specifies the action :
+
+R = Reject     : The message will not be received.
+H = Hold       : The message will be received but held until the sysop reviews.
+L = Local Hold : Only messages created on this BBS will be held.
+
+ # File for rejecting messages. They are rejected with N-BID:
+ #
+ # Type, from, @BBS, to, BID, maximum size:
+ #
+ # * and ? can be used as wildcards (as in MS-DOS)
+ #
+ R B TOTO  ALL    TATA  * 0
+ R B *     *      VENTE * 0
+ R B *     VENTE  *     * 0
+ H * P1RAT *      *     * 0
+ L B *     *      *     * 0
+ */
+
+
+BOOL CheckRejFilters(char * From, char * To, char * ATBBS, char * BID, char Type, int Len)
 {
 	char ** Calls;
+	FBBFilter * p = Filters;
+	char ToCopy[256];
 
 	if (Type == 'B' && FilterWPBulls && _stricmp(To, "WP") == 0)
 		return TRUE;
@@ -2145,6 +2173,43 @@ BOOL CheckRejFilters(char * From, char * To, char * ATBBS, char * BID, char Type
 			Calls++;
 		}
 	}
+
+	// check fbb reject.sys type filters
+
+	strcpy(ToCopy, To);
+	_strupr(ToCopy);
+
+	while (p)
+	{
+		if (p->Action != 'R')
+			goto Continue;
+
+		if (p->Type != Type && p->Type != '*')
+			goto Continue;
+
+		if (wildcardcompare(From, p->From) == 0)
+			goto Continue;
+
+		if (wildcardcompare(ToCopy, p->TO) == 0)
+			goto Continue;
+
+		if (ATBBS)
+			if (wildcardcompare(ATBBS, p->AT) == 0)
+				goto Continue;
+
+		if (BID)
+			if (wildcardcompare(BID, p->BID) == 0)
+				goto Continue;
+
+		if (p->MaxLen && Len < p->MaxLen)
+			goto Continue;
+
+		return TRUE;			// Hold
+
+Continue:
+		p = p->Next;
+	}
+
 	return FALSE;		// Ok to accept
 }
 
@@ -2175,9 +2240,12 @@ BOOL CheckValidCall(char * From)
 	return FALSE;
 }
 
-BOOL CheckHoldFilters(char * From, char * To, char * ATBBS, char * BID)
+BOOL wildcardcompare(char * Target, char * Match);
+
+BOOL CheckHoldFilters(struct MsgInfo * Msg, char * From, char * To, char * ATBBS, char * BID)
 {
 	char ** Calls;
+	FBBFilter * p = Filters;
 
 	if (HoldFrom && From)
 	{
@@ -2238,6 +2306,38 @@ BOOL CheckHoldFilters(char * From, char * To, char * ATBBS, char * BID)
 			Calls++;
 		}
 	}
+
+	// check fbb reject.sys type filters
+
+	while (p)
+	{
+		if (p->Action != 'H')
+			goto Continue;
+
+		if (p->Type != Msg->type && p->Type != '*')
+			goto Continue;
+
+		if (wildcardcompare(Msg->from, p->From) == 0)
+			goto Continue;
+
+		if (wildcardcompare(Msg->to, p->TO) == 0)
+			goto Continue;
+
+		if (wildcardcompare(Msg->via, p->AT) == 0)
+			goto Continue;
+
+		if (wildcardcompare(Msg->bid, p->BID) == 0)
+			goto Continue;
+
+		if (p->MaxLen && Msg->length < p->MaxLen)
+			goto Continue;
+
+		return TRUE;			// Hold
+
+Continue:
+		p = p->Next;
+	}
+
 	return FALSE;		// Ok to accept
 }
 
@@ -5361,7 +5461,7 @@ BOOL CreateMessage(CIRCUIT * conn, char * From, char * ToCall, char * ATBBS, cha
 	}
 	else
 	{
-		if (CheckRejFilters(From, ToCall, ATBBS, BID, MsgType))
+		if (CheckRejFilters(From, ToCall, ATBBS, BID, MsgType, 0))
 		{	
 			if ((conn->BBSFlags & BBS))
 			{
@@ -6169,7 +6269,7 @@ nextline:
 		HoldReason = "Bad word in title or body";
 	}
 
-	if (CheckHoldFilters(Msg->from, Msg->to, Msg->via, Msg->bid))
+	if (CheckHoldFilters(Msg, Msg->from, Msg->to, Msg->via, Msg->bid))
 	{
 		Msg->status = 'H';
 		HoldReason = "Matched Hold Filters";
@@ -9441,6 +9541,9 @@ VOID SaveConfig(char * ConfigName)
 	char Size[80];
 	struct BBSForwardingInfo DummyForwardingInfo;
 	char Line[1024];
+	char FBBString[8192]= "";
+	FBBFilter * p = Filters;
+	char * ptr = FBBString;
 
 	if (configSaved == 0)
 	{
@@ -9565,6 +9668,18 @@ VOID SaveConfig(char * ConfigName)
 	SaveMultiStringValue(group,  "HoldTo", HoldTo);
 	SaveMultiStringValue(group,  "HoldAt", HoldAt);
 	SaveMultiStringValue(group,  "HoldBID", HoldBID);
+
+	// Save FBB Filters
+
+	while (p)
+	{
+		ptr += sprintf(ptr, "%c|%c|%s|%s|%s|%s|%d|",
+			p->Action, p->Type, p->From, p->TO, p->AT, p->BID, p->MaxLen);
+
+		p = p->Next;
+	}
+
+	SaveStringValue(group, "FBBFilters", FBBString);
 
 	SaveIntValue(group, "SendWP", SendWP);
 	SaveIntValue(group, "SendWPType", SendWPType);
@@ -9964,7 +10079,8 @@ BOOL GetConfig(char * ConfigName)
 	char Size[80];
 	config_setting_t *setting;
 	const char * ptr;
-
+	char FBBString[8192]= "";
+	FBBFilter f;
 	config_init(&cfg);
 
 	/* Read the file. If there is an error, report it and exit. */
@@ -10160,6 +10276,89 @@ BOOL GetConfig(char * ConfigName)
 	HoldTo = GetMultiStringValue(group,  "HoldTo");
 	HoldAt = GetMultiStringValue(group,  "HoldAt");
 	HoldBID = GetMultiStringValue(group,  "HoldBID");
+
+		// Get FBB Filters
+
+	GetStringValue(group, "FBBFilters", FBBString);
+
+	ptr = FBBString;
+
+	// delete old list
+
+	while(Filters && Filters->Next)
+	{
+		FBBFilter * next = Filters->Next;
+		free(Filters);
+		Filters = next;
+	}
+
+	free(Filters);
+	Filters = NULL;
+
+	while (ptr && ptr[0])
+	{
+		FBBFilter * PFilter;
+
+		f.Action = ptr[0];
+		f.Type = ptr[2];
+		ptr = &ptr[4];
+
+		memcpy(f.From, ptr, 10);
+		strlop(f.From, '|');
+		ptr = strlop(ptr, '|');
+
+		memcpy(f.TO, ptr, 10);
+		strlop(f.TO, '|');
+		ptr = strlop(ptr, '|');
+
+		memcpy(f.AT, ptr, 10);
+		strlop(f.AT, '|');
+		ptr = strlop(ptr, '|');
+
+		memcpy(f.BID, ptr, 10);
+		strlop(f.BID, '|');
+		ptr = strlop(ptr, '|');
+
+		f.MaxLen = atoi(ptr);
+
+		// add to list
+
+		f.Next = 0;
+
+		PFilter = zalloc(sizeof(FBBFilter));
+
+		memcpy(PFilter, &f, sizeof(FBBFilter));
+
+		if (Filters == 0)
+			Filters = PFilter;
+		else
+		{
+			FBBFilter * p = Filters;
+
+			while (p->Next)
+				p = p->Next;
+
+			p->Next = PFilter;
+		}
+
+		ptr = strlop(ptr, '|');
+	}
+
+
+
+
+
+//f.Action, f.Type, f.From, f.TO, f.AT, f.BID, &f.MaxLen);
+
+/*	while (p)
+	{
+		ptr += sprintf(ptr, "%c|%c|%s|%s|%s|%s|%d|",
+			p->Action, p->Type, p->From, p->TO, p->AT, p->BID, p->MaxLen);
+
+		p = p->Next;
+	}
+
+*/
 
 	// Send WP Params
 	

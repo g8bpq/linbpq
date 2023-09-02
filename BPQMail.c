@@ -1118,6 +1118,9 @@
 //	Fix recently introduced crash when "Don't allow new users" is set (81)
 //	Skip comments before TIMES at start of Connect Script (83)
 
+//  6.0.25.1  ?? 
+
+//	Aff FBB reject.sys style filters (3)
 
 #include "bpqmail.h"
 #include "winstdint.h"

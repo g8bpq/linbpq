@@ -8844,7 +8844,7 @@ int GetAPRSPageInfo(char * Buffer, double N, double S, double W, double E, int a
 					if (lastLat != ptr->Lat)
 						Len += sprintf(&Buffer[Len],"%.4f,%.4f,\r\n|", ptr->Lat, ptr->Lon);		//Add current position to end of track
 					else
-						Len += sprintf(&Buffer[Len],"\r\n|", ptr->Lat, ptr->Lon);
+						Len += sprintf(&Buffer[Len],"\r\n|");
 				}
 			}
 		}

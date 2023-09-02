@@ -1183,6 +1183,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //  Version 6.0.25.? 
 
 //	Fix 64 bit compatibility problems in SCSTracker and UZ7HO drivers
+//	Add Chat PACLEN config (5)
+//	Fix NC to Application Call (6)
 
 #define CKernel
 

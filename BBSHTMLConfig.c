@@ -1681,6 +1681,85 @@ VOID ProcessConfUpdate(struct HTTPConnectionInfo * Session, char * MsgPtr, char 
 		HoldAt = GetMultiStringInput(input, "Hat=");
 		HoldBID = GetMultiStringInput(input, "HBID=");
 
+		// Look for fbb style filters
+
+		input = strstr(input, "&Action=");
+
+		// delete old list
+
+		while(Filters && Filters->Next)
+		{
+			FBBFilter * next = Filters->Next;
+			free(Filters);
+			Filters = next;
+		}
+
+		free(Filters);
+		Filters = NULL;
+
+		while (input)
+		{
+			// extract and validate before saving
+
+			FBBFilter Filter;
+			FBBFilter * PFilter;
+
+			memset(&Filter, 0, sizeof(FBBFilter));
+
+			Filter.Action = toupper(input[8]);
+
+			input = strstr(input, "&Type=");
+			
+			if (Filter.Action == 'H' || Filter.Action == 'R')
+			{
+				Filter.Type = toupper(input[6]);
+				input = strstr(input, "&From=");
+				memcpy(Filter.From, &input[6], 10);
+				input = strstr(input, "&TO=");
+				strlop(Filter.From, '&');
+				_strupr(Filter.From);
+				memcpy(Filter.TO, &input[4], 10);
+				input = strstr(input, "&AT=");
+				strlop(Filter.TO, '&');
+				_strupr(Filter.TO);
+				memcpy(Filter.AT, &input[4], 10);
+				input = strstr(input, "&BID=");
+				strlop(Filter.AT, '&');
+				_strupr(Filter.AT);
+				memcpy(Filter.BID, &input[5], 10);
+				input = strstr(input, "&MaxLen=");
+				strlop(Filter.BID, '&');
+				_strupr(Filter.BID);
+				Filter.MaxLen = atoi(&input[8]);
+
+				if (Filter.Type == '&') Filter.Type = '*';
+				if (Filter.From[0] == 0) strcpy(Filter.From, "*");
+				if (Filter.TO[0] == 0) strcpy(Filter.TO, "*");
+				if (Filter.AT[0] == 0) strcpy(Filter.AT, "*");
+				if (Filter.BID[0] == 0) strcpy(Filter.BID, "*");
+
+				// add to list
+
+				PFilter = zalloc(sizeof(FBBFilter));
+
+				memcpy(PFilter, &Filter, sizeof(FBBFilter));
+
+				if (Filters == 0)
+					Filters = PFilter;
+				else
+				{
+					FBBFilter * p = Filters;
+
+					while (p->Next)
+						p = p->Next;
+
+					p->Next = PFilter;
+				}
+			}
+
+			input = strstr(input, "&Action=");
+		}
+
 		SaveConfig(ConfigName);
 		GetConfig(ConfigName);
 	}
@@ -2437,7 +2516,7 @@ VOID SendFwdDetails(struct UserInfo * User, char * Reply, int * ReplyLen, char *
 
 VOID SendConfigPage(char * Reply, int * ReplyLen, char * Key)
 {
-	int Len;
+	int Len, i;
 
 	char HF[2048] = "";
 	char HT[2048] = "";
@@ -2449,6 +2528,12 @@ VOID SendConfigPage(char * Reply, int * ReplyLen, char * Key)
 	char RB[2048] = "";
 	char WPTO[10000] = "";
 
+	char FBBFilters[100000] = "";
+
+	
+	char * ptr = FBBFilters;
+	FBBFilter * Filter = Filters;
+
 	SetMultiStringValue(RejFrom, RF);
 	SetMultiStringValue(RejTo, RT);
 	SetMultiStringValue(RejAt, RA);
@@ -2459,7 +2544,44 @@ VOID SendConfigPage(char * Reply, int * ReplyLen, char * Key)
 	SetMultiStringValue(HoldBID, HB);
 	SetMultiStringValue(SendWPAddrs, WPTO);
 
+	// set up FB style fiters
 	
+	ptr += sprintf(ptr, 
+		"<table><tr><th>Action</th><th>Type</th><th>From</th><th>To</th><th>@BBS</th><th>Bid</th><th>Max Size</th></tr>");
+
+	while(Filter)
+	{
+		ptr += sprintf(ptr, "<tr>"	
+		"<td><input type=text name=Action style=\"text-transform: uppercase\"maxlength=2 size=2 value=%c></td>"
+		"<td><input type=text name=Type style=\"text-transform: uppercase\"maxlength=2 size=2 value=%c></td>"
+		"<td><input type=text name=From style=\"text-transform: uppercase\" maxlength=7 size=7 value=%s></td>"
+		"<td><input type=text name=TO style=\"text-transform: uppercase\" maxlength=7 size=7 value=%s></td>"
+		"<td><input type=text name=AT style=\"text-transform: uppercase\" maxlength=7 size=7 value=%s></td>"
+		"<td><input type=text name=BID style=\"text-transform: uppercase\" maxlength=13 size=13 value=%s></td>"
+		"<td><input type=text name=MaxLen maxlength=6 size=6 value=%d></td></tr>",
+			Filter->Action, Filter->Type, Filter->From, Filter->TO, Filter->AT, Filter->BID, Filter->MaxLen);
+
+		Filter = Filter->Next;
+	}
+
+	//	Add a few blank entries for input
+
+	for (i = 0; i < 5; i++)
+	{
+		ptr += sprintf(ptr, "<tr>"
+		"<td><input type=text name=Action style=\"text-transform: uppercase\"maxlength=2 size=2 value=%c></td>"
+		"<td><input type=text name=Type style=\"text-transform: uppercase\"maxlength=2 size=2 value=%c></td>"
+		"<td><input type=text name=From style=\"text-transform: uppercase\" maxlength=7 size=7 value=%s></td>"
+		"<td><input type=text name=TO style=\"text-transform: uppercase\" maxlength=7 size=7 value=%s></td>"
+		"<td><input type=text name=AT style=\"text-transform: uppercase\" maxlength=7 size=7 value=%s></td>"
+		"<td><input type=text name=BID style=\"text-transform: uppercase\" maxlength=13 size=13 value=%s></td>"
+		"<td><input type=text name=MaxLen maxlength=6 size=6 value=%d></td></tr>", ' ', ' ', "", "", "", "", 0);
+	}
+
+	ptr += sprintf(ptr, "</table>");
+
+	Debugprintf("%d", strlen(FBBFilters));
+
 	Len = sprintf(Reply, ConfigTemplate,
 		BBSName, Key, Key, Key, Key, Key, Key, Key, Key, Key,
 		BBSName, SYSOPCall, HRoute,
@@ -2490,7 +2612,7 @@ VOID SendConfigPage(char * Reply, int * ReplyLen, char * Key)
 		(SendWPType == 0) ? CHKD  : UNC,
 		(SendWPType == 1) ? CHKD  : UNC,
 		WPTO,
-		RF, RT, RA, RB, HF, HT, HA, HB);
+		RF, RT, RA, RB, HF, HT, HA, HB, FBBFilters);
 
 	*ReplyLen = Len;
 }

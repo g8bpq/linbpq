@@ -965,6 +965,11 @@ VOID ProcessXIDCommand(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESS
 
 			L2SWAPADDRESSES(Buffer);			// SWAP ADDRESSES AND SET RESP BITS
 
+			// We need to save APPLMASK and ALIASPTR so following SABM connects to application
+
+			LINK->APPLMASK = APPLMASK;
+			LINK->ALIASPTR = ALIASPTR;
+
 			PUT_ON_PORT_Q(PORT, Buffer);
 			return;
 		}
@@ -1089,6 +1094,9 @@ VOID L2LINKACTIVE(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE *
 
 		if (LINK->L2STATE == 1)			// Sent XID?
 		{
+			APPLMASK = LINK->APPLMASK;
+			ALIASPTR = LINK->ALIASPTR;
+
 			L2SABM(LINK, PORT, Buffer, ADJBUFFER, MSGFLAG);			// Process the SABM
 			return;
 		}
@@ -1351,7 +1359,7 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 		{
 			Msg->PID = 0xf0;
 				
-			memcpy(Msg->L2DATA, APPL->APPLCMD, 12);
+			memcpy(Msg->L2DATA, ALIASPTR, 12);
 			Msg->L2DATA[12] = 13;
 			
 			Msg->LENGTH = MSGHDDRLEN + 12 + 2;		// 2 for PID and CR

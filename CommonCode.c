@@ -68,7 +68,10 @@ VOID WriteMiniDump();
 void printStack(void);
 char * FormatMH(PMHSTRUC MH, char Format);
 void WriteConnectLog(char * fromCall, char * toCall, UCHAR * Mode);
+void SendDataToPktMap(char *Msg);
+
 extern BOOL LogAllConnects;
+
 
 extern VOID * ENDBUFFERPOOL;
 
@@ -3302,6 +3305,8 @@ VOID SendLocation()
 
 	SendReportMsg((char *)&AXMSG.DEST, Len + 16);
 
+	SendDataToPktMap("");
+
 	return;
 
 }
@@ -4748,6 +4753,229 @@ void GetPortCTEXT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CM
 	else
 		Debugprintf("CTEXT Read for ports %s\r", &PortList[1]);
 }
+
+SOCKET OpenHTTPSock(char * Host)
+{
+	SOCKET sock = 0;
+	struct sockaddr_in destaddr;
+	struct sockaddr_in sinx; 
+	int addrlen=sizeof(sinx);
+	struct hostent * HostEnt;
+	int err;
+	u_long param=1;
+	BOOL bcopt=TRUE;
+		
+	destaddr.sin_family = AF_INET; 
+	destaddr.sin_port = htons(80);
+
+	//	Resolve name to address
+
+	HostEnt = gethostbyname (Host);
+		 
+	if (!HostEnt)
+	{
+		err = WSAGetLastError();
+
+		Debugprintf("Resolve Failed for %s %d %x", "api.winlink.org", err, err);
+		return 0 ;			// Resolve failed
+	}
+	
+	memcpy(&destaddr.sin_addr.s_addr,HostEnt->h_addr,4);	
+	
+	//   Allocate a Socket entry
+
+	sock = socket(AF_INET,SOCK_STREAM,0);
+
+	if (sock == INVALID_SOCKET)
+  	 	return 0; 
+ 
+	setsockopt (sock, SOL_SOCKET, SO_REUSEADDR, (const char FAR *)&bcopt,4);
+
+	sinx.sin_family = AF_INET;
+	sinx.sin_addr.s_addr = INADDR_ANY;
+	sinx.sin_port = 0;
+
+	if (bind(sock, (struct sockaddr *) &sinx, addrlen) != 0 )
+  	 	return FALSE; 
+
+	if (connect(sock,(struct sockaddr *) &destaddr, sizeof(destaddr)) != 0)
+	{
+		err=WSAGetLastError();
+		closesocket(sock);
+		return 0;
+	}
+
+	return sock;
+}
+
+static char HeaderTemplate[] = "POST %s HTTP/1.1\r\n"
+	"Accept: application/json\r\n"
+//	"Accept-Encoding: gzip,deflate,gzip, deflate\r\n"
+	"Content-Type: application/json\r\n"
+	"Host: %s:%d\r\n"
+	"Content-Length: %d\r\n"
+	//r\nUser-Agent: BPQ32(G8BPQ)\r\n"
+//	"Expect: 100-continue\r\n"
+	"\r\n{%s}";
+
+
+VOID SendWebRequest(SOCKET sock, char * Host, char * Request, char * Params, int Len, char * Return)
+{
+	int InputLen = 0;
+	int inptr = 0;
+	char Buffer[2048];
+	char Header[2048];
+	char * ptr, * ptr1;
+	int Sent;
+
+	sprintf(Header, HeaderTemplate, Request, Host, 80, Len + 2, Params);
+	Sent = send(sock, Header, (int)strlen(Header), 0);
+
+	if (Sent == -1)
+	{
+		int Err = WSAGetLastError();
+		Debugprintf("Error %d from Web Update send()", Err);
+		return;
+	}
+
+	while (InputLen != -1)
+	{
+		InputLen = recv(sock, &Buffer[inptr], 2048 - inptr, 0);
+
+		if (InputLen == -1 || InputLen == 0)
+		{
+			int Err = WSAGetLastError();
+			Debugprintf("Error %d from Web Update recv()", Err);
+			return;
+		}
+
+		//	As we are using a persistant connection, can't look for close. Check
+		//	for complete message
+
+		inptr += InputLen;
+
+		Buffer[inptr] = 0;
+		
+		ptr = strstr(Buffer, "\r\n\r\n");
+
+		if (ptr)
+		{
+			// got header
+
+			int Hddrlen = (int)(ptr - Buffer);
+					
+			ptr1 = strstr(Buffer, "Content-Length:");
+
+			if (ptr1)
+			{
+				// Have content length
+
+				int ContentLen = atoi(ptr1 + 16);
+
+				if (ContentLen + Hddrlen + 4 == inptr)
+				{
+					// got whole response
+
+					if (strstr(Buffer, " 200 OK"))
+					{
+						if (Return)
+						{
+							memcpy(Return, ptr + 4, ContentLen); 
+							Return[ContentLen] = 0;
+						}
+						else
+							Debugprintf("Map Database update ok");
+					
+					}
+					else
+					{
+						strlop(Buffer, 13);
+						Debugprintf("Map Update Params - %s", Params);
+						Debugprintf("Map Update failed - %s", Buffer);
+					}
+					return;
+				}
+			}
+			else
+			{
+				ptr1 = strstr(_strlwr(Buffer), "transfer-encoding:");
+				
+				if (ptr1)
+				{
+					// Just accept anything until I've sorted things with Lee
+					Debugprintf("%s", ptr1);
+					Debugprintf("Web Database update ok");
+					return;
+				}
+			}
+		}
+	}
+}
+
+// https://packetnodes.spots.radio/api/NodeData/{callsign}
+
+//SendHTTPRequest(sock, "/account/exists", Message, Len, Response);
+
+extern char MYALIASLOPPED[10];
+
+void SendDataToPktMap(char *Msg)
+{
+	SOCKET sock;
+	char Return[256];
+	char Request[64];
+	char Params[16384];
+	char * ptr = Params;
+	
+	sprintf(Request, "/api/NodeData/%s", MYNODECALL);
+
+	// This builds the request and sends it
+
+	// Minimum header seems to be
+
+	//  "nodeAlias": "BPQ",
+	//  "location": {"locator": "IO68VL"},
+	//  "software": {"name": "BPQ32","version": "6.0.24.3"},
+
+	ptr += sprintf(ptr, "\"nodeAlias\": \"%s\",\r\n", MYALIASLOPPED);
+	ptr += sprintf(ptr, "\"locator\": \"%s\",\r\n", LOCATOR);
+#ifdef LINBPQ
+	ptr += sprintf(ptr, "\"software\": \"LinBPQ\",\"version\": \"%s\",\r\n", VersionString);
+#else
+	ptr += sprintf(ptr, "\"software\": \"BPQ32\",\"version\": \"%s\",\r\n", VersionString);
+#endif
+
+
+
+
+	//  "contact": "string",
+	//  "neighbours": [{"node": "G7TAJ","port": "30"}]
+
+	return;
+
+
+	sock = OpenHTTPSock("packetnodes.spots.radio");
+
+	SendWebRequest(sock, "packetnodes.spots.radio", Request, Params, strlen(Params), Return);
+	closesocket(sock);
+}
+
+//	="{\"neighbours\": [{\"node\": \"G7TAJ\",\"port\": \"30\"}]}";
+
+//'POST' \
+//  'https://packetnodes.spots.radio/api/NodeData/GM8BPQ' \
+//  -H 'accept: */*' \
+//  -H 'Content-Type: application/json' \
+//  -d '{
+//  "nodeAlias": "BPQ",
+//  "location": {"locator": "IO68VL"},
+//  "software": {"name": "BPQ32","version": "6.0.24.3"},
+//  "contact": "string",
+//  "neighbours": [{"node": "G7TAJ","port": "30"}]
+//}'
+
+
+
+
 
 
 

@@ -16,6 +16,7 @@ extern int	NumberofChatStreams;
 
 extern char ChatConfigName[MAX_PATH];
 extern char Session[20];
+extern int chatPaclen;
 
 extern struct SEM ChatSemaphore;
 extern struct SEM AllocSemaphore;
@@ -67,7 +68,7 @@ int Connected(int Stream)
 		
 				if (conn->rtcflags == p_linkini)
 				{
-					conn->paclen = 236;
+					conn->paclen = chatPaclen;
 
 					// Run first line of connect script
 
@@ -86,8 +87,10 @@ int Connected(int Stream)
 			conn->Secure_Session = GetConnectionInfo(Stream, callsign,
 				&port, &conn->SessType, &paclen, &maxframe, &l4window);
 
-			conn->paclen = paclen;
+			if (paclen > chatPaclen || paclen == 0)
+				paclen = chatPaclen;
 
+			conn->paclen = paclen;
 			strlop(callsign, ' ');		// Remove trailing spaces
 
 			memcpy(conn->Callsign, callsign, 10);

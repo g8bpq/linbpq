@@ -2207,6 +2207,7 @@ int TidyString(char * Address)
 	size_t len;
 
 	_strupr(Address);
+	Debugprintf(Address);
 
 	ptr1 = strchr(Address, '<');
 
@@ -2259,6 +2260,10 @@ int TidyString(char * Address)
 		ptr2=strlop(ptr1, ' ');
 		ptr1=ptr2;
 	}
+
+	if (ptr1 == 0)
+		return 0;
+
 
 	if (*ptr1 == '<') ptr1++;
 

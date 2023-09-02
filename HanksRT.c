@@ -75,6 +75,7 @@ char ChatWelcomeMsg[1000];
 char Position[81] = "";
 char PopupText[260] = "";
 int PopupMode = 0;
+int chatPaclen = 236;
 
 char RtKnown[MAX_PATH] = "RTKnown.txt";
 char RtUsr[MAX_PATH] = "STUsers.txt";
@@ -96,6 +97,7 @@ KNOWNNODE * known_hd = NULL;
 int ChatTmr = 0;
 
 BOOL NeedStatus = FALSE;
+
 
 char Verstring[80];
 
@@ -3863,7 +3865,7 @@ int ChatConnected(int Stream)
 		
 				if (conn->rtcflags == p_linkini)
 				{
-					conn->paclen = 236;
+					conn->paclen = chatPaclen;
 		
 					// Run first line of connect script
 
@@ -3882,6 +3884,9 @@ int ChatConnected(int Stream)
 
 			if (paclen == 0)
 				paclen = 256;
+
+			if (paclen > chatPaclen)
+				paclen = chatPaclen;
 
 			conn->paclen = paclen;
 
@@ -4163,11 +4168,18 @@ BOOL GetChatConfig(char * ConfigName)
 
 	ChatApplNum = GetIntValue(group, "ApplNum");
 	MaxChatStreams = GetIntValue(group, "MaxStreams");
+	chatPaclen = GetIntValue(group, "chatPaclen");
 	GetStringValue(group, "OtherChatNodes", OtherNodesList);
 	GetStringValue(group, "ChatWelcomeMsg", ChatWelcomeMsg);
 	GetStringValue(group, "MapPosition", Position);
 	GetStringValue(group, "MapPopup", PopupText);
 	PopupMode = GetIntValue(group, "PopupMode");
+
+	if (chatPaclen == 0)
+		chatPaclen = 236;
+
+	if (chatPaclen < 60)
+		chatPaclen = 60;
 
 
 	return EXIT_SUCCESS;
@@ -4187,6 +4199,7 @@ VOID SaveChatConfigFile(char * ConfigName)
 
 	SaveIntValue(group, "ApplNum", ChatApplNum);
 	SaveIntValue(group, "MaxStreams", MaxChatStreams);
+	SaveIntValue(group, "chatPaclen", chatPaclen);
 	SaveStringValue(group, "OtherChatNodes", OtherNodesList);
 	SaveStringValue(group, "ChatWelcomeMsg", ChatWelcomeMsg);
 
