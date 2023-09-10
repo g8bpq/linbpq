@@ -398,7 +398,7 @@ int SendHeader(char * Reply, char * Key)
 }
 
 
-void ConvertTitletoUTF8(char * Title, char * UTF8Title)
+void ConvertTitletoUTF8(char * Title, char * UTF8Title, int Len)
 {
 	if (WebIsUTF8(Title, (int)strlen(Title)) == FALSE)
 	{
@@ -414,7 +414,7 @@ void ConvertTitletoUTF8(char * Title, char * UTF8Title)
 		wlen = MultiByteToWideChar(CP_ACP, 0, Title, len, BufferW, origlen * 2); 
 		len = WideCharToMultiByte(CP_UTF8, 0, BufferW, wlen, UTF8Title, origlen * 2, NULL, NULL); 
 #else
-		int left = 2 * strlen(Title);
+		int left = Len - 1;
 		int len = origlen;
 		iconv_t * icu = NULL;
 				

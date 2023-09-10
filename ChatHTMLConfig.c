@@ -525,9 +525,9 @@ VOID SendChatStatusPage(char * Reply, int * ReplyLen, char * Key)
 	char * Topic;
 	LINK *link;
 
-	char Streams[8192];
-	char Users[8192];
-	char Links[8192];
+	char Streams[65536];
+	char Users[65536];
+	char Links[65536];
 
 	ChatCIRCUIT * conn;
 	int i = 0, n; 

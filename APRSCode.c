@@ -8168,6 +8168,8 @@ VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 			else
 				Bufferptr = Cmdprintf(Session, Bufferptr, "but not connected\r");
 		}
+
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 		return;
 	}
 

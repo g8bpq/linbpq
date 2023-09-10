@@ -44,7 +44,7 @@ BOOL OkToKillMessage(BOOL SYSOP, char * Call, struct MsgInfo * Msg);
 int DisplayWebForm(struct HTTPConnectionInfo * Session, struct MsgInfo * Msg, char * FileName, char * XML, char * Reply, char * RawMessage, int RawLen);
 struct HTTPConnectionInfo * AllocateWebMailSession();
 VOID SaveNewMessage(struct HTTPConnectionInfo * Session, char * MsgPtr, char * Reply, int * RLen, char * Rest, int InputLen);
-void ConvertTitletoUTF8(char * Title, char * UTF8Title);
+void ConvertTitletoUTF8(char * Title, char * UTF8Title, int Len);
 char *stristr (char *ch1, char *ch2);
 char * ReadTemplate(char * FormSet, char * DirName, char * FileName);
 VOID DoStandardTemplateSubsitutions(struct HTTPConnectionInfo * Session, char * txtFile);
@@ -906,7 +906,7 @@ int SendWebMailHeaderEx(char * Reply, char * Key, struct HTTPConnectionInfo * Se
 		
 		if (Msg && CheckUserMsg(Msg, User->Call, User->flags & F_SYSOP))
 		{
-			char UTF8Title[128];
+			char UTF8Title[256];
 			char  * EncodedTitle;
 			
 			// List if it is the right type and in the page range we want
@@ -934,7 +934,7 @@ int SendWebMailHeaderEx(char * Reply, char * Key, struct HTTPConnectionInfo * Se
 
 			EncodedTitle = doXMLTransparency(Msg->title);
 
-			ConvertTitletoUTF8(EncodedTitle, UTF8Title);
+			ConvertTitletoUTF8(EncodedTitle, UTF8Title, 256);
 
 			free(EncodedTitle);
 			
@@ -971,7 +971,7 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 	int msgLen;
 
 	char FullTo[100];
-	char UTF8Title[128];
+	char UTF8Title[256];
 	int Index;
 	char * crcrptr;
 	char DownLoad[256] = "";
@@ -1009,7 +1009,7 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 
 	// make sure title is UTF 8 encoded
 
-	ConvertTitletoUTF8(Msg->title, UTF8Title);
+	ConvertTitletoUTF8(Msg->title, UTF8Title, 256);
 
 	// if a B2 message diplay B2 Header instead of a locally generated one
 
@@ -6098,7 +6098,7 @@ int ProcessWebmailWebSock(char * MsgPtr, char * OutBuffer)
 		
 		if (Msg && CheckUserMsg(Msg, User->Call, User->flags & F_SYSOP))
 		{
-			char UTF8Title[128];
+			char UTF8Title[4096];
 			char  * EncodedTitle;
 			
 			// List if it is the right type and in the page range we want
@@ -6126,7 +6126,7 @@ int ProcessWebmailWebSock(char * MsgPtr, char * OutBuffer)
 
 			EncodedTitle = doXMLTransparency(Msg->title);
 
-			ConvertTitletoUTF8(EncodedTitle, UTF8Title);
+			ConvertTitletoUTF8(EncodedTitle, UTF8Title, 4096);
 
 			free(EncodedTitle);
 			
