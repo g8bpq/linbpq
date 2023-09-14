@@ -2223,7 +2223,7 @@ void CheckForDataFromTerminal(struct TNCDATA * TNC)
 		resp = GetDataFromTNC(TNC, rxbuffer, 1000, &Read);
 
 	if (Read)
-	{
+	{		
 		if (TNC->Mode == TNC2)
 		{		
 			for (n = 0; n < Read; n++)
@@ -3368,7 +3368,7 @@ int DEDPROCESSHOSTPACKET(struct StreamInfo * Channel, struct TNCDATA * TNC)
 	TRANSPORTENTRY * L4 = NULL;
 	unsigned char * MONCURSOR=0;
 	int SaveAuthProg = 0;
-
+	unsigned char * mcmdptr = &TNC->DEDTXBUFFER[1];
 	TXBUFFERPTR = &TNC->DEDTXBUFFER[0];
 
 	if (Channel->Chan_TXQ == (UCHAR *)(ptrdiff_t) -1)
@@ -3522,9 +3522,7 @@ NOTDATA:
 				Work = 0x31;
 			else
 				Work = 0x30;
-
 		}
-
 
 		PUTCHARx(TNC, '0');
 		PUTCHARx(TNC, ' ');
@@ -3546,7 +3544,12 @@ NOTDATA:
 
 		// Support BPQ Extensions IUSC followed by optional port list
 
-		if (TNC->DEDTXBUFFER[1] == 'N')
+		TNC->DEDTXBUFFER[TNC->MSGLENGTH] = 0;
+
+		if (*mcmdptr == ' ')
+			mcmdptr++;
+
+		if (mcmdptr[0] == 'N')
 			TNC->TRACEFLAG = 0;
 		else
 		{
@@ -3555,12 +3558,11 @@ NOTDATA:
 			uint64_t mask = 0;
 
 			
-			TNC->DEDTXBUFFER[TNC->MSGLENGTH] = 0;
-			ptr = strlop(TNC->DEDTXBUFFER, ' ');
+			ptr = strlop(mcmdptr, ' ');
 
-			_strupr(TNC->DEDTXBUFFER);
+			_strupr(mcmdptr);
 
-			if (strchr(TNC->DEDTXBUFFER, 'U'))
+			if (strchr(mcmdptr, 'U'))
 				TNC->MUIONLY = 1;
 
 
@@ -3574,8 +3576,9 @@ NOTDATA:
 				if (port)
 				{
 					mask |= ((uint64_t)1 << (port - 1));
-					ptr = ptr2;
 				}
+				ptr = ptr2;
+
 			}
 
 			if (mask)

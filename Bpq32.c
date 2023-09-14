@@ -1187,6 +1187,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix NC to Application Call (6)
 //	Fix INP3 L3RTT messages on Linux and correct RTT calculation (9)
 //	Get Beacon config from config file on windows (9)
+//	fix processing DED TNC Emulator M command with space between M and params (10)
 
 #define CKernel
 
