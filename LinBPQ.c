@@ -75,6 +75,8 @@ void SaveAIS();
 void initAIS();
 void DRATSPoll();
 
+extern uint64_t timeLoadedMS;
+
 BOOL IncludesMail = FALSE;
 BOOL IncludesChat = FALSE;
 
@@ -754,6 +756,10 @@ int main(int argc, char * argv[])
 
 	if (!isatty(STDOUT_FILENO) || !isatty(STDIN_FILENO))
 		Redirected = 1;
+
+	 timeLoadedMS = GetTickCount();
+
+	 printf("Loaded at %llu ms\r\n", timeLoadedMS);
 
 #endif
 
@@ -1799,6 +1805,8 @@ struct TNCINFO * TNC;
 #define CLOCK_REALTIME 0
 #define CLOCK_MONOTONIC 0
 
+
+
 int clock_gettime(int clk_id, struct timespec *t){
     mach_timebase_info_data_t timebase;
     mach_timebase_info(&timebase);
@@ -1813,7 +1821,8 @@ int clock_gettime(int clk_id, struct timespec *t){
 #endif
 #endif
 
-int GetTickCount()
+
+uint64_t GetTickCount()
 {
 	struct timespec ts;
 	clock_gettime(CLOCK_REALTIME, &ts);

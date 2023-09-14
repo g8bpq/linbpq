@@ -4093,10 +4093,10 @@ VOID SaveUIConfig()
 	config_destroy(&cfg);
 }
 
+int GetRegConfig();
+
 VOID GetUIConfig()
 {
-#ifdef LINBPQ
-
 	char Key[100];
 	char CfgFN[256];
 	char Digis[100];
@@ -4123,7 +4123,13 @@ VOID GetUIConfig()
 
 	if (stat(CfgFN, &STAT) == -1)
 	{
+		// No file. If Windows try to read from registy
+
+#ifndef LINBPQ 
+		GetRegConfig();
+#else
 		Debugprintf("UIUtil Config File not found\n");
+#endif
 		return;
 	}
 
@@ -4163,8 +4169,42 @@ VOID GetUIConfig()
 		}
 	}
 
-#else
 
+	_beginthread(UIThread, 0, NULL);
+
+}
+
+#ifndef LINBPQ
+
+int GetIntValue(config_setting_t * group, char * name)
+{
+	config_setting_t *setting;
+
+	setting = config_setting_get_member (group, name);
+	if (setting)
+		return config_setting_get_int (setting);
+
+	return 0;
+}
+
+BOOL GetStringValue(config_setting_t * group, char * name, char * value)
+{
+	const char * str;
+	config_setting_t *setting;
+
+	setting = config_setting_get_member (group, name);
+	if (setting)
+	{
+		str =  config_setting_get_string (setting);
+		strcpy(value, str);
+		return TRUE;
+	}
+	value[0] = 0;
+	return FALSE;
+}
+
+int GetRegConfig()
+{
 	int retCode, Vallen, Type, i;
 	char Key[80];
 	char Size[80];
@@ -4239,13 +4279,8 @@ VOID GetUIConfig()
 
 	SaveUIConfig();
 
-#endif
-
-	_beginthread(UIThread, 0, NULL);
-
+	return TRUE;
 }
-
-#ifndef LINBPQ
 
 INT_PTR CALLBACK ChildDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {

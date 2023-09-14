@@ -1185,6 +1185,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix 64 bit compatibility problems in SCSTracker and UZ7HO drivers
 //	Add Chat PACLEN config (5)
 //	Fix NC to Application Call (6)
+//	Fix INP3 L3RTT messages on Linux and correct RTT calculation (9)
+//	Get Beacon config from config file on windows (9)
 
 #define CKernel
 
@@ -1409,6 +1411,8 @@ extern char LOCATOR[];			// Locator for Reporting - may be Maidenhead or LAT:LON
 extern char MAPCOMMENT[];		// Locator for Reporting - may be Maidenhead or LAT:LON
 extern char LOC[7];				// Maidenhead Locator for Reporting
 extern char ReportDest[7];
+
+extern uint64_t timeLoadedMS;
 
 VOID __cdecl Debugprintf(const char * format, ...);
 VOID __cdecl Consoleprintf(const char * format, ...);
@@ -2292,6 +2296,9 @@ FirstInit()
 		GetModuleFileNameExPtr = (FARPROCX)GetProcAddress(ExtDriver,"GetModuleFileNameExA");
 		EnumProcessesPtr = (FARPROCX)GetProcAddress(ExtDriver,"EnumProcesses");
 	}
+
+	timeLoadedMS = GetTickCount();
+	
 	INITIALISEPORTS();
 
 	OpenReportingSockets();

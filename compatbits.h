@@ -54,7 +54,6 @@ uintptr_t _beginthread(void(__cdecl *start_address)(void *), unsigned stack_size
 #else
 
 int Sleep(int ms);
-int GetTickCount();
 
 #define ioctlsocket ioctl
 
@@ -141,6 +140,9 @@ typedef DWORD   COLORREF;
 #define DeleteFile unlink
 #define MoveFile rename
 #define CreateDirectory mkdir
+
+uint64_t GetTickCount();
+
 
 int sprintf_s(char * string, int plen, const char * format, ...);
 
