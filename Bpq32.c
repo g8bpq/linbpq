@@ -1186,8 +1186,11 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add Chat PACLEN config (5)
 //	Fix NC to Application Call (6)
 //	Fix INP3 L3RTT messages on Linux and correct RTT calculation (9)
-//	Get Beacon config from config file on windows (9)
+//	Get Beacon config from config file on Windows (9)
 //	fix processing DED TNC Emulator M command with space between M and params (10)
+//	Fix sending UI frames on SCSPACTOR (11)
+//	Dont allow ports that can't set digi'ed bit in callsigns to digipeat. (11)
+//	Add SDRAngel rig control (11)
 
 #define CKernel
 

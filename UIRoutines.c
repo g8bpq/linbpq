@@ -153,7 +153,7 @@ VOID QueueRaw(int Port, PMESSAGEX AXMSG, int Len)
 	AXMSG->LENGTH = Len;
 	AXMSG->CHAIN = 0;					// Clear chain in new buffer
 
-	memcpy(AXCopy, AXMSG, Len + 10);
+	memcpy(AXCopy, AXMSG, Len + 11);
 
 	GetSemaphore(&DGSemaphore, 0);
 

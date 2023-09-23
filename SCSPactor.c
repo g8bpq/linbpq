@@ -1770,9 +1770,6 @@ VOID SCSPoll(int Port)
 
 		Buffer[datalen] = 0;
 
-		// Buffer has an ax.25 header, which we need to pick out and set as channel 0 Connect address
-		// before sending the beacon
-
 		// If a Dragon with KISS over Hostmade we can just send it
 
 		if (TNC->DragonKISS)
@@ -1817,6 +1814,11 @@ VOID SCSPoll(int Port)
 			return;
 		}
 
+		// Not dragon KISS
+
+		// Buffer has an ax.25 header, which we need to pick out and set as channel 0 Connect address
+		// before sending the beacon
+
 		// We also need to set Chan 0 Mycall so digi'ing can work, and put
 		// it back after so incoming calls will work
 
@@ -1824,7 +1826,6 @@ VOID SCSPoll(int Port)
 
 		// This doesn't seem to work
 
-/*
 
 		ConvFromAX25(Buffer + 7, ICall);		// Origin
 		strlop(ICall, ' ');
@@ -1867,7 +1868,7 @@ VOID SCSPoll(int Port)
 				1, Buffer,			// Flag CmdSet as Data
 				2, TNC->NodeCall);	// Flag as Chan 0 Command
 		}
-*/
+
 		ReleaseBuffer((UINT *)buffptr);
 		return;
 	}

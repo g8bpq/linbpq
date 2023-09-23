@@ -180,7 +180,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions=" /section:_BPQDATA,srw"
-				AdditionalDependencies="WS2_32.Lib winmm.lib comctl32.lib setupapi.lib ..\lib\libconfig.lib miniupnpc.lib zlibstat.lib"
+				AdditionalDependencies="WS2_32.Lib winmm.lib comctl32.lib setupapi.lib ..\lib\libconfig.lib miniupnpc.lib zlibstat.lib DbgHelp.lib"
 				OutputFile="C:\DevProgs\BPQ32\bpq32.dll"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames=""

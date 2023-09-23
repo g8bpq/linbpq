@@ -939,7 +939,8 @@ BOOL Start()
 		PORT->QUAL_ADJUST = (UCHAR)PortRec->QUALADJUST;
 	
 		PORT->DIGIFLAG = PortRec->DIGIFLAG;
-		PORT->DIGIPORT = PortRec->DIGIPORT;
+		if (PortRec->DIGIPORT && CanPortDigi(PortRec->DIGIPORT))
+			PORT->DIGIPORT = PortRec->DIGIPORT;
 		PORT->DIGIMASK = PortRec->DIGIMASK;
 		PORT->USERS = (UCHAR)PortRec->USERS;
 
@@ -2075,7 +2076,6 @@ VOID TIMERINTERRUPT()
 
 		L3FastTimer();
 		L4TimerProc();
-
 	}
 
 	// SEE IF ANY FRAMES TO TRACE

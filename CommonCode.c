@@ -2098,9 +2098,28 @@ DllExport struct PORTCONTROL * APIENTRY GetPortTableEntryFromSlot(int portslot)
 	return PORTVEC;
 }
 
+int CanPortDigi(int Port)
+{
+	struct PORTCONTROL * PORTVEC = GetPortTableEntryFromPortNum(Port);
+	struct TNCINFO * TNC;
+
+	if (PORTVEC == NULL)
+		return FALSE;
+
+	TNC = PORTVEC->TNC;
+
+	if (TNC == NULL)
+		return TRUE;
+
+	if (TNC->Hardware == H_SCS || TNC->Hardware == H_TRK || TNC->Hardware == H_TRKM || TNC->Hardware == H_WINRPR)
+		return FALSE;
+
+	return TRUE;
+}
+
 struct PORTCONTROL * APIENTRY GetPortTableEntryFromPortNum(int portnum)
 {
-	struct PORTCONTROL * PORTVEC=PORTTABLE;
+	struct PORTCONTROL * PORTVEC = PORTTABLE;
 
 	do
 	{
@@ -2340,6 +2359,13 @@ BOOL WriteCOMBlock(HANDLE fd, char * Block, int BytesToWrite)
 	DWORD       BytesWritten;
 	DWORD       ErrorFlags;
 	COMSTAT     ComStat;
+	DWORD Mask = 0;
+	int Err;
+
+	Err = GetCommModemStatus(fd, &Mask);
+
+//	if ((Mask & MS_CTS_ON) == 0)		// trap com0com other end not open
+//		return TRUE;
 
 	fWriteStat = WriteFile(fd, Block, BytesToWrite,
 	                       &BytesWritten, NULL );

@@ -780,6 +780,8 @@ scanCTEXT:
 		}
 		TCP->NumberofUsers += 1;
 	}
+	else if (_memicmp(errbuf, "WL2KREPORT", 10) == 0)
+		TNC->WL2K = DecodeWL2KReportLine(errbuf);
 	else if (_stricmp(param,"WebTermCSS") == 0)
 	{	
 		TCP->WebTermCSS =  _strdup(value);
@@ -2492,7 +2494,7 @@ nosocks:
 					{
 						Port = atoi(P2);
 
-						if (Port > 33 || TCP->CMDPort[Port] == 0)
+						if (Port > MaxBPQPortNo || TCP->CMDPort[Port] == 0)
 						{
 							buffptr->Len = sprintf(&buffptr->Data[0], "Error - Invalid HOST Port\r");
 							C_Q_ADD(&TNC->Streams[Stream].PACTORtoBPQ_Q, buffptr);
