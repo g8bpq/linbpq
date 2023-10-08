@@ -2420,6 +2420,10 @@ CheckPF:
 
 		LINK->LAST_F_TIME = REALTIMETICKS;
 	}
+	else
+		if (LINK->L2ACKREQ == 0)	// Resptime is zero so send RR now
+			SEND_RR_RESP(LINK, 0);
+
 }
 
 

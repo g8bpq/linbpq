@@ -1191,6 +1191,9 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix sending UI frames on SCSPACTOR (11)
 //	Dont allow ports that can't set digi'ed bit in callsigns to digipeat. (11)
 //	Add SDRAngel rig control (11)
+//	Add option to specify config and data directories on linbpq (12)
+//	Allow zero resptime (send RR immediately) (13)
+//	Fix corruptions in Webmail, eg in displaying 7+ files (13)
 
 #define CKernel
 
@@ -1415,6 +1418,8 @@ extern char LOCATOR[];			// Locator for Reporting - may be Maidenhead or LAT:LON
 extern char MAPCOMMENT[];		// Locator for Reporting - may be Maidenhead or LAT:LON
 extern char LOC[7];				// Maidenhead Locator for Reporting
 extern char ReportDest[7];
+
+extern UCHAR ConfigDirectory[260];
 
 extern uint64_t timeLoadedMS;
 
@@ -3281,6 +3286,8 @@ if (_winver < 0x0600)
 
 		RegCloseKey(hKey);
 	}
+
+	strcpy(ConfigDirectory, BPQDirectory);
 
 	if (LogDirectory[0] == 0)
 		strcpy(LogDirectory, BPQDirectory);

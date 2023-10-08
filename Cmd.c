@@ -3676,6 +3676,13 @@ VOID MHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CM
 
 	ptr = strtok_s(CmdTail, " ", &Context);
 
+	if (ptr == NULL  || ptr[0] == 0)
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Port Number needed eg MH 1\r");
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
 	if (ptr)
 		Port = atoi(ptr);
 
@@ -4137,7 +4144,7 @@ VOID ATTACHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 				if (OtherTNC == TNC)
 					continue;
 
-				if (rxInterlock == OtherTNC->RXRadio || txInterlock == OtherTNC->TXRadio)	// Same Group	
+				if (rxInterlock && rxInterlock == OtherTNC->RXRadio || txInterlock && txInterlock == OtherTNC->TXRadio)	// Same Group	
 				{
 					int n;
 

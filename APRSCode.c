@@ -5246,6 +5246,7 @@ int DecodeAPRSPayload(char * Payload, struct STATIONRECORD * Station)
 			DecodeLocationString(Payload + 18, Object);
 		
 		Object->TimeLastUpdated = time(NULL);
+		Object->LastPort = Station->LastPort;
 		Station->Object = Object;
 		return 0;
 

@@ -337,6 +337,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\getopt.c"
+				>
+			</File>
+			<File
 				RelativePath="..\CommonSource\HALDriver.c"
 				>
 			</File>

@@ -906,7 +906,7 @@ int SendWebMailHeaderEx(char * Reply, char * Key, struct HTTPConnectionInfo * Se
 		
 		if (Msg && CheckUserMsg(Msg, User->Call, User->flags & F_SYSOP))
 		{
-			char UTF8Title[256];
+			char UTF8Title[4096];
 			char  * EncodedTitle;
 			
 			// List if it is the right type and in the page range we want
@@ -934,7 +934,8 @@ int SendWebMailHeaderEx(char * Reply, char * Key, struct HTTPConnectionInfo * Se
 
 			EncodedTitle = doXMLTransparency(Msg->title);
 
-			ConvertTitletoUTF8(EncodedTitle, UTF8Title, 256);
+			memset(UTF8Title, 0, 4096);		// In case convert fails part way through
+			ConvertTitletoUTF8(EncodedTitle, UTF8Title, 4095);
 
 			free(EncodedTitle);
 			
@@ -971,7 +972,7 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 	int msgLen;
 
 	char FullTo[100];
-	char UTF8Title[256];
+	char UTF8Title[4096];
 	int Index;
 	char * crcrptr;
 	char DownLoad[256] = "";
@@ -1009,7 +1010,8 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 
 	// make sure title is UTF 8 encoded
 
-	ConvertTitletoUTF8(Msg->title, UTF8Title, 256);
+	memset(UTF8Title, 0, 4096);		// In case convert fails part way through
+	ConvertTitletoUTF8(Msg->title, UTF8Title, 4095);
 
 	// if a B2 message diplay B2 Header instead of a locally generated one
 
@@ -1248,14 +1250,18 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 #else
 			int left = 2 * msgLen;
 			int len = msgLen;
+			int ret;
 			UCHAR * BufferBP = BufferB;
+			char * orig = MsgBytes;
+			MsgBytes[msgLen] = 0;
+
 			iconv_t * icu = NULL;
 
 			if (icu == NULL)
-				icu = iconv_open("UTF-8", "CP1252");
+				icu = iconv_open("UTF-8//IGNORE", "CP1252");
 
 			iconv(icu, NULL, NULL, NULL, NULL);		// Reset State Machine
-			iconv(icu, &MsgBytes, &len, (char ** __restrict__)&BufferBP, &left);
+			ret = iconv(icu, &MsgBytes, &len, (char ** __restrict__)&BufferBP, &left);
 
 			free(Save);
 			Save = MsgBytes = BufferB;
@@ -6126,9 +6132,12 @@ int ProcessWebmailWebSock(char * MsgPtr, char * OutBuffer)
 
 			EncodedTitle = doXMLTransparency(Msg->title);
 
-			ConvertTitletoUTF8(EncodedTitle, UTF8Title, 4096);
+			memset(UTF8Title, 0, 4096);		// In case convert fails part way through
+			ConvertTitletoUTF8(EncodedTitle, UTF8Title, 4095);
 
+			printf("%s %s\n", EncodedTitle, UTF8Title);
 			free(EncodedTitle);
+
 			
 			ptr += sprintf(ptr, "<a href=/WebMail/WM?%s&%d>%6d</a> %s %c%c %5d %-8s%-8s%-8s%s\r\n",
 				Key, Msg->number, Msg->number,

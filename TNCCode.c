@@ -188,7 +188,7 @@ VOID SENDBTMSG()
 		if (Buffer)
 		{
 			memcpy(Buffer->DEST, PORT->PORTUNPROTO, 7);
-			Buffer->DEST[6] |= 0xC0;		// Set COmmand bits
+			Buffer->DEST[6] |= 0xC0;		// Set Command bits
 
 			//	Send from BBSCALL unless PORTBCALL defined
 

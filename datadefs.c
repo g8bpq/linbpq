@@ -50,6 +50,7 @@ char LOC[7] = "";				// Must be in shared mem// Maidenhead Locator for Reporting
 char ReportDest[7];
 
 UCHAR BPQDirectory[260] = ".";
+UCHAR ConfigDirectory[260] = ".";
 UCHAR LogDirectory[260] = "";
 UCHAR BPQProgramDirectory[260]="";
 

@@ -3109,8 +3109,8 @@ BOOL RigWriteCommBlock(struct RIGPORTINFO * PORT)
 
 		Err = GetCommModemStatus(PORT->hDevice, &Mask);
 
-//		if ((Mask & MS_CTS_ON) == 0)		// trap com0com other end not open
-//			return TRUE;
+		if (Mask == 0)		// trap com0com other end not open
+			return TRUE;
 
 		fWriteStat = WriteFile(PORT->hDevice, PORT->TXBuffer, PORT->TXLen, &BytesWritten, NULL );
 #endif
@@ -9996,7 +9996,7 @@ void ProcessSDRANGELFrame(struct RIGPORTINFO * PORT)
 		{
 			pos += 17;
 			strncpy(cmd, pos, 20);
-			RIG->RigFreq += atof(cmd) / 1000000.0;
+			RIG->RigFreq += (atof(cmd) + RIG->rxOffset) / 1000000.0;;
 		}
 
 

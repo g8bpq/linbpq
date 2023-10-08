@@ -607,10 +607,10 @@ VOID ProcessChatLine(ChatCIRCUIT * conn, struct UserInfo * user, char* OrigBuffe
 		{
 			if (icu->iconv_toUTF8 == NULL)
 			{
-				icu->iconv_toUTF8 = iconv_open("UTF-8", icu->Codepage);
+				icu->iconv_toUTF8 = iconv_open("UTF-8//IGNORE", icu->Codepage);
 			
 				if (icu->iconv_toUTF8 == (iconv_t)-1)
-					icu->iconv_toUTF8 = iconv_open("UTF-8", "CP1252");
+					icu->iconv_toUTF8 = iconv_open("UTF-8//IGNORE", "CP1252");
 			}
 
 			iconv(icu->iconv_toUTF8, NULL, NULL, NULL, NULL);		// Reset State Machine
@@ -619,7 +619,7 @@ VOID ProcessChatLine(ChatCIRCUIT * conn, struct UserInfo * user, char* OrigBuffe
 		else
 		{
 			if (link_toUTF8 == NULL)
-				link_toUTF8 = iconv_open("UTF-8", "CP1252");
+				link_toUTF8 = iconv_open("UTF-8//IGNORE", "CP1252");
 
 			iconv(link_toUTF8, NULL, NULL, NULL, NULL);		// Reset State Machine
 			iconv(link_toUTF8, &Buffer, &len, (char ** __restrict__)&BufferBP, &left);
@@ -1123,12 +1123,12 @@ void rduser(USER *user)
 	// Open an iconv decriptor for each conversion
 
 	if (user->Codepage[0])
-		user->iconv_toUTF8 = iconv_open("UTF-8", user->Codepage);
+		user->iconv_toUTF8 = iconv_open("UTF-8//IGNORE", user->Codepage);
 	else
 		user->iconv_toUTF8 = (iconv_t)-1;
 				
 	if (user->iconv_toUTF8 == (iconv_t)-1)
-		user->iconv_toUTF8 = iconv_open("UTF-8", "CP1252");
+		user->iconv_toUTF8 = iconv_open("UTF-8//IGNORE", "CP1252");
 		
 
 	if (user->Codepage[0])
@@ -1137,7 +1137,7 @@ void rduser(USER *user)
 		user->iconv_fromUTF8 = (iconv_t)-1;
 
 	if (user->iconv_fromUTF8 == (iconv_t)-1)
-		user->iconv_fromUTF8 = iconv_open("CP1252", "UTF-8");
+		user->iconv_fromUTF8 = iconv_open("CP1252//IGNORE", "UTF-8");
 #endif
 	}
 }
@@ -1969,7 +1969,7 @@ void put_text(ChatCIRCUIT * circuit, USER * user, UCHAR * buf)
 			icu->iconv_fromUTF8 = iconv_open(icu->Codepage, "UTF-8");
 		
 			if (icu->iconv_fromUTF8 == (iconv_t)-1)
-				icu->iconv_fromUTF8 = iconv_open("CP1252", "UTF-8");
+				icu->iconv_fromUTF8 = iconv_open("CP1252//IGNORE", "UTF-8");
 		}
 
 		iconv(icu->iconv_fromUTF8, NULL, NULL, NULL, NULL);		// Reset State Machine

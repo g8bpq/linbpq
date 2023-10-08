@@ -99,6 +99,8 @@ extern UCHAR LogDirectory[];
 extern struct RIGPORTINFO * PORTInfo[34];
 extern int NumberofPorts;
 
+extern UCHAR ConfigDirectory[260];
+
 char * strlop(char * buf, char delim);
 VOID sendandcheck(SOCKET sock, const char * Buffer, int Len);
 int CompareNode(const void *a, const void *b);
@@ -1475,13 +1477,13 @@ VOID SaveConfigFile(SOCKET sock , char * MsgPtr, char * Rest, int LOCAL)
 
 			MsgLen = (int)strlen(input + 8);
 
-			if (BPQDirectory[0] == 0)
+			if (ConfigDirectory[0] == 0)
 			{
 				strcpy(inputname, "bpq32.cfg");
 			}
 			else
 			{
-				strcpy(inputname,BPQDirectory);
+				strcpy(inputname,ConfigDirectory);
 				strcat(inputname,"/");
 				strcat(inputname, "bpq32.cfg");
 			}
@@ -3024,13 +3026,13 @@ doHeader:
 				if (COOKIE ==FALSE)
 					Key = DummyKey;
 
-				if (BPQDirectory[0] == 0)
+				if (ConfigDirectory[0] == 0)
 				{
 					strcpy(inputname, "bpq32.cfg");
 				}
 				else
 				{
-					strcpy(inputname,BPQDirectory);
+					strcpy(inputname,ConfigDirectory);
 					strcat(inputname,"/");
 					strcat(inputname, "bpq32.cfg");
 				}

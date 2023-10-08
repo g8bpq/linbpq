@@ -300,7 +300,8 @@ static char *keywords[] =
 "APPL1QUAL", "APPL2QUAL", "APPL3QUAL", "APPL4QUAL",
 "APPL5QUAL", "APPL6QUAL", "APPL7QUAL", "APPL8QUAL",
 "BTEXT:", "NETROMCALL", "C_IS_CHAT", "MAXRTT", "MAXHOPS",		// IPGATEWAY= no longer allowed
-"LogL4Connects", "LogAllConnects", "SAVEMH", "ENABLEADIFLOG", "ENABLEEVENTS", "SAVEAPRSMSGS"
+"LogL4Connects", "LogAllConnects", "SAVEMH", "ENABLEADIFLOG", "ENABLEEVENTS", "SAVEAPRSMSGS", 
+"EnableM0LTEMap"
 };           /* parameter keywords */
 
 static void * offset[] =
@@ -320,7 +321,8 @@ static void * offset[] =
 &xxcfg.C_APPL[0].ApplQual, &xxcfg.C_APPL[1].ApplQual, &xxcfg.C_APPL[2].ApplQual, &xxcfg.C_APPL[3].ApplQual,
 &xxcfg.C_APPL[4].ApplQual, &xxcfg.C_APPL[5].ApplQual, &xxcfg.C_APPL[6].ApplQual, &xxcfg.C_APPL[7].ApplQual,
 &xxcfg.C_BTEXT, &xxcfg.C_NETROMCALL, &xxcfg.C_C, &xxcfg.C_MAXRTT, &xxcfg.C_MAXHOPS,		// IPGATEWAY= no longer allowed
-&xxcfg.C_LogL4Connects, &xxcfg.C_LogAllConnects, &xxcfg.C_SaveMH, &xxcfg.C_ADIF, &xxcfg.C_EVENTS, &xxcfg.C_SaveAPRSMsgs};		/* offset for corresponding data in config file */
+&xxcfg.C_LogL4Connects, &xxcfg.C_LogAllConnects, &xxcfg.C_SaveMH, &xxcfg.C_ADIF, &xxcfg.C_EVENTS, &xxcfg.C_SaveAPRSMsgs,
+&xxcfg.C_M0LTEMap};		/* offset for corresponding data in config file */
 
 static int routine[] = 
 {
@@ -339,7 +341,8 @@ static int routine[] =
 14, 14, 14, 14,
 14, 14 ,14, 14,
 15, 0, 2, 9, 9,
-2, 2, 2, 2, 2, 2} ;			// Routine to process param
+2, 2, 2, 2, 2, 2,
+2} ;			// Routine to process param
 
 int PARAMLIM = sizeof(routine)/sizeof(int);
 //int NUMBEROFKEYWORDS = sizeof(routine)/sizeof(int);
@@ -361,7 +364,7 @@ static char *pkeywords[] =
 "BCALL", "DIGIMASK", "NOKEEPALIVES", "COMPORT", "DRIVER", "WL2KREPORT", "UIONLY",
 "UDPPORT", "IPADDR", "I2CBUS", "I2CDEVICE", "UDPTXPORT", "UDPRXPORT", "NONORMALIZE",
 "IGNOREUNLOCKEDROUTES", "INP3ONLY", "TCPPORT", "RIGPORT", "PERMITTEDAPPLS", "HIDE",
-"SMARTID", "KISSCOMMAND"};           /* parameter keywords */
+"SMARTID", "KISSCOMMAND", "SendtoM0LTEMap"};           /* parameter keywords */
 
 static void * poffset[] =
 {
@@ -375,7 +378,7 @@ static void * poffset[] =
 &xxp.BCALL, &xxp.DIGIMASK, &xxp.DefaultNoKeepAlives, &xxp.IOADDR, &xxp.DLLNAME, &xxp.WL2K, &xxp.UIONLY,
 &xxp.IOADDR, &xxp.IPADDR, &xxp.INTLEVEL, &xxp.IOADDR, &xxp.IOADDR, &xxp.ListenPort, &xxp.NoNormalize,
 &xxp.IGNOREUNLOCKED, &xxp.INP3ONLY, &xxp.TCPPORT, &xxp.RIGPORT, &xxp.PERMITTEDAPPLS, &xxp.Hide,
-&xxp.SmartID, &xxp.KissParams};	/* offset for corresponding data in config file */
+&xxp.SmartID, &xxp.KissParams, &xxp.SendtoM0LTEMap};	/* offset for corresponding data in config file */
 
 static int proutine[] = 
 {
@@ -389,7 +392,7 @@ static int proutine[] =
 0, 1, 2, 18, 15, 16, 2,
 1, 17, 1, 1, 1, 1, 2,
 2, 2, 1, 1, 19, 2,
-1, 20};							/* routine to process parameter */
+1, 20, 1};							/* routine to process parameter */
 
 int PPARAMLIM = sizeof(proutine)/sizeof(int);
 
@@ -426,6 +429,9 @@ char commas[]=",,,,,,,,,,,,,,,,";
 char bbscall[11];
 char bbsalias[11];
 int bbsqual;
+
+
+extern UCHAR ConfigDirectory[260];
 
 BOOL LocSpecified = FALSE;
 
@@ -485,13 +491,13 @@ BOOL ProcessConfig()
 
 	Consoleprintf("Configuration file Preprocessor.");
 
-	if (BPQDirectory[0] == 0)
+	if (ConfigDirectory[0] == 0)
 	{
 		strcpy(inputname, "bpq32.cfg");
 	}
 		else
 	{
-		strcpy(inputname,BPQDirectory);
+		strcpy(inputname,ConfigDirectory);
 		strcat(inputname,"/");
 		strcat(inputname, "bpq32.cfg");
 	}
@@ -597,6 +603,8 @@ BOOL ProcessConfig()
 	paramok[77]=1;			// ENABLEADIFLOG optional
 	paramok[78]=1;			// EnableEvents optional
 	paramok[79]=1;			// SaveAPRSMsgs optional
+	paramok[79]=1;			// SaveAPRSMsgs optional
+	paramok[80]=1;			// EnableM0LTEMap optional
 
 	for (i=0; i < PARAMLIM; i++)
 	{
@@ -1623,6 +1631,8 @@ int ports(int i)
 		Consoleprintf("Port Number must be between 1 and %d", MaxBPQPortNo);
 		heading = 1;
 	}
+
+	xxp.SendtoM0LTEMap = 1;			// Default to enabled
 
 	while (endport == 0 && !feof(fp1))
 	{
