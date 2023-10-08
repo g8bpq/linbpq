@@ -6135,10 +6135,8 @@ int ProcessWebmailWebSock(char * MsgPtr, char * OutBuffer)
 			memset(UTF8Title, 0, 4096);		// In case convert fails part way through
 			ConvertTitletoUTF8(EncodedTitle, UTF8Title, 4095);
 
-			printf("%s %s\n", EncodedTitle, UTF8Title);
 			free(EncodedTitle);
 
-			
 			ptr += sprintf(ptr, "<a href=/WebMail/WM?%s&%d>%6d</a> %s %c%c %5d %-8s%-8s%-8s%s\r\n",
 				Key, Msg->number, Msg->number,
 				FormatDateAndTime((time_t)Msg->datecreated, TRUE), Msg->type,
