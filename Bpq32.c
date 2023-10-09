@@ -1193,7 +1193,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add SDRAngel rig control (11)
 //	Add option to specify config and data directories on linbpq (12)
 //	Allow zero resptime (send RR immediately) (13)
-//	Fix corruptions in Webmail, eg in displaying 7+ files (13)
+//	Fix corruptions in Webmail on 64 bit builds, eg in displaying 7+ files (15)
 
 #define CKernel
 

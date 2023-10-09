@@ -177,9 +177,9 @@ int _MYTIMEZONE = 0;
 /* #define F_PWD        0x1000 */
 
 
-UCHAR BPQDirectory[260];
-UCHAR LogDirectory[260];
-UCHAR ConfigDirectory[260];
+extern UCHAR BPQDirectory[260];
+extern UCHAR LogDirectory[260];
+extern UCHAR ConfigDirectory[260];
 
 // overrides from params
 UCHAR LogDir[260] = "";
@@ -743,7 +743,6 @@ int main(int argc, char * argv[])
 	ConnectionInfo * conn;
 	struct stat STAT;
 	PEXTPORTDATA PORTVEC;
-	UCHAR LogDir[260];
 
 #ifdef WIN32
 
@@ -820,6 +819,7 @@ int main(int argc, char * argv[])
 
 			 case 'l':
 				 strcpy(LogDir, optarg);
+				 printf("cc %s\n", LogDir);
 				 break;
 
 			 case 'c':
@@ -861,12 +861,12 @@ int main(int argc, char * argv[])
 
 	strcpy(ConfigDirectory, BPQDirectory);
 	strcpy(LogDirectory, BPQDirectory);
+
 	Consoleprintf("Current Directory is %s", BPQDirectory);
 
 	if (LogDir[0])
 	{
 		strcpy(LogDirectory, LogDir);
-		Consoleprintf("Log Directory is %s", LogDirectory);
 	}
 	if (DataDir[0])
 	{
@@ -888,6 +888,8 @@ int main(int argc, char * argv[])
 			break;
 		}
 	}
+
+	Consoleprintf("Log Directory is %s", LogDirectory);
 
 	// Make sure logs directory exists
 

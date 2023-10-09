@@ -398,7 +398,7 @@ int SendHeader(char * Reply, char * Key)
 }
 
 
-void ConvertTitletoUTF8(char * Title, char * UTF8Title, int Len)
+void ConvertTitletoUTF8(WebMailInfo * WebMail, char * Title, char * UTF8Title, int Len)
 {
 	if (WebIsUTF8(Title, (int)strlen(Title)) == FALSE)
 	{
@@ -414,15 +414,26 @@ void ConvertTitletoUTF8(char * Title, char * UTF8Title, int Len)
 		wlen = MultiByteToWideChar(CP_ACP, 0, Title, len, BufferW, origlen * 2); 
 		len = WideCharToMultiByte(CP_UTF8, 0, BufferW, wlen, UTF8Title, origlen * 2, NULL, NULL); 
 #else
-		int left = Len - 1;
-		int len = origlen;
-		iconv_t * icu = NULL;
-				
-		if (icu == NULL)
-			icu = iconv_open("UTF-8//IGNORE", "CP1252");
+		size_t left = Len - 1;
+		size_t len = origlen;
+
+		iconv_t * icu = WebMail->iconv_toUTF8;
+
+		if (WebMail->iconv_toUTF8 == NULL)
+			icu = WebMail->iconv_toUTF8 = iconv_open("UTF-8//IGNORE", "CP1252");
+
+		if (icu == (iconv_t)-1)
+		{
+			strcpy(UTF8Title, Title);
+			WebMail->iconv_toUTF8 = NULL;
+			return;
+		}
+
+		char * orig = UTF8Title;
 
 		iconv(icu, NULL, NULL, NULL, NULL);		// Reset State Machine
 		iconv(icu, &Title, &len, (char ** __restrict__)&UTF8Title, &left);
+
 #endif
 	}
 	else

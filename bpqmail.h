@@ -22,6 +22,10 @@
 #define LIBCONFIG_STATIC
 #include <libconfig.h>
 
+#ifndef WIN32
+#include <iconv.h>
+#endif
+
 #include "compatbits.h"
 
 #ifndef LINBPQ
@@ -1011,6 +1015,11 @@ typedef struct WEBMAILINFO
 	BOOL Packet;
 
 	int CurrentMessageIndex;	// Index of message currently displayed (for Prev and Next)
+#ifdef WIN32
+	void * iconv_toUTF8;	// Used on Linux for char set conversion
+#else
+	iconv_t * iconv_toUTF8;		// Used on Linux for char set conversion
+#endif
 
 }WebMailInfo;
 

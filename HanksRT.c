@@ -599,7 +599,9 @@ VOID ProcessChatLine(ChatCIRCUIT * conn, struct UserInfo * user, char* OrigBuffe
 		Buffer = BufferB;
 
 #else
-		int left = 65536;
+		size_t left = 65536;
+		size_t clen = len;
+
 		UCHAR * BufferBP = BufferB;
 		struct user_t * icu = conn->u.user;
 
@@ -614,7 +616,7 @@ VOID ProcessChatLine(ChatCIRCUIT * conn, struct UserInfo * user, char* OrigBuffe
 			}
 
 			iconv(icu->iconv_toUTF8, NULL, NULL, NULL, NULL);		// Reset State Machine
-			iconv(icu->iconv_toUTF8, &Buffer, &len, (char ** __restrict__)&BufferBP, &left);
+			iconv(icu->iconv_toUTF8, &Buffer, &clen, (char ** __restrict__)&BufferBP, &left);
 		}
 		else
 		{
@@ -622,7 +624,7 @@ VOID ProcessChatLine(ChatCIRCUIT * conn, struct UserInfo * user, char* OrigBuffe
 				link_toUTF8 = iconv_open("UTF-8//IGNORE", "CP1252");
 
 			iconv(link_toUTF8, NULL, NULL, NULL, NULL);		// Reset State Machine
-			iconv(link_toUTF8, &Buffer, &len, (char ** __restrict__)&BufferBP, &left);
+			iconv(link_toUTF8, &Buffer, &clen, (char ** __restrict__)&BufferBP, &left);
 		}
 		len = 65536 - left;
 		Buffer = BufferB;
@@ -1938,7 +1940,7 @@ void put_text(ChatCIRCUIT * circuit, USER * user, UCHAR * buf)
 {
 	UCHAR BufferB[4096];
 
-	// Text is UTF-8 internally. If use doen't want UTF-8. convert to Node's locale
+	// Text is UTF-8 internally. If user doen't want UTF-8. convert to Node's locale
 
 	if (circuit->u.user->rtflags & u_noUTF8)
 	{
@@ -1959,9 +1961,9 @@ void put_text(ChatCIRCUIT * circuit, USER * user, UCHAR * buf)
 		BufferB[blen + 2] = 0;
 #else
 
-		int left = 4096;
+		size_t left = 4096;
 		UCHAR * BufferBP = BufferB;
-		int len = strlen(buf) + 1;
+		size_t len = strlen(buf) + 1;
 		struct user_t * icu = circuit->u.user;
 
 		if (icu->iconv_fromUTF8 == NULL)

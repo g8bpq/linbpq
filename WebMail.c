@@ -44,7 +44,7 @@ BOOL OkToKillMessage(BOOL SYSOP, char * Call, struct MsgInfo * Msg);
 int DisplayWebForm(struct HTTPConnectionInfo * Session, struct MsgInfo * Msg, char * FileName, char * XML, char * Reply, char * RawMessage, int RawLen);
 struct HTTPConnectionInfo * AllocateWebMailSession();
 VOID SaveNewMessage(struct HTTPConnectionInfo * Session, char * MsgPtr, char * Reply, int * RLen, char * Rest, int InputLen);
-void ConvertTitletoUTF8(char * Title, char * UTF8Title, int Len);
+void ConvertTitletoUTF8(WebMailInfo * WebMail, char * Title, char * UTF8Title, int Len);
 char *stristr (char *ch1, char *ch2);
 char * ReadTemplate(char * FormSet, char * DirName, char * FileName);
 VOID DoStandardTemplateSubsitutions(struct HTTPConnectionInfo * Session, char * txtFile);
@@ -935,7 +935,7 @@ int SendWebMailHeaderEx(char * Reply, char * Key, struct HTTPConnectionInfo * Se
 			EncodedTitle = doXMLTransparency(Msg->title);
 
 			memset(UTF8Title, 0, 4096);		// In case convert fails part way through
-			ConvertTitletoUTF8(EncodedTitle, UTF8Title, 4095);
+			ConvertTitletoUTF8(Session->WebMail, EncodedTitle, UTF8Title, 4095);
 
 			free(EncodedTitle);
 			
@@ -1011,7 +1011,7 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 	// make sure title is UTF 8 encoded
 
 	memset(UTF8Title, 0, 4096);		// In case convert fails part way through
-	ConvertTitletoUTF8(Msg->title, UTF8Title, 4095);
+	ConvertTitletoUTF8(Session->WebMail, Msg->title, UTF8Title, 4095);
 
 	// if a B2 message diplay B2 Header instead of a locally generated one
 
@@ -1248,21 +1248,28 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 			msgLen = len - 1;		// exclude NULL
 
 #else
-			int left = 2 * msgLen;
-			int len = msgLen;
+			size_t left = 2 * msgLen;
+			size_t len = msgLen;
 			int ret;
 			UCHAR * BufferBP = BufferB;
 			char * orig = MsgBytes;
 			MsgBytes[msgLen] = 0;
 
-			iconv_t * icu = NULL;
-
+			iconv_t * icu = Session->WebMail->iconv_toUTF8;
+				
 			if (icu == NULL)
-				icu = iconv_open("UTF-8//IGNORE", "CP1252");
+				icu = Session->WebMail->iconv_toUTF8 = iconv_open("UTF-8//IGNORE", "CP1252");
 
-			iconv(icu, NULL, NULL, NULL, NULL);		// Reset State Machine
-			ret = iconv(icu, &MsgBytes, &len, (char ** __restrict__)&BufferBP, &left);
-
+			if (icu == (iconv_t) -1)
+			{
+				Session->WebMail->iconv_toUTF8 = NULL;
+				strcpy(BufferB, MsgBytes);
+			}
+			else
+			{
+				iconv(icu, NULL, NULL, NULL, NULL);		// Reset State Machine
+				ret = iconv(icu, &MsgBytes, &len, (char ** __restrict__)&BufferBP, &left);
+			}
 			free(Save);
 			Save = MsgBytes = BufferB;
 			msgLen = strlen(MsgBytes);
@@ -1412,6 +1419,11 @@ void FreeWebMailFields(WebMailInfo * WebMail)
 
 	SaveReply = WebMail->Reply;
 	SaveRlen = WebMail->RLen;
+
+#ifndef WIN32
+	if (WebMail->iconv_toUTF8)
+		iconv_close(WebMail->iconv_toUTF8);
+#endif
 
 	memset(WebMail, 0, sizeof(WebMailInfo));
 
@@ -6133,7 +6145,7 @@ int ProcessWebmailWebSock(char * MsgPtr, char * OutBuffer)
 			EncodedTitle = doXMLTransparency(Msg->title);
 
 			memset(UTF8Title, 0, 4096);		// In case convert fails part way through
-			ConvertTitletoUTF8(EncodedTitle, UTF8Title, 4095);
+			ConvertTitletoUTF8(Session->WebMail, EncodedTitle, UTF8Title, 4095);
 
 			free(EncodedTitle);
 

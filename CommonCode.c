@@ -3332,8 +3332,6 @@ VOID SendLocation()
 
 	SendReportMsg((char *)&AXMSG.DEST, Len + 16);
 
-	printf("M0LTEMap %d\n", M0LTEMap);
-
 	if (M0LTEMap)
 		SendDataToPktMap("");
 
