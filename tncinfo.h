@@ -282,6 +282,9 @@ typedef struct AGWINFO
 	int Modem;					// Modem number in list 
 	char ModemName[20];	
 	unsigned char Version[4];
+	unsigned char fx25Flags;
+	unsigned char il2pFlags;
+	unsigned char il2pcrc;
 
 } *PAGWINFO;
 

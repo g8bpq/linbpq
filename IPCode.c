@@ -1271,6 +1271,8 @@ static VOID Send_AX_Datagram(PMESSAGE Block, DWORD Len, UCHAR Port, UCHAR * HWAD
 	memcpy(Block->DEST, HWADDR, 7);
 	memcpy(Block->ORIGIN, MYCALL, 7);
 	Block->DEST[6] &= 0x7e;						// Clear End of Call
+	Block->DEST[6] |= 0x80;						// set Command Bit
+
 	Block->ORIGIN[6] |= 1;						// Set End of Call
 	Block->CTL = 3;		//UI
 

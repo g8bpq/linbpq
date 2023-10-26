@@ -1193,6 +1193,10 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 						}
 					}
 				}
+
+				if (DisplayHTML && stristr(Message, "</html>"))
+					DisplayStyle = "div";				// Use div so HTML and XML are interpreted
+
 				return sprintf(Reply, WebMailMsgTemplate, BBSName, User->Call, Msg->number, Msg->number, Key, Msg->number, Key, DownLoad, Key, Key, Key, DisplayStyle, Message, DisplayStyle);
 			}
 
@@ -1232,9 +1236,7 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 			size_t origlen = msgLen + 1;
 
 			UCHAR * BufferB = malloc(2 * origlen);
-
 #ifdef WIN32
-
 			WCHAR * BufferW = malloc(2 * origlen);
 			int wlen;
 			int len = (int)origlen;
@@ -1246,10 +1248,10 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 			Save = MsgBytes = BufferB;
 			free(BufferW);
 			msgLen = len - 1;		// exclude NULL
-
 #else
 			size_t left = 2 * msgLen;
-			size_t len = msgLen;
+			size_t outbuflen = left;
+			size_t len = msgLen + 1;		// include null
 			int ret;
 			UCHAR * BufferBP = BufferB;
 			char * orig = MsgBytes;
@@ -1270,14 +1272,17 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 				iconv(icu, NULL, NULL, NULL, NULL);		// Reset State Machine
 				ret = iconv(icu, &MsgBytes, &len, (char ** __restrict__)&BufferBP, &left);
 			}
+
+			// left is next location to write, so length written is outbuflen - left
+			// add a null in case iconv didn't complete comversion
+
+			BufferB[outbuflen - left] = 0;
+
 			free(Save);
 			Save = MsgBytes = BufferB;
 			msgLen = strlen(MsgBytes);
-
 #endif
-
 		}
-
 
 		//		ptr += sprintf(ptr, "%s", MsgBytes);
 
@@ -1307,11 +1312,8 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 		ptr += sprintf(ptr, "File for Message %d not found\r", Number);
 	}
 
-	if (DisplayHTML && stristr(Message, "html>"))
+	if (DisplayHTML && stristr(Message, "</html>"))
 		DisplayStyle = "div";				// Use div so HTML and XML are interpreted
-
-
-
 
 
 	return sprintf(Reply, WebMailMsgTemplate, BBSName, User->Call, Msg->number, Msg->number, Key, Msg->number, Key, DownLoad, Key, Key, Key, DisplayStyle, Message, DisplayStyle);

@@ -55,11 +55,14 @@ struct AGWSocketConnectionInfo
 	BOOL SocketActive;
     BOOL RawFlag;
     BOOL MonFlag;
+    BOOL useLocalTime;
+    BOOL doNodes;
     unsigned char CallSign1[10];
     unsigned char CallSign2[10];
     BOOL GotHeader;
     int MsgDataLength;
     struct AGWHeader AGWRXHeader; 
+	unsigned char * MsgData; 
 };
 
 struct BPQConnectionInfo
@@ -74,8 +77,6 @@ struct BPQConnectionInfo
 
 
 char AGWPorts[1000];
-
-byte AGWMessage[1000];
 
 struct AGWHeader AGWTXHeader;
 
@@ -127,7 +128,7 @@ int DataSocket_Write(struct AGWSocketConnectionInfo * sockptr, SOCKET sock);
 int AGWGetSessionKey(char * key, struct AGWSocketConnectionInfo * sockptr);
 int ProcessAGWCommand(struct AGWSocketConnectionInfo * sockptr);
 int SendDataToAppl(int Stream, byte * Buffer, int Length);
-int InternalAGWDecodeFrame(char * msg, char * buffer, int Stamp, int * FrameType);
+int InternalAGWDecodeFrame(char * msg, char * buffer, int Stamp, int * FrameType, int useLocalTime, int doNodes);
 int AGWDataSocket_Disconnect( struct AGWSocketConnectionInfo * sockptr);
 int SendRawPacket(struct AGWSocketConnectionInfo * sockptr, char *txmsg, int Length);
 int ShowApps();
@@ -686,7 +687,7 @@ int AGWDoMonitorData()
 	byte AGWBuffer[1000];
 	int n;
 	int Stamp, Frametype;
-	BOOL RXFlag, NeedAGW;
+	BOOL RXFlag;
 
 	// Look for Monitor Data
 
@@ -731,24 +732,16 @@ int AGWDoMonitorData()
 		    RXFlag = TRUE;
 		}
 
-		NeedAGW = FALSE;
+		// Can now have different mon flags per connection, so need to run decode for each socket
 
 		for (n = 1; n<= CurrentSockets; n++)
 		{
-			sockptr=&Sockets[n];
+			sockptr = &Sockets[n];
 
-			if (sockptr->SocketActive && sockptr->MonFlag) NeedAGW = TRUE;
-		}
-
-		if (NeedAGW)
-		{
-			if (RXFlag || LoopMonFlag)    // only send txed frames if requested
+			if (sockptr->SocketActive && sockptr->MonFlag && (RXFlag || LoopMonFlag))
 			{
-				Length = InternalAGWDecodeFrame(Buffer, AGWBuffer,Stamp, &Frametype);
-	 
-				//
-				//   Decode frame and send to applications which have requested monitoring
-				//
+				Length = InternalAGWDecodeFrame(Buffer, AGWBuffer, Stamp, &Frametype, sockptr->useLocalTime, sockptr->doNodes);
+
 				if (Length > 0)
 				{
 					AGWTXHeader.Port = Port - 1;       // AGW Ports start from 0
@@ -786,13 +779,7 @@ int AGWDoMonitorData()
 					memset(AGWTXHeader.callfrom, 0,10);
 					ConvFromAX25(monbuff->ORIGIN, AGWTXHeader.callfrom);
        
-	 				for (n = 1; n<= CurrentSockets; n++)
-					{
-						sockptr=&Sockets[n];
-        
-						if (sockptr->SocketActive && sockptr->MonFlag)
-							SendRawPacket(sockptr, AGWBuffer, Length);
-					}
+					SendRawPacket(sockptr, AGWBuffer, Length);
 				}
 			}
 		}
@@ -1039,10 +1026,13 @@ int AGWDataSocket_Read(struct AGWSocketConnectionInfo * sockptr, SOCKET sock)
 		if (DataLength >= sockptr->MsgDataLength)
 		{
 			//   Read Data and Process Command
+
+			sockptr->MsgData = malloc(sockptr->MsgDataLength);
     
-			i=recv(sock, AGWMessage, sockptr->MsgDataLength, 0);
+			i = recv(sock, sockptr->MsgData, sockptr->MsgDataLength, 0);
 
 			ProcessAGWCommand (sockptr);
+			free(sockptr->MsgData);
         
 			sockptr->GotHeader = FALSE;
 		}
@@ -1168,7 +1158,7 @@ int ProcessAGWCommand(struct AGWSocketConnectionInfo * sockptr)
 			{
 				// Have digis
 
-				char * Digis = AGWMessage;
+				char * Digis = sockptr->MsgData;
 				int nDigis = Digis[0];
 
 				Digis ++;
@@ -1205,7 +1195,7 @@ int ProcessAGWCommand(struct AGWSocketConnectionInfo * sockptr)
 		{
 			if (memcmp(AGWConnections[con].CallKey,key,21) == 0)
 			{
-				SendMsg(AGWConnections[con].BPQStream, AGWMessage, sockptr->MsgDataLength);
+				SendMsg(AGWConnections[con].BPQStream, sockptr->MsgData, sockptr->MsgDataLength);
 				return 0;
 			}
 		}
@@ -1294,15 +1284,28 @@ int ProcessAGWCommand(struct AGWSocketConnectionInfo * sockptr)
 
         // Send Raw Frame
 
-		SendRaw(sockptr->AGWRXHeader.Port+1,&AGWMessage[1], sockptr->MsgDataLength - 1);
+		SendRaw(sockptr->AGWRXHeader.Port+1,&sockptr->MsgData[1], sockptr->MsgDataLength - 1);
         
 		return 0;
 
 	case 'm':
      
        //   Toggle Monitor receive
-    
-        sockptr->MonFlag = !sockptr->MonFlag;
+
+		if (sockptr->AGWRXHeader.DataLength == 12)			// QtTermTCP monitor info
+		{
+//				Msg[AGWHDDRRLEN] = AGWUsers->MonSess->mlocaltime;
+//	Msg[AGWHDDRRLEN + 1] = AGWUsers->MonSess->MonitorNODES;
+	//Msg[AGWHDDRRLEN + 2] = AGWUsers->MonSess->MonitorColour;
+//	Msg[AGWHDDRRLEN + 3] = AGWUsers->MonSess->mtxparam;
+//	memcpy(&Msg[AGWHDDRRLEN + 4], (void *)&AGWUsers->MonSess->portmask, 8);
+			sockptr->useLocalTime = sockptr->MsgData[0];
+			sockptr->doNodes =  sockptr->MsgData[1];
+			sockptr->MonFlag = 1;
+		}
+		else
+			sockptr->MonFlag = !sockptr->MonFlag;
+
 		return 0;
     
   
@@ -1318,11 +1321,11 @@ int ProcessAGWCommand(struct AGWSocketConnectionInfo * sockptr)
 
         if (sockptr->AGWRXHeader.DataKind == 'V')	// Unproto with VIA string
 		{        
-            Digis = AGWMessage[0];                 // Number of digis
+            Digis = sockptr->MsgData[0];                 // Number of digis
                     
 			for (j = 1; j<= Digis; j++)
 			{
-				ConvToAX25(&AGWMessage[(j - 1) * 10 + 1],&TXMessage[7+(j*7)]);      // No "last" bit
+				ConvToAX25(&sockptr->MsgData[(j - 1) * 10 + 1],&TXMessage[7+(j*7)]);      // No "last" bit
 			}
 
 			// set end of call 
@@ -1342,7 +1345,7 @@ int ProcessAGWCommand(struct AGWSocketConnectionInfo * sockptr)
 		else
             *(TXMessageptr++) = sockptr->AGWRXHeader.PID; 
    
-        memcpy(TXMessageptr,&AGWMessage[MsgStart], sockptr->MsgDataLength - MsgStart);
+        memcpy(TXMessageptr,&sockptr->MsgData[MsgStart], sockptr->MsgDataLength - MsgStart);
         
 		TXMessageptr += (sockptr->MsgDataLength - MsgStart);
 

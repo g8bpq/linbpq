@@ -1193,7 +1193,9 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add SDRAngel rig control (11)
 //	Add option to specify config and data directories on linbpq (12)
 //	Allow zero resptime (send RR immediately) (13)
-//	Fix corruptions in Webmail on 64 bit builds, eg in displaying 7+ files (15)
+//	Make sure CMD bit is set on UI frames
+//	Add setting Modem Flags in QtSM AGW mode
+//	If FT847 om PTC Port send a "Cat On" command (16)
 
 #define CKernel
 
@@ -1602,7 +1604,7 @@ char PopupText[30][100] = {""};
 // Next 3 should be uninitialised so they are local to each process
 
 UCHAR	MCOM;
-UCHAR	MTX;
+UCHAR	MTX;						// Top bit indicates use local time
 uint64_t MMASK;
 UCHAR	MUIONLY;
 

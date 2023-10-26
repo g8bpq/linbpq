@@ -1297,13 +1297,10 @@ VOID CONNECTREQUEST(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, UINT Appl
 	char BPQPARAMS[10];				// Extended Connect Params from BPQ Node
 	int CONERROR;
 	int Index;
-	char xxx[16] = "";
 
 	memcpy(BPQPARAMS, &L4T1, 2);	// SET DEFAULT T1 IN CASE NOT FROM ANOTHER BPQ NODE
 
 	BPQPARAMS[2] = 0;				// 'SPY' NOT SET	
-
-	ConvFromAX25(&L3MSG->L4DATA[1], xxx);
 
 	if (CheckExcludeList(&L3MSG->L4DATA[1]) == 0)
 	{

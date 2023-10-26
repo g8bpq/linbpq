@@ -2413,6 +2413,7 @@ VOID VARAProcessReceivedData(struct TNCINFO * TNC)
 							Msg->PID = 0xcf;
 							Msg->PORT = TNC->Port | 0x80;
 							Msg->CTL = 3;
+							Msg->DEST[6] |= 0x80;			// set Command Bit
 							Msg->ORIGIN[6] |= 1;		// set end of address
 							time(&Msg->Timestamp);
 							BPQTRACE(Msg, FALSE);
@@ -2445,6 +2446,8 @@ VOID VARAProcessReceivedData(struct TNCINFO * TNC)
 							ConvToAX25(TNC->NRNeighbour, Buffer->DEST);
 							memcpy(Buffer->ORIGIN, NETROMCALL, 7);
 							Buffer->ORIGIN[6] |= 1;		// set end of address
+							Buffer->DEST[6] |= 0x80;			// set Command Bit
+
 							time(&Buffer->Timestamp);
 							BPQTRACE(Buffer, FALSE);				// TRACE
 							NETROMMSG(TNC->DummyLink, L3MSG);
@@ -2886,6 +2889,8 @@ void SendVARANetromMsg(struct TNCINFO * TNC, L3MESSAGEBUFFER * MSG)
 	ConvToAX25(TNC->NRNeighbour, Buffer->DEST);
 	memcpy(Buffer->ORIGIN, NETROMCALL, 7);
 	Buffer->ORIGIN[6] |= 1;		// set end of address
+	Buffer->DEST[6] |= 0x80;			// set Command Bit
+
 
 	time(&Buffer->Timestamp);
 	

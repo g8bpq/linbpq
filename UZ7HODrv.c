@@ -86,6 +86,9 @@ static char ClassName[]="ARDOPSTATUS";
 static char WindowTitle[] = "UZ7HO";
 static int RigControlRow = 165;
 
+char FX25Modes[8][8] = {"None", "RxOnly", "RX+TX"};
+char IL2PModes[8][10] = {"None", "RxOnly", "RX+TX", "il2pOnly"};
+
 
 //LOGFONT LFTTYFONT ;
 
@@ -378,7 +381,7 @@ int UZ7HOSetFreq(int port, struct TNCINFO * TNC, struct AGWINFO * AGW, PDATAMESS
 		return 1;
 	}
 
-	if (TNCInfo[MasterPort[port]]->AGWInfo->isQTSM == 3)
+	if (TNCInfo[MasterPort[port]]->AGWInfo->isQTSM >= 3)
 	{
 		// QtSM so can send Set Freq Command
 
@@ -437,7 +440,7 @@ int UZ7HOSetModem(int port, struct TNCINFO * TNC, struct AGWINFO * AGW, PDATAMES
 
 		return 1;
 	}
-	else if (TNCInfo[MasterPort[port]]->AGWInfo->isQTSM == 3)
+	else if (TNCInfo[MasterPort[port]]->AGWInfo->isQTSM >= 3)
 	{
 		// Can send modem name to QTSM
 
@@ -451,6 +454,8 @@ int UZ7HOSetModem(int port, struct TNCINFO * TNC, struct AGWINFO * AGW, PDATAMES
 			buff->L2DATA[26] = 0;
 
 		strcpy(&Buffer[4], &buff->L2DATA[6]);
+
+		Buffer[27] = 1;					// Modem can set modem flags
 
 		AGW->TXHeader.Port = UZ7HOChannel[port];
 		AGW->TXHeader.DataKind = 'g';
@@ -493,6 +498,119 @@ int UZ7HOSetModem(int port, struct TNCINFO * TNC, struct AGWINFO * AGW, PDATAMES
 	}
 
 	buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Modem Set Ok\r");
+	return 1;
+}
+
+int UZ7HOSetFlags(int port, struct TNCINFO * TNC, struct AGWINFO * AGW, PDATAMESSAGE buff, PMSGWITHLEN buffptr)
+{
+	int txlen = GetLengthfromBuffer(buff) - (MSGHDDRLEN + 1);
+	char Buffer[32] = "";
+	int MsgLen = 32;
+	char * ptr, * context;
+	int i;
+
+	if (TNCInfo[MasterPort[port]]->AGWInfo->isQTSM != 7)
+	{
+		buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Sorry Setting UZ7HO flags not supported on this modem\r");
+		return 1;
+	}
+	
+	// May be read or set flags
+
+	if (txlen == 6)
+	{
+		// Read Flags
+
+		buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} fx25 %s il2p %s %s\r",
+			FX25Modes[TNC->AGWInfo->fx25Flags], IL2PModes[TNC->AGWInfo->il2pFlags], TNC->AGWInfo->il2pcrc?"CRC":"");
+
+		return 1;
+	}
+
+	ptr = strtok_s(&buff->L2DATA[6], " ,\r", &context);
+
+	while (ptr && ptr[0])
+	{
+		if (_stricmp(ptr, "fx25") == 0)
+		{
+			ptr = strtok_s(NULL, " ,\r", &context);
+			i = 4;
+
+			if (ptr && ptr[0])
+			{
+				for (i = 0; i < 4; i++)
+				{
+					if (_stricmp(FX25Modes[i], ptr) == 0)
+					{
+						TNC->AGWInfo->fx25Flags = i;
+						break;
+					}
+				}
+			}
+
+			if (i == 4)
+			{
+				buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Failed - fx25 flags invalid\r");
+				return 1;
+			}
+		}
+		else if (_stricmp(ptr, "il2p") == 0)
+		{
+			ptr = strtok_s(NULL, " ,\r", &context);
+			i = 4;
+
+			if (ptr && ptr[0])
+			{
+				for (i = 0; i < 4; i++)
+				{
+					if (_stricmp(IL2PModes[i], ptr) == 0)
+					{
+						TNC->AGWInfo->il2pFlags = i;
+						break;
+					}
+				}
+			}
+
+			if (i == 4)
+			{
+				buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Failed - il2p flags invalid\r");
+				return 1;
+
+			}
+		}
+		else if (_stricmp(ptr, "crc") == 0)
+			TNC->AGWInfo->il2pcrc = 1;
+		else if (_stricmp(ptr, "nocrc") == 0)
+			TNC->AGWInfo->il2pcrc = 0;
+		else
+		{
+			buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Failed - invalid flag %s\r", ptr);
+			return 1;
+		}
+
+		ptr = strtok_s(NULL, " ,\r", &context);
+	}
+
+
+	Buffer[27] = 2;				// Set Flags
+
+	Buffer[28] = TNC->AGWInfo->fx25Flags;
+	Buffer[29] = TNC->AGWInfo->il2pFlags;
+	Buffer[30] = TNC->AGWInfo->il2pcrc;
+
+	AGW->TXHeader.Port = UZ7HOChannel[port];
+	AGW->TXHeader.DataKind = 'g';
+	memset(AGW->TXHeader.callfrom, 0, 10);
+	memset(AGW->TXHeader.callto, 0, 10);
+#ifdef __BIG_ENDIAN__
+	AGW->TXHeader.DataLength = reverse(MsgLen);
+#else
+	AGW->TXHeader.DataLength = MsgLen;
+#endif
+	send(TNCInfo[MasterPort[port]]->TCPSock, (char *)&AGW->TXHeader, AGWHDDRLEN, 0);
+	send(TNCInfo[MasterPort[port]]->TCPSock, Buffer, MsgLen, 0);
+	
+	buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Set Modem Flags command sent Ok\r");
 	return 1;
 }
 
@@ -977,6 +1095,18 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				}
 				return 1;
 			}
+			if (_memicmp(&buff->L2DATA[0], "FLAGS", 5) == 0)
+			{
+				PMSGWITHLEN buffptr = (PMSGWITHLEN)GetBuff();
+				if (buffptr)
+				{
+					UZ7HOSetFlags(port, TNC, AGW, buff, buffptr);
+					C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
+				}
+				return 1;
+			}
+
+
 			// See if a Connect Command.
 
 			if (toupper(buff->L2DATA[0]) == 'C' && buff->L2DATA[1] == ' ' && txlen > 2)	// Connect
@@ -1311,7 +1441,7 @@ void * UZ7HOExtInit(EXTPORTDATA * PortEntry)
 
 #ifndef LINBPQ
 
-	CreatePactorWindow(TNC, ClassName, WindowTitle, RigControlRow, PacWndProc, 500, 450, ForcedClose);
+	CreatePactorWindow(TNC, ClassName, WindowTitle, RigControlRow, PacWndProc, 520, 450, ForcedClose);
 
 	CreateWindowEx(0, "STATIC", "Comms State", WS_CHILD | WS_VISIBLE, 10,6,120,20, TNC->hDlg, NULL, hInstance, NULL);
 	TNC->xIDC_COMMSSTATE = CreateWindowEx(0, "STATIC", "", WS_CHILD | WS_VISIBLE, 120,6,386,20, TNC->hDlg, NULL, hInstance, NULL);
@@ -1327,7 +1457,7 @@ void * UZ7HOExtInit(EXTPORTDATA * PortEntry)
 			0,170,250,300, TNC->hDlg, NULL, hInstance, NULL);
 
 	TNC->ClientHeight = 450;
-	TNC->ClientWidth = 500;
+	TNC->ClientWidth = 520;
 
 	TNC->hMenu = CreatePopupMenu();
 	
@@ -2615,7 +2745,7 @@ GotStream:
 			if (RXHeader->DataLength == 12)
 			{
 				// First reply - request Modem Freq and Name
-				for (p = This; p < 33; p++)
+				for (p = This; p < MAXBPQPORTS; p++)
 				{
 					if (MasterPort[p] == This)
 					{
@@ -2627,6 +2757,7 @@ GotStream:
 							int MsgLen = 32;
 							SOCKET sock = TNCInfo[MasterPort[This]]->TCPSock;
 
+							Buffer[27] = 1;					// Modem can set modem flags
 
 							TNC->AGWInfo->isQTSM |= 2;
 
@@ -2647,7 +2778,7 @@ GotStream:
 				return;
 			}
 
-			if (RXHeader->DataLength == 44)
+			if (RXHeader->DataLength == 44 || RXHeader->DataLength == 48)
 			{
 				// Modem Freq and Type Report from QtSM
 
@@ -2662,7 +2793,21 @@ GotStream:
 				memcpy(&TNC->AGWInfo->ModemName, &Message[16], 20);
 				memcpy(&TNC->AGWInfo->Version, &Message[38], 4);
 
-				sprintf(TNC->WEB_MODE, "%s / %d Hz", TNC->AGWInfo->ModemName, TNC->AGWInfo->CenterFreq);
+				if (RXHeader->DataLength == 48)
+				{
+					// includes modem flags
+
+					TNC->AGWInfo->isQTSM |= 4;			// can send flags
+					TNC->AGWInfo->fx25Flags = (Message[45] & 3);
+					TNC->AGWInfo->il2pFlags = (Message[46] & 3);
+					TNC->AGWInfo->il2pcrc = Message[47];
+			
+					sprintf(TNC->WEB_MODE, "%s/%d Hz FX %s IL2P %s %s", TNC->AGWInfo->ModemName, TNC->AGWInfo->CenterFreq,
+						FX25Modes[TNC->AGWInfo->fx25Flags], IL2PModes[TNC->AGWInfo->il2pFlags], TNC->AGWInfo->il2pcrc?"CRC":"");
+				}
+				else
+					sprintf(TNC->WEB_MODE, "%s/%d Hz ", TNC->AGWInfo->ModemName, TNC->AGWInfo->CenterFreq);
+
 				SetWindowText(TNC->xIDC_MODE, TNC->WEB_MODE);
 			}
 		}

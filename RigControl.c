@@ -2230,7 +2230,7 @@ DllExport BOOL APIENTRY Rig_Init()
 	TNC->ClientHeight = NeedRig * 20 + 60;
 	TNC->ClientWidth = 550;
 
-	for (port = 0; port < 33; port++)
+	for (port = 0; port < MAXBPQPORTS; port++)
 	{
 		if (RadioConfigMsg[port])
 		{
@@ -2263,7 +2263,7 @@ DllExport BOOL APIENTRY Rig_Init()
 				struct TNCINFO * PTCTNC;
 				int n;
 
-				for (n = 1; n < 33; n++)
+				for (n = 1; n < MAXBPQPORTS; n++)
 				{
 					PTCTNC = TNCInfo[n];
 
@@ -2346,7 +2346,6 @@ DllExport BOOL APIENTRY Rig_Init()
 		{
 			SDRANGELRunning = 1;
 			ConnecttoSDRANGEL(PORT);
-
 		}
 //---- G7TAJ ----
 		else if (PORT->HIDDevice)		// This is RAWHID, Not CM108
@@ -2363,6 +2362,15 @@ DllExport BOOL APIENTRY Rig_Init()
 		}
 		else
 			PORT->hPTTDevice = PORT->hDevice;	// Use same port for PTT
+
+
+		// Looks like FT847 Needa a "Cat On" Command. If PTC port need to send it here
+
+		if (PORT->PTC && strcmp(PORT->Rigs[0].RigName, "FT847") == 0)
+		{
+			UCHAR CATON[6] = {0,0,0,0,0};
+			SendPTCRadioCommand(PORT->PTC, CATON, 5);
+		}
 	}
 
 	for (p = 0; p < NumberofPorts; p++)
@@ -2573,7 +2581,7 @@ DllExport BOOL APIENTRY Rig_Close()
 
 	// And free the TNC config info
 
-	for (p = 1; p < 33; p++)
+	for (p = 1; p < MAXBPQPORTS; p++)
 	{
 		TNC = TNCInfo[p];
 
@@ -2788,7 +2796,6 @@ int OpenRigCOMMPort(struct RIGPORTINFO * PORT, VOID * Port, int Speed)
 		COMClearDTR(PORT->hDevice);
 	else
 		COMSetDTR(PORT->hDevice);
-
 	if (strcmp(PORT->Rigs[0].RigName, "FT847") == 0)
 	{
 		// Looks like FT847 Needa a "Cat On" Command
@@ -2797,6 +2804,7 @@ int OpenRigCOMMPort(struct RIGPORTINFO * PORT, VOID * Port, int Speed)
 
 		WriteCOMBlock(PORT->hDevice, CATON, 5);
 	}
+
 
 	if (PORT->PortType == NMEA)
 	{
@@ -7310,7 +7318,7 @@ VOID SetupScanInterLockGroups(struct RIGINFO *RIG)
 
 	// Find TNC ports in this Rig's scan group
 
-	for (port = 1; port < 33; port++)
+	for (port = 1; port < MAXBPQPORTS; port++)
 	{
 		TNC = TNCInfo[port];
 
@@ -7359,7 +7367,7 @@ VOID SetupPortRIGPointers()
 	struct TNCINFO * TNC;
 	int port;
 
-	for (port = 1; port < 33; port++)
+	for (port = 1; port < MAXBPQPORTS; port++)
 	{
 		TNC = TNCInfo[port];
 

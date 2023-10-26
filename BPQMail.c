@@ -1120,7 +1120,10 @@
 
 //  6.0.25.1  ?? 
 
-//	Aff FBB reject.sys style filters (3)
+//	Add  FBB reject.sys style filters (3)
+//	Improve Webmail on 64 bit builds
+
+
 
 #include "bpqmail.h"
 #include "winstdint.h"

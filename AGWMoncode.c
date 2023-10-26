@@ -64,12 +64,12 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 char * strlop(char * buf, char delim);
 UCHAR * DisplayINP3RIF(UCHAR * ptr1, UCHAR * ptr2, int msglen);
 
-static UCHAR * DISPLAY_NETROM(MESSAGE * ADJBUFFER, UCHAR * Output, int MsgLen);
+static UCHAR * DISPLAY_NETROM(MESSAGE * ADJBUFFER, UCHAR * Output, int MsgLen, int DoNodes);
 static UCHAR * DISPLAYIPDATAGRAM(IPMSG * IP, UCHAR * Output, int MsgLen);
 static UCHAR * DISPLAYARPDATAGRAM(UCHAR * Datagram, UCHAR * Output);
 
 
-int InternalAGWDecodeFrame(MESSAGE * msg, char * buffer, int Stamp, int * FrameType)
+int InternalAGWDecodeFrame(MESSAGE * msg, char * buffer, int Stamp, int * FrameType, int useLocalTime, int DoNodes)
 {
 	UCHAR * ptr;
 	int n;
@@ -81,13 +81,19 @@ int InternalAGWDecodeFrame(MESSAGE * msg, char * buffer, int Stamp, int * FrameT
 	char PFCHAR[3] = "  ";
 	int MSGFLAG = 0;		//CR and V1 flags
 	char * Output = buffer;
-	int HH, MM, SS;
 	char From[10], To[10];
 	BOOL Info = 0;
 	BOOL FRMRFLAG = 0;
 	BOOL XIDFLAG = 0;
 	BOOL TESTFLAG = 0;
 	size_t MsgLen = msg->LENGTH;
+
+	struct tm * TM;
+
+	if (useLocalTime)
+		TM = localtime(&Stamp);
+	else
+		TM = gmtime(&Stamp);
 
 	//	GET THE CONTROL BYTE, TO SEE IF THIS FRAME IS TO BE DISPLAYED
 
@@ -123,14 +129,6 @@ int InternalAGWDecodeFrame(MESSAGE * msg, char * buffer, int Stamp, int * FrameT
 	CTL &= ~PFBIT;
 
 	*FrameType = CTL;
-
-	Stamp = Stamp % 86400;		// Secs
-	HH = Stamp / 3600;
-
-	Stamp -= HH * 3600;
-	MM = Stamp  / 60;
-
-	SS = Stamp - MM * 60;
 
 	Output += sprintf((char *)Output, " %d:Fm ", msg->PORT & 0x7f);		// Mask TX bit
 
@@ -297,7 +295,7 @@ int InternalAGWDecodeFrame(MESSAGE * msg, char * buffer, int Stamp, int * FrameT
 
 	}
 
-	Output += sprintf((char *)Output, "[%02d:%02d:%02d]", HH, MM, SS);
+	Output += sprintf((char *)Output, "[%02d:%02d:%02d]", TM->tm_hour, TM->tm_min, TM->tm_sec);
 
 
 	if (FRMRFLAG)
@@ -345,7 +343,7 @@ int InternalAGWDecodeFrame(MESSAGE * msg, char * buffer, int Stamp, int * FrameT
 		}
 		case NETROM_PID:
 			
-			Output = DISPLAY_NETROM(ADJBUFFER, Output,(int) MsgLen);
+			Output = DISPLAY_NETROM(ADJBUFFER, Output,(int) MsgLen, DoNodes);
 			break;
 
 		case IP_PID:
@@ -366,6 +364,9 @@ int InternalAGWDecodeFrame(MESSAGE * msg, char * buffer, int Stamp, int * FrameT
 		}
 	}
 
+	if (Output == NULL)
+		return NULL;
+
 	if (Output[-1] != 13)
 		Output += sprintf((char *)Output, "\r");
 
@@ -374,7 +375,7 @@ int InternalAGWDecodeFrame(MESSAGE * msg, char * buffer, int Stamp, int * FrameT
 }
 //      Display NET/ROM data                                                 
 
-UCHAR * DISPLAY_NETROM(MESSAGE * ADJBUFFER, UCHAR * Output, int MsgLen)
+UCHAR * DISPLAY_NETROM(MESSAGE * ADJBUFFER, UCHAR * Output, int MsgLen, int DoNodes)
 {
 	char Alias[7]= "";
 	char Dest[10];
@@ -386,6 +387,8 @@ UCHAR * DISPLAY_NETROM(MESSAGE * ADJBUFFER, UCHAR * Output, int MsgLen)
 	{
 		// Display NODES
 
+		if (DoNodes == 0)
+			return NULL;
 
 		// If an INP3 RIF (type <> UI) decode as such
 	

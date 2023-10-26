@@ -163,7 +163,6 @@ int IntDecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp, uint64_t Mask, BO
 	int Port;
 	int MSGFLAG = 0;		//CR and V1 flags
 	char * Output = buffer;
-	int HH, MM, SS;
 	char TR = 'R';
 	char From[10], To[10];
 	BOOL Info = 0;
@@ -172,6 +171,15 @@ int IntDecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp, uint64_t Mask, BO
 	BOOL TESTFLAG = 0;
 
 	size_t MsgLen = msg->LENGTH;
+
+	// Use gmtime so we can also display in local time
+
+	struct tm * TM;
+
+	if (MTX & 0x80)
+		TM = localtime(&Stamp);
+	else
+		TM = gmtime(&Stamp);
 
 	// MINI mode is for Node Listen (remote monitor) Mode. Keep info to minimum
 /*
@@ -190,7 +198,7 @@ KC6OAR*>ID:
 	
 	if (Port & 0x80)
 	{
-		if (MTX == 0)
+		if ((MTX & 1) == 0)
 			return 0;							//	TRANSMITTED FRAME - SEE IF MTX ON
 		
 		TR = 'T';
@@ -214,17 +222,9 @@ KC6OAR*>ID:
 
 		// Need Timestamp and T/R
 
-		Stamp = Stamp % 86400;		// Secs
-		HH = (int)(Stamp / 3600);
-
-		Stamp -= HH * 3600;
-		MM = (int)(Stamp  / 60);
-
-		SS = (int)(Stamp - MM * 60);
-
 		// Add Port: unless Mail Mon (port 64)
 
-		Output += sprintf((char *)Output, "%02d:%02d:%02d%c ", HH, MM, SS, TR);
+		Output += sprintf((char *)Output, "%02d:%02d:%02d%c ", TM->tm_hour, TM->tm_min, TM->tm_sec, TR);
 
 		strcpy(Output, &msg->DEST[1]);
 		Output += strlen(Output);
@@ -286,18 +286,10 @@ KC6OAR*>ID:
 	}
 
 
-	Stamp = Stamp % 86400;		// Secs
-	HH = (int)(Stamp / 3600);
-
-	Stamp -= HH * 3600;
-	MM = (int)(Stamp  / 60);
-
-	SS = (int)(Stamp - MM * 60);
-
 	// Add Port: if MINI mode and monitoring more than one port
 
 	if (MINI == 0)
-		Output += sprintf((char *)Output, "%02d:%02d:%02d%c ", HH, MM, SS, TR);
+		Output += sprintf((char *)Output, "%02d:%02d:%02d%c ", TM->tm_hour, TM->tm_min, TM->tm_sec, TR);
 	else
 		if (CountBits64(Mask) > 1)
 			Output += sprintf((char *)Output, "%d:", Port);

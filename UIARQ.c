@@ -634,6 +634,8 @@ static VOID SendPacket(struct TNCINFO * TNC, struct STREAMINFO * STREAM, UCHAR *
 	Block.PID = 0xF0;
 
 	ConvToAX25(STREAM->RemoteCall, Block.DEST);
+	Block.DEST[6] |= 0x80;			// set Command Bit
+
 	memcpy(Block.ORIGIN, MYCALL, 7);
 
 	Block.L2DATA[0] = STREAM->ARQInfo->FarStream;

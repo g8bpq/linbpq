@@ -2552,6 +2552,8 @@ VOID SendAPRSMessageEx(char * Message, int toPort, char * FromCall, int Gated)
 			else
 				continue;
 
+			Msg.DEST[6] |= 0x80;			// set Command Bit
+
 			ConvToAX25(FromCall, Msg.ORIGIN);
 			Msg.PID = 0xf0;
 			Msg.CTL = 3;
@@ -2579,6 +2581,8 @@ VOID SendAPRSMessageEx(char * Message, int toPort, char * FromCall, int Gated)
 		memcpy(Msg.DEST, &BeaconHeader[toPort][0][0],  10 * 7);
 	else
 		return;
+
+	Msg.DEST[6] |= 0x80;			// set Command Bit
 
 	ConvToAX25(FromCall, Msg.ORIGIN);
 	Msg.PID = 0xf0;
@@ -2756,7 +2760,8 @@ void SendBeaconThread(void * Param)
 		Debugprintf("Sending APRS Beacon to port %d", toPort);
 
 		memcpy(Msg.DEST, &BeaconHeader[toPort][0][0], 10 * 7);		// Clear unused digis
-		
+		Msg.DEST[6] |= 0x80;			// set Command Bit
+
 		GetSemaphore(&Semaphore, 12);
 		Send_AX_Datagram(&Msg, Len + 2, toPort);
 		FreeSemaphore(&Semaphore);
@@ -2780,6 +2785,8 @@ void SendBeaconThread(void * Param)
 			Msg.CTL = 3;
 
 			memcpy(Msg.DEST, &BeaconHeader[Port][0][0], 10 * 7);
+			Msg.DEST[6] |= 0x80;			// set Command Bit
+
 			GetSemaphore(&Semaphore, 12);
 			Send_AX_Datagram(&Msg, Len + 2, Port);
 			FreeSemaphore(&Semaphore);
@@ -2815,6 +2822,8 @@ VOID SendObject(struct OBJECT * Object)
 			Msg.CTL = 3;
 			Len = sprintf(Msg.L2DATA, "%s", Object->Message);
 			memcpy(Msg.DEST, &Object->Path[0][0],  Object->PathLen + 1);
+			Msg.DEST[6] |= 0x80;			// set Command Bit
+
 			Send_AX_Datagram(&Msg, Len + 2, Port);
 		}
 	}
@@ -2881,6 +2890,8 @@ VOID SendIStatus()
 			if (BeaconHddrLen[Port])		// Only send to ports with a DEST defined
 			{
 				memcpy(Msg.DEST, &BeaconHeader[Port][0][0], 10 * 7);
+				Msg.DEST[6] |= 0x80;			// set Command Bit
+
 				Send_AX_Datagram(&Msg, Len + 2, Port);
 			}
 		}
