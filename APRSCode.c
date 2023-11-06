@@ -1581,9 +1581,9 @@ OK:
 
 		// Copy frame to a DIGIMessage Struct
 
-		memcpy(&Msg, monbuff, 21 + (7 * Digis));		// Header, Dest, Source, Addresses and Digis
+		memcpy(&Msg, monbuff, MSGHDDRLEN + 14 + (7 * Digis));		// Header, Dest, Source, Addresses and Digis
 
-		len = Msg.LENGTH - 21 - (7 * Digis);			// Payload Length (including CTL and PID
+		len = Msg.LENGTH - (MSGHDDRLEN + 14) - (7 * Digis);			// Payload Length (including CTL and PID
 
 		memcpy(&Msg.CTL, &AdjBuff->CTL, len);
 

@@ -202,7 +202,7 @@ char * RigWebPage = 0;
 int RigWebPageLen = 0;
 
 
-struct RIGPORTINFO * PORTInfo[34] = {NULL};		// Records are Malloc'd
+struct RIGPORTINFO * PORTInfo[MAXBPQPORTS + 2] = {NULL};		// Records are Malloc'd
 
 struct RIGINFO * DLLRIG = NULL;			// Rig record for dll PTT interface (currently only for UZ7HO);
 
@@ -782,7 +782,7 @@ int Rig_Command(TRANSPORTENTRY * Session, char * Command)
 		{
 			RIG = &PORT->Rigs[i];
 
-			if (RIG->BPQPort & (1 << Port))
+			if (RIG->BPQPort & ((uint64_t)1 << Port))
 				goto portok;
 		}
 	}
@@ -2201,12 +2201,12 @@ DllExport BOOL APIENTRY Rig_Init()
 
 	NumberofPorts = 0;
 
-	for (port = 0; port < 32; port++)
+	for (port = 0; port < MAXBPQPORTS; port++)
 		PORTInfo[port] = NULL;
 
 	// See if any rigcontrol defined (either RADIO or RIGCONTROL lines)
 
-	for (port = 0; port < 32; port++)
+	for (port = 0; port < MAXBPQPORTS; port++)
 	{
 		if (RadioConfigMsg[port])
 			NeedRig++;
@@ -2362,15 +2362,6 @@ DllExport BOOL APIENTRY Rig_Init()
 		}
 		else
 			PORT->hPTTDevice = PORT->hDevice;	// Use same port for PTT
-
-
-		// Looks like FT847 Needa a "Cat On" Command. If PTC port need to send it here
-
-		if (PORT->PTC && strcmp(PORT->Rigs[0].RigName, "FT847") == 0)
-		{
-			UCHAR CATON[6] = {0,0,0,0,0};
-			SendPTCRadioCommand(PORT->PTC, CATON, 5);
-		}
 	}
 
 	for (p = 0; p < NumberofPorts; p++)
@@ -2381,7 +2372,7 @@ DllExport BOOL APIENTRY Rig_Init()
 		{
 			int j;
 			int k = 0;
-			int BitMask;
+			uint64_t BitMask;
 			struct _EXTPORTDATA * PortEntry;
 
 			RIG = &PORT->Rigs[i];
@@ -2395,7 +2386,7 @@ DllExport BOOL APIENTRY Rig_Init()
 			// then those with neither
 
 			BitMask = RIG->BPQPort;
-			for (j = 0; j < 32; j++)
+			for (j = 0; j < MAXBPQPORTS; j++)
 			{
 				if (BitMask & 1)
 				{
@@ -2408,7 +2399,7 @@ DllExport BOOL APIENTRY Rig_Init()
 			}
 
 			BitMask = RIG->BPQPort;
-			for (j = 0; j < 32; j++)
+			for (j = 0; j < MAXBPQPORTS; j++)
 			{
 				if (BitMask & 1)
 				{
@@ -2421,7 +2412,7 @@ DllExport BOOL APIENTRY Rig_Init()
 			}
 
 			BitMask = RIG->BPQPort;
-			for (j = 0; j < 32; j++)
+			for (j = 0; j < MAXBPQPORTS; j++)
 			{
 				if (BitMask & 1)
 				{
@@ -3266,7 +3257,7 @@ CheckOtherPorts:
 	{
 		PortRecord = RIG->PortRecord[i];
 
-		if (PortRecord->PORT_EXT_ADDR(6, PortRecord->PORTCONTROL.PORTNUMBER, 1))
+		if (PortRecord->PORT_EXT_ADDR && PortRecord->PORT_EXT_ADDR(6, PortRecord->PORTCONTROL.PORTNUMBER, 1))
 		{
 			// 1 means can't change - release all
 
@@ -7330,7 +7321,7 @@ VOID SetupScanInterLockGroups(struct RIGINFO *RIG)
 		if (TNC->RXRadio == Interlock)
 		{
 			int p = PortRecord->PORTNUMBER;
-			RIG->BPQPort |=  (1 << p);
+			RIG->BPQPort |= ((uint64_t)1 << p);
 			sprintf(PortString, "%s,%d", PortString, p);
 			TNC->RIG = RIG;
 
@@ -7340,7 +7331,7 @@ VOID SetupScanInterLockGroups(struct RIGINFO *RIG)
 		if (TNC->TXRadio == Interlock && TNC->TXRadio != TNC->RXRadio)
 		{
 			int p = PortRecord->PORTNUMBER;
-			RIG->BPQPort |=  (1 << p);
+			RIG->BPQPort |= ((uint64_t)1 << p);
 			sprintf(TxPortString, "%s,%d", TxPortString, p);
 			TNC->TXRIG = RIG;
 
@@ -9912,7 +9903,7 @@ void ProcessSDRANGELFrame(struct RIGPORTINFO * PORT)
 
 	// As we mess with the message, save a copy and restore for each Rig
 
-	save = strdup(ptr3);
+	save = _strdup(ptr3);
 
 	for (i = 0; i < PORT->ConfiguredRigs; i++)
 	{

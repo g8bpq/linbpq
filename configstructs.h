@@ -158,7 +158,7 @@ struct CONFIGTABLE
 	char C_IDMSG[512];
 	char C_CTEXT[512];
 	char C_INFOMSG[2048];
-	UCHAR CfgBridgeMap[MaxBPQPortNo][MaxBPQPortNo];
+	UCHAR CfgBridgeMap[MaxBPQPortNo + 1][MaxBPQPortNo + 1];
 	struct ROUTECONFIG C_ROUTE[MaxLockedRoutes];
 	struct APPLCONFIG C_APPL[NumberofAppls];
 	struct PORTCONFIG C_PORT[MaxBPQPortNo + 4];

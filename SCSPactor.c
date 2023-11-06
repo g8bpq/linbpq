@@ -122,6 +122,7 @@ VOID WritetoTrace(struct TNCINFO * TNC, char * Msg, int Len);
 void SCSTryToSendDATA(struct TNCINFO * TNC, int Stream);
 VOID UpdateMHwithDigis(struct TNCINFO * TNC, UCHAR * Call, char Mode, char Direction);
 int standardParams(struct TNCINFO * TNC, char * buf);
+int SendPTCRadioCommand(struct TNCINFO * TNC, char * Block, int Length);
 
 #define	FEND	0xC0	// KISS CONTROL CODES 
 #define	FESC	0xDB
@@ -3179,10 +3180,23 @@ VOID ProcessDEDFrame(struct TNCINFO * TNC, UCHAR * Msg, int framelen)
 	if (TNC->TNCOK == FALSE)
 	{
 		// Just come up
+
+		struct RIGPORTINFO * PORT;
 		
 		TNC->TNCOK = TRUE;
 		sprintf(TNC->WEB_COMMSSTATE,"%s TNC link OK", TNC->PortRecord->PORTCONTROL.SerialPortName);
 		SetWindowText(TNC->xIDC_COMMSSTATE, TNC->WEB_COMMSSTATE);
+
+		// If using an FT847 on PTC Port it needa a "Cat On" Command. Send it here
+
+		PORT = TNC->RIG->PORT;
+
+		if (PORT->PTC && strcmp(PORT->Rigs[0].RigName, "FT847") == 0)
+		{
+			UCHAR CATON[6] = {0,0,0,0,0};
+			SendPTCRadioCommand(PORT->PTC, CATON, 5);
+		}
+
 	}
 
 	Stream = RealStream = Msg[2];

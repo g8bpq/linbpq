@@ -39,21 +39,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "miniupnpc.h"
 #include "upnperrors.h"
 #include <winsock2.h>
-#endif
-#ifdef LINBPQ
-#ifndef MACBPQ
-#include <miniupnpc/upnpcommands.h>
-#include <miniupnpc/miniupnpc.h>
-#include <miniupnpc/upnperrors.h>
-#include <stdio.h>
-#endif
-#endif
-#ifdef MACBPQ
+#else
 #include </usr/local/Cellar/miniupnpc/2.2.5/include/miniupnpc/upnpcommands.h>
 #include </usr/local/Cellar/miniupnpc/2.2.5/include/miniupnpc/miniupnpc.h>
 #include </usr/local/Cellar/miniupnpc/2.2.5/include/miniupnpc/upnperrors.h>
 #include <stdio.h>
 #endif
+
 int AddMap(char * controlURL, char * eport, char * iport, char * proto);
 int DeleteMap(char * controlURL, char * eport, char * iport, char * proto);
 

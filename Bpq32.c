@@ -1195,7 +1195,9 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Allow zero resptime (send RR immediately) (13)
 //	Make sure CMD bit is set on UI frames
 //	Add setting Modem Flags in QtSM AGW mode
-//	If FT847 om PTC Port send a "Cat On" command (16)
+//	If FT847 om PTC Port send a "Cat On" command (17)
+//	Fix some 63 port bugs in RigCOntrol (17)
+//	Fix 63 port bug in Bridging (18)
 
 #define CKernel
 

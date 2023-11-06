@@ -2213,7 +2213,7 @@ L2Packet:
 			
 			// Bridge if requested
 
-			for (toPort = 1; toPort <= NUMBEROFPORTS; toPort++)
+			for (toPort = 1; toPort <= MaxBPQPortNo; toPort++)
 			{
 				if (BridgeMap[CURRENTPORT][toPort])
 				{

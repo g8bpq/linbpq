@@ -67,7 +67,7 @@ struct RIGINFO
 
 	void * BPQtoRADIO_Q;			// Frames from switch for radio
 
-	UINT BPQPort;				// Port this radio is attached to. Bit Map, as may be more than one port controlling radio
+	uint64_t BPQPort;				// Port this radio is attached to. Bit Map, as may be more than one port controlling radio
 //	int PortNum;				// Number of port that defined this rig
 	int Interlock;				// Interlock group for this Radio
 	int IC735;					// Old ICOM with shorter freq message

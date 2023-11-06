@@ -233,7 +233,7 @@ UCHAR ourMACAddr[6] = {02,'B','P','Q',1,1};
 
 UCHAR RealMacAddress[6];
 
-int IPPortMask = 0;
+uint64_t IPPortMask = 0;
 
 IPSTATS IPStats = {0};
 
@@ -1548,7 +1548,8 @@ VOID ProcessEthIPMsg(PETHMSG Buffer)
 
 VOID ProcessEthARPMsg(PETHARP arpptr, BOOL FromTAP)
 {
-	int i=0, Mask=IPPortMask;
+	int i=0;
+	uint64_t Mask=IPPortMask;
 	PARPDATA Arp;
 	PROUTEENTRY Route;
 	BOOL Found;
@@ -1748,12 +1749,12 @@ ProxyARPReply:
 		memset(AXARPREQMSG.TARGETHWADDR, 0, 7);
 		AXARPREQMSG.ARPOPCODE = 0x0100;
 
-		for (i=1; i<=NUMBEROFPORTS; i++)
+		for (i = 1; i <= MaxBPQPortNo; i++)
 		{
 			if (Mask & 1)
 				Send_AX_Datagram((PMESSAGE)&AXARPREQMSG, 46, i, QST);
 
-			Mask>>=1;
+			Mask >>= 1;
 		}
 
 		break;
@@ -1847,7 +1848,8 @@ SendBack:
 
 VOID ProcessAXARPMsg(PAXARP arpptr)
 {
-	int i=0, Mask=IPPortMask;
+	int i=0;
+	uint64_t Mask=IPPortMask;
 	PARPDATA Arp;
 	PROUTEENTRY Route;
 
@@ -1954,13 +1956,13 @@ AXProxyARPReply:
 		AXARPREQMSG.TARGETIPADDR = arpptr->TARGETIPADDR;
 		AXARPREQMSG.SENDIPADDR = arpptr->SENDIPADDR;
 
-		for (i=1; i<=NUMBEROFPORTS; i++)
+		for (i=1; i<=MaxBPQPortNo; i++)
 		{
 			if (i != arpptr->MSGHDDR.PORT)
 				if (Mask & 1)
 					Send_AX_Datagram((PMESSAGE)&AXARPREQMSG, 46, i, QST);
 
-			Mask>>=1;
+			Mask >>= 1;
 		}
 
 		memset(ETHARPREQMSG.MSGHDDR.DEST, 0xff, 6);
@@ -3281,7 +3283,7 @@ static BOOL ReadConfigFile()
 
 static int ProcessLine(char * buf)
 {
-	char * ptr, * p_value, * p_origport, * p_host, * p_port;
+	char * ptr, * p_value, * p_origport, * p_host;
 	int port, mappedport, ipad, mappedipad;
 	BOOL NATTAP = FALSE;
 	int i;
@@ -3447,16 +3449,28 @@ static int ProcessLine(char * buf)
 
 	if (_stricmp(ptr,"IPPorts") == 0)
 	{
-		p_port = strtok(p_value, " ,\t\n\r");
-		
-		while (p_port != NULL)
-		{
-			i=atoi(p_port);
-			if (i == 0) return FALSE;
-			if (i > NUMBEROFPORTS) return FALSE;
+		struct _EXTPORTDATA * PORTVEC;
 
-			IPPortMask |= 1 << (i-1);
-			p_port = strtok(NULL, " ,\t\n\r");
+		while (p_value != NULL)
+		{
+			i=atoi(p_value);
+			if (i == 0) return FALSE;
+
+			PORTVEC = (struct _EXTPORTDATA * )GetPortTableEntryFromPortNum(i);
+	
+			if (PORTVEC == NULL)
+				return FALSE;
+
+			// if not KISS, make sure it can send UI frames
+
+			if (PORTVEC->PORTCONTROL.PORTTYPE == 16)		// EXTERNAL
+				if (PORTVEC->PORTCONTROL.PROTOCOL == 10)	// Pactor/WINMOR
+					if (PORTVEC->PORTCONTROL.UICAPABLE == 0)
+						return FALSE;
+
+
+			IPPortMask |= (uint64_t)1 << (i-1);
+			p_value = strlop(p_value, ',');
 		}
 		return (TRUE);
 	}
