@@ -175,8 +175,9 @@ char FTRXModes[8][6] = {"LSB", "USB", "CW", "AM", "FM", "RTTY", "PKT", ""};
 
 char KenwoodModes[16][6] = {"????", "LSB",  "USB", "CW", "FM", "AM", "FSK", "????"};
 
-//char FT2000Modes[16][6] = {"????", "LSB",  "USB", "CW", "FM", "AM", "FSK", "PKT-L", "FSK-R", "PKT-FM", "FM-N", "PKT-U", "????"};
 char FT2000Modes[16][6] = {"????", "LSB",  "USB", "CW", "FM", "AM", "FSK", "CW-R", "PKT-L", "FSK-R", "PKT-FM", "FM-N", "PKT-U", "????"};
+
+char FTDX10Modes[16][9] = {"????", "LSB",  "USB", "CW-U", "FM", "AM", "RTTY-L", "CW-L", "DATA-L", "RTTY-U", "DATA-FM", "FM-N", "DATA-U", "AM-N", "PSK", "DATA-FM-N"};
 
 char FT991AModes[16][9] = {"????", "LSB",  "USB", "CW-U", "FM", "AM", "RTTY-LSB", "CW-L", "DATA-LSB", "RTTY-USB", "DATA-FM", "FM-N", "DATA-USB", "AM-N", "C4FM", "????"};
 
@@ -564,6 +565,7 @@ VOID Rig_PTTEx(struct RIGINFO * RIG, BOOL PTTState, struct TNCINFO * TNC)
 		case ICOM:
 		case KENWOOD:
 		case FT2000:
+		case FTDX10:
 		case FT991A:
 		case FLEX:
 		case NMEA:
@@ -1285,6 +1287,7 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 		case KENWOOD:
 		case FT991A:
 		case FT2000:
+		case FTDX10:
 		case FLEX:
 		case NMEA:
 
@@ -1870,6 +1873,7 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 
 	case KENWOOD:
 	case FT2000:
+	case FTDX10:
 	case FT991A:
 	case FLEX:
 			
@@ -1883,6 +1887,10 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 		{
 			if (PORT->PortType == FT2000)
 				if (_stricmp(FT2000Modes[ModeNo], Mode) == 0)
+				break;
+
+			if (PORT->PortType == FTDX10)
+				if (_stricmp(FTDX10Modes[ModeNo], Mode) == 0)
 				break;
 
 			if (PORT->PortType == FT991A)
@@ -1925,8 +1933,8 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 		if (PORT->PortType == FT2000)
 			FreqPtr->Cmd1Len = sprintf(Poll, "FA%s;MD0%X;FA;MD;", &FreqString[1], ModeNo);
 		else
-		if (PORT->PortType == FT991A)
-			FreqPtr->Cmd1Len = sprintf(Poll, "FA%s;MD0%X;FA;MD;", &FreqString, ModeNo);
+		if (PORT->PortType == FT991A || PORT->PortType == FTDX10)
+			FreqPtr->Cmd1Len = sprintf(Poll, "FA%s;MD0%X;FA;MD;", FreqString, ModeNo);
 		else
 		if (PORT->PortType == FLEX)
 			FreqPtr->Cmd1Len = sprintf(Poll, "ZZFA00%s;ZZMD%02d;ZZFA;ZZMD;", &FreqString[1], ModeNo);
@@ -2694,6 +2702,7 @@ BOOL Rig_Poll()
 
 		case KENWOOD:
 		case FT2000:
+		case FTDX10:
 		case FT991A:
 		case FLEX:
 		case NMEA:
@@ -2763,7 +2772,7 @@ int OpenRigCOMMPort(struct RIGPORTINFO * PORT, VOID * Port, int Speed)
 	if (PORT->remoteSock)		// Using WINMORCONTROL
 		return TRUE;
 
-	if (PORT->PortType == FT2000 || PORT->PortType == FT991A || strcmp(PORT->Rigs[0].RigName, "FT847") == 0)		// FT2000 and similar seem to need two stop bits
+	if (PORT->PortType == FT2000 || PORT->PortType == FT991A || PORT->PortType == FTDX10 || strcmp(PORT->Rigs[0].RigName, "FT847") == 0)		// FT2000 and similar seem to need two stop bits
 		PORT->hDevice = OpenCOMPort((VOID *)Port, Speed, FALSE, FALSE, PORT->Alerted, TWOSTOPBITS);
 	else if (PORT->PortType == NMEA)
 		PORT->hDevice = OpenCOMPort((VOID *)Port, Speed, FALSE, FALSE, PORT->Alerted, ONESTOPBIT);
@@ -2976,6 +2985,7 @@ void CheckRX(struct RIGPORTINFO * PORT)
 
 	case KENWOOD:
 	case FT2000:
+	case FTDX10:
 	case FT991A:
 	case FLEX:
 
@@ -4770,6 +4780,17 @@ Loop:
 			strcpy(RIG->WEB_MODE, FT991AModes[Mode]);
 			strcpy(RIG->ModeString, RIG->WEB_MODE);
 		}
+		else if (PORT->PortType == FTDX10)
+		{
+			Mode = Msg[3] - 48;
+			if (Mode > 16)
+				Mode -= 7;
+			
+			if (Mode > 15) Mode = 15;
+			SetWindowText(RIG->hMODE, FTDX10Modes[Mode]);
+			strcpy(RIG->WEB_MODE, FTDX10Modes[Mode]);
+			strcpy(RIG->ModeString, RIG->WEB_MODE);
+		}
 		else if (PORT->PortType == FLEX)
 		{
 			Mode = atoi(&Msg[3]);
@@ -5893,6 +5914,13 @@ PortFound:
 		PORT->PortType = FT2000;
 	}
 
+	// FTDX10 seems to be different to most other YAESU types
+
+	if (strcmp(RigName, "FTDX10") == 0 && PORT->PortType == YAESU)
+	{
+		PORT->PortType = FTDX10;
+	}
+
 	// FT991A seems to be different to most other YAESU types
 
 	if (strcmp(RigName, "FT991A") == 0 && PORT->PortType == YAESU)
@@ -6453,7 +6481,7 @@ CheckOtherParams:
 		strcpy(RIG->PTTOff, "TX0;");
 		RIG->PTTOffLen = 4;
 	}
-	else if	(PORT->PortType == FT991A)
+	else if	(PORT->PortType == FT991A || PORT->PortType == FTDX10)
 	{	
 		RIG->PollLen = 7;
 		strcpy(RIG->Poll, "FA;MD0;");
@@ -6783,6 +6811,24 @@ CheckScan:
 				}
 			}
 			break;
+
+		case FTDX10:
+
+			for (ModeNo = 0; ModeNo < 16; ModeNo++)
+			{
+				if (strlen(Mode) == 1)
+				{
+					if (FTDX10Modes[ModeNo][0] == Mode[0])
+						break;
+				}
+				else
+				{
+					if (_stricmp(FTDX10Modes[ModeNo], Mode) == 0)
+						break;
+				}
+			}
+			break;
+
 
 
 		case FT100:						
@@ -7163,7 +7209,7 @@ CheckScan:
 		{	
 			FreqPtr[0]->Cmd1Len = sprintf(CmdPtr, "FA%s;MD0%X;FA;MD;", &FreqString[1], ModeNo);
 		}
-		else if	(PORT->PortType == FT991A)
+		else if	(PORT->PortType == FT991A || PORT->PortType == FTDX10)
 		{	
 			FreqPtr[0]->Cmd1Len = sprintf(CmdPtr, "FA%s;MD0%X;FA;MD0;", &FreqString, ModeNo);
 		}

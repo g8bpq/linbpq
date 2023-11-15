@@ -634,7 +634,7 @@ char * DISPLAY_NETROM(MESSAGE * ADJBUFFER, UCHAR * Output, int MsgLen)
 		// If an INP3 RIF (type <> UI) decode as such
 	
 		if (ADJBUFFER->CTL != 3)		// UI
-			return DisplayINP3RIF(&ADJBUFFER->L2DATA[1], Output, MsgLen - 24);
+			return DisplayINP3RIF(&ADJBUFFER->L2DATA[1], Output, MsgLen - (MSGHDDRLEN + 14 + 3));
 
 		memcpy(Alias, ++ptr, 6);
 

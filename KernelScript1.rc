@@ -10,7 +10,7 @@
 // Generated from the TEXTINCLUDE 2 resource.
 //
 #include "afxres.h"
-#include "bpqtermmdi.h"
+#include "BpqTermMDI.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -241,6 +241,7 @@ BEGIN
     END
     POPUP "Monitor"
     BEGIN
+        MENUITEM "Use Local Time",              MONLOCALTIME
         MENUITEM "Monitor TX",                  BPQMTX
         MENUITEM "Monitor Supervisory",         BPQMCOM
         MENUITEM "Monitor UI Only",             MON_UI_ONLY
@@ -276,13 +277,13 @@ INCOMINGCALL            WAVE    MOVEABLE PURE   "Ring.wav"
 BEGIN
     "kernelresource.h\0"
     """\r\n"
-    "bpqtermmdi.h\0"
+    "BpqTermMDI.h\0"
 END
 
 2 TEXTINCLUDE DISCARDABLE 
 BEGIN
     "#include ""afxres.h""\r\n"
-    "#include ""bpqtermmdi.h""\r\n"
+    "#include ""BpqTermMDI.h""\r\n"
     "\0"
 END
 

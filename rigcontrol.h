@@ -202,6 +202,7 @@ struct RIGINFO
 //G7TAJ
 #define SDRANGEL 19
 //G7TAJ
+#define FTDX10 20
 
 // Yease seem to have lots of variants of the same model
 

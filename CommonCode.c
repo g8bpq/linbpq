@@ -4955,6 +4955,7 @@ VOID SendWebRequest(SOCKET sock, char * Host, char * Request, char * Params, int
 					{
 						strlop(Buffer, 13);
 						Debugprintf("Map Update Params - %s", Params);
+
 						Debugprintf("Map Update failed - %s", Buffer);
 					}
 					return;

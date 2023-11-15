@@ -613,6 +613,11 @@ VOID CALLBACK SetupTermSessions(HWND hwnd, UINT  uMsg, UINT  idEvent,  DWORD  dw
 		else
 			AppendMenu(hMonCfgMenu,MF_STRING | MF_UNCHECKED,BPQBASE + i,msg);
 	}
+
+	if (mtxparam & 0x80)
+		CheckMenuItem(hMonCfgMenu,MONLOCALTIME,MF_CHECKED);
+	else
+		CheckMenuItem(hMonCfgMenu,MONLOCALTIME,MF_UNCHECKED);
 	
 	if (mtxparam & 1)
 		CheckMenuItem(hMonCfgMenu,BPQMTX,MF_CHECKED);
@@ -1733,6 +1738,10 @@ LRESULT CALLBACK MonWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
 			break;
 		}
+		case MONLOCALTIME:
+
+			ToggleLocalTime();
+			break;
 
 		case BPQMTX:
 	
@@ -4261,6 +4270,24 @@ int ToggleMTX(HWND hWnd)
 	else
 
 		CheckMenuItem(hMonCfgMenu,BPQMTX,MF_UNCHECKED);
+
+	IntSetTraceOptionsEx(portmask,mtxparam,mcomparam, monUI);
+
+    return (0);
+  
+}
+
+int ToggleLocalTime(HWND hWnd)
+{
+	mtxparam = mtxparam ^ 0x80;
+	
+	if (mtxparam & 0x80)
+
+		CheckMenuItem(hMonCfgMenu,MONLOCALTIME,MF_CHECKED);
+	
+	else
+
+		CheckMenuItem(hMonCfgMenu,MONLOCALTIME,MF_UNCHECKED);
 
 	IntSetTraceOptionsEx(portmask,mtxparam,mcomparam, monUI);
 

@@ -1581,8 +1581,8 @@ int main(int argc, char * argv[])
 				{
 					if (GenerateTrafficReport && (LastTrafficTime + 86400) < NOW)
 					{
-						LastTrafficTime = NOW;
 						CreateBBSTrafficReport();
+						LastTrafficTime = NOW;
 					}
 				}
 			}

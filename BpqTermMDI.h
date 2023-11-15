@@ -40,6 +40,7 @@
 #define CHATTERM                        1179
 #define IDM_CLOSEWINDOW					1180
 #define MONITORAPRS						1181
+#define MONLOCALTIME					1182
 #define MON_UI_ONLY                     40006
 #define StopALLMon                      40007
 
