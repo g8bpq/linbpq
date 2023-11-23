@@ -1199,7 +1199,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix some 63 port bugs in RigCOntrol (17)
 //	Fix 63 port bug in Bridging (18)
 //	Add FTDX10 Rigcontrol (19)
-//	Fix 64 bit bug in displaying INP3 Messages
+//	Fix 64 bit bug in displaying INP3 Messages (20)
+//	Improve restart of WinRPR TNC on remote host (21)
 
 #define CKernel
 

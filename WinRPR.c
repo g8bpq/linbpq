@@ -106,6 +106,7 @@ int ConnecttoWinRPR(int port);
 
 BOOL KillOldTNC(char * Path);
 int KillTNC(struct TNCINFO * TNC);
+void CountRestarts(struct TNCINFO * TNC);
 
 static BOOL RestartTNC(struct TNCINFO * TNC)
 {
@@ -789,15 +790,14 @@ void * WinRPRExtInit(EXTPORTDATA *  PortEntry)
 		return ExtProc;
 	}
 
+	if (TNC->AutoStartDelay == 0)
+		TNC->AutoStartDelay = 2000;
+
 	sprintf(msg,"WinRPR Host %s %d", TNC->HostName, htons(TNC->destaddr.sin_port));
 	WritetoConsoleLocal(msg);
 
 	TNC->Port = port;
 	TNC->Hardware = H_WINRPR;
-
-	if (TNC->ProgramPath)
-		TNC->WeStartedTNC = RestartTNC(TNC);
-
 
 	// Set up DED addresses for streams
 	
@@ -887,6 +887,9 @@ void * WinRPRExtInit(EXTPORTDATA *  PortEntry)
 	TNC->WEB_MODE = zalloc(20);
 	TNC->WEB_BUFFERS = zalloc(100);
 	TNC->WEB_TRAFFIC = zalloc(100);
+	TNC->WEB_RESTARTTIME = zalloc(100);
+	TNC->WEB_RESTARTS = zalloc(100);
+
 
 #ifndef LINBPQ
 
@@ -1451,14 +1454,9 @@ VOID WinRPRThread(void * portptr)
 		// can only check if running on local host
 		
 		TNC->PID = GetListeningPortsPID(TNC->destaddr.sin_port);
+		
 		if (TNC->PID == 0)
-		{
-			TNC->CONNECTING = FALSE;
-			sprintf(TNC->WEB_COMMSSTATE, "Waiting for TNC");
-			MySetWindowText(TNC->xIDC_COMMSSTATE, TNC->WEB_COMMSSTATE);
-
-			return;						// Not listening so no point trying to connect
-		}
+			goto TNCNotRunning;
 
 		// Get the File Name in case we want to restart it.
 
@@ -1480,17 +1478,25 @@ VOID WinRPRThread(void * portptr)
 				}
 			}
 		}
+		goto TNCRunning;
 	}
 #endif
 
-//	// If we started the TNC make sure it is still running.
+TNCNotRunning:
 
-//	if (!IsProcess(TNC->PID))
-//	{
-//		RestartTNC(TNC);
-//		Sleep(3000);
-//	}
+	// Not running or can't check, restart if we have a path 
 
+	if (TNC->ProgramPath)
+	{
+		Consoleprintf("Trying to (re)start TNC %s", TNC->ProgramPath);
+
+		if (RestartTNC(TNC))
+			CountRestarts(TNC);
+
+		Sleep(TNC->AutoStartDelay);
+	}
+
+TNCRunning:
 
 	TNC->destaddr.sin_addr.s_addr = inet_addr(TNC->HostName);
 	TNC->Datadestaddr.sin_addr.s_addr = inet_addr(TNC->HostName);
