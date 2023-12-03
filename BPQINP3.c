@@ -358,9 +358,7 @@ VOID ProcessINP3RIF(struct ROUTE * Route, UCHAR * ptr1, int msglen, int Port)
 
 	// Update Timestamp on Route
 
-	time((time_t *)&Stamp);
-
-	Stamp = Stamp % 86400;			// Secs into day
+	Stamp = time(NULL) % 86400;		// Secs into day
 	HH = Stamp / 3600;
 
 	Stamp -= HH * 3600;
@@ -370,6 +368,12 @@ VOID ProcessINP3RIF(struct ROUTE * Route, UCHAR * ptr1, int msglen, int Port)
 
 	while (msglen > 0)
 	{
+		if (msglen < 10)
+		{
+			Debugprintf("Corrupt INP3 Message");
+			return;
+		}
+
 		memset(alias, ' ', 6);	
 		memcpy(axcall, ptr1, 7);
 

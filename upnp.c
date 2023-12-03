@@ -42,10 +42,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #ifdef LINBPQ
 #ifndef MACBPQ
+#ifndef WIN32
 #include <miniupnpc/upnpcommands.h>
 #include <miniupnpc/miniupnpc.h>
 #include <miniupnpc/upnperrors.h>
 #include <stdio.h>
+#endif
 #endif
 #endif
 #ifdef MACBPQ

@@ -2773,6 +2773,9 @@ VOID SaveNewMessage(struct HTTPConnectionInfo * Session, char * MsgPtr, char * R
 
 		BuildNNTPList(Msg);				// Build NNTP Groups list
 
+		if (Msg->status != 'H' && Msg->type == 'B' && memcmp(Msg->fbbs, zeros, NBMASK) != 0)
+			Msg->status = '$';				// Has forwarding
+
 		if (EnableUI)
 			SendMsgUI(Msg);	
 
@@ -3698,6 +3701,9 @@ VOID WriteOneRecipient(struct MsgInfo * Msg, WebMailInfo * WebMail, int MsgLen, 
 
 	MatchMessagetoBBSList(Msg, 0);
 
+	if (Msg->status != 'H' && Msg->type == 'B' && memcmp(Msg->fbbs, zeros, NBMASK) != 0)
+		Msg->status = '$';				// Has forwarding
+
 	BuildNNTPList(Msg);				// Build NNTP Groups list
 }
 
@@ -4277,6 +4283,9 @@ VOID BuildMessageFromHTMLInput(struct HTTPConnectionInfo * Session, char * Reply
 	WebMail->Body = NULL;
 
 	MatchMessagetoBBSList(Msg, 0);
+
+	if (Msg->status != 'H' && Msg->type == 'B' && memcmp(Msg->fbbs, zeros, NBMASK) != 0)
+		Msg->status = '$';				// Has forwarding
 
 	BuildNNTPList(Msg);				// Build NNTP Groups list
 

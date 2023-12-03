@@ -74,6 +74,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <OutDir>D:\linbpq</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>C:\Dev\Msdev2005\$(SolutionName)\$(ProjectName)\$(Configuration)\</OutDir>
@@ -117,10 +118,10 @@
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>kernel32.lib;WS2_32.Lib;..\lib\libconfigd.lib;DbgHelp.lib;setupapi.lib;miniupnpc.lib;zlibstat.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;WS2_32.Lib;C:\OneDrive\Dev\Source\bpq32\libconfig\x64\Release\libconfig.lib;DbgHelp.lib;setupapi.lib;C:\Dev\Msdev2005\projects\bpq32\CKernel\x64\Debug\miniupnpc.lib;C:\OneDrive\Dev\Source\zlib-1.2.11\contrib\vstudio\vc14\x64\ZlibStatDebug\zlibstat.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>c:\LINBPQ\$(ProjectName).exe</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <GenerateMapFile>true</GenerateMapFile>
@@ -215,6 +216,7 @@
     <ClCompile Include="FBBRoutines.c" />
     <ClCompile Include="FLDigi.c" />
     <ClCompile Include="FreeDATA.c" />
+    <ClCompile Include="getopt.c" />
     <ClCompile Include="HALDriver.c" />
     <ClCompile Include="HanksRT.c" />
     <ClCompile Include="HFCommon.c" />

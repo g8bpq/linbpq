@@ -6212,7 +6212,7 @@ CheckOtherParams:
 			RIG->defaultFreq = atoi(&ptr[12]);
 		}
 		
-		else if (atoi(ptr))
+		else if (atoi(ptr) || ptr[2] == ':')
 			break;					// Not scan freq oe timeband, so see if another param
 
 		ptr = strtok_s(NULL, " \t\n\r", &Context);
@@ -6590,7 +6590,7 @@ CheckScan:
 		VARAMode[0] = 0;
 		Dwell = 0.0;
 
-		while (strchr(ptr, ':'))
+		while (ptr && strchr(ptr, ':'))
 		{
 			// New TimeBand
 
@@ -6611,6 +6611,9 @@ CheckScan:
 
 			ptr = strtok_s(NULL, " \t\n\r", &Context);										
 		}
+
+		if (ptr == 0)
+			break;
 
 		if (strchr(ptr, ','))			// New Format
 		{

@@ -1201,6 +1201,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add FTDX10 Rigcontrol (19)
 //	Fix 64 bit bug in displaying INP3 Messages (20)
 //	Improve restart of WinRPR TNC on remote host (21)
+//	Fix some Rigcontrol issues with empty timebands (22)
+//	Fix 64 bit bug in processing INP3 Messages (22)
 
 #define CKernel
 
