@@ -69,6 +69,7 @@ int GetAPRSIcon(unsigned char * _REPLYBUFFER, char * NodeURL);
 char * GetStandardPage(char * FN, int * Len);
 BOOL SHA1PasswordHash(char * String, char * Hash);
 char * byte_base64_encode(char *str, int len);
+int APIProcessHTTPMessage(char * response, char * Method, char * URL, char * request,	BOOL LOCAL, BOOL COOKIE);
 
 extern struct ROUTE * NEIGHBOURS;
 extern int  ROUTE_LEN;
@@ -1631,7 +1632,7 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 
 	char Encoding[] = "Content-Encoding: deflate\r\n";
 
-#ifdef WIN32
+#ifdef WIN32xx
 
 	struct _EXCEPTION_POINTERS exinfo;
 	strcpy(EXCEPTMSG, "ProcessHTTPMessage");
@@ -1770,6 +1771,43 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 
 		memcpy(Mycall, &MYNODECALL, 10);
 		strlop(Mycall, ' ');
+
+
+		// Look for API messages
+
+		if (_memicmp(Context, "/api/", 5) == 0 || _stricmp(Context, "/api") == 0)
+		{
+			char * Compressed;
+			ReplyLen = APIProcessHTTPMessage(_REPLYBUFFER, Method, Context, MsgPtr, LOCAL, COOKIE);
+				
+			if (memcmp(_REPLYBUFFER, "HTTP", 4) == 0)
+			{
+				// Full Message - just send it
+
+				sendandcheck(sock, _REPLYBUFFER, ReplyLen);
+
+				return 0;
+			}
+
+			if (allowDeflate)
+				Compressed = Compressit(_REPLYBUFFER, ReplyLen, &ReplyLen);
+			else
+				Compressed = _REPLYBUFFER;
+
+			HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\n"
+				"Content-Length: %d\r\n"
+				"Content-Type: application/json\r\n"
+				"Connection: close\r\n"
+				"%s\r\n", ReplyLen, Encoding);
+
+			sendandcheck(sock, Header, HeaderLen);
+			sendandcheck(sock, Compressed, ReplyLen);
+
+			if (allowDeflate)
+				free (Compressed);
+
+			return 0;
+		}
 
 
 		// APRS process internally
@@ -3889,7 +3927,7 @@ SendResp:
 		}
 		return 0;
 
-#ifdef WIN32
+#ifdef WIN32xx
 	}
 #include "StdExcept.c"
 }

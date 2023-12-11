@@ -74,7 +74,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions=" /section:_BPQDATA,srw"
-				AdditionalDependencies="WS2_32.Lib winmm.lib DbgHelp.lib comctl32.lib Iphlpapi.lib setupapi.lib ..\lib\libconfigd.lib miniupnpc.lib zlibstat.lib"
+				AdditionalDependencies="WS2_32.Lib winmm.lib DbgHelp.lib comctl32.lib Iphlpapi.lib setupapi.lib ..\lib\libconfigd.lib miniupnpc.lib zlibstat.lib json-c.lib"
 				OutputFile="c:\DevProgs\BPQ32\bpq32.dll"
 				LinkIncremental="2"
 				IgnoreAllDefaultLibraries="false"
@@ -436,6 +436,10 @@
 			</File>
 			<File
 				RelativePath="..\CommonSource\MULTIPSK.c"
+				>
+			</File>
+			<File
+				RelativePath=".\nodeapi.c"
 				>
 			</File>
 			<File

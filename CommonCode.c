@@ -49,7 +49,7 @@ extern struct CONFIGTABLE xxcfg;
 
 #endif
 
-struct TNCINFO * TNCInfo[70];		// Records are Malloc'd
+struct TNCINFO * TNCInfo[71];		// Records are Malloc'd
 
 extern int ReportTimer;
 

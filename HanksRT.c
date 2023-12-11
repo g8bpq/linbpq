@@ -77,6 +77,8 @@ char PopupText[260] = "";
 int PopupMode = 0;
 int chatPaclen = 236;
 
+int reportChatEvents = 0;
+
 char RtKnown[MAX_PATH] = "RTKnown.txt";
 char RtUsr[MAX_PATH] = "STUsers.txt";
 char RtUsrTemp[MAX_PATH] = "STUsers.tmp";
@@ -2079,6 +2081,18 @@ void text_tellu_Joined(USER * user)
 
 	sprintf(buf, "%s%-6.6s : %s *** Joined Chat, Topic %s", Stamp, user->call, user->name, user->topic->name);
 
+	if (reportChatEvents)
+	{
+
+#ifdef WIN32
+	if (pRunEventProgram)
+		pRunEventProgram("ChatNewUser.exe", user->call);
+#else
+	sprintf(prog, "%s/%s", BPQDirectory, "ChatNewUser");
+	RunEventProgram(prog, user->call);
+#endif
+	}
+
 // Send it to all connected users in the same topic.
 // Echo to originator if requested.
 
@@ -2109,14 +2123,6 @@ void text_tellu_Joined(USER * user)
 				nputc(circuit, 7);
 
 		nputc(circuit, 13);
-
-#ifdef WIN32
-		if (pRunEventProgram)
-			pRunEventProgram("ChatNewUser.exe", user->call);
-#else
-		sprintf(prog, "%s/%s", BPQDirectory, "ChatNewUser");
-		RunEventProgram(prog, user->call);
-#endif
 	}
 }
 // Tell one link circuit about a local user change of topic.
@@ -4170,6 +4176,7 @@ BOOL GetChatConfig(char * ConfigName)
 
 	ChatApplNum = GetIntValue(group, "ApplNum");
 	MaxChatStreams = GetIntValue(group, "MaxStreams");
+	reportChatEvents = GetIntValue(group, "reportChatEvents");
 	chatPaclen = GetIntValue(group, "chatPaclen");
 	GetStringValue(group, "OtherChatNodes", OtherNodesList);
 	GetStringValue(group, "ChatWelcomeMsg", ChatWelcomeMsg);
@@ -4201,6 +4208,7 @@ VOID SaveChatConfigFile(char * ConfigName)
 
 	SaveIntValue(group, "ApplNum", ChatApplNum);
 	SaveIntValue(group, "MaxStreams", MaxChatStreams);
+	SaveIntValue(group, "reportChatEvents", reportChatEvents);
 	SaveIntValue(group, "chatPaclen", chatPaclen);
 	SaveStringValue(group, "OtherChatNodes", OtherNodesList);
 	SaveStringValue(group, "ChatWelcomeMsg", ChatWelcomeMsg);

@@ -76,6 +76,8 @@ VOID SendTemplateSelectScreen(struct HTTPConnectionInfo * Session, char *URLPara
 BOOL isAMPRMsg(char * Addr);
 char * doXMLTransparency(char * string);
 Dll BOOL APIENTRY APISendAPRSMessage(char * Text, char * ToCall);
+void SendMessageReadEvent(struct UserInfo * user, struct MsgInfo * Msg);
+void SendNewMessageEvent(char * call, struct MsgInfo * Msg);
 
 extern char NodeTail[];
 extern char BBSName[10];
@@ -1122,7 +1124,7 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 								Msg->status = 'Y';
 								Msg->datechanged=time(NULL);
 								SaveMessageDatabase();
-
+								SendMessageReadEvent(Session->Callsign, Msg);
 							}
 						}
 					}
@@ -1190,6 +1192,7 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 							Msg->status = 'Y';
 							Msg->datechanged=time(NULL);
 							SaveMessageDatabase();
+							SendMessageReadEvent(Session->Callsign, Msg);
 						}
 					}
 				}
@@ -1303,6 +1306,7 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 					Msg->status = 'Y';
 					Msg->datechanged=time(NULL);
 					SaveMessageDatabase();
+					SendMessageReadEvent(Session->Callsign, Msg);
 				}
 			}
 		}
@@ -2776,10 +2780,15 @@ VOID SaveNewMessage(struct HTTPConnectionInfo * Session, char * MsgPtr, char * R
 		if (Msg->status != 'H' && Msg->type == 'B' && memcmp(Msg->fbbs, zeros, NBMASK) != 0)
 			Msg->status = '$';				// Has forwarding
 
+
 		if (EnableUI)
 			SendMsgUI(Msg);	
 
 		user = LookupCall(Msg->to);
+
+		// If Event Notifications enabled report a new message event
+
+		SendNewMessageEvent(user->Call, Msg);
 
 		if (user && (user->flags & F_APRSMFOR))
 		{

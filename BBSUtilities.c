@@ -43,7 +43,7 @@ RECT ConsoleRect;
 BOOL OpenConsole;
 BOOL OpenMon;
 
-int reportNewMesageEvents = 0;
+int reportMailEvents = 0;
 
 FBBFilter * Filters = NULL;
 
@@ -124,6 +124,8 @@ void decodeblock( unsigned char in[4], unsigned char out[3]);
 int encode_quoted_printable(char *s, char * out, int Len);
 int32_t Encode(char * in, char * out, int32_t inlen, BOOL B1Protocol, int Compress);
 int APIENTRY ChangeSessionCallsign(int Stream, unsigned char * AXCall);
+void SendMessageReadEvent(char * user, struct MsgInfo * Msg);
+void SendNewMessageEvent(char * call, struct MsgInfo * Msg);
 
 config_t cfg;
 config_setting_t * group;
@@ -4904,6 +4906,7 @@ sendEOM:
 					Msg->status = 'Y';
 					Msg->datechanged=time(NULL);
 					SaveMessageDatabase();
+					SendMessageReadEvent(user->Call, Msg);
 				}
 			}
 		}
@@ -6457,30 +6460,9 @@ nextline:
 
 	// If Event Notifications enabled report a new message event
 
-	if (reportNewMesageEvents)
-	{
-		char msg[200];
+	user = LookupCall(Msg->to);
 
-		//12345 B 2053 TEST@ALL F6FBB 920325 This is the subject
-
-		struct tm *tm = gmtime((time_t *)&Msg->datecreated);	
-
-		sprintf_s(msg, sizeof(msg),"%-6d %c %6d %-13s %-6s %02d%02d%02d %s\r",
-			Msg->number, Msg->type, Msg->length, Msg->to,
-			Msg->from, tm->tm_year-100, tm->tm_mon+1, tm->tm_mday, Msg->title);
-
-#ifdef WIN32
-		if (pRunEventProgram)
-			pRunEventProgram("MailNewMsg.exe", msg);
-#else
-		{
-			char prog[256];
-			sprintf(prog, "%s/%s", BPQDirectory, "MailNewMsg");
-			RunEventProgram(prog, msg);
-		}
-#endif
-	}
-
+	SendNewMessageEvent(user->Call, Msg);
 
 	if (EnableUI)
 #ifdef LINBPQ
@@ -6492,8 +6474,6 @@ nextline:
 	}
 	My__except_Routine("SendMsgUI");
 #endif
-
-	user = LookupCall(Msg->to);
 
 	if (user && (user->flags & F_APRSMFOR))
 	{
@@ -9576,6 +9556,7 @@ VOID SaveConfig(char * ConfigName)
 	SaveIntValue(group, "EnableUI", EnableUI);
 	SaveIntValue(group, "RefuseBulls", RefuseBulls);
 	SaveIntValue(group, "OnlyKnown", OnlyKnown);
+	SaveIntValue(group, "reportMailEvents", reportMailEvents);
 	SaveIntValue(group, "SendSYStoSYSOPCall", SendSYStoSYSOPCall);
 	SaveIntValue(group, "SendBBStoSYSOPCall", SendBBStoSYSOPCall);
 	SaveIntValue(group, "DontHoldNewUsers", DontHoldNewUsers);
@@ -10098,28 +10079,30 @@ BOOL GetConfig(char * ConfigName)
 		config_destroy(&cfg);
 		return(EXIT_FAILURE);
 	}
-
+/*
 #if LIBCONFIG_VER_MINOR > 5
 	config_set_option(&cfg, CONFIG_OPTION_AUTOCONVERT, 1);
 #else
 	config_set_auto_convert (&cfg, 1);
 #endif
-
+*/
 	group = config_lookup (&cfg, "main");
 
 	if (group == NULL)
 		return EXIT_FAILURE;
 
-	SMTPInPort =  GetIntValue(group, "SMTPPort");
-	POP3InPort =  GetIntValue(group, "POP3Port");
-	NNTPInPort =  GetIntValue(group, "NNTPPort");
-	RemoteEmail =  GetIntValue(group, "RemoteEmail");
-	MaxStreams =  GetIntValue(group, "Streams");
-	BBSApplNum =  GetIntValue(group, "BBSApplNum");
-	EnableUI =  GetIntValue(group, "EnableUI");
-	MailForInterval =  GetIntValue(group, "MailForInterval");
-	RefuseBulls =  GetIntValue(group, "RefuseBulls");
-	OnlyKnown =  GetIntValue(group, "OnlyKnown");
+	SMTPInPort = GetIntValue(group, "SMTPPort");
+	POP3InPort = GetIntValue(group, "POP3Port");
+	NNTPInPort = GetIntValue(group, "NNTPPort");
+	RemoteEmail = GetIntValue(group, "RemoteEmail");
+	MaxStreams = GetIntValue(group, "Streams");
+	BBSApplNum = GetIntValue(group, "BBSApplNum");
+	EnableUI = GetIntValue(group, "EnableUI");
+	MailForInterval = GetIntValue(group, "MailForInterval");
+	RefuseBulls = GetIntValue(group, "RefuseBulls");
+	OnlyKnown = GetIntValue(group, "OnlyKnown");
+	reportMailEvents = GetIntValue(group, "reportMailEvents");
+
 	SendSYStoSYSOPCall =  GetIntValue(group, "SendSYStoSYSOPCall");
 	SendBBStoSYSOPCall =  GetIntValue(group, "SendBBStoSYSOPCall");
 	DontHoldNewUsers =  GetIntValue(group, "DontHoldNewUsers");
@@ -15793,3 +15776,62 @@ VOID GetPGConfig()
 	NUM_SERVERS = n;
 	fclose(file);
 }
+
+void SendMessageReadEvent(char * call, struct MsgInfo * Msg)
+{
+	if (reportMailEvents)
+	{
+		char msg[512];
+
+		//12345 B 2053 TEST@ALL F6FBB 920325 This is the subject
+
+		struct tm *tm = gmtime((time_t *)&Msg->datecreated);	
+
+		sprintf_s(msg, sizeof(msg),"%-6d %c %c %6d %-13s %-6s %02d%02d%02d %s\r",
+			Msg->number, Msg->type, Msg->status, Msg->length, Msg->to,
+			Msg->from, tm->tm_year-100, tm->tm_mon+1, tm->tm_mday, Msg->title);
+
+//		sprintf(msg, "%s Read %d\r", user->Call, Msg->number);
+
+#ifdef WIN32
+		if (pRunEventProgram)
+			pRunEventProgram("MailMsgRead.exe", msg);
+#else
+		{
+			char prog[256];
+			sprintf(prog, "%s/%s", BPQDirectory, "MailMsgRead");
+			RunEventProgram(prog, msg);
+		}
+#endif
+	}
+}
+
+void SendNewMessageEvent(char * call, struct MsgInfo * Msg)
+{
+	if (reportMailEvents)
+	{
+		char msg[512];
+
+		//12345 B 2053 TEST@ALL F6FBB 920325 This is the subject
+
+		struct tm *tm = gmtime((time_t *)&Msg->datecreated);	
+
+		sprintf_s(msg, sizeof(msg),"%-6d %c %c %6d %-13s %-6s %02d%02d%02d %s\r",
+			Msg->number, Msg->type, Msg->status, Msg->length, Msg->to,
+			Msg->from, tm->tm_year-100, tm->tm_mon+1, tm->tm_mday, Msg->title);
+
+#ifdef WIN32
+		if (pRunEventProgram)
+			pRunEventProgram("MailNewMsg.exe", msg);
+#else
+		{
+			char prog[256];
+			sprintf(prog, "%s/%s", BPQDirectory, "MailNewMsg");
+			RunEventProgram(prog, msg);
+		}
+#endif
+	}
+}
+
+
+

@@ -110,6 +110,7 @@ struct TCPINFO
 	int FBBPort[100];
 	int RelayPort;
 	int HTTPPort;
+	int APIPort;
 	int TriModePort;
 	int SyncPort;
 	int DRATSPort;
@@ -159,6 +160,7 @@ struct TCPINFO
 	SOCKET FBBsock[100];
 	SOCKET Relaysock;
 	SOCKET HTTPsock;
+	SOCKET APIsock;
 	SOCKET TriModeSock;
 	SOCKET TriModeDataSock;
 	SOCKET Syncsock;
@@ -169,6 +171,7 @@ struct TCPINFO
 	SOCKET FBBsock6[100];
 	SOCKET Relaysock6;
 	SOCKET HTTPsock6;
+	SOCKET APIsock6;
 	SOCKET Syncsock6;
 	SOCKET DRATSsock6;
 

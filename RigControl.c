@@ -1142,7 +1142,6 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 				return FALSE;
 			}
 
-			
 			// Build a ScanEntry in the buffer
 
 			FreqPtr = (struct ScanEntry *)buffptr->Data;
@@ -1277,8 +1276,6 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 			}
 
 			*(CmdPtr++) = 0xFD;
-
- 		
 			*(CmdPtr) = 0; 
 
 			Len = (int)(CmdPtr - (char *)&buffptr[30]);
@@ -1326,6 +1323,9 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 		FreqPtr[0].Cmd1Len = Len;		// for ICOM
 		C_Q_ADD(&RIG->BPQtoRADIO_Q, buffptr);
 		return TRUE;
+
+		sprintf(Command, "Ok\r");
+		return FALSE;
 	}
 
 	if (_memicmp(FreqString, "Chan", 4) == 0)
@@ -2203,7 +2203,7 @@ DllExport BOOL APIENTRY Rig_Init()
 
 	memset(&RIGTNC, 0, sizeof(struct TNCINFO));
 
-	TNCInfo[40] = TNC;
+	TNCInfo[70] = TNC;
 
 	// Get config info
 
@@ -2229,7 +2229,7 @@ DllExport BOOL APIENTRY Rig_Init()
 
 #ifndef LINBPQ
 
-	TNC->Port = 40;
+	TNC->Port = 70;
 	CreatePactorWindow(TNC, "RIGCONTROL", "RigControl", 10, PacWndProc, 550, NeedRig * 20 + 60, NULL);
 	hDlg = TNC->hDlg;
 

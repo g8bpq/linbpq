@@ -67,6 +67,7 @@ extern int MaxChatStreams;
 extern char Position[81];
 extern char PopupText[251];
 extern int PopupMode;
+extern int reportChatEvents;
 
 #include "httpconnectioninfo.h"
 
@@ -323,6 +324,8 @@ VOID SaveChatInfo(struct HTTPConnectionInfo * Session, char * MsgPtr, char * Rep
 		if (chatPaclen < 60)
 			chatPaclen = 60;
 
+		GetCheckBox(input, "Events=", &reportChatEvents);
+
 		GetParam(input, "nodes=", Nodes);
 
 		ptr1 = Nodes;
@@ -508,7 +511,9 @@ scan:
 	
 	Len = sprintf(Reply, ChatConfigTemplate,
 		OurNode, Key, Key, Key,
-		ChatApplNum, MaxChatStreams, Nodes, chatPaclen, Position,
+		ChatApplNum, MaxChatStreams, 
+		(reportChatEvents) ? CHKD  : UNC,
+		Nodes, chatPaclen, Position,
 		(PopupMode) ? UNC  : CHKD, 
 		(PopupMode) ? CHKD  : UNC,  Text, ptr2);
 

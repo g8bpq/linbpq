@@ -23,6 +23,9 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #include "bpqmail.h"
 
+void SendMessageReadEvent(struct UserInfo * user, struct MsgInfo * Msg);
+
+
 VOID ProcessMBLLine(CIRCUIT * conn, struct UserInfo * user, UCHAR* Buffer, int len)
 {
 	Buffer[len] = 0;
@@ -86,6 +89,7 @@ VOID ProcessMBLLine(CIRCUIT * conn, struct UserInfo * user, UCHAR* Buffer, int l
 			FBBputs(conn, ">\r");
 			Msg->status = 'Y';					// Mark as read
 			SaveMessageDatabase();
+			SendMessageReadEvent(user->Call, Msg);
 		}
 		else
 		{

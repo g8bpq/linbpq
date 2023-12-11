@@ -36,7 +36,8 @@ struct ConnectionInfo
 	BOOL RelayMode;				// Pure TCP for RMS Relay Emulation forwarding
 	BOOL DRATSMode;				// HTML Terminal Emulator
 	BOOL SyncMode;				// RMS Relay Sync
-	BOOL HTTPMode;				// DRATS Reflector Emulator
+	BOOL HTTPMode;				// HTTP Server
+	BOOL APIMode;				// REST API Server
 	BOOL TriMode;				// Trimode emulation
 	BOOL TriModeConnected;		// Set when remote session is connected - now send data to DataSock
 	SOCKET TriModeDataSock;		// Data Socket

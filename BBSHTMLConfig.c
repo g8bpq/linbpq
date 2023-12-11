@@ -49,6 +49,7 @@ extern int MaxChatStreams;
 extern char Position[81];
 extern char PopupText[251];
 extern int PopupMode;
+extern int reportMailEvents;
 
 #define MaxCMS	10				// Numbr of addresses we can keep - currently 4 are used.
 
@@ -1633,6 +1634,7 @@ VOID ProcessConfUpdate(struct HTTPConnectionInfo * Session, char * MsgPtr, char 
 		UserCantKillT = !UserCantKillT;	// Reverse Logic
 		GetCheckBox(input, "FWDtoMe=", &ForwardToMe);
 		GetCheckBox(input, "OnlyKnown=", &OnlyKnown);
+		GetCheckBox(input, "Events=", &reportMailEvents);
 
 		GetParam(input, "POP3Port=", Temp);
 		POP3InPort = atoi(Temp);
@@ -2610,6 +2612,7 @@ VOID SendConfigPage(char * Reply, int * ReplyLen, char * Key)
 		(UserCantKillT) ? UNC : CHKD,		// Reverse logic
 		(ForwardToMe) ? CHKD  : UNC,
 		(OnlyKnown) ? CHKD  : UNC,
+		(reportMailEvents) ? CHKD  : UNC,
 		POP3InPort, SMTPInPort, NNTPInPort,
 		(RemoteEmail) ? CHKD  : UNC,
 		AMPRDomain,

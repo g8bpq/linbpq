@@ -406,7 +406,7 @@ extern BOOL CloseAllNeeded;
 extern int CloseOnError;
 
 extern char * PortConfig[70];
-extern struct TNCINFO * TNCInfo[70];		// Records are Malloc'd
+extern struct TNCINFO * TNCInfo[71];		// Records are Malloc'd
 
 #define MaxBPQPortNo 63		// Port 64 reserved for BBS Mon
 #define MAXBPQPORTS 63

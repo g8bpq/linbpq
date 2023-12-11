@@ -534,6 +534,9 @@ int ProcessLine(char * buf, int Port)
 	else if (_stricmp(param,"HTTPPORT") == 0)
 		TCP->HTTPPort = atoi(value);
 
+	else if (_stricmp(param,"APIPORT") == 0)
+		TCP->APIPort = atoi(value);
+
 	else if (_stricmp(param,"SYNCPORT") == 0)
 		TCP->SyncPort = atoi(value);
 
@@ -1646,6 +1649,9 @@ BOOL OpenSockets(struct TNCINFO * TNC)
 	if (TCP->HTTPPort)
 		TCP->HTTPsock = OpenSocket4(TNC, TCP->HTTPPort);
 
+	if (TCP->APIPort)
+		TCP->APIsock = OpenSocket4(TNC, TCP->APIPort);
+
 	if (TCP->SyncPort)
 		TCP->Syncsock = OpenSocket4(TNC, TCP->SyncPort);
 
@@ -1755,9 +1761,11 @@ BOOL OpenSockets6(struct TNCINFO * TNC)
 	if (TCP->RelayPort)
 		TCP->Relaysock6 = OpenSocket6(TNC, TCP->RelayPort);
 
-
 	if (TCP->HTTPPort)
 		TCP->HTTPsock6 = OpenSocket6(TNC, TCP->HTTPPort);
+
+	if (TCP->APIPort)
+		TCP->APIsock6 = OpenSocket6(TNC, TCP->APIPort);
 
 	if (TCP->SyncPort)
 		TCP->Syncsock6 = OpenSocket6(TNC, TCP->SyncPort);
@@ -1812,6 +1820,14 @@ static VOID SetupListenSet(struct TNCINFO * TNC)
 	}
 		
 	sock = TCP->HTTPsock;
+	if (sock)
+	{
+		FD_SET(sock, readfd);
+		if (sock > maxsock)
+			maxsock = sock;
+	}
+
+	sock = TCP->APIsock;
 	if (sock)
 	{
 		FD_SET(sock, readfd);
@@ -1879,6 +1895,14 @@ static VOID SetupListenSet(struct TNCINFO * TNC)
 	}
 		
 	sock = TCP->HTTPsock6;
+	if (sock)
+	{
+		FD_SET(sock, readfd);
+		if (sock > maxsock)
+			maxsock = sock;
+	}
+
+	sock = TCP->APIsock6;
 	if (sock)
 	{
 		FD_SET(sock, readfd);
@@ -3192,6 +3216,7 @@ int Socket_Accept(struct TNCINFO * TNC, SOCKET SocketId, int Port)
 			TNC->Streams[n].FramesQueued = 0;
 
 			sockptr->HTTPMode = FALSE;	
+			sockptr->APIMode = FALSE;	
 			sockptr->SyncMode = FALSE;	
 			sockptr->DRATSMode = FALSE;	
 			sockptr->FBBMode = FALSE;	
@@ -3208,6 +3233,12 @@ int Socket_Accept(struct TNCINFO * TNC, SOCKET SocketId, int Port)
 
 			if (SocketId == TCP->HTTPsock || SocketId == TCP->HTTPsock6)
 				sockptr->HTTPMode = TRUE;
+
+			if (SocketId == TCP->APIsock || SocketId == TCP->APIsock6)
+			{
+				sockptr->HTTPMode = TRUE;		// API is a type of HTTP socket
+				sockptr->APIMode = TRUE;
+			}
 			else if (SocketId == TCP->Syncsock || SocketId == TCP->Syncsock6)
 				sockptr->SyncMode = TRUE;
 			else if (SocketId == TCP->DRATSsock || SocketId == TCP->DRATSsock6)

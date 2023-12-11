@@ -1203,6 +1203,9 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Improve restart of WinRPR TNC on remote host (21)
 //	Fix some Rigcontrol issues with empty timebands (22)
 //	Fix 64 bit bug in processing INP3 Messages (22)
+//	First pass at api (24)
+//	Send OK in response to Rigcontrol CMD (24);
+
 
 #define CKernel
 
@@ -2065,7 +2068,7 @@ VOID TimerProcX()
 
 			GetWindowRect(FrameWnd, &FRect);
 
-			SaveWindowPos(64);		// Rigcontrol
+			SaveWindowPos(70);		// Rigcontrol
 
 			for (i=0;i<NUMBEROFPORTS;i++)
 			{
@@ -2181,7 +2184,7 @@ VOID TimerProcX()
 		if(TimerInst == GetCurrentProcessId())
 		{
 			RigReconfigFlag = FALSE;
-			CloseDriverWindow(40);
+			CloseDriverWindow(70);
 			Rig_Close();
 			Sleep(6000);		// Allow any CATPTT, HAMLIB and FLRIG threads to close
 			RigActive = Rig_Init();
@@ -6482,7 +6485,7 @@ VOID SaveBPQ32Windows()
 		PORTVEC=(PEXTPORTDATA)PORTVEC->PORTCONTROL.PORTPOINTER;		
 	}
 
-	SaveWindowPos(40);		// Rigcontrol
+	SaveWindowPos(70);		// Rigcontrol
 
 
 	if (hIPResWnd)
