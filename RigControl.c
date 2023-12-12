@@ -1322,7 +1322,6 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 
 		FreqPtr[0].Cmd1Len = Len;		// for ICOM
 		C_Q_ADD(&RIG->BPQtoRADIO_Q, buffptr);
-		return TRUE;
 
 		sprintf(Command, "Ok\r");
 		return FALSE;

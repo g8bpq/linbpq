@@ -56,7 +56,6 @@ int xx()
 		// Handle the client request
 		//      handle_request();
 	}
-
 	return 0;
 }
 
