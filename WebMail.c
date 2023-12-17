@@ -76,7 +76,7 @@ VOID SendTemplateSelectScreen(struct HTTPConnectionInfo * Session, char *URLPara
 BOOL isAMPRMsg(char * Addr);
 char * doXMLTransparency(char * string);
 Dll BOOL APIENTRY APISendAPRSMessage(char * Text, char * ToCall);
-void SendMessageReadEvent(struct UserInfo * user, struct MsgInfo * Msg);
+void SendMessageReadEvent(char * Call, struct MsgInfo * Msg);
 void SendNewMessageEvent(char * call, struct MsgInfo * Msg);
 
 extern char NodeTail[];
@@ -721,26 +721,27 @@ VOID ProcessFormDir(char * FormSet, char * DirName, struct HtmlFormDir *** xxx, 
 	{
         if (entry->d_type == DT_DIR)
 		{
-            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+			char Dir[MAX_PATH];
+
+			if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
                 continue;
 
-			Debugprintf("Recurse %s/%s/%s", FormSet, DirName, entry->d_name);
+			// Recurse in subdir
+
+			sprintf(Dir, "%s/%s", DirName, entry->d_name);
+
+			ProcessFormDir(FormSet, Dir, &FormDir->Dirs, &FormDir->DirCount);
 			continue;
-
 		}
-		// see if initial html
 
-//		if (stristr(entry->d_name, "initial.html"))
-		{
-			// Add to list
+		// Add to list
 
-			Form = zalloc(sizeof (struct HtmlForm));
+		Form = zalloc(sizeof (struct HtmlForm));
 
-			Form->FileName = _strdup(entry->d_name);
+		Form->FileName = _strdup(entry->d_name);
 
-			FormDir->Forms=realloc(FormDir->Forms, (FormDir->FormCount + 1) * sizeof(void *));
-			FormDir->Forms[FormDir->FormCount++] = Form;
-		}
+		FormDir->Forms=realloc(FormDir->Forms, (FormDir->FormCount + 1) * sizeof(void *));
+		FormDir->Forms[FormDir->FormCount++] = Form;
     }
     closedir(dir);
 #endif
@@ -810,22 +811,23 @@ int GetHTMLFormSet(char * FormSet)
 	if (!(dir = opendir(name)))
 	{
 		Debugprintf("cant open forms dir %s %d %d", name, errno, dir);
-        return 0;
 	}
-
-    while ((entry = readdir(dir)) != NULL)
+	else
 	{
-        if (entry->d_type == DT_DIR)
+		while ((entry = readdir(dir)) != NULL)
 		{
-            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-                continue;
+			if (entry->d_type == DT_DIR)
+			{
+				if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+					continue;
 
-			// Add to Directory List
+				// Add to Directory List
 
-			ProcessFormDir(FormSet, entry->d_name, &HtmlFormDirs, &FormDirCount);
-        }
-    }
-    closedir(dir);
+				ProcessFormDir(FormSet, entry->d_name, &HtmlFormDirs, &FormDirCount);
+			}
+		}
+		closedir(dir);
+	}
 #endif
 
 	// List for testing
@@ -2847,12 +2849,25 @@ char * GetHTMLViewerTemplate(char * FN)
 		{
 			for (l = 0; l < Dir->DirCount; l++)
 			{
-				for (k = 0; k < Dir->Dirs[l]->FormCount; k++)
+				struct HtmlFormDir * SDir = Dir->Dirs[l];
+
+				if (SDir->DirCount)
 				{
-					if (strcmp(FN, Dir->Dirs[l]->Forms[k]->FileName) == 0)
+					struct HtmlFormDir * SSDir = SDir->Dirs[0];
+					int x = 1;
+				}
+
+				for (k = 0; k < SDir->FormCount; k++)
+				{
+					if (_stricmp(FN, SDir->Forms[k]->FileName) == 0)
 					{
-						return CheckFile(Dir, Dir->Dirs[l]->Forms[k]->FileName);
+						return CheckFile(SDir, SDir->Forms[k]->FileName);
 					}
+				}
+				if (SDir->DirCount)
+				{
+					struct HtmlFormDir * SSDir = SDir->Dirs[0];
+					int x = 1;
 				}
 			}
 		}
@@ -3233,7 +3248,7 @@ BOOL ParseXML(WebMailInfo * WebMail, char * XMLOrig)
 
 		*ptr2++ = 0;
 
-		ptr3 = strchr(ptr2, '<');	// end of value string
+		ptr3 = strstr(ptr2, "</");	// end of value string
 		if (ptr3 == NULL)
 			goto quit;
 
@@ -3245,6 +3260,14 @@ BOOL ParseXML(WebMailInfo * WebMail, char * XMLOrig)
 		XMLKeys++;
 
 		ptr1 = strchr(ptr3, '<');
+
+		if (_memicmp(ptr1, "</", 2) == 0)
+		{
+			// end of a parameter block. Find start of next block
+
+			ptr1 = strchr(++ptr1, '<');
+			ptr1 = strchr(++ptr1, '<');		// Skip start of next block
+		}
 	}
 
 
@@ -5358,6 +5381,8 @@ char * CheckFile(struct HtmlFormDir * Dir, char * FN)
 
 #endif
 
+	printf("%s\n", MsgFile);
+
 	if (stat(MsgFile, &STAT) != -1)
 	{
 		hFile = fopen(MsgFile, "rb");
@@ -5373,6 +5398,8 @@ char * CheckFile(struct HtmlFormDir * Dir, char * FN)
 		ReadLen = (int)fread(MsgBytes, 1, FileSize, hFile);
 		MsgBytes[FileSize] = 0;
 		fclose(hFile);
+
+		printf("%d %s\n", strlen(MsgBytes), MsgBytes);
 
 		return MsgBytes;
 	}

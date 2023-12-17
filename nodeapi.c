@@ -274,10 +274,7 @@ int sendPortList(char * response, char * token, int Flags)
 	char ID[33];
 	char * ptr;
 
-	Array = (char *)malloc(2048);
-	ArrayLen = 2048;
-
-	ArrayPtr += sprintf(&Array[ArrayPtr], "[\r\n");
+	ArrayPtr += sprintf(&response[ArrayPtr], "{\"ports\":[\r\n");
 
 	for (count = 1; count <= NUMBEROFPORTS; count++)
 	{
@@ -449,22 +446,14 @@ int sendPortList(char * response, char * token, int Flags)
 			*(ptr--) = 0;
 		}
 
-		if ((ArrayPtr + 512) > ArrayLen)
-		{
-			ArrayLen += 2048;
-			Array = (char *)realloc(Array, ArrayLen);
-		}
-		ArrayPtr += sprintf(&Array[ArrayPtr], " {\"ID\":\"%s\", \"Driver\":\"%s\", \"Number\":%d,\"State\":\"%s\"},\r\n",
+		ArrayPtr += sprintf(&response[ArrayPtr], " {\"ID\":\"%s\", \"Driver\":\"%s\", \"Number\":%d,\"State\":\"%s\"},\r\n",
 			ID, DLL, Port->PORTNUMBER, Status);
 	}
 
 	ArrayPtr -= 3;		// remove trailing comma
+	ArrayPtr += sprintf(&response[ArrayPtr], "\r\n]}\r\n");
 
-	ArrayPtr += sprintf(&Array[ArrayPtr], "\r\n]\r\n");
-
-	sprintf(response, "%s", Array);
-
-	return strlen(response);
+	return ArrayPtr;
 }
 
 /*
@@ -493,7 +482,7 @@ int sendNodeList(char * response, char * token, int Flags)
 	Dests = DESTS;
 	MaxNodes = MAXDESTS;
 
-	ArrayPtr += sprintf(&response[ArrayPtr], "[\r\n");
+	ArrayPtr += sprintf(&response[ArrayPtr], "{\"nodes\":[\r\n");
 
 	Dests-=1;
 
@@ -578,7 +567,7 @@ int sendNodeList(char * response, char * token, int Flags)
 	}	
 
 	ArrayPtr -= 3;		// remove comma
-	ArrayPtr += sprintf(&response[ArrayPtr], "\r\n]");
+	ArrayPtr += sprintf(&response[ArrayPtr], "\r\n]}");
 	
 	return ArrayPtr;
 }

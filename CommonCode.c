@@ -3516,8 +3516,6 @@ int __sync_lock_test_and_set(int * ptr, int val)
 #endif // __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__
 #endif // MACBPQ
 
-
-
 void GetSemaphore(struct SEM * Semaphore, int ID)
 {
 	//
@@ -5232,7 +5230,7 @@ void SendDataToPktMap(char *Msg)
 
 					// TCP
 
-					Mode = Modenames[TNC->Hardware];
+					Mode = Modenames[TNC->Hardware - 1];
 
 					if (TNC->CONNECTED)
 						Active = 1;

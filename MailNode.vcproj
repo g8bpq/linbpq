@@ -425,6 +425,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\mailapi.c"
+				>
+			</File>
+			<File
 				RelativePath="..\CommonSource\MailCommands.c"
 				>
 			</File>
@@ -462,6 +466,10 @@
 			</File>
 			<File
 				RelativePath="..\CommonSource\NNTPRoutines.c"
+				>
+			</File>
+			<File
+				RelativePath=".\nodeapi.c"
 				>
 			</File>
 			<File

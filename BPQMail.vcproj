@@ -317,6 +317,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\mailapi.c"
+				>
+			</File>
+			<File
 				RelativePath="..\CommonSource\MailCommands.c"
 				>
 				<FileConfiguration

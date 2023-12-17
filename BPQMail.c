@@ -1124,8 +1124,8 @@
 //	Improve Webmail on 64 bit builds
 //	Fix setting status '$' on Bulls sent via WebMail (22)
 //	Implement New Message and Message Read Events (23)
-
-
+//	Start adding json api (25)
+//	Fix reading nested directories when loading Standard Templates and other template bugs (25)
 
 #include "bpqmail.h"
 #include "winstdint.h"

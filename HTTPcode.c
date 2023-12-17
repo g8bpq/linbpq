@@ -1594,7 +1594,7 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 	char * Compressed = 0;
 	char * HostPtr = 0;
 
-	char * Context, * Method, * NodeURL, * Key;
+	char * Context, * Method, * NodeURL = 0, * Key;
 	char _REPLYBUFFER[250000];
 	char Reply[250000];
 
@@ -1912,7 +1912,8 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 
 			Session = FindSession(Key);
 
-			if (Session == NULL)
+	
+			if (Session == NULL && _memicmp(Context, "/Mail/API/", 10) != 0)
 			{
 				ReplyLen = sprintf(Reply, MailLostSession, Key);
 				RLen = ReplyLen;
@@ -2063,10 +2064,13 @@ Returnit:
 					return 0;
 				}
 
-				// Add tail
+				if (NodeURL && _memicmp(NodeURL, "/mail/api/", 10) != 0)
+				{
+					// Add tail
 
-				strcpy(&Reply[ReplyLen], Tail);
-				ReplyLen += strlen(Tail);
+					strcpy(&Reply[ReplyLen], Tail);
+					ReplyLen += strlen(Tail);
+				}
 
 				// compress if allowed
 				
@@ -2075,7 +2079,15 @@ Returnit:
 				else
 					Compressed = Reply;
 
-				HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n%s\r\n", ReplyLen, Encoding);
+				if (NodeURL && _memicmp(NodeURL, "/mail/api/", 10) == 0)
+					HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\n"
+						"Content-Length: %d\r\n"
+						"Content-Type: application/json\r\n"
+						"Connection: close\r\n"
+						"%s\r\n", ReplyLen, Encoding);
+				else
+					HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n%s\r\n", ReplyLen, Encoding);
+				
 				sendandcheck(sock, Header, HeaderLen);
 				sendandcheck(sock, Compressed, ReplyLen);
 
