@@ -2365,8 +2365,8 @@ BOOL WriteCOMBlock(HANDLE fd, char * Block, int BytesToWrite)
 
 	Err = GetCommModemStatus(fd, &Mask);
 
-	if ((Mask & MS_CTS_ON) == 0)		// trap com0com other end not open
-		return TRUE;
+//	if ((Mask & MS_CTS_ON) == 0)		// trap com0com other end not open
+//		return TRUE;
 
 	fWriteStat = WriteFile(fd, Block, BytesToWrite,
 	                       &BytesWritten, NULL );
@@ -3516,6 +3516,8 @@ int __sync_lock_test_and_set(int * ptr, int val)
 #endif // __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__
 #endif // MACBPQ
 
+
+
 void GetSemaphore(struct SEM * Semaphore, int ID)
 {
 	//
@@ -3680,7 +3682,7 @@ VOID OpenReportingSockets()
 	{
 		// Enable Node Map Reports
 
-		ReportTimer = 600;
+		ReportTimer = 60;
 
 		ReportSocket = socket(AF_INET,SOCK_DGRAM,0);
 
@@ -4984,17 +4986,81 @@ VOID SendWebRequest(SOCKET sock, char * Host, char * Request, char * Params, int
 extern char MYALIASLOPPED[10];
 extern int MasterPort[MAXBPQPORTS+1];
 
+
+// G7TAJ //
+/*
+	{"mheard": [
+				{
+					"Callsign": "GB7CIP-7",
+					"Port": "VHF",
+					"Packets": 70369,
+					"LastHeard": "2024-12-29 20:26:32"
+				},
+*/
+
+void BuildPortMH(char * MHJSON, struct PORTCONTROL * PORT)
+{
+  struct tm * TM;
+  static char MHTIME[50];
+  time_t szClock;
+  MHSTRUC * MH = PORT->PORTMHEARD;
+  int count = MHENTRIES;
+  char Normcall[20];
+  int len;
+  char * ptr;
+  char mhstr[400];
+
+   if (MH == NULL)
+	return;
+
+   while (count--)
+	{
+		if (MH->MHCALL[0] == 0)
+			break;
+
+		len = ConvFromAX25(MH->MHCALL, Normcall);
+		Normcall[len] = 0;
+
+		ptr = &MH->MHCALL[6];   // End of Address bit
+
+		if ((*ptr & 1) == 0)
+		{
+  		  // at least one digi - which we are not going to include
+		  MH++;
+ 		  continue;
+		}
+
+		Normcall[len++] = 0;
+
+		//format TIME
+		
+		szClock = MH->MHTIME;
+		TM = gmtime(&szClock);
+		sprintf(MHTIME, "%d-%d-%d %02d:%02d:%02d",
+		    TM->tm_year+1900, TM->tm_mon + 1, TM->tm_mday, TM->tm_hour, TM->tm_min, TM->tm_sec);
+
+		sprintf(mhstr, "{\"callSign\": \"%s\", \"port\": \"%d\", \"packets\": %d, \"lastHeard\": \"%s\" },\r\n" ,
+	  	  Normcall, PORT->PORTNUMBER, MH->MHCOUNT, MHTIME);
+
+		strcat( MHJSON, mhstr );
+
+		MH++;
+	}
+}
+
+
 void SendDataToPktMap(char *Msg)
 {
 	SOCKET sock;
 	char Return[256];
 	char Request[64];
 	char Params[50000];
+
 	struct PORTCONTROL * PORT = PORTTABLE;
 	struct PORTCONTROL * SAVEPORT;
 	struct ROUTE * Routes = NEIGHBOURS;
 	int MaxRoutes = MAXNEIGHBOURS;
-		
+
 	int PortNo;
 	int Active;
 	uint64_t Freq;
@@ -5010,8 +5076,17 @@ void SendDataToPktMap(char *Msg)
 	int Port = 0;
 	char Normcall[10];
 	char Copy[20];
+	char ID[33];
 
 	char * ptr = Params;
+
+// G7TAJ //
+	char MHJSON[50000];
+	char * mhptr;
+	char * b4Routesptr;
+
+	MHJSON[0]=0;
+// G7TAJ //
 
 	printf("Sending to new map\n");
 
@@ -5055,6 +5130,11 @@ void SendDataToPktMap(char *Msg)
 	ptr += sprintf(ptr, "\"software\": {\"name\": \"BPQ32\",\"version\": \"%s\"},\r\n", VersionString);
 #endif
 	ptr += sprintf(ptr, "\"source\": \"ReportedByNode\",\r\n");
+
+// G7TAJ //
+	sprintf(MHJSON, ",\"mheard\": [");
+// G7TAJ //
+
 
 	//Ports
 
@@ -5256,14 +5336,27 @@ void SendDataToPktMap(char *Msg)
 
 		if (Active)
 		{
+			char * ptr2 = &ID[29];
+			strcpy(ID, PORT->PORTDESCRIPTION);
+			while (*(ptr2) == ' ' && ptr2 != ID)
+				*(ptr2--) = 0;
+
 			ptr += sprintf(ptr, "{\"id\": \"%d\",\"linkType\": \"%s\","
 			"\"freq\": \"%lld\",\"mode\": \"%s\",\"modulation\": \"%s\","
 			"\"baud\": \"%d\",\"bitrate\": \"%d\",\"usage\": \"%s\",\"comment\": \"%s\"},\r\n",
 			PortNo, Type, 
 			Freq, Mode, Modulation,
-			Baud, Bitrate, "Access", PORT->PORTDESCRIPTION);
+			Baud, Bitrate, "Access", ID);
+
+// G7TAJ //
+			// make MH list to be added later
+			BuildPortMH(MHJSON, PORT);
+
+// G7TAJ //
+
+
 		}
-	
+
 		PORT = PORT->PORTPOINTER;
 	}
 
@@ -5271,6 +5364,10 @@ void SendDataToPktMap(char *Msg)
 	ptr += sprintf(ptr, "],\r\n");
 
 	//	Neighbours
+
+// G7TAJ //
+	b4Routesptr = ptr-3;
+// G7TAJ //
 
 	ptr += sprintf(ptr, "\"neighbours\": [\r\n");
 
@@ -5282,7 +5379,7 @@ void SendDataToPktMap(char *Msg)
 				ConvFromAX25(Routes->NEIGHBOUR_CALL, Normcall);
 				strlop(Normcall, ' ');
 
-				ptr += sprintf(ptr, 
+				ptr += sprintf(ptr,
 				"{\"node\": \"%s\", \"port\": \"%d\", \"quality\":  \"%d\"},\r\n",
 				Normcall, Routes->NEIGHBOUR_PORT, Routes->NEIGHBOUR_QUAL);
 			}
@@ -5290,8 +5387,30 @@ void SendDataToPktMap(char *Msg)
 		Routes++;
 	}
 
-	ptr -= 3;
-	ptr += sprintf(ptr, "]}");
+// G7TAJ //
+
+	// if !strstr quality, then there are none, so remove neighbours portion
+	if ( strstr(Params, "quality") == NULL ) {
+		ptr = b4Routesptr;
+	} else {
+		ptr -= 3;
+		ptr += sprintf(ptr, "]");
+	}
+
+	if ( strlen(MHJSON) > 15 ) {
+	    mhptr = MHJSON + strlen(MHJSON);
+	    mhptr -= 3;
+	    sprintf(mhptr, "]\r\n");
+	    ptr += sprintf(ptr, "\r\n%s", MHJSON);
+
+	}
+
+	ptr += sprintf(ptr, "}");
+
+
+
+// G7TAJ //
+
 
 /*
 {

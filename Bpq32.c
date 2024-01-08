@@ -1086,7 +1086,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add ? and * wildcards to NODES command (74)
 //  Add Port RADIO config parameter (74)
 
-//  Version 6.0.24.1 August 2023
+//  Version 6.0.24.1 August 2024
 
 //	Apply NODES command wildcard to alias as well a call (2)
 //	Add STOPPORT/STARTPORT to VARA Driver (2)
@@ -1204,8 +1204,9 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix some Rigcontrol issues with empty timebands (22)
 //	Fix 64 bit bug in processing INP3 Messages (22)
 //	First pass at api (24)
-//	Send OK in response to Rigcontrol CMD (24);
-
+//	Send OK in response to Rigcontrol CMD (24)
+//	Disable CTS check in WriteComBlock (26) 
+//	Improvments to reporting to M0LTE Map
 
 #define CKernel
 

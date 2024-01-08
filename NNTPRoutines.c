@@ -41,6 +41,87 @@ char *day[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 
 VOID ReleaseNNTPSock(SOCKET sock);
 
+int NNTPSendSock(SocketConn * sockptr, char * msg)
+{
+	int len = (int)strlen(msg);
+	char * newmsg = malloc(len+10);
+
+ 	WriteLogLine(NULL, '>',msg,  len, LOG_TCP);
+
+	strcpy(newmsg, msg);
+
+	strcat(newmsg, "\r\n");
+
+	len+=2;
+
+	// Attempt to fix Thunderbird - Queue all and send at end
+
+	if ((sockptr->SendSize + len) > sockptr->SendBufferSize)
+	{
+		sockptr->SendBufferSize += (10000 + len);
+		sockptr->SendBuffer = realloc(sockptr->SendBuffer, sockptr->SendBufferSize);
+	}
+
+	memcpy(&sockptr->SendBuffer[sockptr->SendSize], newmsg, len);
+	sockptr->SendSize += len;
+	free (newmsg);
+	return len;
+}
+
+void NNTPFlush(SocketConn * sockptr)
+{	
+	int sent;
+	
+	sent = send(sockptr->socket, sockptr->SendBuffer, sockptr->SendSize, 0);
+		
+	if (sent < sockptr->SendSize)
+	{
+		int error, remains;
+
+		// Not all could be sent - queue rest
+
+		if (sent == SOCKET_ERROR)
+		{
+			error = WSAGetLastError();
+			if (error == WSAEWOULDBLOCK)
+				sent=0;
+
+			//	What else??
+		}
+
+		remains = sockptr->SendSize - sent;
+
+		sockptr->SendBufferSize += (10000 + remains);
+		sockptr->SendBuffer = malloc(sockptr->SendBufferSize);
+
+		memmove(sockptr->SendBuffer, &sockptr->SendBuffer[sent], remains);
+
+		sockptr->SendSize = remains;
+		sockptr->SendPtr = 0;
+
+		return;
+	}
+		
+	free(sockptr->SendBuffer);
+	sockptr->SendBuffer = NULL;
+	sockptr->SendSize = 0;
+	sockptr->SendBufferSize = 0;
+	return;
+}
+
+VOID __cdecl NNTPsockprintf(SocketConn * sockptr, const char * format, ...)
+{
+	// printf to a socket
+
+	char buff[1000];
+	va_list(arglist);
+	
+	va_start(arglist, format);
+	vsprintf(buff, format, arglist);
+
+	NNTPSendSock(sockptr, buff);
+}
+
 struct NNTPRec * LookupNNTP(char * Group)
 {
 	struct NNTPRec * ptr = FirstNNTPRec;
@@ -304,7 +385,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 			if (ptr2 == NULL)
 			{
-				SendSock(sockptr, "500 Eh");
+				NNTPSendSock(sockptr, "500 Eh");
 				return;
 			}
 
@@ -428,7 +509,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 			sockptr->Flags &= ~GETTINGMESSAGE;
 
-			SendSock(sockptr, "240 OK");
+			NNTPSendSock(sockptr, "240 OK");
 
 			return;
 		}
@@ -459,13 +540,13 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 		if (Len > 22) Buffer[22]=0;
 		strcpy(sockptr->CallSign, &Buffer[14]);
 		sockptr->State = GettingPass;
-		sockprintf(sockptr, "381 More authentication information required");
+		NNTPsockprintf(sockptr, "381 More authentication information required");
 		return;
 	}
 
 	if (sockptr->State == GettingUser)
 	{
-		sockprintf(sockptr, "480 Authentication required");
+		NNTPsockprintf(sockptr, "480 Authentication required");
 		return;
 	}
 
@@ -481,19 +562,19 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 			{
 				if (strcmp(user->pass, &Buffer[14]) == 0)
 				{
-					sockprintf(sockptr, "281 Authentication accepted");
+					NNTPsockprintf(sockptr, "281 Authentication accepted");
 	
 					sockptr->State = Authenticated;
 					sockptr->POP3User = user;
 					return;
 				}
 			}
-			SendSock(sockptr, "482 Authentication rejected");
+			NNTPSendSock(sockptr, "482 Authentication rejected");
 			sockptr->State = GettingUser;
 			return;
 		}
 
-		sockprintf(sockptr, "480 Authentication required");
+		NNTPsockprintf(sockptr, "480 Authentication required");
 		return;
 	}
 
@@ -506,7 +587,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 		{
 			if (_stricmp(REC->NewsGroup, &Buffer[6]) == 0)
 			{
-				sockprintf(sockptr, "211 %d %d %d %s", REC->Count, REC->FirstMsg, REC->LastMsg, REC->NewsGroup);
+				NNTPsockprintf(sockptr, "211 %d %d %d %s", REC->Count, REC->FirstMsg, REC->LastMsg, REC->NewsGroup);
 				sockptr->NNTPNum = 0;
 				sockptr->NNTPGroup = REC;
 				return;
@@ -514,7 +595,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 			REC =REC->Next;
 		}
 	
-		sockprintf(sockptr, "411 no such news group");
+		NNTPsockprintf(sockptr, "411 no such news group");
 		return;
 	}
 
@@ -528,7 +609,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 		if (REC == NULL && Buffer[10] == 0)
 		{
-			sockprintf(sockptr, "412 No Group Selected");
+			NNTPsockprintf(sockptr, "412 No Group Selected");
 			return;
 		}
 
@@ -543,7 +624,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 			{
 			GotGroup:
 
-				sockprintf(sockptr, "211 Article Numbers Follows");
+				NNTPsockprintf(sockptr, "211 Article Numbers Follows");
 				sockptr->NNTPNum = 0;
 				sockptr->NNTPGroup = REC;
 
@@ -557,22 +638,22 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 						sprintf(FullGroup, "%s.%s", Msg->to, Msg->via );
 						if (_stricmp(FullGroup, REC->NewsGroup) == 0)
 						{
-							sockprintf(sockptr, "%d", MsgNo);
+							NNTPsockprintf(sockptr, "%d", MsgNo);
 						}
 					}
 				}
-				SendSock(sockptr,".");
+				NNTPSendSock(sockptr,".");
 				return;
 			}
 			REC = REC->Next;
 		}
-		sockprintf(sockptr, "411 no such news group");
+		NNTPsockprintf(sockptr, "411 no such news group");
 		return;
 	}
 
 	if(_memicmp(Buffer, "MODE READER", 11) == 0)
 	{
-		SendSock(sockptr, "200 Hello");
+		NNTPSendSock(sockptr, "200 Hello");
 		return;
 	}
 
@@ -580,15 +661,15 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 	{
 		struct NNTPRec * REC = FirstNNTPRec;
 
-		SendSock(sockptr, "215 list of newsgroups follows");
+		NNTPSendSock(sockptr, "215 list of newsgroups follows");
 	
 		while (REC)
 		{
-			sockprintf(sockptr, "%s %d %d y", REC->NewsGroup, REC->LastMsg, REC->FirstMsg);
+			NNTPsockprintf(sockptr, "%s %d %d y", REC->NewsGroup, REC->LastMsg, REC->FirstMsg);
 			REC = REC->Next;
 		}
 
-		SendSock(sockptr,".");
+		NNTPSendSock(sockptr,".");
 		return;
 	}
 
@@ -615,16 +696,16 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 		else
 			Time = mktime(&rtime);
 		
-		SendSock(sockptr, "231 list of new newsgroups follows");
+		NNTPSendSock(sockptr, "231 list of new newsgroups follows");
 
 		while(REC)
 		{
 			if (REC->DateCreated > Time)
-				sockprintf(sockptr, "%s %d %d y", REC->NewsGroup, REC->LastMsg, REC->FirstMsg);
+				NNTPsockprintf(sockptr, "%s %d %d y", REC->NewsGroup, REC->LastMsg, REC->FirstMsg);
 			REC = REC->Next;
 		}
 
-		SendSock(sockptr,".");
+		NNTPSendSock(sockptr,".");
 		return;
 	}
 
@@ -636,7 +717,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 		if (REC == NULL)
 		{
-			SendSock(sockptr,"412 no newsgroup has been selected");
+			NNTPSendSock(sockptr,"412 no newsgroup has been selected");
 			return;
 		}
 
@@ -646,7 +727,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 			if (MsgNo == 0)
 			{
-				SendSock(sockptr,"420 no current article has been selected");
+				NNTPSendSock(sockptr,"420 no current article has been selected");
 				return;
 			}
 		}
@@ -659,20 +740,20 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 		if (Msg)
 		{
-			sockprintf(sockptr, "221 %d <%s>", MsgNo, Msg->bid);
+			NNTPsockprintf(sockptr, "221 %d <%s>", MsgNo, Msg->bid);
 
-			sockprintf(sockptr, "From: %s", Msg->from);
-			sockprintf(sockptr, "Date: %s", FormatNNTPDateAndTime((time_t)Msg->datecreated));
-			sockprintf(sockptr, "Newsgroups: %s.s", Msg->to, Msg->via);
-			sockprintf(sockptr, "Subject: %s", Msg->title);
-			sockprintf(sockptr, "Message-ID: <%s>", Msg->bid);
-			sockprintf(sockptr, "Path: %s", BBSName);
+			NNTPsockprintf(sockptr, "From: %s", Msg->from);
+			NNTPsockprintf(sockptr, "Date: %s", FormatNNTPDateAndTime((time_t)Msg->datecreated));
+			NNTPsockprintf(sockptr, "Newsgroups: %s.s", Msg->to, Msg->via);
+			NNTPsockprintf(sockptr, "Subject: %s", Msg->title);
+			NNTPsockprintf(sockptr, "Message-ID: <%s>", Msg->bid);
+			NNTPsockprintf(sockptr, "Path: %s", BBSName);
 
-			SendSock(sockptr,".");
+			NNTPSendSock(sockptr,".");
 			return;
 		}
 
-		SendSock(sockptr,"423 No such article in this newsgroup");
+		NNTPSendSock(sockptr,"423 No such article in this newsgroup");
 		return;
 	}
 
@@ -686,7 +767,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 		if (REC == NULL)
 		{
-			SendSock(sockptr,"412 no newsgroup has been selected");
+			NNTPSendSock(sockptr,"412 no newsgroup has been selected");
 			return;
 		}
 
@@ -696,7 +777,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 			if (MsgNo == 0)
 			{
-				SendSock(sockptr,"420 no current article has been selected");
+				NNTPSendSock(sockptr,"420 no current article has been selected");
 				return;
 			}
 		}
@@ -709,25 +790,25 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 		if (Msg)
 		{
-			sockprintf(sockptr, "220 %d <%s>", MsgNo, Msg->bid);
+			NNTPsockprintf(sockptr, "220 %d <%s>", MsgNo, Msg->bid);
 			msgbytes = ReadMessageFile(Msg->number);
 
 			Path = GetPathFromHeaders(msgbytes);
 
-			sockprintf(sockptr, "From: %s", Msg->from);
-			sockprintf(sockptr, "Date: %s", FormatNNTPDateAndTime((time_t)Msg->datecreated));
-			sockprintf(sockptr, "Newsgroups: %s.%s", Msg->to, Msg->via);
-			sockprintf(sockptr, "Subject: %s", Msg->title);
-			sockprintf(sockptr, "Message-ID: <%s>", Msg->bid);
-			sockprintf(sockptr, "Path: %s", &Path[1]);
+			NNTPsockprintf(sockptr, "From: %s", Msg->from);
+			NNTPsockprintf(sockptr, "Date: %s", FormatNNTPDateAndTime((time_t)Msg->datecreated));
+			NNTPsockprintf(sockptr, "Newsgroups: %s.%s", Msg->to, Msg->via);
+			NNTPsockprintf(sockptr, "Subject: %s", Msg->title);
+			NNTPsockprintf(sockptr, "Message-ID: <%s>", Msg->bid);
+			NNTPsockprintf(sockptr, "Path: %s", &Path[1]);
 
-			SendSock(sockptr,"");
+			NNTPSendSock(sockptr,"");
 
 
-			SendSock(sockptr,msgbytes);
-			SendSock(sockptr,"");
+			NNTPSendSock(sockptr,msgbytes);
+			NNTPSendSock(sockptr,"");
 
-			SendSock(sockptr,".");
+			NNTPSendSock(sockptr,".");
 
 			free(msgbytes);
 			free(Path);
@@ -735,7 +816,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 			return;
 			
 		}
-		SendSock(sockptr,"423 No such article in this newsgroup");
+		NNTPSendSock(sockptr,"423 No such article in this newsgroup");
 		return;
 	}
 
@@ -749,7 +830,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 		if (REC == NULL)
 		{
-			SendSock(sockptr,"412 no newsgroup has been selected");
+			NNTPSendSock(sockptr,"412 no newsgroup has been selected");
 			return;
 		}
 
@@ -759,7 +840,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 			if (MsgNo == 0)
 			{
-				SendSock(sockptr,"420 no current article has been selected");
+				NNTPSendSock(sockptr,"420 no current article has been selected");
 				return;
 			}
 		}
@@ -772,15 +853,15 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 		if (Msg)
 		{
-			sockprintf(sockptr, "222 %d <%s>", MsgNo, Msg->bid);
+			NNTPsockprintf(sockptr, "222 %d <%s>", MsgNo, Msg->bid);
 			msgbytes = ReadMessageFile(Msg->number);
 
 			Path = GetPathFromHeaders(msgbytes);
 
-			SendSock(sockptr,msgbytes);
-			SendSock(sockptr,"");
+			NNTPSendSock(sockptr,msgbytes);
+			NNTPSendSock(sockptr,"");
 
-			SendSock(sockptr,".");
+			NNTPSendSock(sockptr,".");
 
 			free(msgbytes);
 			free(Path);
@@ -788,7 +869,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 			return;
 			
 		}
-		SendSock(sockptr,"423 No such article in this newsgroup");
+		NNTPSendSock(sockptr,"423 No such article in this newsgroup");
 		return;
 	}
 
@@ -801,7 +882,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 		if (REC == NULL)
 		{
-			SendSock(sockptr,"412 no newsgroup has been selected");
+			NNTPSendSock(sockptr,"412 no newsgroup has been selected");
 			return;
 		}
 
@@ -821,7 +902,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 			if (MsgStart == 0)
 			{
-				SendSock(sockptr,"420 no current article has been selected");
+				NNTPSendSock(sockptr,"420 no current article has been selected");
 				return;
 			}
 		}
@@ -830,7 +911,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 			 sockptr->NNTPNum = MsgEnd;
 		}
 
-		sockprintf(sockptr, "221 ");
+		NNTPsockprintf(sockptr, "221 ");
 
 		for (MsgNo = MsgStart; MsgNo <= MsgEnd; MsgNo++)
 		{
@@ -843,20 +924,20 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 				if (_stricmp(FullGroup, REC->NewsGroup) == 0)
 				{
 					if (_stricmp(Header, "subject") == 0)
-						sockprintf(sockptr, "%d Subject: %s", MsgNo, Msg->title);
+						NNTPsockprintf(sockptr, "%d Subject: %s", MsgNo, Msg->title);
 					else if (_stricmp(Header, "from") == 0)
-						sockprintf(sockptr, "%d From: %s", MsgNo, Msg->from);
+						NNTPsockprintf(sockptr, "%d From: %s", MsgNo, Msg->from);
 					else if (_stricmp(Header, "date") == 0)
-						sockprintf(sockptr, "%d Date: %s", MsgNo, FormatNNTPDateAndTime((time_t)Msg->datecreated));
+						NNTPsockprintf(sockptr, "%d Date: %s", MsgNo, FormatNNTPDateAndTime((time_t)Msg->datecreated));
 					else if (_stricmp(Header, "message-id") == 0)
-						sockprintf(sockptr, "%d Message-ID: <%s>",  MsgNo, Msg->bid);
+						NNTPsockprintf(sockptr, "%d Message-ID: <%s>",  MsgNo, Msg->bid);
 					else if (_stricmp(Header, "lines") == 0)
-						sockprintf(sockptr, "%d Lines: %d",  MsgNo, Msg->length);
+						NNTPsockprintf(sockptr, "%d Lines: %d",  MsgNo, Msg->length);
 				}
 			}
 		}
 
-		SendSock(sockptr,".");
+		NNTPSendSock(sockptr,".");
 		return;
 
 	}
@@ -869,7 +950,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 		if (REC == NULL)
 		{
-			SendSock(sockptr,"412 no newsgroup has been selected");
+			NNTPSendSock(sockptr,"412 no newsgroup has been selected");
 			return;
 		}
 
@@ -887,7 +968,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 			if (MsgStart == 0)
 			{
-				SendSock(sockptr,"420 no current article has been selected");
+				NNTPSendSock(sockptr,"420 no current article has been selected");
 				return;
 			}
 		}
@@ -896,7 +977,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 			 sockptr->NNTPNum = MsgEnd;
 		}
 
-		sockprintf(sockptr, "224 ");
+		NNTPsockprintf(sockptr, "224 ");
 
 		for (MsgNo = MsgStart; MsgNo <= MsgEnd; MsgNo++)
 		{
@@ -909,14 +990,14 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 				if (_stricmp(FullGroup, REC->NewsGroup) == 0)
 				{
 					 // subject, author, date, message-id, references, byte count, and line count. 
-					sockprintf(sockptr, "%d\t%s\t%s\t%s\t%s\t%s\t%d\t%d",
+					NNTPsockprintf(sockptr, "%d\t%s\t%s\t%s\t%s\t%s\t%d\t%d",
 						MsgNo, Msg->title, Msg->from, FormatNNTPDateAndTime((time_t)Msg->datecreated), Msg->bid,
 						"", Msg->length, Msg->length);
 				}
 			}
 		}
 
-		SendSock(sockptr,".");
+		NNTPSendSock(sockptr,".");
 		return;
 
 	}
@@ -932,7 +1013,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 	{
 		if (sockptr->State != Authenticated)
 		{
-			sockprintf(sockptr, "480 Authentication required");
+			NNTPsockprintf(sockptr, "480 Authentication required");
 			return;
 		}		
 
@@ -942,7 +1023,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 		if (sockptr->MailBuffer == NULL)
 		{
 			CriticalErrorHandler("Failed to create POP3 Message Buffer");
-			SendSock(sockptr, "QUIT");
+			NNTPSendSock(sockptr, "QUIT");
 			sockptr->State = WaitingForQUITResponse;
 			shutdown(sock, 0);
 
@@ -951,7 +1032,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 	
 		sockptr->Flags |= GETTINGMESSAGE;
 		
-		SendSock(sockptr, "340 OK");
+		NNTPSendSock(sockptr, "340 OK");
 		return;
 	}
 
@@ -959,7 +1040,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 	if(_memicmp(Buffer, "QUIT", 4) == 0)
 	{
-		SendSock(sockptr, "205 OK");
+		NNTPSendSock(sockptr, "205 OK");
 		Sleep(500);
 		shutdown(sock, 0);
 		return;
@@ -967,7 +1048,7 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 
 /*	if(memcmp(Buffer, "RSET\r\n", 6) == 0)
 	{
-		SendSock(sockptr, "250 Ok");
+		NNTPSendSock(sockptr, "250 Ok");
 		sockptr->State = 0;
 		sockptr->Recipients;
 		return;
@@ -991,15 +1072,15 @@ VOID ProcessNNTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 			sprintf_s(Date, sizeof(Date), "111 %04d%02d%02d%02d%02d%02d",
 				tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
 
-			SendSock(sockptr, Date);
+			NNTPSendSock(sockptr, Date);
 		}
 		else
-			SendSock(sockptr, "500 command not recognized");
+			NNTPSendSock(sockptr, "500 command not recognized");
 
 		return;
 	}
 
-	SendSock(sockptr, "500 command not recognized");
+	NNTPSendSock(sockptr, "500 command not recognized");
 
 	return;
 }
@@ -1068,6 +1149,9 @@ loop:
 
 		}
 	}
+	
+	NNTPFlush(sockptr);
+
 	return 0;
 }
 
@@ -1110,8 +1194,10 @@ int NNTP_Accept(SOCKET SocketId)
 	sockptr->socket = sock;
 	sockptr->State = 0;
 	
-	SendSock(sockptr, "200 BPQMail NNTP Server ready");	
+	NNTPSendSock(sockptr, "200 BPQMail NNTP Server ready");	
 	Logprintf(LOG_TCP, NULL, '|', "Incoming NNTP Connect Socket = %d", sock);
+
+	NNTPFlush(sockptr);
 
 	return 0;
 }
@@ -1144,7 +1230,7 @@ int NNTP_Data(int sock, int error, int eventcode)
 						SendFromQueue(sockptr);
 					else
 					{
-						SendSock(sockptr, "200 BPQMail NNTP Server ready");	
+						NNTPSendSock(sockptr, "200 BPQMail NNTP Server ready");	
 //						sockptr->State = GettingUser;
 					}
 					
