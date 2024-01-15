@@ -1206,7 +1206,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	First pass at api (24)
 //	Send OK in response to Rigcontrol CMD (24)
 //	Disable CTS check in WriteComBlock (26) 
-//	Improvments to reporting to M0LTE Map
+//	Improvments to reporting to M0LTE Map (26)
+//	IPGateway fix from github user isavitsky (27)
 
 #define CKernel
 

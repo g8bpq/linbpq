@@ -4539,6 +4539,50 @@ void OpenTAP()
 		return;
 	}
 
+	// Fix from github user isavitsky
+
+	/*
+	 * After some research I found that on most of my
+	 * systems, including Raspberry Pi IV, a slight delay
+	 * is needed before considering the TAP device
+	 * up and running. Otherwise the interface structures
+	 * do not initialise properly and later in the code
+	 * around the line 4700 when we initialise our ARP
+	 * structure:
+	 *
+	 * memcpy(Arp->HWADDR, xbuffer.ifr_hwaddr.sa_data, 6);
+	 *
+	 * the MAC address is getting filled in with random
+	 * value which makes the communication via our TAP
+	 * device using the configured IPADDR virtually
+	 * impossible.
+	 *
+	 */
+	
+	Debugprintf("Waiting for the TAP to become UP and RUNNING");
+	
+	for (int i=10; i>0; i--)
+	{
+		Sleep(10);
+
+		if ((err = ioctl(sockfd, SIOCGIFFLAGS, &ifr)) < 0)
+		{
+			perror("SIOCGIFFLAGS");
+			return;
+		}
+
+		if((ifr.ifr_flags & IFF_UP) && (ifr.ifr_flags & IFF_RUNNING))
+		{
+			Debugprintf("TAP is UP and RUNNING");
+			break;
+		}
+		else if (i == 1)
+		{
+			Debugprintf("TAP is still not UP and RUNNING");
+			return;
+		}
+	}
+
 	printf("TAP brought up\n");
 
 	// Set MTU to 256

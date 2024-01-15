@@ -917,9 +917,8 @@ BOOL ProcessIncommingConnectEx(struct TNCINFO * TNC, char * Call, int Stream, BO
 	PMSGWITHLEN buffptr;
 	int Totallen = 0;
 	UCHAR * ptr;
-	struct PORTCONTROL * PORT = TNC->PortRecord;
+	struct PORTCONTROL * PORT = (struct PORTCONTROL *)TNC->PortRecord;
 	
-
 	// Stop Scanner
 
 	if (Stream == 0 || TNC->Hardware == H_UZ7HO)
@@ -4877,7 +4876,7 @@ static char HeaderTemplate[] = "POST %s HTTP/1.1\r\n"
 	"Content-Type: application/json\r\n"
 	"Host: %s:%d\r\n"
 	"Content-Length: %d\r\n"
-	//r\nUser-Agent: BPQ32(G8BPQ)\r\n"
+	"User-Agent: %s%s\r\n"
 //	"Expect: 100-continue\r\n"
 	"\r\n";
 
@@ -4891,7 +4890,11 @@ VOID SendWebRequest(SOCKET sock, char * Host, char * Request, char * Params, int
 	char * ptr, * ptr1;
 	int Sent;
 
-	sprintf(Header, HeaderTemplate, Request, Host, 80, Len, Params);
+#ifdef LINBPQ
+	sprintf(Header, HeaderTemplate, Request, Host, 80, Len, "linbpq/", VersionString, Params);
+#else
+	sprintf(Header, HeaderTemplate, Request, Host, 80, Len, "bpq32/", VersionString, Params);
+#endif
 	Sent = send(sock, Header, (int)strlen(Header), 0);
 	Sent = send(sock, Params, (int)strlen(Params), 0);
 
@@ -5088,7 +5091,7 @@ void SendDataToPktMap(char *Msg)
 	MHJSON[0]=0;
 // G7TAJ //
 
-	printf("Sending to new map\n");
+//	printf("Sending to new map\n");
 
 	sprintf(Request, "/api/NodeData/%s", MYNODECALL);
 
