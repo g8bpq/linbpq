@@ -6995,7 +6995,7 @@ VOID SendWarningToSYSOP(struct MsgInfo * Msg)
 	char * MailBuffer = malloc(100);
 	char Title[100];
 
-	Length += sprintf(MailBuffer, "Warning - Message %d has nowhere to go", Msg->number);
+	Length += sprintf(MailBuffer, "Warning - Message %d has nowhere to go\r\n%s@%s", Msg->number, Msg->to, Msg->via);
 	sprintf(Title, "Warning - Message %d has nowhere to go", Msg->number);
 	SendMessageToSYSOP(Title, MailBuffer, Length);
 }

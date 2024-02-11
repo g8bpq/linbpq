@@ -3189,14 +3189,16 @@ VOID ProcessDEDFrame(struct TNCINFO * TNC, UCHAR * Msg, int framelen)
 
 		// If using an FT847 on PTC Port it needa a "Cat On" Command. Send it here
 
-		PORT = TNC->RIG->PORT;
-
-		if (PORT->PTC && strcmp(PORT->Rigs[0].RigName, "FT847") == 0)
+		if (TNC->RIG->PORT && TNC->RIG->PORT->PTC)
 		{
-			UCHAR CATON[6] = {0,0,0,0,0};
-			SendPTCRadioCommand(PORT->PTC, CATON, 5);
-		}
+			PORT = TNC->RIG->PORT;
 
+			if (strcmp(PORT->Rigs[0].RigName, "FT847") == 0)
+			{
+				UCHAR CATON[6] = {0,0,0,0,0};
+				SendPTCRadioCommand(PORT->PTC, CATON, 5);
+			}
+		}
 	}
 
 	Stream = RealStream = Msg[2];

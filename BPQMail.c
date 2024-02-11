@@ -1126,6 +1126,7 @@
 //	Implement New Message and Message Read Events (23)
 //	Start adding json api (25)
 //	Fix reading nested directories when loading Standard Templates and other template bugs (25)
+//	Add TO and AT to "Message has nowhere to go" message (28)
 
 #include "bpqmail.h"
 #include "winstdint.h"

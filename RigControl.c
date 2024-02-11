@@ -1222,11 +1222,12 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 		char c;
 		int val;
  		char * ptr1;
+		char * ptr2;
 		int Len;
 
 		if (n < 3)
 		{
-			strcpy(Command, "Sorry - Invalid Format - should be HEX Hexstring\r");
+			strcpy(Command, "Sorry - Invalid Format - should be CMD Params\r");
 			return FALSE;
 		}
 
@@ -1314,6 +1315,31 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 
 			Len = 5;
 			break;
+
+		case FLRIG:
+
+			// Two string params - command and params eg rig.set_ptt <i4>1</i4>"
+			// or maybe param could be format data - eg i 1
+
+			_strlwr(ptr1);
+
+			ptr2 = strlop(ptr1, ' ');
+
+			if (ptr2 == 0)
+			{
+				strcpy(Command, "Sorry - Invalid Format - should be CMD cmd params\r");
+				return FALSE;
+			}
+
+			strlop(ptr2, ' ');
+
+			FLRIGSendCommand(PORT, ptr1, ptr2);
+
+			return FALSE;
+
+
+
+
 
 		default:
 			sprintf(Command, "Sorry - CMD not supported on your Radio\r");

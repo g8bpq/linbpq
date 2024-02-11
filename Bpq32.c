@@ -1208,6 +1208,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Disable CTS check in WriteComBlock (26) 
 //	Improvments to reporting to M0LTE Map (26)
 //	IPGateway fix from github user isavitsky (27)
+// Fix possible crash in SCSPactor PTCPORT code (29)
 
 #define CKernel
 
