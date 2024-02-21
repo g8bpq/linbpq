@@ -1398,6 +1398,7 @@ NOHA:
 		int bestmatch = 0;
 		int depth;
 		int Matched = 0;
+		int MultiPDepth = 0;
 
 		for (bbs = BBSChain; bbs; bbs = bbs->BBSNext)
 		{		
@@ -1467,7 +1468,49 @@ NOHA:
 		}
 
 		// We should choose the BBS with most matching elements (ie match on #23.GBR better that GBR)
-		// If SendPtoMultiple is set I think we send to any with same mtch level
+		// If SendPtoMultiple is set I think we send to any with same match level
+
+		// So if SendPtoMultiple is set I think I need to find the best depth then send to all with the same depth
+
+
+		if (SendPtoMultiple && Msg->type == 'P')
+		{
+			Logprintf(LOG_BBS, conn, '?', "SendPtoMultiple is set. Checking for best match level");
+
+			for (bbs = BBSChain; bbs; bbs = bbs->BBSNext)
+			{		
+				ForwardingInfo = bbs->ForwardingInfo;
+
+				depth = CheckBBSHElements(Msg, bbs, ForwardingInfo, ATBBS, &HElements[0]);
+
+				if (depth)
+				{
+					if (depth > MultiPDepth)
+					{
+						MultiPDepth = depth;
+						bestbbs = bbs;
+					}
+				}
+
+				if (MultiPDepth)
+				{
+					for (bbs = BBSChain; bbs; bbs = bbs->BBSNext)
+					{		
+						ForwardingInfo = bbs->ForwardingInfo;
+
+						depth = CheckBBSHElements(Msg, bbs, ForwardingInfo, ATBBS, &HElements[0]);
+
+						if (depth == MultiPDepth)
+						{
+							Logprintf(LOG_BBS, conn, '?', "Routing Trace HR Matches BBS %s Depth %d", bbs->Call, depth);	
+							CheckAndSend(Msg, conn, bbs);
+						}
+					}
+
+					return 1;
+				}
+			}
+		}
 
 		for (bbs = BBSChain; bbs; bbs = bbs->BBSNext)
 		{		
@@ -1481,7 +1524,7 @@ NOHA:
 			if (depth)
 			{
 				Logprintf(LOG_BBS, conn, '?', "Routing Trace HR Matches BBS %s Depth %d", bbs->Call, depth);
-		
+
 				if (depth > bestmatch)
 				{
 					bestmatch = depth;
@@ -1494,14 +1537,14 @@ NOHA:
 			Logprintf(LOG_BBS, conn, '?', "Routing Trace HR Best Match is %s", bestbbs->Call);
 
 			CheckAndSend(Msg, conn, bestbbs);
-		
+
 			return 1;
 		}
 
 		// Check for wildcarded AT address
 
-//		if (ATBBS[0] == 0)
-//			return FALSE;			// no AT
+		//		if (ATBBS[0] == 0)
+		//			return FALSE;			// no AT
 
 CheckWildCardedAT:
 
@@ -1521,7 +1564,7 @@ CheckWildCardedAT:
 			if (depth > -1)
 			{
 				Logprintf(LOG_BBS, conn, '?', "Routing Trace Wildcarded AT Matches  %s Length %d", bbs->Call, depth);
-		
+
 				if (depth > bestmatch)
 				{
 					bestmatch = depth;
@@ -1543,182 +1586,182 @@ CheckWildCardedAT:
 
 		Logprintf(LOG_BBS, conn, '?', "Routing Trace - No Match");
 		return FALSE;	// No match
-	}
+		}
 
-	// Flood Bulls go to all matching BBSs in the flood area, so the order of checking doesn't matter
+		// Flood Bulls go to all matching BBSs in the flood area, so the order of checking doesn't matter
 
-	// For now I will only route on AT (for non-hierarchical addresses) and HA
+		// For now I will only route on AT (for non-hierarchical addresses) and HA
 
-	// Ver 1.0.4.2 - Try including TO
+		// Ver 1.0.4.2 - Try including TO
 
-	for (bbs = BBSChain; bbs; bbs = bbs->BBSNext)
-	{		
-		ForwardingInfo = bbs->ForwardingInfo;
+		for (bbs = BBSChain; bbs; bbs = bbs->BBSNext)
+		{		
+			ForwardingInfo = bbs->ForwardingInfo;
 
-		if (ForwardingInfo->PersonalOnly)
-			continue;
+			if (ForwardingInfo->PersonalOnly)
+				continue;
 
-		if (CheckBBSToList(Msg, bbs, ForwardingInfo))
-		{
-			Logprintf(LOG_BBS, conn, '?', "Routing Trace TO %s Matches BBS %s", Msg->to, bbs->Call);
-
-			if (ForwardToMe || _stricmp(bbs->Call, BBSName) != 0) // Dont forward to ourself - already here! (unless ForwardToMe set)
+			if (CheckBBSToList(Msg, bbs, ForwardingInfo))
 			{
-				set_fwd_bit(Msg->fbbs, bbs->BBSNumber);
-				ForwardingInfo->MsgCount++;
+				Logprintf(LOG_BBS, conn, '?', "Routing Trace TO %s Matches BBS %s", Msg->to, bbs->Call);
+
+				if (ForwardToMe || _stricmp(bbs->Call, BBSName) != 0) // Dont forward to ourself - already here! (unless ForwardToMe set)
+				{
+					set_fwd_bit(Msg->fbbs, bbs->BBSNumber);
+					ForwardingInfo->MsgCount++;
+				}
+				Count++;
+				continue;
 			}
-			Count++;
-			continue;
+
+			if ((strcmp(ATBBS, bbs->Call) == 0) ||			// @BBS = BBS		
+				CheckBBSAtList(Msg, ForwardingInfo, ATBBS))
+			{
+				Logprintf(LOG_BBS, conn, '?', "Routing Trace AT %s Matches BBS %s", Msg->to, bbs->Call);
+				CheckAndSend(Msg, conn, bbs);
+
+				Count++;
+				continue;
+			}
+
+
+			if (CheckBBSHElementsFlood(Msg, bbs, ForwardingInfo, Msg->via, &HElements[0]))
+			{
+				Logprintf(LOG_BBS, conn, '?', "Routing Trace HR %s %s %s %s %s Matches BBS %s",
+					HElements[0], HElements[1], HElements[2], 
+					HElements[3], HElements[4], bbs->Call);
+
+				CheckAndSend(Msg, conn, bbs);
+
+				Count++;
+			}
+
 		}
 
-		if ((strcmp(ATBBS, bbs->Call) == 0) ||			// @BBS = BBS		
-			CheckBBSAtList(Msg, ForwardingInfo, ATBBS))
-		{
-			Logprintf(LOG_BBS, conn, '?', "Routing Trace AT %s Matches BBS %s", Msg->to, bbs->Call);
-			CheckAndSend(Msg, conn, bbs);
-
-			Count++;
-			continue;
-		}
-		
-		
-		if (CheckBBSHElementsFlood(Msg, bbs, ForwardingInfo, Msg->via, &HElements[0]))
-		{
-			Logprintf(LOG_BBS, conn, '?', "Routing Trace HR %s %s %s %s %s Matches BBS %s",
-				HElements[0], HElements[1], HElements[2], 
-				HElements[3], HElements[4], bbs->Call);
-	
-			CheckAndSend(Msg, conn, bbs);
-
-			Count++;
-		}
-
-	}
-
-	if (Count == 0)
-		goto CheckWildCardedAT;
+		if (Count == 0)
+			goto CheckWildCardedAT;
 
 		Logprintf(LOG_BBS, conn, '?', "Routing Trace - No Match");
 
-	return Count;
-}
-
-BOOL CheckBBSToList(struct MsgInfo * Msg, struct UserInfo * bbs, struct	BBSForwardingInfo * ForwardingInfo)
-{
-	char ** Calls;
-
-	// Check TO distributions
-
-	if (ForwardingInfo->TOCalls)
-	{
-		Calls = ForwardingInfo->TOCalls;
-
-		while(Calls[0])
-		{
-			if (strcmp(Calls[0], Msg->to) == 0)	
-				return TRUE;
-
-			Calls++;
-		}
+		return Count;
 	}
-	return FALSE;
-}
 
-BOOL CheckBBSAtList(struct MsgInfo * Msg, struct BBSForwardingInfo * ForwardingInfo, char * ATBBS)
-{
-	char ** Calls;
-
-	// Check AT distributions
-
-//	if (strcmp(ATBBS, bbs->Call) == 0)			// @BBS = BBS
-//		return TRUE;
-
-	if (ForwardingInfo->ATCalls)
+	BOOL CheckBBSToList(struct MsgInfo * Msg, struct UserInfo * bbs, struct	BBSForwardingInfo * ForwardingInfo)
 	{
-		Calls = ForwardingInfo->ATCalls;
+		char ** Calls;
 
-		while(Calls[0])
+		// Check TO distributions
+
+		if (ForwardingInfo->TOCalls)
 		{
-			if (strcmp(Calls[0], ATBBS) == 0)	
-				return TRUE;
+			Calls = ForwardingInfo->TOCalls;
 
-			Calls++;
-		}
-	}
-	return FALSE;
-}
-
-int CheckBBSHElements(struct MsgInfo * Msg, struct UserInfo * bbs, struct BBSForwardingInfo * ForwardingInfo, char * ATBBS, char ** HElements)
-{
-	// Used for Personal Messages, and Bulls not yot at their target area
-
-	char *** HRoutes;
-	int i = 0, j, k = 0;
-	int bestmatch = 0;
-
-	if (ForwardingInfo->HADDRSP)
-	{
-		// Match on Routes
-
-		HRoutes = ForwardingInfo->HADDRSP;
-		k=0;
-
-		while(HRoutes[k])
-		{
-			i = j = 0;
-			
-			while (HRoutes[k][i] && HElements[j]) // Until one set runs out
+			while(Calls[0])
 			{
-				if (strcmp(HRoutes[k][i], HElements[j]) != 0)
+				if (strcmp(Calls[0], Msg->to) == 0)	
+					return TRUE;
+
+				Calls++;
+			}
+		}
+		return FALSE;
+	}
+
+	BOOL CheckBBSAtList(struct MsgInfo * Msg, struct BBSForwardingInfo * ForwardingInfo, char * ATBBS)
+	{
+		char ** Calls;
+
+		// Check AT distributions
+
+		//	if (strcmp(ATBBS, bbs->Call) == 0)			// @BBS = BBS
+		//		return TRUE;
+
+		if (ForwardingInfo->ATCalls)
+		{
+			Calls = ForwardingInfo->ATCalls;
+
+			while(Calls[0])
+			{
+				if (strcmp(Calls[0], ATBBS) == 0)	
+					return TRUE;
+
+				Calls++;
+			}
+		}
+		return FALSE;
+	}
+
+	int CheckBBSHElements(struct MsgInfo * Msg, struct UserInfo * bbs, struct BBSForwardingInfo * ForwardingInfo, char * ATBBS, char ** HElements)
+	{
+		// Used for Personal Messages, and Bulls not yot at their target area
+
+		char *** HRoutes;
+		int i = 0, j, k = 0;
+		int bestmatch = 0;
+
+		if (ForwardingInfo->HADDRSP)
+		{
+			// Match on Routes
+
+			HRoutes = ForwardingInfo->HADDRSP;
+			k=0;
+
+			while(HRoutes[k])
+			{
+				i = j = 0;
+
+				while (HRoutes[k][i] && HElements[j]) // Until one set runs out
+				{
+					if (strcmp(HRoutes[k][i], HElements[j]) != 0)
+						break;
+					i++;
+					j++;
+				}
+
+				// Only send if all BBS elements match
+
+				if (HRoutes[k][i] == 0)
+				{
+					if (i > bestmatch)
+						bestmatch = i;
+				}
+				k++;
+			}
+		}
+		return bestmatch;
+	}
+
+
+	int CheckBBSHElementsFlood(struct MsgInfo * Msg, struct UserInfo * bbs, struct BBSForwardingInfo * ForwardingInfo, char * ATBBS, char ** HElements)
+	{
+		char *** HRoutes;
+		char ** BBSHA;
+
+		int i = 0, j, k = 0;
+		int bestmatch = 0;
+
+		if (ForwardingInfo->HADDRS)
+		{
+			// Match on Routes
+
+			// Message must be in right area (all elements of message match BBS Location HA)
+
+			BBSHA = ForwardingInfo->BBSHAElements;
+
+			if (BBSHA == NULL)
+				return 0;				// Not safe to flood
+
+			i = j = 0;
+
+			while (BBSHA[i] && HElements[j]) // Until one set runs out
+			{
+				if (strcmp(BBSHA[i], HElements[j]) != 0)
 					break;
 				i++;
 				j++;
 			}
 
-			// Only send if all BBS elements match
-
-			if (HRoutes[k][i] == 0)
-			{
-				if (i > bestmatch)
-						bestmatch = i;
-			}
-			k++;
-		}
-	}
-	return bestmatch;
-}
-
-
-int CheckBBSHElementsFlood(struct MsgInfo * Msg, struct UserInfo * bbs, struct BBSForwardingInfo * ForwardingInfo, char * ATBBS, char ** HElements)
-{
-	char *** HRoutes;
-	char ** BBSHA;
-
-	int i = 0, j, k = 0;
-	int bestmatch = 0;
-
-	if (ForwardingInfo->HADDRS)
-	{
-		// Match on Routes
-
-		// Message must be in right area (all elements of message match BBS Location HA)
-
-		BBSHA = ForwardingInfo->BBSHAElements;
-
-		if (BBSHA == NULL)
-			return 0;				// Not safe to flood
-			
-		i = j = 0;
-			
-		while (BBSHA[i] && HElements[j]) // Until one set runs out
-		{
-			if (strcmp(BBSHA[i], HElements[j]) != 0)
-				break;
-			i++;
-			j++;
-		}
-		
-		if (HElements[j] != 0)
+			if (HElements[j] != 0)
 			return 0;				// Message is not for BBS's area 
 
 		HRoutes = ForwardingInfo->HADDRS;

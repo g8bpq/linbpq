@@ -1127,6 +1127,8 @@
 //	Start adding json api (25)
 //	Fix reading nested directories when loading Standard Templates and other template bugs (25)
 //	Add TO and AT to "Message has nowhere to go" message (28)
+//	Add My Sent and My Received filter options to Webmail (30)
+//	Add Send P to multiple BBS's when routing on HR (30)
 
 #include "bpqmail.h"
 #include "winstdint.h"

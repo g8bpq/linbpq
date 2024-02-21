@@ -928,6 +928,22 @@ int SendWebMailHeaderEx(char * Reply, char * Key, struct HTTPConnectionInfo * Se
 					continue;
 			}
 
+			if (Session->WebMailMyTX)
+			{
+				// Only list if to or from me
+
+				if (strcmp(User->Call, Msg->from) != 0)
+					continue;
+			}
+
+			if (Session->WebMailMyRX)
+			{
+				// Only list if to or from me
+
+				if (strcmp(User->Call, Msg->to)!= 0)
+					continue;
+			}
+
 			if (Count++ < Session->WebMailSkip)
 				continue;
 
@@ -959,7 +975,7 @@ int SendWebMailHeaderEx(char * Reply, char * Key, struct HTTPConnectionInfo * Se
 	if (WebMailTemplate == NULL)
 		WebMailTemplate = GetTemplateFromFile(6, "WebMailPage.txt");
 
-	return sprintf(Reply, WebMailTemplate, BBSName, User->Call, Key, Key, Key, Key, Key, Key, Key, Key, Messages);
+	return sprintf(Reply, WebMailTemplate, BBSName, User->Call, Key, Key, Key, Key, Key, Key, Key, Key, Key, Key, Messages);
 }
 
 int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Number, BOOL DisplayHTML)
@@ -1617,6 +1633,8 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 
 						Session->WebMailLastUsed = time(NULL);
 						Session->WebMailSkip = 0;
+						Session->WebMailMyTX = FALSE;
+						Session->WebMailMyRX = FALSE;
 						Session->WebMailMine = FALSE;
 
 						if (WebMailTemplate)
@@ -1759,6 +1777,8 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 
 		Session->WebMailSkip = 0;
 		Session->WebMailMine = FALSE;
+		Session->WebMailMyTX = FALSE;
+		Session->WebMailMyRX = FALSE;
 
 		*RLen = SendWebMailHeader(Reply, Session->Key, Session);
  		return;
@@ -1769,6 +1789,8 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 		Session->WebMailSkip = 0;
 		Session->WebMailTypes[0] = 0;
 		Session->WebMailMine = FALSE;
+		Session->WebMailMyTX = FALSE;
+		Session->WebMailMyRX = FALSE;
 
 		*RLen = SendWebMailHeader(Reply, Session->Key, Session);
  		return;
@@ -1779,6 +1801,8 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 		Session->WebMailSkip = 0;
 		strcpy(Session->WebMailTypes, "B");
 		Session->WebMailMine = FALSE;
+		Session->WebMailMyTX = FALSE;
+		Session->WebMailMyRX = FALSE;
 
 		*RLen = SendWebMailHeader(Reply, Session->Key, Session);
  		return;
@@ -1789,6 +1813,8 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 		Session->WebMailSkip = 0;
 		strcpy(Session->WebMailTypes, "P");
 		Session->WebMailMine = FALSE;
+		Session->WebMailMyTX = FALSE;
+		Session->WebMailMyRX = FALSE;
 
 		*RLen = SendWebMailHeader(Reply, Session->Key, Session);
  		return;
@@ -1799,6 +1825,8 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 		Session->WebMailSkip = 0;
 		strcpy(Session->WebMailTypes, "T");
 		Session->WebMailMine = FALSE;
+		Session->WebMailMyTX = FALSE;
+		Session->WebMailMyRX = FALSE;
 
 		*RLen = SendWebMailHeader(Reply, Session->Key, Session);
  		return;
@@ -1809,6 +1837,32 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 		Session->WebMailSkip = 0;
 		Session->WebMailTypes[0] = 0;
 		Session->WebMailMine = TRUE;
+		Session->WebMailMyTX = FALSE;
+		Session->WebMailMyRX = FALSE;
+		
+		*RLen = SendWebMailHeader(Reply, Session->Key, Session);
+ 		return;
+	}
+
+	if (_stricmp(NodeURL, "/WebMail/WMtoMe") == 0)
+	{
+		Session->WebMailSkip = 0;
+		Session->WebMailTypes[0] = 0;
+		Session->WebMailMine = FALSE;
+		Session->WebMailMyTX = FALSE;
+		Session->WebMailMyRX = TRUE;
+		
+		*RLen = SendWebMailHeader(Reply, Session->Key, Session);
+ 		return;
+	}
+
+	if (_stricmp(NodeURL, "/WebMail/WMfromMe") == 0)
+	{
+		Session->WebMailSkip = 0;
+		Session->WebMailTypes[0] = 0;
+		Session->WebMailMine = TRUE;
+		Session->WebMailMyTX = TRUE;
+		Session->WebMailMyRX = FALSE;
 		
 		*RLen = SendWebMailHeader(Reply, Session->Key, Session);
  		return;
@@ -1897,6 +1951,8 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 			"<td><a href=/WebMail/WMT?%s>NTS</a></td>\r\n"
 			"<td><a href=/WebMail/WMALL?%s>All Types</a></td>\r\n"
 			"<td><a href=/WebMail/WMMine?%s>Mine</a></td>\r\n"
+			"<td><a href=/WebMail/WMfromMe?%s>My Sent</a></td>\r\n"
+			"<td><a href=/WebMail/WMtoMe?%s>My Rxed</a></td>\r\n"
 			"<td><a href=/WebMail/WMAuto?%s>Auto Refresh</a></td>\r\n"
 			"<td><a href=\"#\" onclick=\"newmsg('%s'); return false;\">Send Message</a></td>\r\n"
 			"<td><a href=/WebMail/WMLogout?%s>Logout</a></td>\r\n"
@@ -1906,7 +1962,7 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 			"<div align=left id=main style=overflow:scroll;>Waiting for data...</div>\r\n"
 			"</body></html>\r\n";
 
-		sprintf(Page, WebSockPage, Key, Key ,BBSName, Session->User->Call, Key, Key, Key, Key, Key, Key, Key, Key);
+		sprintf(Page, WebSockPage, Key, Key ,BBSName, Session->User->Call, Key, Key, Key, Key, Key, Key, Key, Key, Key, Key);
 
 		*RLen = sprintf(Reply, "%s", Page);
 		return;
@@ -2099,9 +2155,24 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 						continue;
 				}
 
+				if (Session->WebMailMyTX)
+				{
+					// Only list if to or from me
+
+					if (strcmp(User->Call, Msg->from) != 0)
+						continue;
+				}
+
+				if (Session->WebMailMyRX)
+				{
+					// Only list if to or from me
+
+					if (strcmp(User->Call, Msg->to) != 0)
+						continue;
+				}
 				*RLen = ViewWebMailMessage(Session, Reply, m, TRUE);
 
- 				return;
+				return;
 			}
 		}
 
@@ -2123,10 +2194,10 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 		for (m = Session->WebMail->CurrentMessageIndex + 1; m <= LatestMsg; m++)
 		{
 			Msg = GetMsgFromNumber(m);
-	
+
 			if (Msg == 0 || Msg->type == 0 || Msg->status == 0)
 				continue;					// Protect against corrupt messages
-		
+
 			if (Msg && CheckUserMsg(Msg, User->Call, User->flags & F_SYSOP))
 			{			
 				// Display if it is the right type and in the page range we want
@@ -2144,9 +2215,24 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 						continue;
 				}
 
+				if (Session->WebMailMyTX)
+				{
+					// Only list if to or from me
+
+					if (strcmp(User->Call, Msg->from) != 0)
+						continue;
+				}
+
+				if (Session->WebMailMyRX)
+				{
+					// Only list if to or from me
+
+					if (strcmp(User->Call, Msg->to) != 0)
+						continue;
+				}
 				*RLen = ViewWebMailMessage(Session, Reply, m, TRUE);
 
- 				return;
+				return;
 			}
 		}
 
@@ -6181,6 +6267,21 @@ int ProcessWebmailWebSock(char * MsgPtr, char * OutBuffer)
 					continue;
 			}
 
+			if (Session->WebMailMyTX)
+			{
+				// Only list if to or from me
+
+				if (strcmp(User->Call, Msg->from) != 0)
+					continue;
+			}
+
+			if (Session->WebMailMyRX)
+			{
+				// Only list if to or from me
+
+				if (strcmp(User->Call, Msg->to) != 0)
+					continue;
+			}
 			if (Count++ < Session->WebMailSkip)
 				continue;
 

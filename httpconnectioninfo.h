@@ -38,6 +38,8 @@ struct HTTPConnectionInfo		// Used for Web Server for thread-specific stuff
 	int WebMailSkip;			// Number to skip at start of list (for paging)
 	char WebMailTypes[4];		// Types To List
 	BOOL WebMailMine;			// List all meessage to or from me
+	BOOL WebMailMyTX;			// List all meessage from me
+	BOOL WebMailMyRX;			// List all meessage to me
 	time_t WebMailLastUsed;
 	struct TNCINFO * TNC;		// Session -> TNC link
 };

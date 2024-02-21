@@ -395,6 +395,8 @@ char * WebMailPagetxt()
 		"<td><a href=/WebMail/WMT?%s>NTS</a></td>\r\n"
 		"<td><a href=/WebMail/WMALL?%s>All Types</a></td>\r\n"
 		"<td><a href=/WebMail/WMMine?%s>Mine</a></td>\r\n"
+		"<td><a href=/WebMail/WMfromMe?%s>My Sent</a></td>\r\n"
+		"<td><a href=/WebMail/WMtoMe?%s>My Rxed</a></td>\r\n"
 		"<td><a href=/WebMail/WMAuto?%s>Auto Refresh</a></td>\r\n"
 		"<td><a href=\"#\" onclick=\"newmsg('%s'); return false;\">Send Message</a></td>\r\n"
 		"<td><a href=/WebMail/WMLogout?%s>Logout</a></td>\r\n"
