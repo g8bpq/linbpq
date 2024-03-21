@@ -1129,6 +1129,8 @@
 //	Add TO and AT to "Message has nowhere to go" message (28)
 //	Add My Sent and My Received filter options to Webmail (30)
 //	Add Send P to multiple BBS's when routing on HR (30)
+//	Fix Traffic stats for T messages received via B2 forwarding  (31)
+//	Fix possible failure to update last listed count when user disconnects without using B command
 
 #include "bpqmail.h"
 #include "winstdint.h"

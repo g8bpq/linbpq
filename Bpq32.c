@@ -1209,6 +1209,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Improvments to reporting to M0LTE Map (26)
 //	IPGateway fix from github user isavitsky (27)
 //  Fix possible crash in SCSPactor PTCPORT code (29)
+//	Add NodeAPI call sendLinks and remove get from other calls (32)
+//	Improve validation of Web Beacon Config (33)
 
 #define CKernel
 
@@ -6517,6 +6519,7 @@ VOID GetParam(char * input, char * key, char * value)
 	char Param[2048];
 	char * ptr1, * ptr2;
 	char c;
+
 
 	if (ptr)
 	{

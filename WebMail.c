@@ -3715,7 +3715,6 @@ char * BuildB2Header(WebMailInfo * WebMail, struct MsgInfo * Msg, char ** ToCall
 
 		for (i = 0; i < Calls; i++)
 			NewMsg += sprintf(NewMsg, "To: %s\r\n",	ToCalls[i]);
-
 	}
 	else
 	{

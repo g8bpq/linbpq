@@ -10823,6 +10823,15 @@ int Disconnected (int Stream)
 				}
 			}
 
+			user = conn->UserPointer;
+
+			if (user && (conn->lastmsg > user->lastmsg))
+			{
+				user->lastmsg = conn->lastmsg;
+				SaveUserDatabase();
+			}
+
+
 			// if sysop was chatting to user clear link
 #ifndef LINBPQ
 			if (conn->BBSFlags & SYSOPCHAT)

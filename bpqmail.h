@@ -620,7 +620,7 @@ struct MsgInfo
 	char	title[61];
 	int		nntpnum;			// Number within topic (ie Bull TO Addr) - used for nntp
 
-	UCHAR	B2Flags;
+	UCHAR	B2Flags;			// Not all flags specific to B2
 
 	#define B2Msg 1				// Set if Message File is a formatted B2 message
 	#define Attachments 2		// Set if B2 message has attachments
@@ -629,6 +629,7 @@ struct MsgInfo
 	#define FromRMSExpress 16 
 	#define RadioOnlyMsg 32		// Received using call-T
 	#define RadioOnlyFwd 64		// Received using call-R
+	#define WarnNotForwardedSent 128
 
 	int		xdatecreated;
 	int		xdatechanged;

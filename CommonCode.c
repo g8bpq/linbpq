@@ -5003,20 +5003,20 @@ extern int MasterPort[MAXBPQPORTS+1];
 
 void BuildPortMH(char * MHJSON, struct PORTCONTROL * PORT)
 {
-  struct tm * TM;
-  static char MHTIME[50];
-  time_t szClock;
-  MHSTRUC * MH = PORT->PORTMHEARD;
-  int count = MHENTRIES;
-  char Normcall[20];
-  int len;
-  char * ptr;
-  char mhstr[400];
+	struct tm * TM;
+	static char MHTIME[50];
+	time_t szClock;
+	MHSTRUC * MH = PORT->PORTMHEARD;
+	int count = MHENTRIES;
+	char Normcall[20];
+	int len;
+	char * ptr;
+	char mhstr[400];
 
-   if (MH == NULL)
-	return;
+	if (MH == NULL)
+		return;
 
-   while (count--)
+	while (count--)
 	{
 		if (MH->MHCALL[0] == 0)
 			break;
@@ -5028,22 +5028,22 @@ void BuildPortMH(char * MHJSON, struct PORTCONTROL * PORT)
 
 		if ((*ptr & 1) == 0)
 		{
-  		  // at least one digi - which we are not going to include
-		  MH++;
- 		  continue;
+			// at least one digi - which we are not going to include
+			MH++;
+			continue;
 		}
 
 		Normcall[len++] = 0;
 
 		//format TIME
-		
+
 		szClock = MH->MHTIME;
 		TM = gmtime(&szClock);
 		sprintf(MHTIME, "%d-%d-%d %02d:%02d:%02d",
-		    TM->tm_year+1900, TM->tm_mon + 1, TM->tm_mday, TM->tm_hour, TM->tm_min, TM->tm_sec);
+			TM->tm_year+1900, TM->tm_mon + 1, TM->tm_mday, TM->tm_hour, TM->tm_min, TM->tm_sec);
 
 		sprintf(mhstr, "{\"callSign\": \"%s\", \"port\": \"%d\", \"packets\": %d, \"lastHeard\": \"%s\" },\r\n" ,
-	  	  Normcall, PORT->PORTNUMBER, MH->MHCOUNT, MHTIME);
+			Normcall, PORT->PORTNUMBER, MH->MHCOUNT, MHTIME);
 
 		strcat( MHJSON, mhstr );
 

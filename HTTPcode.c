@@ -2462,29 +2462,29 @@ doHeader:
 					return 1;
 				}
 
-				GetParam(input, "Port", &Param[0]);
-				Port = atoi(&Param[1]);
+				GetParam(input, "Port=", &Param[0]);
+				Port = atoi(&Param[0]);
 				PORT = GetPortTableEntryFromPortNum(Port); // Need slot not number
 				if (PORT)
 					Slot = PORT->PortSlot;
 
-				GetParam(input, "Every", &Param[0]);
-				Interval[Slot] = atoi(&Param[1]);
+				GetParam(input, "Every=", &Param[0]);
+				Interval[Slot] = atoi(&Param[0]);
 
-				GetParam(input, "Dest", &Param[0]);
+				GetParam(input, "Dest=", &Param[0]);
 				_strupr(Param);
-				strcpy(UIUIDEST[Slot], &Param[1]);
+				strcpy(UIUIDEST[Slot], &Param[0]);
 
-				GetParam(input, "Path", &Param[0]);
+				GetParam(input, "Path=", &Param[0]);
 				_strupr(Param);
 				if (UIUIDigi[Slot])
 					free(UIUIDigi[Slot]);
-				UIUIDigi[Slot] = _strdup(&Param[1]);
+				UIUIDigi[Slot] = _strdup(&Param[0]);
 
-				GetParam(input, "File", &Param[0]);
+				GetParam(input, "File=", &Param[0]);
 				strcpy(FN[Slot], &Param[1]);
-				GetParam(input, "Text", &Param[0]);
-				strcpy(Message[Slot], &Param[1]);
+				GetParam(input, "Text=", &Param[0]);
+				strcpy(Message[Slot], &Param[0]);
 
 				MinCounter[Slot] = Interval[Slot];
 

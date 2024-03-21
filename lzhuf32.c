@@ -933,15 +933,21 @@ void Decode(CIRCUIT * conn, int FromSync)
 		FBBHeader->MsgType = 'P';
 	}
 
-	if (FBBHeader->MsgType == 'P')
-		Index = PMSG;
-	else if (FBBHeader->MsgType == 'B')
-		Index = BMSG;
-	else if (FBBHeader->MsgType == 'T')
-		Index = TMSG;
+	if (!FBBHeader->B2Message)
+	{
+		// With B2 the Type is specified in the body, so can't update stats now
+			
+		if (FBBHeader->MsgType == 'P')
+			Index = PMSG;
+		else if (FBBHeader->MsgType == 'B')
+			Index = BMSG;
+		else if (FBBHeader->MsgType == 'T')
+			Index = TMSG;
 
-	conn->UserPointer->Total.MsgsReceived[Index]++;
-	conn->UserPointer->Total.BytesForwardedIn[Index] += count;
+		conn->UserPointer->Total.MsgsReceived[Index]++;
+		conn->UserPointer->Total.BytesForwardedIn[Index] += count;
+	}
+
 
 	if (FBBHeader->B2Message)
 	{
@@ -1497,6 +1503,7 @@ File: 5566 NEWBOAT.HOMEPORT.JPG
 
 		// Processed all headers
 
+
 		// If multiple recipents, create one copy for each BBS address, and one for all others (via RMS)
 	
 		if (Recipients == 0 || HddrTo == NULL)
@@ -1702,9 +1709,9 @@ File: 5566 NEWBOAT.HOMEPORT.JPG
 
 					ptr += 7;
 
-					// This handles a message arriving with bull/ or nts/ oerrides
+					// This handles a message arriving with bull/ or nts/ overrides
 
-					if (_memicmp(ptr, "Private", 7) == 0 && Msg->type != 'P')
+ 					if (_memicmp(ptr, "Private", 7) == 0 && Msg->type != 'P')
 					{
 						if (Msg->type == 'T')
 							memcpy(ptr, "Traffic", 7);
@@ -1744,6 +1751,18 @@ File: 5566 NEWBOAT.HOMEPORT.JPG
 				if (i > 0 && Msg->type != 'B')			// Must Change the BID
 					Msg->bid[0] = 0;
 
+				// Update Stats
+
+				if (Msg->type == 'P')
+					Index = PMSG;
+				else if (Msg->type == 'B')
+					Index = BMSG;
+				else if (Msg->type == 'T')
+					Index = TMSG;
+
+				conn->UserPointer->Total.MsgsReceived[Index]++;
+				conn->UserPointer->Total.BytesForwardedIn[Index] += MsgLen;
+
 				CreateMessageFromBuffer(conn);
 			}
 			}	// End not from RMS
@@ -1759,33 +1778,7 @@ File: 5566 NEWBOAT.HOMEPORT.JPG
 			SetupNextFBBMessage(conn);
 			return;
 		}
-/*
-		else
-		{
-			// Single Destination -  Need to put to: line back in message
 
-			char * ptr = HddrTo[0];
-			__int32 ToLen;
-			char toCopy[80];
-			
-			
-			ptr = HddrTo[0];
-
-			if (_memicmp(&ptr[4], "nts:", 4) == 0)
-				memmove(ptr + 4, ptr + 8, strlen(ptr + 7));
-
-			ToLen = strlen(ptr);
-
-			memmove(&conn->MailBuffer[B2To + ToLen], &conn->MailBuffer[B2To], count);
-			memcpy(&conn->MailBuffer[B2To], HddrTo[0], ToLen); 
-			conn->TempMsg->length += ToLen;
-			Msg->type = Type[i];
-	
-			CreateMessageFromBuffer(conn);
-			SetupNextFBBMessage(conn);
-			return;
-		}
-*/
 #ifndef LINBPQ
 		}
 			#define EXCEPTMSG "Error Decoding B2 Message"
@@ -1799,8 +1792,6 @@ File: 5566 NEWBOAT.HOMEPORT.JPG
 		}
 #endif	
 	} // end if B2Msg
-
-	// Look for 
 
 	CreateMessageFromBuffer(conn);
 	SetupNextFBBMessage(conn);

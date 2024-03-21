@@ -40,6 +40,8 @@ int sendPortList(char * response, char * token,int Flags);
 int sendNodeList(char * response, char * token,int Flags);
 int sendUserList(char * response, char * token,int Flags);
 int sendInfo(char * response, char * token, int Flags);
+int sendLinks(char * response, char * token, int Flags);
+int sendPortMHList(char * response, char * token, int Flags);
 
 DllExport struct PORTCONTROL * APIENTRY GetPortTableEntryFromSlot(int portslot);
 
@@ -64,14 +66,18 @@ int APIProcessHTTPMessage(char * response, char * Method, char * URL, char * req
 	const char * auth_header = "Authorization: Bearer ";
 	char * token_begin = strstr(request, auth_header);
 	char token[TOKEN_SIZE + 1]= "";
-	char * param = strlop(URL, '?');
 	int Flags = 0;
+	char * Tok = strlop(URL, '?');
+	char * param = strlop(Tok, '&');
 
-	if (param && strlen(param) == TOKEN_SIZE)
+	if (param)
+		Flags = atoi(param);
+
+	if (Tok && strlen(Tok) == TOKEN_SIZE)
 	{
 		// assume auth token
 
-		strcpy(token, param);
+		strcpy(token, Tok);
 	}
 
 	remove_expired_tokens();			// Tidy up
@@ -106,17 +112,20 @@ int APIProcessHTTPMessage(char * response, char * Method, char * URL, char * req
 
 	// Determine the requested API endpoint
 
-	if (_stricmp(URL, "/api/getports") == 0)
+	if (_stricmp(URL, "/api/ports") == 0)
 		return sendPortList(response, token, Flags);
-	else if (_stricmp(URL, "/api/getnodes") == 0)
+	else if (_stricmp(URL, "/api/nodes") == 0)
 		return sendNodeList(response, token, Flags);
-	else if (_stricmp(URL, "/api/getusers") == 0)
+	else if (_stricmp(URL, "/api/users") == 0)
 		return sendUserList(response, token, Flags);
-	else if (_stricmp(URL, "/api/getinfo") == 0)
+	else if (_stricmp(URL, "/api/info") == 0)
 		return sendInfo(response, token, Flags);
+	else if (_stricmp(URL, "/api/links") == 0)
+		return sendLinks(response, token, Flags);
+	else if (strstr(URL, "/api/mheardport") != 0)
+		return sendPortMHList(response, token, Flags);
 
 	return send_http_response(response, "401 Invalid API Call");
-
 }
 
 int request_token(char * response) 
@@ -631,3 +640,87 @@ int sendInfo(char * response, char * token, int Flags)
 
 	return strlen(response);
 }
+
+int sendLinks(char * response, char * token, int Flags)
+{
+	struct _LINKTABLE * Links = LINKS;
+	int MaxLinks = MAXLINKS;
+	int count;
+	char Normcall1[10];
+	char Normcall2[10];
+	char State[12] = "", Type[12] = "Uplink";
+	int axState;
+	int cctType;
+	int ReplyLen = 0;
+	ReplyLen += sprintf(&response[ReplyLen],"{\"links\":[\r\n");
+
+	for (count=0; count<MaxLinks; count++)
+	{
+		if (Links->LINKCALL[0] != 0)
+		{
+			int len = ConvFromAX25(Links->LINKCALL, Normcall1);
+			Normcall1[len] = 0;
+
+			len = ConvFromAX25(Links->OURCALL, Normcall2);
+			Normcall2[len] = 0;
+
+
+			axState = Links->L2STATE;
+
+			if (axState == 2)
+				strcpy(State, "Connecting");
+			else if (axState == 3)
+				strcpy(State, "FRMR");
+			else if (axState == 4)
+				strcpy(State, "Closing");
+			else if (axState == 5)
+				strcpy(State, "Active");
+			else if (axState == 6)
+				strcpy(State, "REJ Sent");
+
+			cctType = Links->LINKTYPE;
+
+			if (cctType == 1)
+				strcpy(Type, "Uplink");
+			else if (cctType == 2)
+				strcpy(Type, "Downlink");
+			else if (cctType == 3)
+				strcpy(Type, "Node-Node");
+
+
+
+			ReplyLen += sprintf(&response[ReplyLen], "{\"farCall\": \"%s\",\"ourCall\": \"%s\", \"port\": \"%d\", \"state\": \"%s\", \"linkType\": \"%s\", \"ax25Version\": \"%d\"},\r\n",
+				Normcall1, Normcall2, Links->LINKPORT->PORTNUMBER,
+				State, Type, 2 - Links->VER1FLAG );
+			Links+=1;
+		}
+	}
+
+	if (ReplyLen < 13)
+		ReplyLen -= 2;          // no links
+	else
+		ReplyLen -= 3;         // remove trailing comma
+
+	ReplyLen+= sprintf(&response[ReplyLen], "\r\n]}\r\n");
+
+	return ReplyLen;
+}
+
+int sendPortMHList(char * response, char * token, int Flags)
+{
+        struct PORTCONTROL * PORTVEC = GetPortTableEntryFromPortNum(Flags);
+
+		response[0] = 0;
+
+		if (PORTVEC == 0)
+			return send_http_response(response, "401 Invalid API Call");
+
+        BuildPortMH( response, PORTVEC );
+        response[ strlen(response)-3 ] = '\0';          // remove ,\r\n
+//      printf("MH for port %d:\r\n%s\r\n", PORTVEC->PORTNUMBER, response);
+        return strlen(response);
+}
+
+
+
+
