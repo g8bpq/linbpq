@@ -113,6 +113,7 @@ struct TCPINFO
 	int APIPort;
 	int TriModePort;
 	int SyncPort;
+	int SNMPPort;
 	int DRATSPort;
 	int CMDPort[33];
 	char RELAYHOST[64];
@@ -165,6 +166,7 @@ struct TCPINFO
 	SOCKET TriModeDataSock;
 	SOCKET Syncsock;
 	SOCKET DRATSsock;
+	SOCKET SNMPsock;
 
 	struct ConnectionInfo * TriModeControlSession;
 	SOCKET sock6;

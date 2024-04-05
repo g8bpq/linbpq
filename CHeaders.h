@@ -426,3 +426,5 @@ extern char Message[MaxBPQPortNo + 1][1000];		// Beacon Text
 
 extern int MinCounter[MaxBPQPortNo + 1];			// Interval Countdown
 extern BOOL SendFromFile[MaxBPQPortNo + 1];
+
+DllExport uint64_t APIENTRY GetPortFrequency(int PortNo, char * FreqStringMhz);

@@ -78,6 +78,7 @@ struct PORTCONFIG
 	int SmartID;
 	unsigned char * KissParams;
 	int SendtoM0LTEMap;
+	uint64_t PortFreq;
 };
 
 struct ROUTECONFIG

@@ -41,8 +41,9 @@ int sendNodeList(char * response, char * token,int Flags);
 int sendUserList(char * response, char * token,int Flags);
 int sendInfo(char * response, char * token, int Flags);
 int sendLinks(char * response, char * token, int Flags);
-int sendPortMHList(char * response, char * token, int Flags);
+int sendPortMHList(char * response, char * token, int param);
 
+void BuildPortMH(char * MHJSON, struct PORTCONTROL * PORT);
 DllExport struct PORTCONTROL * APIENTRY GetPortTableEntryFromSlot(int portslot);
 
 // Token list
@@ -67,17 +68,43 @@ int APIProcessHTTPMessage(char * response, char * Method, char * URL, char * req
 	char * token_begin = strstr(request, auth_header);
 	char token[TOKEN_SIZE + 1]= "";
 	int Flags = 0;
-	char * Tok = strlop(URL, '?');
-	char * param = strlop(Tok, '&');
 
-	if (param)
-		Flags = atoi(param);
+	// Node Flags isn't currently used
 
-	if (Tok && strlen(Tok) == TOKEN_SIZE)
+	char * Tok;
+	char * param;
+
+	if (token_begin)
 	{
-		// assume auth token
+		// Using Auth Header
 
-		strcpy(token, Tok);
+		// Extract the token from the request (assuming it's present in the request headers)
+
+		if (token_begin == NULL)
+		{		
+			Debugprintf("Invalid request: No authentication token provided.\n");
+			return send_http_response(response, "403 (Forbidden)");
+		}
+
+		token_begin += strlen(auth_header); // Move to the beginning of the token
+		strncpy(token, token_begin, TOKEN_SIZE);
+		token[TOKEN_SIZE] = '\0'; // Null-terminate the token
+
+		param = strlop(URL, '?');
+	}
+	else
+	{
+		// Token must be first param of URL
+
+		Tok = strlop(URL, '?');
+		param = strlop(Tok, '&');
+
+		if (Tok && strlen(Tok) == TOKEN_SIZE)
+		{
+			// assume auth token
+
+			strcpy(token, Tok);
+		}
 	}
 
 	remove_expired_tokens();			// Tidy up
@@ -123,7 +150,7 @@ int APIProcessHTTPMessage(char * response, char * Method, char * URL, char * req
 	else if (_stricmp(URL, "/api/links") == 0)
 		return sendLinks(response, token, Flags);
 	else if (strstr(URL, "/api/mheardport") != 0)
-		return sendPortMHList(response, token, Flags);
+		return sendPortMHList(response, token, atoi(param));
 
 	return send_http_response(response, "401 Invalid API Call");
 }
@@ -145,6 +172,7 @@ int request_token(char * response)
 Token * generate_token() 
 {
 	// Generate a random authentication token
+
 	int i;
 
 	Token * token = malloc(sizeof(Token));
@@ -159,6 +187,7 @@ Token * generate_token()
 }
 
 // Function to add the token to the token_list
+
 void add_token_to_list(Token* token)
 {
 	if (token_list == NULL)
@@ -706,9 +735,9 @@ int sendLinks(char * response, char * token, int Flags)
 	return ReplyLen;
 }
 
-int sendPortMHList(char * response, char * token, int Flags)
+int sendPortMHList(char * response, char * token, int param)
 {
-        struct PORTCONTROL * PORTVEC = GetPortTableEntryFromPortNum(Flags);
+        struct PORTCONTROL * PORTVEC = GetPortTableEntryFromPortNum(param);
 
 		response[0] = 0;
 

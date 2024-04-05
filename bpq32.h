@@ -264,6 +264,8 @@ int APIENTRY CountFramesQueuedOnStream(int Stream);
 
 char * APIENTRY GetLOC();
 
+DllExport uint64_t APIENTRY GetPortFrequency(int PortNo, char * FreqString);
+
 #else
 
 struct PORTCONTROL * (FAR WINAPI *  GetPortTableEntryFromPortNum) (int portnum);

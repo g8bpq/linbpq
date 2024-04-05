@@ -85,6 +85,7 @@ void processDRATSFrame(unsigned char * Message, int Len, struct ConnectionInfo *
 void DRATSConnectionLost(struct ConnectionInfo * sockptr);
 int BuildRigCtlPage(char * _REPLYBUFFER);
 void ProcessWebmailWebSockThread(void * conn);
+int ProcessSNMPPayload(UCHAR * Msg, int Len, UCHAR * Reply, int * OffPtr);
 
 #ifndef LINBPQ
 extern HKEY REGTREE;
@@ -539,6 +540,9 @@ int ProcessLine(char * buf, int Port)
 
 	else if (_stricmp(param,"SYNCPORT") == 0)
 		TCP->SyncPort = atoi(value);
+
+	else if (_stricmp(param,"SNMPPORT") == 0)
+		TCP->SNMPPort = atoi(value);
 
 	else if ((_stricmp(param,"CMDPORT") == 0) || (_stricmp(param,"LINUXPORT") == 0))
 	{
@@ -1562,6 +1566,46 @@ void * TelnetExtInit(EXTPORTDATA * PortEntry)
 	return ExtProc;
 }
 
+SOCKET OpenUDPSocket(struct TNCINFO * TNC)
+{
+	u_long param = 1;
+	struct sockaddr_in sinx; 
+	int err, ret;
+	struct TCPINFO * TCP = TNC->TCPInfo;
+	char Msg[80];
+
+	TCP->SNMPsock = socket(AF_INET,SOCK_DGRAM,0);
+	
+	if (TCP->SNMPsock == INVALID_SOCKET)
+	{
+		WritetoConsoleLocal("Failed to create SNMP UDP socket");
+		return 0;
+	}
+
+	ioctl (TCP->SNMPsock, FIONBIO, &param);
+
+	sinx.sin_family = AF_INET;
+	sinx.sin_addr.s_addr = INADDR_ANY;
+		
+	sinx.sin_port = htons(TCP->SNMPPort);
+
+	ret = bind(TCP->SNMPsock, (struct sockaddr *) &sinx, sizeof(sinx));
+
+	if (ret != 0)
+	{
+		//	Bind Failed
+
+		err = WSAGetLastError();
+		sprintf(Msg, "Bind Failed for SNMP UDP socket %d - error code = %d", TCP->SNMPPort, err);
+		WritetoConsoleLocal(Msg);
+		return 0;
+	}
+
+	return TCP->SNMPsock;
+}
+
+
+
 SOCKET OpenSocket4(struct TNCINFO * xTNC, int port)
 {
 	struct sockaddr_in  local_sin;  /* Local socket - internet style */
@@ -1657,6 +1701,9 @@ BOOL OpenSockets(struct TNCINFO * TNC)
 
 	if (TCP->DRATSPort)
 		TCP->DRATSsock = OpenSocket4(TNC, TCP->DRATSPort);
+
+	if (TCP->SNMPPort)
+		TCP->SNMPsock = OpenUDPSocket(TNC);
 
 	CMSUser.UserName = _strdup("CMS");
 
@@ -2181,6 +2228,31 @@ VOID TelnetPoll(int Port)
 
 nosocks:
 
+	// Try SNMP
+
+	if (TCP->SNMPsock)
+	{
+		struct sockaddr_in rxaddr;
+		char rxbuff[500];
+		int addrlen = sizeof(struct sockaddr_in);
+		int Offset = 0;
+
+		int len = recvfrom(TCP->SNMPsock, rxbuff, 500, 0,(struct sockaddr *)&rxaddr, &addrlen);
+
+		if (len > 0)
+		{
+			UCHAR Reply[256];
+			int SendLen;
+
+			SendLen = ProcessSNMPPayload(rxbuff, len, Reply, &Offset);
+
+			if (SendLen == 0)
+				return;
+
+			sendto(TCP->SNMPsock, &Reply[Offset], SendLen, 0, (struct sockaddr *)&rxaddr, addrlen);
+			return;
+		}
+	}
 	while (TELNETMONVECPTR->HOSTTRACEQ)
 	{
 		int len;

@@ -4817,6 +4817,7 @@ BOOL CreateMonitorWindow(char * MonSize)
 	Cinfo->hConsole = ChildWnd;
 
 	// return if its not possible to create the child window
+
 	if(NULL == ChildWnd)
 	{
 		return 0;
@@ -4839,8 +4840,8 @@ BOOL CreateMonitorWindow(char * MonSize)
 
 	Cinfo = &MonWindow;
 	
-//	MoveWindow(Cinfo->hConsole, Rect.left - (OffsetW /2), Rect.top - OffsetH,
-//		Rect.right-Rect.left, Rect.bottom-Rect.top, TRUE);
+	MoveWindow(ChildWnd, Rect.left - (OffsetW /2), Rect.top - OffsetH, Rect.right - Rect.left, Rect.bottom - Rect.top, TRUE);
+
 
  	MoveWindows(Cinfo);
 

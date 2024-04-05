@@ -859,6 +859,11 @@ BOOL CheckforMIME(SocketConn * sockptr, char * Msg, char ** Body, int * MsgLen)	
 
 	int Files = 0;
 
+	if (*MsgLen > 5000000)
+	{
+		int xxx = 1;
+	}
+
 	ptr = Msg;
 
 	while(*ptr != 13)

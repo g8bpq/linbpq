@@ -251,6 +251,8 @@ int tnctypes(int i,char *value,char *rec);
 int do_kiss(char *value,char *rec);
 int decode_ded_rec(char *rec);
 int simple(int i);
+int64_t int64_value(int64_t * val, char value[], char rec[]);
+
 
 int C_Q_ADD_NP(VOID *PQ, VOID *PBUFF);
 int doSerialPortName(int i, char * value, char * rec);
@@ -364,7 +366,7 @@ static char *pkeywords[] =
 "BCALL", "DIGIMASK", "NOKEEPALIVES", "COMPORT", "DRIVER", "WL2KREPORT", "UIONLY",
 "UDPPORT", "IPADDR", "I2CBUS", "I2CDEVICE", "UDPTXPORT", "UDPRXPORT", "NONORMALIZE",
 "IGNOREUNLOCKEDROUTES", "INP3ONLY", "TCPPORT", "RIGPORT", "PERMITTEDAPPLS", "HIDE",
-"SMARTID", "KISSCOMMAND", "SendtoM0LTEMap"};           /* parameter keywords */
+"SMARTID", "KISSCOMMAND", "SendtoM0LTEMap", "PortFreq"};           /* parameter keywords */
 
 static void * poffset[] =
 {
@@ -378,7 +380,7 @@ static void * poffset[] =
 &xxp.BCALL, &xxp.DIGIMASK, &xxp.DefaultNoKeepAlives, &xxp.IOADDR, &xxp.DLLNAME, &xxp.WL2K, &xxp.UIONLY,
 &xxp.IOADDR, &xxp.IPADDR, &xxp.INTLEVEL, &xxp.IOADDR, &xxp.IOADDR, &xxp.ListenPort, &xxp.NoNormalize,
 &xxp.IGNOREUNLOCKED, &xxp.INP3ONLY, &xxp.TCPPORT, &xxp.RIGPORT, &xxp.PERMITTEDAPPLS, &xxp.Hide,
-&xxp.SmartID, &xxp.KissParams, &xxp.SendtoM0LTEMap};	/* offset for corresponding data in config file */
+&xxp.SmartID, &xxp.KissParams, &xxp.SendtoM0LTEMap, &xxp.PortFreq};	/* offset for corresponding data in config file */
 
 static int proutine[] = 
 {
@@ -392,7 +394,7 @@ static int proutine[] =
 0, 1, 2, 18, 15, 16, 2,
 1, 17, 1, 1, 1, 1, 2,
 2, 2, 1, 1, 19, 2,
-1, 20, 1};							/* routine to process parameter */
+1, 20, 1, 21};							/* routine to process parameter */
 
 int PPARAMLIM = sizeof(proutine)/sizeof(int);
 
@@ -1326,6 +1328,11 @@ int int_value(short * val, char value[], char rec[])
 	return(1);
 }
 
+int64_t int64_value(int64_t * val, char value[], char rec[])
+{
+	*val = strtoll(value, NULL, 10);
+	return(1);
+}
 
 /************************************************************************/
 /*   VALIDATE HEX INT VALUES						*/
@@ -2226,6 +2233,11 @@ int decode_port_rec(char * rec)
 		case 20:
             cn = doKissCommand(i, value, rec);              // Permitted Apps
 			break;
+
+		case 21:
+			cn = int64_value(poffset[i], value, rec);	     /* INTEGER VALUES */
+			break;
+
 
 
 		case 9:

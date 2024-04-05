@@ -690,6 +690,7 @@ typedef struct PORTCONTROL
 	time_t SmartIDNeeded;		// Time to send next smart ID
 	time_t SmartIDInterval;		// Smart ID Interval (Secs)
 	int SendtoM0LTEMap;
+	uint64_t PortFreq;			// Configured freq
 
 }	PORTCONTROLX, *PPORTCONTROL;
 

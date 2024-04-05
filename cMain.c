@@ -1079,6 +1079,7 @@ BOOL Start()
 		}
 
 		PORT->SendtoM0LTEMap = PortRec->SendtoM0LTEMap;
+		PORT->PortFreq = PortRec->PortFreq;
 
 		if (PortRec->BBSFLAG)						// Appl 1 not permitted - BBSFLAG=NOBBS
 			PORT->PERMITTEDAPPLS &= 0xfffffffe;		// Clear bottom bit

@@ -4753,6 +4753,7 @@ LRESULT CALLBACK UIWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 
 extern struct DATAMESSAGE * REPLYBUFFER;
 char * __cdecl Cmdprintf(TRANSPORTENTRY * Session, char * Bufferptr, const char * format, ...);
+
 void GetPortCTEXT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
 {
 	char FN[250];
@@ -4814,6 +4815,75 @@ void GetPortCTEXT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CM
 	}
 	else
 		Debugprintf("CTEXT Read for ports %s\r", &PortList[1]);
+}
+
+// Get the current frequency for a port. This can get a bit complicated, especially if looking for centre freq
+// rather than dial freq (as this depends on mode).
+//
+// Used for various reporting functions - MH, Maps, BBS New User message,
+
+// I think I'll try PORT "PortFreq" setting first then if that isn't available  via rigcontrol.
+// 
+// For now at least will report dial freq if using RIGCONTROL
+
+DllExport uint64_t APIENTRY GetPortFrequency(int PortNo, char * FreqString)
+{
+	struct PORTCONTROL * PORT = GetPortTableEntryFromPortNum(PortNo);
+	double freq = 0.0;
+	uint64_t freqint = 0;
+
+	char * ptr;
+	int  n = 3;
+
+	FreqString[0] = 0;
+	
+	if (PORT == 0)
+		return 0;
+
+	if (PORT->PortFreq)
+	{
+		freqint = PORT->PortFreq;
+		freq = freqint / 1000000.0;
+	}
+	else
+	{
+		// Try rigcontrol
+
+
+		struct TNCINFO * TNC;
+		struct RIGINFO * RIG = 0;
+		int RigPort;
+
+		if (PORT->RIGPort)
+			TNC = TNCInfo[PORT->RIGPort];
+		else
+			TNC = TNCInfo[PortNo];
+
+		if (TNC)
+			RIG = TNC->RIG;
+		
+		if (RIG == 0)
+			return 0;
+
+		// Frequency should be in valchar
+
+		if (RIG->Valchar[0] == 0)
+			return 0;
+
+		freq = atof(TNC->RIG->Valchar);
+		freqint = (int64_t)(freq * 1000000.0);
+	}
+
+	sprintf(FreqString, "%.6f", freq);
+
+	// Return 3 digits after . (KHz) unless more are significant
+
+	ptr = &FreqString[strlen(FreqString) - 1];
+
+	while (n-- && *(ptr) == '0')
+		*ptr-- = 0;
+
+	return freqint;
 }
 
 SOCKET OpenHTTPSock(char * Host)

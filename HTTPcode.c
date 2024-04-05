@@ -2482,7 +2482,7 @@ doHeader:
 				UIUIDigi[Slot] = _strdup(&Param[0]);
 
 				GetParam(input, "File=", &Param[0]);
-				strcpy(FN[Slot], &Param[1]);
+				strcpy(FN[Slot], &Param[0]);
 				GetParam(input, "Text=", &Param[0]);
 				strcpy(Message[Slot], &Param[0]);
 

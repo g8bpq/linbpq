@@ -1211,6 +1211,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //  Fix possible crash in SCSPactor PTCPORT code (29)
 //	Add NodeAPI call sendLinks and remove get from other calls (32)
 //	Improve validation of Web Beacon Config (33)
+//	Support SNMP via host ip stack as well as IPGateway (34)
 
 #define CKernel
 
@@ -6477,7 +6478,7 @@ VOID SaveBPQ32Windows()
 	SaveMDIWindowPos(StatusWnd, "", "StatusWindowSize", StatusMinimized);
 	SaveMDIWindowPos(hConsWnd, "", "WindowSize", ConsoleMinimized);
 
-	for (i=0;i<NUMBEROFPORTS;i++)
+	for (i=0; i<NUMBEROFPORTS; i++)
 	{
 		if (PORTVEC->PORTCONTROL.PORTTYPE == 0x10)			// External
 		{

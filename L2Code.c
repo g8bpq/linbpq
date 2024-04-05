@@ -470,61 +470,15 @@ VOID MHPROC(struct PORTCONTROL * PORT, MESSAGE * Buffer)
 	PMHSTRUC MHBASE = MH;
 	int i;
 	int OldCount = 0;
-	char Freq[16] = "";
+	char Freq[64] = "";
 	char DIGI = '*';
 	double ReportFreq = 0;
 
-	// if port has Rigcontrol associated with it, get frequency
+	// if port has a freq associated with it use it
 
-	struct TNCINFO * TNC = PORT->TNC;
+	GetPortFrequency(PORT->PORTNUMBER, Freq);
 
-	if (TNC && TNC->RIG && TNC->RIG->Valchar[0])
-	{
-		if (TNC->Hardware == H_UZ7HO)	
-		{
-			// See if we have Center Freq Info
-			if (TNC->AGWInfo->CenterFreq)
-			{
-				ReportFreq = atof(TNC->RIG->Valchar) + ((TNC->AGWInfo->CenterFreq * 1.0) / 1000000.0);
-			}
-#ifdef WIN32
-			else if (TNC->AGWInfo->hFreq)
-			{
-				char Centre[16];
-				double ModemFreq;
-
-				SendMessage(TNC->AGWInfo->hFreq, WM_GETTEXT, 15, (LPARAM)Centre);
-
-				ModemFreq = atof(Centre);
-
-				ReportFreq = atof(TNC->RIG->Valchar) + (ModemFreq / 1000000);
-			}
-#endif	
-			else
-				ReportFreq = atof(TNC->RIG->Valchar) + 0.0015;		// Assume 1500
-		}
-		else
-
-			// Not UZ7HO or Linux
-		
-			ReportFreq = atof(TNC->RIG->Valchar) + 0.0015;
-
-		_gcvt(ReportFreq, 9, Freq);
-	}
-	else
-	{
-		if (PORT->RIGPort)
-		{
-			struct TNCINFO * TNC = TNCInfo[PORT->RIGPort];
-
-			if (TNC && TNC->RIG)
-			{
-				strcpy(Freq, TNC->RIG->Valchar);
-				Freq[11] = 0;
-			}
-		}
-	}
-//	if (Buffer->ORIGIN[6] & 1)
+	//	if (Buffer->ORIGIN[6] & 1)
 		DIGI = 0;					// DOn't think we want to do this
 	
 	// See if in list

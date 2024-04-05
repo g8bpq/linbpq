@@ -5179,33 +5179,17 @@ int BuildReply(UCHAR * Buffer, int Offset, UCHAR * OID, int OIDLen, UCHAR * Valu
 
 //   snmpget -v1 -c jnos [ve4klm.ampr.org | www.langelaar.net] 1.3.6.1.2.1.2.2.1.16.5
 
-
-VOID ProcessSNMPMessage(PIPMSG IPptr)
+int ProcessSNMPPayload(UCHAR * Msg, int Len, UCHAR * Reply, int * OffPtr)
 {
-	int Len;
-	PUDPMSG UDPptr = (PUDPMSG)&IPptr->Data;
 	char Community[256];
 	UCHAR OID[256];
 	int OIDLen;
-	UCHAR * Msg;
 	int Type;
 	int Length, ComLen;
 	int  IntVal;
 	int ReqID;
 	int RequestType;
 
-	Len = ntohs(IPptr->IPLENGTH);
-	Len-=20;
-
-	Check_Checksum(UDPptr, Len);
-
-	// 4 bytes version
-	// Null Terminated Community
-
-	Msg = (char *) UDPptr;
-
-	Msg += 8;				// Over UDP Header
-	Len -= 8;
 
 	// ASN 1 Encoding - Type, Len, Data
 
@@ -5217,7 +5201,7 @@ VOID ProcessSNMPMessage(PIPMSG IPptr)
 		// First should be a Sequence
 
 		if (Type != 0x30)
-			return;
+			return 0;
 
 		Len -= 2;
 
@@ -5228,7 +5212,7 @@ VOID ProcessSNMPMessage(PIPMSG IPptr)
 		// Should be Integer - SNMP Version - We support V1, identified by zero
 
 		if (Type != 2 || Length != 1 || IntVal != 0)
-			return;
+			return 0;
 
 		Len -= 3;
 
@@ -5238,7 +5222,7 @@ VOID ProcessSNMPMessage(PIPMSG IPptr)
 		// Should  Be String (community)
 
 		if (Type != 4)
-			return;
+			return 0;
 
 		memcpy(Community, Msg, ComLen);
 		Community[ComLen] = 0;
@@ -5264,23 +5248,23 @@ VOID ProcessSNMPMessage(PIPMSG IPptr)
 		Length = *(Msg++);
 
 		if (Type != 2)
-			return;
+			return 0;
 
 		ReqID = ASNGetInt(Msg, Length);
- 
+
 		Len -= (2 + Length);
 		Msg += Length;
 
 		// Two more Integers - error status, error index
-	
+
 		Type = *(Msg++);
 		Length = *(Msg++);
 
 		if (Type != 2)
-			return;
+			return 0;
 
 		ASNGetInt(Msg, Length);
- 
+
 		Len -= (2 + Length);
 		Msg += Length;
 
@@ -5288,10 +5272,10 @@ VOID ProcessSNMPMessage(PIPMSG IPptr)
 		Length = *(Msg++);
 
 		if (Type != 2)
-			return;
+			return 0;
 
 		ASNGetInt(Msg, Length);
- 
+
 		Len -= (2 + Length);
 		Msg += Length;
 
@@ -5303,7 +5287,7 @@ VOID ProcessSNMPMessage(PIPMSG IPptr)
 		Len -= 2;
 
 		if (Type != 0x30)
-			return;
+			return 0;
 
 		Type = *(Msg++);
 		Length = *(Msg++);
@@ -5311,7 +5295,7 @@ VOID ProcessSNMPMessage(PIPMSG IPptr)
 		Len -= 2;
 
 		if (Type != 0x30)
-			return;
+			return 0;
 
 		// Next is OID 
 
@@ -5319,7 +5303,7 @@ VOID ProcessSNMPMessage(PIPMSG IPptr)
 		Length = *(Msg++);
 
 		if (Type != 6)				// Object ID
-			return;
+			return 0;
 
 		memcpy(OID, Msg, Length);
 		OID[Length] = 0;
@@ -5328,16 +5312,16 @@ VOID ProcessSNMPMessage(PIPMSG IPptr)
 
 		Len -=2;				// Header
 		Len -= Length;
-	
+
 		Msg += Length;
 
 		// Should Just have a null value left
-		
+
 		Type = *(Msg++);
 		Length = *(Msg++);
 
 		if (Type != 5 || Length != 0)
-			return;
+			return 0;
 
 		Len -=2;				// Header
 
@@ -5346,12 +5330,11 @@ VOID ProcessSNMPMessage(PIPMSG IPptr)
 
 	if (RequestType = 160)
 	{
-		UCHAR Reply[256];
 		int Offset = 255;
-		int PDULen, SendLen;
+		int PDULen = 0;
 		char Value[256];
 		int ValLen;
-		
+
 		//	Only Support Get
 
 		if (memcmp(OID, sysName, sysNameLen) == 0)
@@ -5360,7 +5343,7 @@ VOID ProcessSNMPMessage(PIPMSG IPptr)
 			Value[0] = 4;		// String
 			Value[1] = ValLen;
 			memcpy(&Value[2], MYNODECALL, ValLen);  
-			
+
 			PDULen = BuildReply(Reply, Offset, sysName, sysNameLen, Value, ReqID);
 		}
 		else if (memcmp(OID, sysUpTime, sysUpTimeLen) == 0)
@@ -5390,7 +5373,7 @@ VOID ProcessSNMPMessage(PIPMSG IPptr)
 
 		}
 		else
-			return;
+			return 0;
 
 		Offset -= PDULen;
 		Offset -= ComLen;
@@ -5408,25 +5391,59 @@ VOID ProcessSNMPMessage(PIPMSG IPptr)
 		Reply[--Offset] = PDULen + ComLen + 5;
 		Reply[--Offset] = 48;
 
-		SendLen = PDULen + ComLen + 7;
+		*OffPtr = Offset;
 
-		memcpy(UDPptr->UDPData, &Reply[Offset], SendLen);
-
-		// Swap Dest to Origin
-
-		IPptr->IPDEST = IPptr->IPSOURCE;
-
-		IPptr->IPSOURCE.addr = OurIPAddr;
-
-		UDPptr->DESTPORT = UDPptr->SOURCEPORT;
-		UDPptr->SOURCEPORT = htons(161);
-		SendLen += 8;			// UDP Header
-		UDPptr->LENGTH = htons(SendLen);
-		IPptr->IPLENGTH = htons(SendLen + 20);
-
-		CheckSumAndSendUDP(IPptr, UDPptr, SendLen);
+		return PDULen + ComLen + 7;
 	}
-
-	// Ingnore others
+	return 0;
 }
+
+VOID ProcessSNMPMessage(PIPMSG IPptr)
+{
+	int Len;
+	PUDPMSG UDPptr = (PUDPMSG)&IPptr->Data;
+	UCHAR * Msg;
+	int Type;
+	int Length, ComLen;
+	int  IntVal;
+	UCHAR Reply[256];
+	int PDULen, SendLen;
+	int Offset = 0;
+
+	Len = ntohs(IPptr->IPLENGTH);
+	Len-=20;
+
+	Check_Checksum(UDPptr, Len);
+
+	// 4 bytes version
+	// Null Terminated Community
+
+	Msg = (char *) UDPptr;
+
+	Msg += 8;				// Over UDP Header
+	Len -= 8;
+
+	SendLen = ProcessSNMPPayload(Msg, Len, Reply, &Offset);
+
+	if (SendLen == 0)
+		return;
+
+	memcpy(UDPptr->UDPData, &Reply[Offset], SendLen);
+
+	// Swap Dest to Origin
+
+	IPptr->IPDEST = IPptr->IPSOURCE;
+
+	IPptr->IPSOURCE.addr = OurIPAddr;
+
+	UDPptr->DESTPORT = UDPptr->SOURCEPORT;
+	UDPptr->SOURCEPORT = htons(161);
+	SendLen += 8;			// UDP Header
+	UDPptr->LENGTH = htons(SendLen);
+	IPptr->IPLENGTH = htons(SendLen + 20);
+
+	CheckSumAndSendUDP(IPptr, UDPptr, SendLen);
+}
+
+
 
