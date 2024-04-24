@@ -817,14 +817,14 @@ VOID CheckAndSend(struct MsgInfo * Msg, CIRCUIT * conn, struct UserInfo * bbs)
 {
 	struct BBSForwardingInfo * ForwardingInfo = bbs->ForwardingInfo;
 		
-	if (ForwardToMe || _stricmp(bbs->Call, BBSName) != 0) // Dont forward to ourself - already here! (unless ForwardToMe set)
+	if (ForwardToMe || _stricmp(bbs->Call, BBSName) != 0) // Don't forward to ourself - already here! (unless ForwardToMe set)
 	{
 		if ((conn == NULL) || (!(conn->BBSFlags & BBS) || (_stricmp(conn->UserPointer->Call, bbs->Call) != 0))) // Dont send back
 		{
 			set_fwd_bit(Msg->fbbs, bbs->BBSNumber);
 			ForwardingInfo->MsgCount++;
 			if (ForwardingInfo->SendNew)
-				ForwardingInfo->FwdTimer = ForwardingInfo->FwdInterval;
+				ForwardingInfo->FwdTimer = ForwardingInfo->FwdInterval - (2 + (rand() % 30)); //Short delay to prevent all starting at once
 		}
 	}
 	else

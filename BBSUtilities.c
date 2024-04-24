@@ -9185,12 +9185,14 @@ VOID FWDTimerProc()
 	struct	BBSForwardingInfo * ForwardingInfo ;
 	time_t NOW = time(NULL);
 
+	// Entered every 2 seconds
+
 	for (user = BBSChain; user; user = user->BBSNext)
 	{
 		// See if any messages are queued for this BBS
 
 		ForwardingInfo = user->ForwardingInfo;
-		ForwardingInfo->FwdTimer+=10;
+		ForwardingInfo->FwdTimer += 2;
 
 		if (ForwardingInfo->FwdTimer >= ForwardingInfo->FwdInterval)
 		{

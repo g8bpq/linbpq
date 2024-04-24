@@ -1131,6 +1131,7 @@
 //	Add Send P to multiple BBS's when routing on HR (30)
 //	Fix Traffic stats for T messages received via B2 forwarding  (31)
 //	Fix possible failure to update last listed count when user disconnects without using B command
+//	Add short random delay (<30 secs) when forward new Messages immediately is enabled (35)
 
 #include "bpqmail.h"
 #include "winstdint.h"
@@ -2160,7 +2161,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				CheckTimer();
 				TCPTimer();
 				BBSSlowTimer();
-				FWDTimerProc();
 				if (MaintClock < NOW)
 				{
 					while (MaintClock < NOW)		// in case large time step
@@ -2181,6 +2181,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 			}
 			My__except_Routine("Slow Timer");
+		}
+		if (wParam == 3)		// Forward (2 Secs)
+		{
+			__try
+			{
+				FWDTimerProc();
+			}
+			My__except_Routine("Fwd Timer");
 		}
 		else
 			__try
@@ -3310,6 +3318,7 @@ BOOL Initialise()
 	
 	SetTimer(hWnd,1,10000,NULL);	// Slow Timer (10 Secs)
 	SetTimer(hWnd,2,100,NULL);		// Send to Node and TCP Poll (100 ms)
+	SetTimer(hWnd,3,2000,NULL);		// Forward Check  (2 secs)
 
 	// Calulate time to run Housekeeping
 	{

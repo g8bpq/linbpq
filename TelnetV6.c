@@ -3882,8 +3882,8 @@ MsgLoop:
 			
 			if (strlen(MsgPtr) > 64)
 			{
-				Debugprintf("Telnet Bad User Name %s", MsgPtr);
 				MsgPtr[64] = 0;
+				Debugprintf("Telnet Bad User Name %s", MsgPtr);
 			}
 
 			sprintf(logmsg,"%d %s User=%s\n", sockptr->Number, Addr, MsgPtr);
@@ -3958,8 +3958,8 @@ MsgLoop:
 						
 			if (strlen(MsgPtr) > 64)
 			{
+				MsgPtr[64] = 0;	
 				Debugprintf("Telnet Bad Password %s", MsgPtr);
-				MsgPtr[64] = 0;
 			}
 
 
@@ -4757,8 +4757,8 @@ MsgLoop:
 						
 			if (strlen(MsgPtr) > 64)
 			{
-				Debugprintf("Telnet Bad User Name %s", MsgPtr);
 				MsgPtr[64] = 0;
+				Debugprintf("Telnet Bad User Name %s", MsgPtr);
 			}
 
 			sprintf(logmsg,"%d %s User=%s\n", sockptr->Number, Addr, MsgPtr);
@@ -4841,8 +4841,8 @@ MsgLoop:
 						
 			if (strlen(MsgPtr) > 64)
 			{
+				MsgPtr[64] = 0;	
 				Debugprintf("Telnet Bad Password %s", MsgPtr);
-				MsgPtr[64] = 0;
 			}
 
 			sprintf(logmsg,"%d %s Password=%s\n", sockptr->Number, Addr, MsgPtr);

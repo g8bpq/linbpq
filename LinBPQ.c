@@ -1557,13 +1557,15 @@ int main(int argc, char * argv[])
 		{
 			PollStreams();
 
+			if ((Slowtimer % 20) == 0)
+				FWDTimerProc();
+
 			if (Slowtimer > 100)		// 10 secs
 			{
 				time_t NOW = time(NULL);
 				struct tm * tm;
 
 				TCPTimer();
-				FWDTimerProc();
 				BBSSlowTimer();
 
 				if (MaintClock < NOW)
