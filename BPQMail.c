@@ -1132,6 +1132,7 @@
 //	Fix Traffic stats for T messages received via B2 forwarding  (31)
 //	Fix possible failure to update last listed count when user disconnects without using B command
 //	Add short random delay (<30 secs) when forward new Messages immediately is enabled (35)
+//  Fix Connect Script IDLETIME (38)
 
 #include "bpqmail.h"
 #include "winstdint.h"

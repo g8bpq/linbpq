@@ -1543,11 +1543,19 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 					*(CmdPtr++) = 0x1A;
 					*(CmdPtr++) = 0x36;		// Set mode command
 					*(CmdPtr++) = 0;
-					if (ModeNo > 10)
+					if (ModeNo > 19)
+						*(CmdPtr++) = ModeNo + 12;
+					else if (ModeNo > 9)
 						*(CmdPtr++) = ModeNo + 6;
 					else
 						*(CmdPtr++) = ModeNo;
 					*(CmdPtr++) = 0xFD;
+
+//			Mode = (Msg[7] >> 4);
+//			Mode *= 10;
+//			Mode += Msg[7] & 0xf;
+
+
 				}
 			}
 			else
@@ -3979,6 +3987,8 @@ SetFinished:
 
 			strcpy(RIG->ModeString, Modes[Mode]);
 			SetWindowText(RIG->hMODE, RIG->WEB_MODE);
+
+
 
 			return;
 		}
@@ -6995,7 +7005,10 @@ CheckScan:
 				*(CmdPtr++) = 0x1A;
 				*(CmdPtr++) = 0x36;		// Set mode command
 				*(CmdPtr++) = 0;
-				if (ModeNo > 10)
+
+				if (ModeNo > 19)
+					*(CmdPtr++) = ModeNo + 12;
+				else if (ModeNo > 9)
 					*(CmdPtr++) = ModeNo + 6;
 				else
 					*(CmdPtr++) = ModeNo;
@@ -7480,7 +7493,11 @@ VOID PTTCATThread(struct RIGINFO *RIG)
 		if (Handle[HIndex] == (HANDLE) -1)
 		{
 			int Err = GetLastError();
-			Consoleprintf("PTTMUX port BPQCOM%s Open failed code %d - trying real com port", RIG->PTTCATPort[PIndex], Err);
+			char errmsg[256] = "";
+
+			// Only report if both BPQCOM and Real COM fail
+
+			sprintf(errmsg, "PTTMUX port BPQCOM%s Open failed code %d - trying real com port", RIG->PTTCATPort[PIndex], Err);
 
 			// See if real com port
 
@@ -7494,7 +7511,11 @@ VOID PTTCATThread(struct RIGINFO *RIG)
 			if (Handle[HIndex] == (HANDLE) -1)
 			{
 				int Err = GetLastError();
-				Consoleprintf("PTTMUX port COM%s Open failed code %d", RIG->PTTCATPort[PIndex], Err);
+				if (errmsg[0])
+				{
+					Consoleprintf("%s", errmsg);
+					Consoleprintf("PTTMUX port COM%s Open failed code %d", RIG->PTTCATPort[PIndex], Err);
+				}
 			}
 			else
 			{

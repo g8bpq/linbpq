@@ -903,6 +903,8 @@ typedef struct _LINKTABLE
 
 	VOID *	L2FRAG_Q;		// DEFRAGMENTATION QUEUE
 
+	int		IFrameRetryCounter;	// Number of times an I frame in repeated without a frame being acked 
+
 } LINKTABLE;
 
 #pragma pack(1)

@@ -174,7 +174,7 @@ VOID L2Routine(struct PORTCONTROL * PORT, PMESSAGE Buffer)
 
 	if (c == ' ')					// Blank Call
 	{
-		Debugprintf("BPQ32 Blank Call Port &%", PORT->PORTNUMBER);
+		Debugprintf("BPQ32 Blank Call Port %d", PORT->PORTNUMBER);
 		ReleaseBuffer(Buffer);
 		return;
 	}
@@ -1775,7 +1775,7 @@ VOID L2_PROCESS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * B
 	
 		switch (CTL & 0x0f)
 		{
-			// is there any harm in accepoting SREJ even if we don't
+			// is there any harm in accepting SREJ even if we don't
 			// otherwise support 2.2?
 
 		case REJ:
@@ -3004,6 +3004,8 @@ VOID ACKMSG(struct _LINKTABLE * LINK)
 			Debugprintf("Missing frame to ack Seq %d Calls %s %s", LINK->LINKOWS, Call1, Call2);
 		}
 
+		LINK->IFrameRetryCounter = 0;
+
 		LINK->LINKOWS++;			// INCREMENT OLD WINDOW START
 		LINK->LINKOWS &= 7;			// MODULO 8
 
@@ -3017,6 +3019,18 @@ VOID ACKMSG(struct _LINKTABLE * LINK)
 	if (LINK->LINKWS != LINK->LINKNS)		// IS N(S) = NEW WINDOW START?
 	{
 		//	NOT ALL I-FRAMES HAVE BEEN ACK'ED - RESTART TIMER
+
+		//	Need to kill link if we are getting repeated RR(F) after timeout 
+		//	(Indicating other station is seeing our RR(P) but not the resent I frame)
+
+		if (LINK->IFrameRetryCounter++ > LINK->LINKPORT->PORTN2)
+		{
+			Debugprintf("Too many repeats of same I frame - closing connection");
+			LINK->L2TIMER = 1;		// USE TIMER TO SEND DISC
+			LINK->L2STATE = 4;		// DISCONNECTING
+			return;
+		}
+
 
 		LINK->L2TIMER = LINK->L2TIME;
 		return;
@@ -3033,7 +3047,7 @@ VOID ACKMSG(struct _LINKTABLE * LINK)
 
 	//	IF DISCONNECT REQUEST OUTSTANDING, AND NO FRAMES ON TX QUEUE,  SEND DISC
 
-	if (LINK->L2FLAGS & DISCPENDING && LINK->TX_Q == 0)
+	if ((LINK->L2FLAGS & DISCPENDING) && LINK->TX_Q == 0)
 	{
 		LINK->L2FLAGS &=  ~DISCPENDING;
 

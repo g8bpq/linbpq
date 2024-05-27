@@ -1212,8 +1212,12 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add NodeAPI call sendLinks and remove get from other calls (32)
 //	Improve validation of Web Beacon Config (33)
 //	Support SNMP via host ip stack as well as IPGateway (34)
+
 //	Switch APRS Map to OSM tile servers (36)
 //	Fix potential buffer overflow in Telnet login (36)
+//	Allow longer serial device names (37)
+//	Fix ICF8101 Mode setting (37)
+
 
 #define CKernel
 

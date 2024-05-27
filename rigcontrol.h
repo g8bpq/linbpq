@@ -214,8 +214,8 @@ struct RIGPORTINFO
 {
 	int PortType;				// ICOM, Yaesu, Etc
 	int YaesuVariant;			// Yaesu seems to have lots of incompatible subtypes
-	char IOBASE[80];
-	char PTTIOBASE[80];			// Port for Hardware PTT - may be same as control port.
+	char IOBASE[256];
+	char PTTIOBASE[256];			// Port for Hardware PTT - may be same as control port.
 	int SPEED;
 	char * HIDDevice; 
 	struct RIGINFO Rigs[10];	// Rigs off a port

@@ -639,8 +639,8 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 			if (buffptr == 0) return (0);			// No buffers, so ignore
 
-			buffptr->Len = 36;
-			memcpy(&buffptr->Data[0], "No Connection to TNC\r", 36);
+			buffptr->Len = 21;
+			memcpy(&buffptr->Data[0], "No Connection to TNC\r", 21);
 
 			C_Q_ADD(&TNC->Streams[Stream].PACTORtoBPQ_Q, buffptr);
 			

@@ -1289,7 +1289,7 @@ void SCSCheckRX(struct TNCINFO * TNC)
 
 BOOL WriteCommBlock(struct TNCINFO * TNC)
 {
-	BOOL ret = WriteCOMBlock(TNC->hDevice, TNC->TXBuffer, TNC->TXLen);
+	BOOL ret = WriteCOMBlock(TNC, TNC->TXBuffer, TNC->TXLen);
 
 	TNC->Timeout = 20;				// 2 secs
 	return ret;

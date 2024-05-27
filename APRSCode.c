@@ -2187,7 +2187,7 @@ static int APRSProcessLine(char * buf)
 		CrossPortMap[Port][0] = FALSE;		// Cancel Default APRSIS
 
 		if (Context == NULL || Context[0] == 0)
-			return FALSE;
+			return TRUE;
 
 		ptr = strtok_s(NULL, ",\t\n\r", &Context);
 

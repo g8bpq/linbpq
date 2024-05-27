@@ -2220,7 +2220,10 @@ BOOL CheckIPChecksum(PIPMSG IPptr)
 
 	checksum = cksum((unsigned short *)IPptr, 20);
 
-	if (checksum == 0xffff) return TRUE; else return FALSE;
+	if (checksum == 0xffff)
+		return TRUE;
+	else 
+		return FALSE;
 
 }
 BOOL Check_Checksum(VOID * ptr1, int Len)
@@ -2229,7 +2232,10 @@ BOOL Check_Checksum(VOID * ptr1, int Len)
 
 	checksum = cksum((unsigned short *)ptr1, Len);
 
-	if (checksum == 0xffff) return TRUE; else return FALSE;
+	if (checksum == 0xffff)
+		return TRUE;
+	else 
+		return FALSE;
 
 }
 USHORT Generate_CHECKSUM(VOID * ptr1, int Len)

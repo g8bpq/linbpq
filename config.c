@@ -1,6 +1,5 @@
 /*
 Copyright 2001-2022 John Wiseman G8BPQ
-
 This file is part of LinBPQ/BPQ32.
 
 LinBPQ/BPQ32 is free software: you can redistribute it and/or modify

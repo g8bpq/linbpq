@@ -75,6 +75,7 @@ int upnpClose();
 void SaveAIS();
 void initAIS();
 void DRATSPoll();
+VOID GetPGConfig();
 
 extern uint64_t timeLoadedMS;
 
@@ -1138,6 +1139,7 @@ int main(int argc, char * argv[])
 	GetBIDDatabase();
 	GetBadWordFile();
 	GetHTMLForms();
+	GetPGConfig();
 
 	// Make sure there is a user record for the BBS, with BBS bit set.
 

@@ -9,7 +9,7 @@
 			Name="Debug|Win32"
 			>
 			<DebugSettings
-				Command="C:\Devprogs\BPQ32\bpq32.exe"
+				Command="$(TargetPath)"
 				WorkingDirectory=""
 				CommandArguments=""
 				Attach="false"
@@ -37,7 +37,7 @@
 			Name="Release|Win32"
 			>
 			<DebugSettings
-				Command="C:\Devprogs\BPQ32\bpq32.exe"
+				Command="$(TargetPath)"
 				WorkingDirectory=""
 				CommandArguments=""
 				Attach="false"

@@ -2184,7 +2184,7 @@ int OpenCOMMPort(struct TNCINFO * conn, char * Port, int Speed, BOOL Quiet)
 
 HANDLE OpenCOMPort(char * pPort, int speed, BOOL SetDTR, BOOL SetRTS, BOOL Quiet, int Stopbits)
 {
-	char szPort[80];
+	char szPort[256];
 	BOOL fRetVal ;
 	COMMTIMEOUTS  CommTimeOuts ;
 	int	Err;
@@ -2576,8 +2576,9 @@ BOOL WriteCOMBlock(HANDLE fd, char * Block, int BytesToWrite)
 	
 	int ToSend = BytesToWrite;
 	int Sent = 0, ret;
+	int loops = 100;
 
-	while (ToSend)
+	while (ToSend && loops-- > 0)
 	{
 		ret = write(fd, &Block[Sent], ToSend);
 
@@ -2596,6 +2597,12 @@ BOOL WriteCOMBlock(HANDLE fd, char * Block, int BytesToWrite)
 		Sent += ret;
 		ToSend -= ret;
 	}
+
+//	if (ToSend)
+//	{
+//		// Send timed out. Close and reopen device
+//
+//	}
 	return TRUE;
 }
 

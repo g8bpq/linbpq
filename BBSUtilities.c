@@ -225,7 +225,7 @@ extern BOOL EventsEnabled;
 
 extern BPQVECSTRUC BPQHOSTVECTOR[BPQHOSTSTREAMS + 5];
 
-/* --- TAJ PG Server--- */
+/* --- G7TAJ PG Server--- */
 
 void run_pg( CIRCUIT * conn, struct UserInfo * user );
 void startrun_pgThread( RUNPGARGS_PTR Args );
@@ -234,7 +234,7 @@ char * SERVERLIST[256][3];
 
 int NUM_SERVERS = 0;
 
-/*------- TAJ END ----------*/
+/*------- G7TAJ END ----------*/
 
 
 #ifdef LINBPQ
@@ -1038,20 +1038,6 @@ Next:
 	}
 
 	SortBBSChain();
-
-/*------- TAJ PG SERVER ----------*/
-
-#ifndef WIN32
- printf("Number of PG Servers = %d\n", NUM_SERVERS );
-
- for ( int i=0; i< NUM_SERVERS; i++ ) {
-   printf("Server #%d\t%s\tExec->%s\tDESC->%s\n", i, SERVERLIST[i][0], SERVERLIST[i][1], SERVERLIST[i][2]);
- }
-
-
-#endif
-/*------- TAJ END ----------*/
-
 }
 
 VOID CopyUserDatabase()
@@ -8241,6 +8227,7 @@ InBand:
 		else
 			Delay = 1000;
 
+
 		conn->BBSFlags &= ~RunningConnectScript;	// so it doesn't get reentered
 		Disconnect(conn->BPQStream);
 
@@ -8382,6 +8369,14 @@ InBand:
 					return FALSE;
 				}
 
+				goto LoopBack;
+			}
+
+			if (_memicmp(Cmd, "IDLETIME ", 9) == 0)
+			{
+				int idle = atoi(&Cmd[9]);
+
+				ChangeSessionIdletime(conn->BPQStream, idle);
 				goto LoopBack;
 			}
 
@@ -10854,15 +10849,15 @@ int Disconnected (int Stream)
 				conn->InputBufferLen = 0;
 			}
 
-			/* ---- TAJ PG SERVER ---- */
+			/* ---- G7TAJ PG SERVER ---- */
 			if (conn->UserPointer && conn->UserPointer->Temp && conn->UserPointer->Temp->RUNPGPARAMS)
 			{
-				printf("Freeing RUNPGPARAMS\n");
+				Debugprintf("Freeing RUNPGPARAMS");
 				free(conn->UserPointer->Temp->RUNPGPARAMS);
 				conn->UserPointer->Temp->RUNPGPARAMS = NULL;
 			}
 
-			/*------- TAJ END --------- */
+			/*------- G7TAJ END --------- */
 
 			if (conn->InputMode == 'B')
 			{
@@ -10979,7 +10974,7 @@ int DoReceivedData(int Stream)
 				}
 
 
-			/* ---------- TAJ START - PG server  --------- */
+			/* ---------- G7TAJ START - PG server  --------- */
 
 				if (conn->InputMode == 'P')			// Inside PG Server
 				{
@@ -10987,7 +10982,7 @@ int DoReceivedData(int Stream)
 					run_pg(conn, user);
 					return 0;
 				}
-			/* ---------- TAJ END --------- */
+			/* ---------- G7TAJ END --------- */
 
 				if (conn->InputMode == 'B')
 				{
@@ -11738,7 +11733,7 @@ extern UCHAR * infile;
 
 BOOL CheckforMIME(SocketConn * sockptr, char * Msg, char ** Body, int * MsgLen);
 
-/* ---TAJ PG Server --- */
+/* ---G7TAJ PG Server --- */
 #ifndef WIN32
 
 #define verbose 1
@@ -11760,22 +11755,23 @@ typedef struct _POPENRET
 void run_pgTimeoutThread( pid_t process )
 {
 
-   printf("watchdog thread: PID of subprocess: %d\n", process);
-   fflush(stdout);
-   Sleep(5000);
-   // if still running PID (?) then kill.
-   if ( getpgid(process) >= 0 ) {
-	   printf("watchdog thread: Still running, so killing %d ... ", process);
-//	   if ( kill( process, SIGTERM  ) == 0 ) {
-	   if ( kill( -process, SIGKILL ) == 0 ) {
-		printf("Killed\n");
-	   } else {
-		printf("Failed\n");
-   	   }
-   }
-   printf("watchdog thread: PID=%d Exit\n", process);
-   fflush(stdout);
-   //return;
+	printf("watchdog thread: PID of subprocess: %d\n", process);
+	fflush(stdout);
+	Sleep(5000);
+	// if still running PID (?) then kill.
+	if ( getpgid(process) >= 0 )
+	{
+		Debugprintf("watchdog thread: Still running, so killing %d ... ", process);
+		if ( kill( -process, SIGKILL ) == 0 )
+			Debugprintf("Killed PG watchdog Process %d", process);
+		else
+			Debugprintf("Failed to kill PG watchdog Process %d", process);   
+	}
+
+
+	Debugprintf("watchdog thread: PID=%d Exit", process);
+	fflush(stdout);
+	//return;
 }
 
 
@@ -11804,7 +11800,7 @@ POPENRET my_popen(char *program, char *type, CIRCUIT *conn)
 		if (*type == 'r') {
 			if (pdes[1] != 1) {
 				dup2(pdes[1], 1);
-				dup2(pdes[1], 2);	/* stderr, too! */
+				dup2(pdes[1], 2);
 				(void)close(pdes[1]);
 			}
 			(void)close(pdes[0]);
@@ -11821,9 +11817,8 @@ POPENRET my_popen(char *program, char *type, CIRCUIT *conn)
 		_exit(1);
 	}
 
-	/* parent; assume fdopen can't fail...  */
+	/* parent */
 
-        printf("PID=%d\n", pid );
        _beginthread((void (*)(void *))run_pgTimeoutThread, 0, (VOID *) pid );
 
 	if (*type == 'r') {
@@ -11835,17 +11830,13 @@ POPENRET my_popen(char *program, char *type, CIRCUIT *conn)
 	}
 
   	char buffer[128];
-	while (fgets(buffer, sizeof(buffer), iop) != NULL) {
-	   BBSputs(conn, buffer);
-//           printf("%s", buffer);
-//	   sleep(200);
-	  buffer[0] = '\0';
+	while (fgets(buffer, sizeof(buffer), iop) != NULL)
+	{
+		BBSputs(conn, buffer);
+		buffer[0] = '\0';
   	}
-//	BBSputs(conn,"\n");
 	PRET.fp = iop;
 	PRET.pid= pid;
-//	(void)close(pdes[0]);
-//	(void)close(pdes[1]);
 
 	return(PRET);
 }
@@ -11871,92 +11862,82 @@ my_pclose( POPENRET pret )
 	sigprocmask(SIG_SETMASK, &omask, NULL);
 	if (pid == -1 || !WIFEXITED(stat_loc))
 		return -1;
-//	return WEXITSTATUS(stat_loc);
-	printf( "return = %d\n", WEXITSTATUS(stat_loc));
 	return stat_loc;
 }
 
 
 int run_server (char **cmd, int nb_cmd, int mode, char *log, char *pgdir, char *data, CIRCUIT * conn)
 {
-        int i;
-        int ret = 0;
-        FILE *fp;
+	int i;
+	int ret = 0;
+	FILE *fp;
 	POPENRET PRET;
 	pid_t pid;
-        char *ptr;
-        char file[256];
-        char buf[256];
-        char dir[256];
-        char arg[256];
+	char *ptr;
+	char file[256];
+	char buf[256];
+	char dir[256];
+	char arg[256];
 
-        if (mode)
-//              sprintf (file, " </dev/null >%s", log);
-//              sprintf (file, " >>%s", log);
-//              sprintf (file, " | tee -a %s", log);
+	if (mode)
+		//              sprintf (file, " >>%s", log);
+		//              sprintf (file, " | tee -a %s", log);
 		sprintf(file, "" );
-        else
-                sprintf (file, " </dev/null");
+	else
+		sprintf (file, " </dev/null");
 
-        if (pgdir)
-        {
-                /* remove ';' security reasons */
-                ptr = strchr(pgdir, ';');
-                if (ptr)
-                        *ptr = '\0';
+	if (pgdir)
+	{
+		/* remove ';' security reasons */
+		ptr = strchr(pgdir, ';');
+		if (ptr)
+			*ptr = '\0';
 
-                sprintf (dir, "cd %s ; ", pgdir);
-        }
-        else
-                *dir = '\0';
+		sprintf (dir, "cd %s ; ", pgdir);
+	}
+	else
+		*dir = '\0';
 
-        *arg = '\0';
+	*arg = '\0';
 
-        if (data)
-        {
-                /* remove ';' security reasons */
-                ptr = strchr(data, ';');
-                if (ptr)
-                        *ptr = '\0';
+	if (data)
+	{
+		/* remove ';' security reasons */
+		ptr = strchr(data, ';');
+		if (ptr)
+			*ptr = '\0';
 
-                sprintf (arg, " %s ", data);
-        }
-
-
-        for (i = 0; i < nb_cmd; i++)
-        {
-                /* remove ';' security reasons */
-                ptr = strchr(cmd[i], ';');
-                if (ptr)
-                        *ptr = '\0';
-
-                sprintf (buf, "%s%s%s%s", dir, cmd[i], arg, file);
-
-                PRET = my_popen (buf, "r", conn);
-
-                if (PRET.fp == NULL)
-                    printf ("Failed to run command\n" );
-//                else {
-		/* start timeout thread to kill process if it runs for more than 5 sec (make configurable?)*/
-		  // _beginthread((void (*)(void *))run_pgTimeoutThread, 0, (VOID *) PRET.pid );
- //               }
+		sprintf (arg, " %s ", data);
+	}
 
 
-		//ret = (int)PRET.pid;
-                //wait(&ret);
+	for (i = 0; i < nb_cmd; i++)
+	{
+		/* remove ';' security reasons */
+		ptr = strchr(cmd[i], ';');
+		if (ptr)
+			*ptr = '\0';
+
+		sprintf (buf, "%s%s%s%s", dir, cmd[i], arg, file);
+
+		PRET = my_popen (buf, "r", conn);
+
+		if (PRET.fp == NULL)
+			Debugprintf ("Failed to run PG command %s\n", cmd[i] );
+
 		ret = my_pclose( PRET );
 		ret = ret >> 8;
 
-                if (verbose) {
-                        printf ("Debug: command = {%s}\n", buf);
-                        printf ("Debug: exit code = %d\n", ret);
-                }
+		if (verbose) {
+			Debugprintf ("Debug: command = {%s}\n", buf);
+			Debugprintf ("Debug: exit code = %d\n", ret);
+		}
 
-                /* fail-safe bypass if filter executable isn't found (exit code 127) (was ret ==127)*/
-                if (ret > 5)      // should never be more than 5
-                        ret = 0;
-         }
-         return ( ret );
+		/* fail-safe bypass if executable isn't found (exit code 127) (was ret ==127)*/
+		if (ret > 5)      // should never be more than 5
+			ret = 0;
+	}
+	return ( ret );
 }
 
 
@@ -11964,7 +11945,6 @@ void run_pg( CIRCUIT * conn, struct UserInfo * user )
 {
 
   if (!user->Temp->RUNPGPARAMS) {
-//	printf("Allocating new RUNPGPARAMS\n");
 	user->Temp->RUNPGPARAMS = (RUNPGARGS_PTR) zalloc(sizeof(RUNPGARGS));
   }
 
@@ -11974,7 +11954,7 @@ void run_pg( CIRCUIT * conn, struct UserInfo * user )
   user->Temp->RUNPGPARAMS->Len = conn->InputLen;
 
   if ( conn == 0 || user == 0 ) {
- 	printf("run_pg null err\n");
+ 	Debugprintf("run_pg null err");
 	return;
   }
 
@@ -11986,65 +11966,80 @@ void run_pg( CIRCUIT * conn, struct UserInfo * user )
 
 void startrun_pgThread( RUNPGARGS_PTR Args ) {
 
-  CIRCUIT * conn = Args->conn;
-  struct UserInfo * user = Args->user;
+	CIRCUIT * conn = Args->conn;
+	struct UserInfo * user = Args->user;
 
-  char cmd[20];
-  sprintf( cmd, "./%s", SERVERLIST[user->Temp->PG_SERVER][1] );
-  char *ptr = cmd;
-  char pg_dir[] = "/home/pi/linbpq/linbpq/downloads/new/linbpq/pg/";
-  char log_file[50] = "pg.log";
-  char call[6];
-  char data[80];
-  char line[80];
-  char *line_ptr = line;
-  int  index;
-  char *data_ptr = data;
-  size_t bufsize = 80;
+	char cmd[20];
+	sprintf( cmd, "./%s", SERVERLIST[user->Temp->PG_SERVER][1] );
+	char *ptr = cmd;
+	char pg_dir[MAX_PATH];
+	char log_file[50] = "pg.log";
+	char call[6];
+	char data[80];
+	char line[80];
+	char *line_ptr = line;
+	int  index;
+	char *data_ptr = data;
+	size_t bufsize = 80;
 
-  strcpy( call, conn->UserPointer->Call);
-//  sprintf( log_file, "%s-%d.log", call, conn);
-  index = user->Temp->PG_INDEX;
+	strcpy(pg_dir, BaseDir);
+	strcat(pg_dir, "/PG/");
 
-  line[0] = '\0';
-  int Len = Args->Len;
-  UCHAR * Msg = Args->InputBuffer;
-  strncpy( line, Msg, Len);
-  line[ Len - 1 ] = 0;   //remove LF
+	sprintf(line, "%s%s", pg_dir, SERVERLIST[user->Temp->PG_SERVER][1]);
 
-  sprintf( data, "%s %d 0 0 %s", call, index, line);
+	// check file exists and is executable
+	if (access(line, F_OK) == -1 || access(line, X_OK) == -1) {
+		Debugprintf("%s FileNotFound || Not EXE", line);
+		BBSputs(conn, "Error running PG Server\r");
+		conn->InputMode=0;
+		SendPrompt(conn, user);
+		return;
+	}
 
-  // clear the input queue
-  conn->InputLen = 0;
-  conn->InputBufferLen = 0;
 
-  int ret = run_server (&ptr, 1, 1, log_file, pg_dir, data_ptr, conn);
+	strcpy( call, conn->UserPointer->Call);
+	//  sprintf( log_file, "%s-%d.log", call, conn);
+	index = user->Temp->PG_INDEX;
 
-  switch (ret)
-      {
-		 case -1:	// ERROR or forced closed
-                  case 0:       index=0;			// Goodbye/Exit
-				conn->InputMode=0;
-				SendPrompt(conn, user);
-                                break;
-                  case 1:       index++;			// inc & keep in PG
-                                break;
-                  case 2:       index=0;			// disconnect
-				conn->InputMode=0;
-				Disconnect(conn->BPQStream);
-                                break;
-                  case 3:       printf("data->BBS & end\n");
-                                break;
-                  case 4:       printf("data->BBS and inc %d\n", index++);
-                                break;
-                  case 5:       printf("call no inc %d\n", ret);
-                                break;
+	line[0] = '\0';
+	int Len = Args->Len;
+	UCHAR * Msg = Args->InputBuffer;
+	strncpy( line, Msg, Len);
+	line[ Len - 1 ] = 0;   //remove LF
 
-         }
+	sprintf( data, "%s %d 0 0 %s", call, index, line);
+
+	// clear the input queue
+	conn->InputLen = 0;
+	conn->InputBufferLen = 0;
+
+	int ret = run_server (&ptr, 1, 1, log_file, pg_dir, data_ptr, conn);
+
+	switch (ret)
+	{
+	case -1:	// ERROR or forced closed
+	case 0:       index=0;			// Goodbye/Exit
+		conn->InputMode=0;
+		SendPrompt(conn, user);
+		break;
+	case 1:       index++;			// inc & keep in PG
+		break;
+	case 2:       index=0;			// disconnect
+		conn->InputMode=0;
+		Disconnect(conn->BPQStream);
+		break;
+	case 3:       Debugprintf("data->BBS & end");
+		break;
+	case 4:       Debugprintf("data->BBS and inc %d", index++);
+		break;
+	case 5:       Debugprintf("call no inc %d", ret);
+		break;
+
+	}
 
 	user->Temp->PG_INDEX=index;
 }
-/*---- TAJ END ----- */
+/*---- G7TAJ END ----- */
 
 #else
 
@@ -12077,7 +12072,7 @@ void run_pg( CIRCUIT * conn, struct UserInfo * user )
 	int index = 0;
 	int ret = 0;
 
-	// if first entay allocate RUNPGPARAMS
+	// if first entry allocate RUNPGPARAMS
 	if (!user->Temp->RUNPGPARAMS)
 	{
 		user->Temp->RUNPGPARAMS = (RUNPGARGS_PTR) zalloc(sizeof(RUNPGARGS));
@@ -13065,7 +13060,7 @@ VOID ProcessLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int len)
 		return;
 	}
 
-	/*---- TAJ PG Server ----- */
+	/*---- G7TAJ PG Server ----- */
 
 
 	if (_stricmp(Cmd, "PG") == 0)
@@ -13108,11 +13103,13 @@ VOID ProcessLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int len)
 					return;
 				}
 			}
+			BBSputs(conn, "No server found\r");
+			SendPrompt(conn, user);
+			return;
 		}
-
 	}
 
-	/*---- TAJ END ---- */
+	/*---- G7TAJ END ---- */
 
 	if (conn->Flags == 0)
 	{
@@ -15752,6 +15749,7 @@ VOID GetPGConfig()
 	char buf[256],errbuf[256];
 	char * p_prog, * p_name, * p_desc;
 	int n = 0;
+	int i = 0;
 
 
 	strcpy(FN, BaseDir);
@@ -15763,6 +15761,9 @@ VOID GetPGConfig()
 	
 	while(fgets(buf, 255, file) != NULL)
 	{
+		if ( buf[0] == '#')
+			continue;
+
 		strcpy(errbuf,buf);			// save in case of error
 
 		p_prog = strtok(buf, ",\n\r");
@@ -15786,6 +15787,15 @@ VOID GetPGConfig()
 
 	NUM_SERVERS = n;
 	fclose(file);
+	
+	/*------- G7TAJ PG SERVER ----------*/
+	Debugprintf("Number of PG Servers = %d", NUM_SERVERS );
+	for (i=0; i< NUM_SERVERS; i++ )
+	{
+		Debugprintf("Server #%d,%s,%s,%s", i, SERVERLIST[i][0], SERVERLIST[i][1], SERVERLIST[i][2]);
+	}
+	/*------- G7TAJ END ----------*/
+
 }
 
 void SendMessageReadEvent(char * call, struct MsgInfo * Msg)

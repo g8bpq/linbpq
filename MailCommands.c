@@ -351,7 +351,7 @@ VOID DoSetIdleTime(CIRCUIT * conn, struct UserInfo * user, char * Arg1, char * C
 		return;
 	}
 
-	nodeprintf(conn, "Idle Tine set to %d\r", IdleTime);
+	nodeprintf(conn, "Idle Time set to %d\r", IdleTime);
 	SendPrompt(conn, user);
 	return;
 }
