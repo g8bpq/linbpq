@@ -1867,6 +1867,7 @@ VOID SaveFWDConfig(HWND hDlg)
 	MaxRXSize = GetDlgItemInt(hDlg, IDC_MAXRECV, &OK, FALSE);
 	MaxAge = GetDlgItemInt(hDlg, IDC_MAXAGE, &OK, FALSE);
 	SendPtoMultiple = IsDlgButtonChecked(hDlg, IDC_MULTIP);
+	FOURCHARCONT = IsDlgButtonChecked(hDlg, IDC_FOURCHARCONTINENT);
 
 	
 	// Reinitialise Aliases
@@ -3249,6 +3250,7 @@ INT_PTR CALLBACK FwdEditDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARA
 		CheckDlgButton(hDlg, IDC_WARNNOROUTE, WarnNoRoute);
 		CheckDlgButton(hDlg, IDC_USELOCALTIME, Localtime);
 		CheckDlgButton(hDlg, IDC_MULTIP, SendPtoMultiple);
+		CheckDlgButton(hDlg, IDC_FOURCHARCONTINENT, FOURCHARCONT);
 
 		CurrentBBS = NULL;
 

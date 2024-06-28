@@ -1217,6 +1217,9 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix potential buffer overflow in Telnet login (36)
 //	Allow longer serial device names (37)
 //	Fix ICF8101 Mode setting (37)
+//	Kill link if we are getting repeated RR(F) after timeout 
+//		(Indicating other station is seeing our RR(P) but not the resent I frame) (40)
+
 
 
 #define CKernel

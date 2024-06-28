@@ -43,7 +43,7 @@
 
 #define NEWROUTING
 
-
+extern int FOURCHARCONT;
 
 // Standard __except handler for try/except
 

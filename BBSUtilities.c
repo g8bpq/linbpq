@@ -213,6 +213,7 @@ BOOL UserCantKillT = FALSE;
 
 typedef int (WINAPI FAR *FARPROCX)();
 FARPROCX pRunEventProgram;
+FARPROCX pGetPortFrequency;
 
 int RunEventProgram(char * Program, char * Param);
 
@@ -9680,6 +9681,7 @@ VOID SaveConfig(char * ConfigName)
 	SaveIntValue(group, "WarnNoRoute", WarnNoRoute);
 	SaveIntValue(group, "Localtime", Localtime);
 	SaveIntValue(group, "SendPtoMultiple", SendPtoMultiple);
+	SaveIntValue(group, "FOURCHARCONT", FOURCHARCONT);
 
 	SaveMultiStringValue(group, "FWDAliases", AliasText);
 
@@ -10116,6 +10118,8 @@ BOOL GetConfig(char * ConfigName)
 	ReaddressReceived =  GetIntValue(group, "ReaddressReceived");
 	WarnNoRoute =  GetIntValue(group, "WarnNoRoute");
 	SendPtoMultiple =  GetIntValue(group, "SendPtoMultiple");
+	FOURCHARCONT =  GetIntValue(group, "FOURCHARCONT");
+
 	Localtime =  GetIntValue(group, "Localtime");
 	AliasText = GetMultiStringValue(group, "FWDAliases");
 	GetStringValue(group, "BBSName", BBSName);
@@ -10588,8 +10592,24 @@ int Connected(int Stream)
 
 				if (SendNewUserMessage)
 				{
+					int64_t LongFreq = Freq;
+
 					char * MailBuffer = malloc(100);
-					Length += sprintf(MailBuffer, "New User %s Connected to Mailbox on Port %d Freq %d Mode %d\r\n", callsign, port, Freq, Mode);
+
+					if (Freq == 0 && port)
+					{
+						// Get Port Freq if available
+
+						char FreqString[256];
+
+#ifdef WIN32
+						if (pGetPortFrequency)
+							LongFreq = pGetPortFrequency(port, FreqString);
+#else
+							LongFreq = GetPortFrequency(port, FreqString);
+#endif
+					}
+					Length += sprintf(MailBuffer, "New User %s Connected to Mailbox on Port %d Freq %d Mode %ld\r\n", callsign, port, LongFreq, Mode);
 
 					sprintf(Title, "New User %s", callsign);
 
@@ -11754,9 +11774,8 @@ typedef struct _POPENRET
 */
 void run_pgTimeoutThread( pid_t process )
 {
-
-	printf("watchdog thread: PID of subprocess: %d\n", process);
-	fflush(stdout);
+//	printf("watchdog thread: PID of subprocess: %d\n", process);
+//	fflush(stdout);
 	Sleep(5000);
 	// if still running PID (?) then kill.
 	if ( getpgid(process) >= 0 )
@@ -11768,10 +11787,8 @@ void run_pgTimeoutThread( pid_t process )
 			Debugprintf("Failed to kill PG watchdog Process %d", process);   
 	}
 
-
-	Debugprintf("watchdog thread: PID=%d Exit", process);
-	fflush(stdout);
-	//return;
+//	Debugprintf("watchdog thread: PID=%d Exit", process);
+//	fflush(stdout);
 }
 
 
@@ -12638,7 +12655,6 @@ VOID ProcessLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int len)
 #endif
 		return;
 	}
-
 	if (_memicmp(Cmd, "Node", 4) == 0)
 	{
 		ExpandAndSendMessage(conn, SignoffMsg, LOG_BBS);
@@ -15757,8 +15773,10 @@ VOID GetPGConfig()
 	strcat(FN, "PG/PGList.txt");
 
 	if ((file = fopen(FN, "r")) == NULL)
+	{
 		return;
-	
+	}
+
 	while(fgets(buf, 255, file) != NULL)
 	{
 		if ( buf[0] == '#')
@@ -15784,6 +15802,7 @@ VOID GetPGConfig()
 		if (n > 255)
 			break;
 	}
+
 
 	NUM_SERVERS = n;
 	fclose(file);

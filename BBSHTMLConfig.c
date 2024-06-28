@@ -158,6 +158,7 @@ char MailPage[] = "<html><head><title>%s's BBS Web Server</title>"
 	"<td><a href=/Mail/Wel?%s>Welcome Msgs & Prompts</a></td>"
 	"<td><a href=/Mail/HK?%s>Housekeeping</a></td>"
 	"<td><a href=/Mail/WP?%s>WP Update</a></td>"
+	"<td><a href=/Webmail>WebMail</a></td>"
 	"<td><a href=/>Node Menu</a></td>"
 	"</tr></table>";
 
@@ -178,6 +179,7 @@ char RefreshMainPage[] = "<html><head>"
 	"<td><a href=/Mail/Wel?%s>Welcome Msgs & Prompts</a></td>"
 	"<td><a href=/Mail/HK?%s>Housekeeping</a></td>"
 	"<td><a href=/Mail/WP?%s>WP Update</a></td>"
+	"<td><a href=/Webmail>WebMail</a></td>"
 	"<td><a href=/>Node Menu</a></td>"
 	"</tr></table>";
 
@@ -1887,6 +1889,7 @@ VOID SaveFwdCommon(struct HTTPConnectionInfo * Session, char * MsgPtr, char * Re
 		GetCheckBox(input, "WarnNoRoute=", &WarnNoRoute);
 		GetCheckBox(input, "LocalTime=", &Localtime);
 		GetCheckBox(input, "SendPtoMultiple=", &SendPtoMultiple);
+		GetCheckBox(input, "FourCharCont=", &FOURCHARCONT);
 
 		// Reinitialise Aliases
 
@@ -2716,6 +2719,7 @@ VOID SendFwdMainPage(char * Reply, int * RLen, char * Key)
 		(WarnNoRoute) ? CHKD  : UNC, 
 		(Localtime) ? CHKD  : UNC,
 		(SendPtoMultiple) ? CHKD  : UNC,
+		(FOURCHARCONT) ? CHKD  : UNC,
 		ALIASES);
 }
 

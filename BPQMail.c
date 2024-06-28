@@ -1133,6 +1133,10 @@
 //	Fix possible failure to update last listed count when user disconnects without using B command
 //	Add short random delay (<30 secs) when forward new Messages immediately is enabled (35)
 //  Fix Connect Script IDLETIME (38)
+//	Add "Mail Mgmt" to Webmail menu bar and "WebMail" to Mail Mgmt Menu (39)
+//	Improve "New User" frequency determination (39)
+//	Allow selection of 2 or 4 character country codes for forward processing (39) 
+//	Fix Send P to multiple BBS's when routing on HR (40)
 
 #include "bpqmail.h"
 #include "winstdint.h"
@@ -1150,6 +1154,7 @@ FARPROCX pDllBPQTRACE;
 FARPROCZ pGetLOC;
 FARPROCX pRefreshWebMailIndex;
 FARPROCX pRunEventProgram;
+FARPROCX pGetPortFrequency;
 
 BOOL WINE = FALSE;
 
@@ -1924,6 +1929,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		pGetLOC = GetProcAddress(ExtDriver,"_GetLOC@0");
 		pRefreshWebMailIndex = GetProcAddress(ExtDriver,"_RefreshWebMailIndex@0");
 		pRunEventProgram = GetProcAddress(ExtDriver,"_RunEventProgram@8");
+		pGetPortFrequency = GetProcAddress(ExtDriver,"_GetPortFrequency@8");
+		
 
 		if (pGetLOC)
 		{

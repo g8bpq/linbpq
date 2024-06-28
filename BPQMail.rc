@@ -387,16 +387,16 @@ BEGIN
     CONTROL         "Warn if no route for P or T",IDC_WARNNOROUTE,"Button",
                     BS_AUTOCHECKBOX | BS_LEFTTEXT | BS_MULTILINE | 
                     WS_TABSTOP,5,101,103,8
-    LTEXT           "Aliases",IDC_STATIC,5,144,57,13
-    EDITTEXT        IDC_ALIAS,4,162,99,81,ES_MULTILINE | ES_UPPERCASE | 
+    LTEXT           "Aliases",IDC_STATIC,5,165,57,13
+    EDITTEXT        IDC_ALIAS,4,183,99,81,ES_MULTILINE | ES_UPPERCASE | 
                     ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | 
                     WS_VSCROLL
     CONTROL         "Readdress Locally Input",IDC_READDRESSLOCAL,"Button",
                     BS_AUTOCHECKBOX | BS_LEFTTEXT | BS_MULTILINE | 
-                    WS_DISABLED | WS_TABSTOP,4,246,97,8
+                    WS_DISABLED | WS_TABSTOP,4,267,97,8
     CONTROL         "Readdress Received",IDC_READDRESSRXED,"Button",
                     BS_AUTOCHECKBOX | BS_LEFTTEXT | BS_MULTILINE | 
-                    WS_DISABLED | WS_TABSTOP,4,260,97,8
+                    WS_DISABLED | WS_TABSTOP,4,281,97,8
     GROUPBOX        "Per-BBS Params",IDC_STATIC,121,33,326,263
     LTEXT           "BBS",IDC_STATIC,128,46,57,10
     COMBOBOX        IDC_BBS,122,59,50,60,CBS_SIMPLE | CBS_OEMCONVERT | 
@@ -471,6 +471,9 @@ BEGIN
                     WS_TABSTOP,5,130,103,8
     LTEXT           "Incoming Connect Timeout",IDC_STATIC,125,278,95,12
     EDITTEXT        IDC_CONTIMEOUT,219,276,22,12,ES_AUTOHSCROLL
+    CONTROL         "Use 4 Char Continent Codes",IDC_FOURCHARCONTINENT,
+                    "Button",BS_AUTOCHECKBOX | BS_LEFTTEXT | BS_MULTILINE | 
+                    WS_TABSTOP,6,146,103,8
 END
 
 IDD_USERADDED_BOX DIALOG DISCARDABLE  176, 132, 129, 68

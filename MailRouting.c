@@ -29,9 +29,9 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 // Bulls should not be distributed outside their designated area.
 
-// Use 4 char continent codes if this isn't defined
+// Use 4 char continent codes if this is set
 
-#define TWOCHARCONT
+int FOURCHARCONT = 0;
 
 
 #include "bpqmail.h"
@@ -71,266 +71,266 @@ struct Country
 
 struct Continent Continents[] =
 {
-   		"EURO",	"EU", // Europe
-   		"MEDR",	"EU", // Mediterranean
-   		"ASIA",	"AS", // The Orient
-   		"INDI",	"AS", // Indian Ocean including the Indian subcontinent
-   		"MDLE",	"AS", // Middle East
-   		"SEAS",	"AS", // South-East Asia
-   		"NOAM",	"NA", // North America (Canada, USA, Mexico)
-   		"CEAM",	"NA", // Central America
-   		"CARB",	"NA", // Caribbean
-   		"SOAM",	"SA", // South America
-   		"AUNZ",	"OC", // Australia/New Zealand
-   		"EPAC",	"OC", // Eastern Pacific
-   		"NPAC",	"OC", // Northern Pacific
-   		"SPAC",	"OC", // Southern Pacific
-   		"WPAC",	"OC", // Western Pacific
-   		"NAFR",	"AF", // Northern Africa
-   		"CAFR",	"AF", // Central Africa
-   		"SAFR",	"AF", // Southern Africa
-   		"ANTR",	"OC", // Antarctica 
-		"MARS",	"MARS", // Special for MARS network
+	"EURO",	"EU", // Europe
+	"MEDR",	"EU", // Mediterranean
+	"ASIA",	"AS", // The Orient
+	"INDI",	"AS", // Indian Ocean including the Indian subcontinent
+	"MDLE",	"AS", // Middle East
+	"SEAS",	"AS", // South-East Asia
+	"NOAM",	"NA", // North America (Canada, USA, Mexico)
+	"CEAM",	"NA", // Central America
+	"CARB",	"NA", // Caribbean
+	"SOAM",	"SA", // South America
+	"AUNZ",	"OC", // Australia/New Zealand
+	"EPAC",	"OC", // Eastern Pacific
+	"NPAC",	"OC", // Northern Pacific
+	"SPAC",	"OC", // Southern Pacific
+	"WPAC",	"OC", // Western Pacific
+	"NAFR",	"AF", // Northern Africa
+	"CAFR",	"AF", // Central Africa
+	"SAFR",	"AF", // Southern Africa
+	"ANTR",	"OC", // Antarctica 
+	"MARS",	"MARS", // Special for MARS network
 };
 
 struct Country Countries[] = 
 {			
-		"AFG", "****", "AS", 		// Afghanistan
-		"ALA", "EURO", "EU", 		// Åland Islands
-		"ALB", "EURO", "EU", 		// Albania
-		"DZA", "NAFR", "AF", 		// Algeria
-		"ASM", "****", "AS", 		// American Samoa
-		"AND", "EURO", "EU", 		// Andorra
-		"AGO", "CAFR", "AF", 		// Angola
-		"AIA", "CARB", "NA", 		// Anguilla
-		"ATG", "CARB", "NA", 		// Antigua and Barbuda
-		"ARG", "SOAM", "SA", 		// Argentina
-		"ARM", "****", "AS", 		// Armenia
-		"ABW", "CARB", "NA", 		// Aruba
-		"AUS", "AUNZ", "OC", 		// Australia
-		"AUT", "EURO", "EU", 		// Austria
-		"AZE", "****", "AS", 		// Azerbaijan
-		"BHS", "CARB", "NA", 		// Bahamas
-		"BHR", "MDLE", "AS", 		// Bahrain
-		"BGD", "INDE", "AS", 		// Bangladesh
-		"BRB", "CARB", "NA", 		// Barbados
-		"BLR", "EURO", "EU", 		// Belarus
-		"BEL", "EURO", "EU", 		// Belgium
-		"BLZ", "CEAM", "NA", 		// Belize
-		"BEN", "CAFR", "AF", 		// Benin
-		"BMU", "CARB", "NA", 		// Bermuda
-		"BTN", "ASIA", "AS", 		// Bhutan
-		"BOL", "SOAM", "SA", 		// Bolivia (Plurinational State of)
-		"BIH", "EURO", "EU", 		// Bosnia and Herzegovina
-		"BWA", "****", "AF", 		// Botswana
-		"BRA", "SOAM", "SA", 		// Brazil
-		"VGB", "CARB", "NA", 		// British Virgin Islands
-		"BRN", "ASIA", "AS", 		// Brunei Darussalam
-		"BGR", "EURO", "EU", 		// Bulgaria
-		"BFA", "CAFR", "AF", 		// Burkina Faso
-		"BDI", "CAFR", "AF", 		// Burundi
-		"KHM", "****", "AS", 		// Cambodia
-		"CMR", "CAFR", "AF", 		// Cameroon
-		"CAN", "NOAM", "NA", 		// Canada
-		"CPV", "NAFR", "AF", 		// Cape Verde
-		"CYM", "CARB", "NA", 		// Cayman Islands
-		"CAF", "CAFR", "AF", 		// Central African Republic
-		"TCD", "CAFR", "AF", 		// Chad
-		"CHL", "SOAM", "SA", 		// Chile
-		"CHN", "****", "AS", 		// China
-		"HKG", "****", "AS", 		// Hong Kong Special Administrative Region of China
-		"MAC", "****", "AS", 		// Macao Special Administrative Region of China
-		"COL", "****", "SA", 		// Colombia
-		"COM", "SAFR", "AF", 		// Comoros
-		"COG", "****", "AF", 		// Congo
-		"COK", "SPAC", "OC", 		// Cook Islands
-		"CRI", "CEAM", "NA", 		// Costa Rica
-		"CIV", "CAFR", "AF", 		// Côte d'Ivoire
-		"HRV", "EURO", "EU", 		// Croatia
-		"CUB", "CARB", "NA", 		// Cuba
-		"CYP", "EURO", "EU", 		// Cyprus
-		"CZE", "EURO", "EU", 		// Czech Republic
-		"PRK", "****", "AS", 		// Democratic People's Republic of Korea
-		"COD", "****", "AF", 		// Democratic Republic of the Congo
-		"DNK", "EURO", "EU", 		// Denmark
-		"DJI", "NAFR", "AF", 		// Djibouti
-		"DMA", "CARB", "NA", 		// Dominica
-		"DOM", "CARB", "NA", 		// Dominican Republic
-		"ECU", "SOAM", "SA", 		// Ecuador
-		"EGY", "MDLE", "AF", 		// Egypt
-		"SLV", "CEAM", "NA", 		// El Salvador
-		"GNQ", "CAFR", "AF", 		// Equatorial Guinea
-		"ERI", "****", "AF", 		// Eritrea
-		"EST", "EURO", "EU", 		// Estonia
-		"ETH", "****", "AF", 		// Ethiopia
-		"FRO", "EURO", "EU", 		// Faeroe Islands
-		"FLK", "SOAM", "SA", 		// Falkland Islands (Malvinas)
-		"FJI", "SPAC", "OC", 		// Fiji
-		"FIN", "EURO", "EU", 		// Finland
-		"FRA", "EURO", "EU", 		// France
-		"GUF", "SOAM", "SA", 		// French Guiana
-		"PYF", "SPAC", "OC", 		// French Polynesia
-		"GAB", "CAFR", "AF", 		// Gabon
-		"GMB", "CAFR", "AF", 		// Gambia
-		"GEO", "ASIA", "AS", 		// Georgia
-		"DEU", "EURO", "EU", 		// Germany
-		"GHA", "CAFR", "AF", 		// Ghana
-		"GIB", "EURO", "EU", 		// Gibraltar
-		"GRC", "EURO", "EU", 		// Greece
-		"GRL", "EURO", "EU", 		// Greenland
-		"GRD", "CARB", "NA", 		// Grenada
-		"GLP", "CARB", "NA", 		// Guadeloupe
-		"GUM", "SPAC", "OC", 		// Guam
-		"GTM", "CEAM", "NA", 		// Guatemala
-		"GGY", "EURO", "EU", 		// Guernsey
-		"GIN", "CAFR", "AF", 		// Guinea
-		"GNB", "CAFR", "AF", 		// Guinea-Bissau
-		"GUY", "SOAM", "SA", 		// Guyana
-		"HTI", "CARB", "NA", 		// Haiti
-		"VAT", "EURO", "EU", 		// Holy See
-		"HND", "CEAM", "NA", 		// Honduras
-		"HUN", "EURO", "EU", 		// Hungary
-		"ISL", "EURO", "EU", 		// Iceland
-		"IND", "INDI", "AS", 		// India
-		"IDN", "****", "AS", 		// Indonesia
-		"IRN", "MDLE", "AS", 		// Iran (Islamic Republic of)
-		"IRQ", "MDLE", "AS", 		// Iraq
-		"IRL", "EURO", "EU", 		// Ireland
-		"IMN", "EURO", "EU", 		// Isle of Man
-		"ISR", "MDLE", "AS", 		// Israel
-		"ITA", "EURO", "EU", 		// Italy
-		"JAM", "CEAM", "NA", 		// Jamaica
-		"JPN", "****", "AS", 		// Japan
-		"JEY", "EURO", "EU", 		// Jersey
-		"JOR", "MDLE", "AS", 		// Jordan
-		"KAZ", "****", "AS", 		// Kazakhstan
-		"KEN", "****", "AF", 		// Kenya
-		"KIR", "EPAC", "OC", 		// Kiribati
-		"KWT", "MDLE", "AS", 		// Kuwait
-		"KGZ", "ASIA", "AS", 		// Kyrgyzstan
-		"LAO", "ASIA", "AS", 		// Lao People's Democratic Republic
-		"LVA", "EURO", "EU", 		// Latvia
-		"LBN", "MDLE", "AS", 		// Lebanon
-		"LSO", "SAFR", "AF", 		// Lesotho
-		"LBR", "CAFR", "AF", 		// Liberia
-		"LBY", "MDLE", "AS", 		// Libyan Arab Jamahiriya
-		"LIE", "EURO", "EU", 		// Liechtenstein
-		"LTU", "EURO", "EU", 		// Lithuania
-		"LUX", "EURO", "EU", 		// Luxembourg
-		"MDG", "SAFR", "AF", 		// Madagascar
-		"MWI", "SAFR", "AF", 		// Malawi
-		"MYS", "ASIA", "AS", 		// Malaysia
-		"MDV", "INDI", "AS", 		// Maldives
-		"MLI", "CAFR", "AF", 		// Mali
-		"MLT", "EURO", "EU", 		// Malta
-		"MHL", "WPAC", "OC", 		// Marshall Islands
-		"MTQ", "CARB", "NA", 		// Martinique
-		"MRT", "NAFR", "AF", 		// Mauritania
-		"MUS", "SAFR", "AF", 		// Mauritius
-		"MYT", "SAFR", "AF", 		// Mayotte
-		"MEX", "****", "NA", 		// Mexico
-		"FSM", "WPAC", "OC", 		// Micronesia (Federated States of)
-		"MCO", "EURO", "EU", 		// Monaco
-		"MNG", "****", "AS", 		// Mongolia
-		"MNE", "EURO", "EU", 		// Montenegro
-		"MSR", "CARB", "NA", 		// Montserrat
-		"MAR", "NAFR", "AF", 		// Morocco
-		"MOZ", "SAFR", "AF", 		// Mozambique
-		"MMR", "ASIA", "AS", 		// Myanmar
-		"NAM", "****", "AF", 		// Namibia
-		"NRU", "WPAC", "OC", 		// Nauru
-		"NPL", "****", "AS", 		// Nepal
-		"NLD", "EURO", "EU", 		// Netherlands
-		"ANT", "CARB", "NA", 		// Netherlands Antilles
-		"NCL", "SPAC", "OC", 		// New Caledonia
-		"NZL", "AUNZ", "OC", 		// New Zealand
-		"NIC", "****", "SA", 		// Nicaragua
-		"NER", "NAFR", "AF", 		// Niger
-		"NGA", "****", "AF", 		// Nigeria
-		"NIU", "SPAC", "OC", 		// Niue
-		"NFK", "SPAC", "OC", 		// Norfolk Island
-		"MNP", "WPAC", "OC", 		// Northern Mariana Islands
-		"NOR", "EURO", "EU", 		// Norway
-		"PSE", "MDLE", "AS", 		// Occupied Palestinian Territory
-		"OMN", "MDLE", "AS", 		// Oman
-		"PAK", "INDI", "AS", 		// Pakistan
-		"PLW", "SPAC", "OC", 		// Palau
-		"PAN", "CEAM", "SA", 		// Panama
-		"PNG", "SPAC", "OC", 		// Papua New Guinea
-		"PRY", "SOAM", "SA", 		// Paraguay
-		"PER", "SOAM", "SA", 		// Peru
-		"PHL", "ASIA", "AS", 		// Philippines
-		"PCN", "SPAC", "OC", 		// Pitcairn
-		"POL", "EURO", "EU", 		// Poland
-		"PRT", "EURO", "EU", 		// Portugal
-		"PRI", "CARB", "NA", 		// Puerto Rico
-		"QAT", "MDLE", "AS", 		// Qatar
-		"KOR", "ASIA", "AS", 		// Republic of Korea
-		"MDA", "EURO", "EU", 		// Republic of Moldova
-		"REU", "SAFR", "AF", 		// Réunion
-		"ROU", "EURO", "EU", 		// Romania
-		"RUS", "ASIA", "AS", 		// Russian Federation
-		"RWA", "****", "AF", 		// Rwanda
-		"BLM", "CARB", "NA", 		// Saint-Barthélemy
-		"SHN", "SOAM", "SA", 		// Saint Helena
-		"KNA", "CARB", "NA", 		// Saint Kitts and Nevis
-		"LCA", "CARB", "NA", 		// Saint Lucia
-		"MAF", "CARB", "NA", 		// Saint-Martin (French part)
-		"SPM", "NOAM", "NA", 		// Saint Pierre and Miquelon
-		"VCT", "CARB", "NA", 		// Saint Vincent and the Grenadines
-		"WSM", "SPAC", "OC", 		// Samoa
-		"SMR", "EURO", "EU", 		// San Marino
-		"STP", "CAFR", "AF", 		// Sao Tome and Principe
-		"SAU", "MDLE", "AS", 		// Saudi Arabia
-		"SEN", "CAFR", "AF", 		// Senegal
-		"SRB", "EURO", "EU", 		// Serbia
-		"SYC", "SAFR", "AF", 		// Seychelles
-		"SLE", "****", "AF", 		// Sierra Leone
-		"SGP", "****", "AS", 		// Singapore
-		"SVK", "EURO", "EU", 		// Slovakia
-		"SVN", "EURO", "EU", 		// Slovenia
-		"SLB", "SPAC", "OC", 		// Solomon Islands
-		"SOM", "****", "AF", 		// Somalia
-		"ZAF", "SAFR", "AF", 		// South Africa
-		"ESP", "EURO", "EU", 		// Spain
-		"LKA", "INDE", "AS", 		// Sri Lanka
-		"SDN", "****", "AF", 		// Sudan
-		"SUR", "SOAM", "SA", 		// Suriname
-		"SJM", "EURO", "EU", 		// Svalbard and Jan Mayen Islands
-		"SWZ", "****", "AF", 		// Swaziland
-		"SWE", "EURO", "EU", 		// Sweden
-		"CHE", "EURO", "EU", 		// Switzerland
-		"SYR", "MDLE", "AS", 		// Syrian Arab Republic
-		"TJK", "ASIA", "AS", 		// Tajikistan
-		"THA", "****", "AS", 		// Thailand
-		"MKD", "EURO", "EU", 		// The former Yugoslav Republic of Macedonia
-		"TLS", "ASIA", "AS", 		// Timor-Leste
-		"TGO", "CAFR", "AF", 		// Togo
-		"TKL", "AUNZ", "OC", 		// Tokelau
-		"TON", "SPAC", "OC", 		// Tonga
-		"TTO", "CARB", "NA", 		// Trinidad and Tobago
-		"TUN", "****", "AF", 		// Tunisia
-		"TUR", "EURO", "EU", 		// Turkey
-		"TKM", "****", "AS", 		// Turkmenistan
-		"TCA", "CARB", "NA", 		// Turks and Caicos Islands
-		"TUV", "SPAC", "OC", 		// Tuvalu
-		"UGA", "****", "AF", 		// Uganda
-		"UKR", "EURO", "EU", 		// Ukraine
-		"ARE", "MDLE", "AS", 		// United Arab Emirates
-		"GBR", "EURO", "EU", 		// United Kingdom of Great Britain and Northern Ireland
-		"TZA", "****", "AF", 		// United Republic of Tanzania
-		"USA", "NOAM", "NA", 		// United States of America
-		"VIR", "CARB", "NA", 		// United States Virgin Islands
-		"URY", "SOAM", "SA", 		// Uruguay
-		"UZB", "ASIA", "AS", 		// Uzbekistan
-		"VUT", "SPAC", "OC", 		// Vanuatu
-		"VEN", "SOAM", "SA", 		// Venezuela (Bolivarian Republic of)
-		"VNM", "****", "AS", 		// Viet Nam
-		"WLF", "SPAC", "OC", 		// Wallis and Futuna Islands
-		"ESH", "****", "AF", 		// Western Sahara
-		"YEM", "****", "AF", 		// Yemen
-		"ZMB", "SAFR", "AF", 		// Zambia
-		"ZWE", "SAFR", "AF"		// Zimbabwe
+	"AFG", "ASIA", "AS", 		// Afghanistan
+	"ALA", "EURO", "EU", 		// Åland Islands
+	"ALB", "EURO", "EU", 		// Albania
+	"DZA", "NAFR", "AF", 		// Algeria
+	"ASM", "ASIA", "AS", 		// American Samoa
+	"AND", "EURO", "EU", 		// Andorra
+	"AGO", "CAFR", "AF", 		// Angola
+	"AIA", "CARB", "NA", 		// Anguilla
+	"ATG", "CARB", "NA", 		// Antigua and Barbuda
+	"ARG", "SOAM", "SA", 		// Argentina
+	"ARM", "ASIA", "AS", 		// Armenia
+	"ABW", "CARB", "NA", 		// Aruba
+	"AUS", "AUNZ", "OC", 		// Australia
+	"AUT", "EURO", "EU", 		// Austria
+	"AZE", "ASIA", "AS", 		// Azerbaijan
+	"BHS", "CARB", "NA", 		// Bahamas
+	"BHR", "MDLE", "AS", 		// Bahrain
+	"BGD", "INDE", "AS", 		// Bangladesh
+	"BRB", "CARB", "NA", 		// Barbados
+	"BLR", "EURO", "EU", 		// Belarus
+	"BEL", "EURO", "EU", 		// Belgium
+	"BLZ", "CEAM", "NA", 		// Belize
+	"BEN", "CAFR", "AF", 		// Benin
+	"BMU", "CARB", "NA", 		// Bermuda
+	"BTN", "ASIA", "AS", 		// Bhutan
+	"BOL", "SOAM", "SA", 		// Bolivia (Plurinational State of)
+	"BIH", "EURO", "EU", 		// Bosnia and Herzegovina
+	"BWA", "SAFR", "AF", 		// Botswana
+	"BRA", "SOAM", "SA", 		// Brazil
+	"VGB", "CARB", "NA", 		// British Virgin Islands
+	"BRN", "ASIA", "AS", 		// Brunei Darussalam
+	"BGR", "EURO", "EU", 		// Bulgaria
+	"BFA", "CAFR", "AF", 		// Burkina Faso
+	"BDI", "CAFR", "AF", 		// Burundi
+	"KHM", "ASIA", "AS", 		// Cambodia
+	"CMR", "CAFR", "AF", 		// Cameroon
+	"CAN", "NOAM", "NA", 		// Canada
+	"CPV", "NAFR", "AF", 		// Cape Verde
+	"CYM", "CARB", "NA", 		// Cayman Islands
+	"CAF", "CAFR", "AF", 		// Central African Republic
+	"TCD", "CAFR", "AF", 		// Chad
+	"CHL", "SOAM", "SA", 		// Chile
+	"CHN", "ASIA", "AS", 		// China
+	"HKG", "ASIA", "AS", 		// Hong Kong Special Administrative Region of China
+	"MAC", "ASIA", "AS", 		// Macao Special Administrative Region of China
+	"COL", "ASIA", "SA", 		// Colombia
+	"COM", "SAFR", "AF", 		// Comoros
+	"COG", "CAFR", "AF", 		// Congo
+	"COK", "SPAC", "OC", 		// Cook Islands
+	"CRI", "CEAM", "NA", 		// Costa Rica
+	"CIV", "CAFR", "AF", 		// Côte d'Ivoire
+	"HRV", "EURO", "EU", 		// Croatia
+	"CUB", "CARB", "NA", 		// Cuba
+	"CYP", "EURO", "EU", 		// Cyprus
+	"CZE", "EURO", "EU", 		// Czech Republic
+	"PRK", "ASIA", "AS", 		// Democratic People's Republic of Korea
+	"COD", "CAFR", "AF", 		// Democratic Republic of the Congo
+	"DNK", "EURO", "EU", 		// Denmark
+	"DJI", "NAFR", "AF", 		// Djibouti
+	"DMA", "CARB", "NA", 		// Dominica
+	"DOM", "CARB", "NA", 		// Dominican Republic
+	"ECU", "SOAM", "SA", 		// Ecuador
+	"EGY", "MDLE", "AF", 		// Egypt
+	"SLV", "CEAM", "NA", 		// El Salvador
+	"GNQ", "CAFR", "AF", 		// Equatorial Guinea
+	"ERI", "NAFR", "AF", 		// Eritrea
+	"EST", "EURO", "EU", 		// Estonia
+	"ETH", "NAFR", "AF", 		// Ethiopia
+	"FRO", "EURO", "EU", 		// Faeroe Islands
+	"FLK", "SOAM", "SA", 		// Falkland Islands (Malvinas)
+	"FJI", "SPAC", "OC", 		// Fiji
+	"FIN", "EURO", "EU", 		// Finland
+	"FRA", "EURO", "EU", 		// France
+	"GUF", "SOAM", "SA", 		// French Guiana
+	"PYF", "SPAC", "OC", 		// French Polynesia
+	"GAB", "CAFR", "AF", 		// Gabon
+	"GMB", "CAFR", "AF", 		// Gambia
+	"GEO", "ASIA", "AS", 		// Georgia
+	"DEU", "EURO", "EU", 		// Germany
+	"GHA", "CAFR", "AF", 		// Ghana
+	"GIB", "EURO", "EU", 		// Gibraltar
+	"GRC", "EURO", "EU", 		// Greece
+	"GRL", "EURO", "EU", 		// Greenland
+	"GRD", "CARB", "NA", 		// Grenada
+	"GLP", "CARB", "NA", 		// Guadeloupe
+	"GUM", "SPAC", "OC", 		// Guam
+	"GTM", "CEAM", "NA", 		// Guatemala
+	"GGY", "EURO", "EU", 		// Guernsey
+	"GIN", "CAFR", "AF", 		// Guinea
+	"GNB", "CAFR", "AF", 		// Guinea-Bissau
+	"GUY", "SOAM", "SA", 		// Guyana
+	"HTI", "CARB", "NA", 		// Haiti
+	"VAT", "EURO", "EU", 		// Holy See
+	"HND", "CEAM", "NA", 		// Honduras
+	"HUN", "EURO", "EU", 		// Hungary
+	"ISL", "EURO", "EU", 		// Iceland
+	"IND", "INDI", "AS", 		// India
+	"IDN", "ASIA", "AS", 		// Indonesia
+	"IRN", "MDLE", "AS", 		// Iran (Islamic Republic of)
+	"IRQ", "MDLE", "AS", 		// Iraq
+	"IRL", "EURO", "EU", 		// Ireland
+	"IMN", "EURO", "EU", 		// Isle of Man
+	"ISR", "MDLE", "AS", 		// Israel
+	"ITA", "EURO", "EU", 		// Italy
+	"JAM", "CEAM", "NA", 		// Jamaica
+	"JPN", "ASIA", "AS", 		// Japan
+	"JEY", "EURO", "EU", 		// Jersey
+	"JOR", "MDLE", "AS", 		// Jordan
+	"KAZ", "ASIA", "AS", 		// Kazakhstan
+	"KEN", "CAFR", "AF", 		// Kenya
+	"KIR", "EPAC", "OC", 		// Kiribati
+	"KWT", "MDLE", "AS", 		// Kuwait
+	"KGZ", "ASIA", "AS", 		// Kyrgyzstan
+	"LAO", "ASIA", "AS", 		// Lao People's Democratic Republic
+	"LVA", "EURO", "EU", 		// Latvia
+	"LBN", "MDLE", "AS", 		// Lebanon
+	"LSO", "SAFR", "AF", 		// Lesotho
+	"LBR", "CAFR", "AF", 		// Liberia
+	"LBY", "MDLE", "AS", 		// Libyan Arab Jamahiriya
+	"LIE", "EURO", "EU", 		// Liechtenstein
+	"LTU", "EURO", "EU", 		// Lithuania
+	"LUX", "EURO", "EU", 		// Luxembourg
+	"MDG", "SAFR", "AF", 		// Madagascar
+	"MWI", "SAFR", "AF", 		// Malawi
+	"MYS", "ASIA", "AS", 		// Malaysia
+	"MDV", "INDI", "AS", 		// Maldives
+	"MLI", "CAFR", "AF", 		// Mali
+	"MLT", "EURO", "EU", 		// Malta
+	"MHL", "WPAC", "OC", 		// Marshall Islands
+	"MTQ", "CARB", "NA", 		// Martinique
+	"MRT", "NAFR", "AF", 		// Mauritania
+	"MUS", "SAFR", "AF", 		// Mauritius
+	"MYT", "SAFR", "AF", 		// Mayotte
+	"MEX", "NOAM", "NA", 		// Mexico
+	"FSM", "WPAC", "OC", 		// Micronesia (Federated States of)
+	"MCO", "EURO", "EU", 		// Monaco
+	"MNG", "ASIA", "AS", 		// Mongolia
+	"MNE", "EURO", "EU", 		// Montenegro
+	"MSR", "CARB", "NA", 		// Montserrat
+	"MAR", "NAFR", "AF", 		// Morocco
+	"MOZ", "SAFR", "AF", 		// Mozambique
+	"MMR", "ASIA", "AS", 		// Myanmar
+	"NAM", "SAFR", "AF", 		// Namibia
+	"NRU", "WPAC", "OC", 		// Nauru
+	"NPL", "ASIA", "AS", 		// Nepal
+	"NLD", "EURO", "EU", 		// Netherlands
+	"ANT", "CARB", "NA", 		// Netherlands Antilles
+	"NCL", "SPAC", "OC", 		// New Caledonia
+	"NZL", "AUNZ", "OC", 		// New Zealand
+	"NIC", "CEAM", "SA", 		// Nicaragua
+	"NER", "NAFR", "AF", 		// Niger
+	"NGA", "CAFR", "AF", 		// Nigeria
+	"NIU", "SPAC", "OC", 		// Niue
+	"NFK", "SPAC", "OC", 		// Norfolk Island
+	"MNP", "WPAC", "OC", 		// Northern Mariana Islands
+	"NOR", "EURO", "EU", 		// Norway
+	"PSE", "MDLE", "AS", 		// Occupied Palestinian Territory
+	"OMN", "MDLE", "AS", 		// Oman
+	"PAK", "INDI", "AS", 		// Pakistan
+	"PLW", "SPAC", "OC", 		// Palau
+	"PAN", "CEAM", "SA", 		// Panama
+	"PNG", "SPAC", "OC", 		// Papua New Guinea
+	"PRY", "SOAM", "SA", 		// Paraguay
+	"PER", "SOAM", "SA", 		// Peru
+	"PHL", "ASIA", "AS", 		// Philippines
+	"PCN", "SPAC", "OC", 		// Pitcairn
+	"POL", "EURO", "EU", 		// Poland
+	"PRT", "EURO", "EU", 		// Portugal
+	"PRI", "CARB", "NA", 		// Puerto Rico
+	"QAT", "MDLE", "AS", 		// Qatar
+	"KOR", "ASIA", "AS", 		// Republic of Korea
+	"MDA", "EURO", "EU", 		// Republic of Moldova
+	"REU", "SAFR", "AF", 		// Réunion
+	"ROU", "EURO", "EU", 		// Romania
+	"RUS", "ASIA", "AS", 		// Russian Federation
+	"RWA", "CAFR", "AF", 		// Rwanda
+	"BLM", "CARB", "NA", 		// Saint-Barthélemy
+	"SHN", "SOAM", "SA", 		// Saint Helena
+	"KNA", "CARB", "NA", 		// Saint Kitts and Nevis
+	"LCA", "CARB", "NA", 		// Saint Lucia
+	"MAF", "CARB", "NA", 		// Saint-Martin (French part)
+	"SPM", "NOAM", "NA", 		// Saint Pierre and Miquelon
+	"VCT", "CARB", "NA", 		// Saint Vincent and the Grenadines
+	"WSM", "SPAC", "OC", 		// Samoa
+	"SMR", "EURO", "EU", 		// San Marino
+	"STP", "CAFR", "AF", 		// Sao Tome and Principe
+	"SAU", "MDLE", "AS", 		// Saudi Arabia
+	"SEN", "CAFR", "AF", 		// Senegal
+	"SRB", "EURO", "EU", 		// Serbia
+	"SYC", "SAFR", "AF", 		// Seychelles
+	"SLE", "NAFR", "AF", 		// Sierra Leone
+	"SGP", "ASIA", "AS", 		// Singapore
+	"SVK", "EURO", "EU", 		// Slovakia
+	"SVN", "EURO", "EU", 		// Slovenia
+	"SLB", "SPAC", "OC", 		// Solomon Islands
+	"SOM", "NAFR", "AF", 		// Somalia
+	"ZAF", "SAFR", "AF", 		// South Africa
+	"ESP", "EURO", "EU", 		// Spain
+	"LKA", "INDE", "AS", 		// Sri Lanka
+	"SDN", "NAFR", "AF", 		// Sudan
+	"SUR", "SOAM", "SA", 		// Suriname
+	"SJM", "EURO", "EU", 		// Svalbard and Jan Mayen Islands
+	"SWZ", "SAFR", "AF", 		// Swaziland
+	"SWE", "EURO", "EU", 		// Sweden
+	"CHE", "EURO", "EU", 		// Switzerland
+	"SYR", "MDLE", "AS", 		// Syrian Arab Republic
+	"TJK", "ASIA", "AS", 		// Tajikistan
+	"THA", "ASIA", "AS", 		// Thailand
+	"MKD", "EURO", "EU", 		// The former Yugoslav Republic of Macedonia
+	"TLS", "ASIA", "AS", 		// Timor-Leste
+	"TGO", "CAFR", "AF", 		// Togo
+	"TKL", "AUNZ", "OC", 		// Tokelau
+	"TON", "SPAC", "OC", 		// Tonga
+	"TTO", "CARB", "NA", 		// Trinidad and Tobago
+	"TUN", "NAFR", "AF", 		// Tunisia
+	"TUR", "EURO", "EU", 		// Turkey
+	"TKM", "ASIA", "AS", 		// Turkmenistan
+	"TCA", "CARB", "NA", 		// Turks and Caicos Islands
+	"TUV", "SPAC", "OC", 		// Tuvalu
+	"UGA", "SAFR", "AF", 		// Uganda
+	"UKR", "EURO", "EU", 		// Ukraine
+	"ARE", "MDLE", "AS", 		// United Arab Emirates
+	"GBR", "EURO", "EU", 		// United Kingdom of Great Britain and Northern Ireland
+	"TZA", "SAFR", "AF", 		// United Republic of Tanzania
+	"USA", "NOAM", "NA", 		// United States of America
+	"VIR", "CARB", "NA", 		// United States Virgin Islands
+	"URY", "SOAM", "SA", 		// Uruguay
+	"UZB", "ASIA", "AS", 		// Uzbekistan
+	"VUT", "SPAC", "OC", 		// Vanuatu
+	"VEN", "SOAM", "SA", 		// Venezuela (Bolivarian Republic of)
+	"VNM", "ASIA", "AS", 		// Viet Nam
+	"WLF", "SPAC", "OC", 		// Wallis and Futuna Islands
+	"ESH", "CAFR", "AF", 		// Western Sahara
+	"YEM", "NAFR", "AF", 		// Yemen
+	"ZMB", "SAFR", "AF", 		// Zambia
+	"ZWE", "SAFR", "AF"			// Zimbabwe
 };
 char ** AliasText;
 struct ALIAS ** Aliases;
@@ -339,9 +339,9 @@ struct ALIAS ** NTSAliases = NULL;
 
 /*struct ALIAS Aliases[] =
 {
-	"AMSAT",	"WW",
-	"USBBS",	"USA",
-	"ALLUS",	"USA"};
+"AMSAT",	"WW",
+"USBBS",	"USA",
+"ALLUS",	"USA"};
 */
 
 int NumberofContinents = sizeof(Continents)/sizeof(Continents[1]);
@@ -355,7 +355,7 @@ struct Continent * FindContinent(char * Name)
 	for(i=0; i< NumberofContinents; i++)
 	{
 		Cont = &Continents[i];
-		
+
 		if ((_stricmp(Name, Cont->FourCharCode) == 0) || (_stricmp(Name, Cont->TwoCharCode) == 0))
 			return Cont;
 	}
@@ -371,7 +371,7 @@ struct Country * FindCountry(char * Name)
 	for(i=0; i< NumberofCountries; i++)
 	{
 		Cont = &Countries[i];
-		
+
 		if (_stricmp(Name, Cont->Country) == 0)
 			return Cont;
 	}
@@ -389,7 +389,7 @@ struct ALIAS * FindAlias(char * Name)
 	{
 		if (_stricmp(Name, Alias[0]->Dest) == 0)
 			return Alias[0];
-	
+
 		Alias++;
 	}
 
@@ -403,7 +403,7 @@ VOID SetupMyHA()
 	struct Continent * Continent;
 
 	strcpy(MyRouteElements, HRoute);
-	
+
 	// Split it up
 
 	ptr2 = MyRouteElements + strlen(MyRouteElements) - 1;
@@ -418,7 +418,7 @@ VOID SetupMyHA()
 			if (ptr2 == MyRouteElements)
 			{
 				// End
-	
+
 				MyElements[Elements++] = _strdup(ptr2);
 				break;
 			}
@@ -435,29 +435,32 @@ VOID SetupMyHA()
 
 	if (MyElements[1])
 	{
-#ifdef TWOCHARCONT
-		if (strlen(MyElements[1]) == 4)
+		if (FOURCHARCONT == 0)
 		{
-			// Convert to 2 char Continent;
-			Continent = FindContinent(MyElements[1]);
-			if (Continent)
+			if (strlen(MyElements[1]) == 4)
 			{
-				free(MyElements[1]);
-				MyElements[1] = _strdup(Continent->TwoCharCode);
+				// Convert to 2 char Continent;
+				Continent = FindContinent(MyElements[1]);
+				if (Continent)
+				{
+					free(MyElements[1]);
+					MyElements[1] = _strdup(Continent->TwoCharCode);
+				}
 			}
 		}
-#else
-		if (strlen(MyElements[1]) == 2)
+		else
 		{
-			// Convert to 4 char Continent;
-			Continent = FindContinent(MyElements[1]);
-			if (Continent)
+			if (strlen(MyElements[1]) == 2)
 			{
-				free(MyElements[1]);
-				MyElements[1] = _strdup(Continent->FourCharCode);
+				// Convert to 4 char Continent;
+				Continent = FindContinent(MyElements[1]);
+				if (Continent)
+				{
+					free(MyElements[1]);
+					MyElements[1] = _strdup(Continent->FourCharCode);
+				}
 			}
 		}
-#endif
 	}
 }
 
@@ -556,7 +559,7 @@ VOID SetupHAElements(struct BBSForwardingInfo * ForwardingInfo)
 	do 
 	{
 		ForwardingInfo->BBSHAElements = realloc(ForwardingInfo->BBSHAElements, (Elements+2) * sizeof(void *));
-		
+
 		while ((*ptr2 != '.') && (ptr2 > SaveHText))
 		{
 			ptr2 --;
@@ -565,13 +568,13 @@ VOID SetupHAElements(struct BBSForwardingInfo * ForwardingInfo)
 		if (ptr2 == SaveHText)
 		{
 			// End
-	
+
 			ForwardingInfo->BBSHAElements[Elements++] = _strdup(ptr2);
 			break;
 		}
 
-			ForwardingInfo->BBSHAElements[Elements++] = _strdup(ptr2+1);
-			*ptr2 = 0;
+		ForwardingInfo->BBSHAElements[Elements++] = _strdup(ptr2+1);
+		*ptr2 = 0;
 
 	} while(TRUE);
 
@@ -579,30 +582,32 @@ VOID SetupHAElements(struct BBSForwardingInfo * ForwardingInfo)
 
 	if (ForwardingInfo->BBSHAElements[1])
 	{
-#ifdef TWOCHARCONT
-		if (strlen(ForwardingInfo->BBSHAElements[1]) == 4)
+		if (FOURCHARCONT == 0)
 		{
-			// Convert to 2 char Continent;
-			Continent = FindContinent(ForwardingInfo->BBSHAElements[1]);
-			if (Continent)
+			if (strlen(ForwardingInfo->BBSHAElements[1]) == 4)
 			{
-				free(ForwardingInfo->BBSHAElements[1]);
-				ForwardingInfo->BBSHAElements[1] = _strdup(Continent->TwoCharCode);
+				// Convert to 2 char Continent;
+				Continent = FindContinent(ForwardingInfo->BBSHAElements[1]);
+				if (Continent)
+				{
+					free(ForwardingInfo->BBSHAElements[1]);
+					ForwardingInfo->BBSHAElements[1] = _strdup(Continent->TwoCharCode);
+				}
 			}
 		}
-#else
-		if (strlen(ForwardingInfo->BBSHAElements[1]) == 2)
+		else
 		{
-			// Convert to 4 char Continent;
-			Continent = FindContinent(ForwardingInfo->BBSHAElements[1]);
-			if (Continent)
+			if (strlen(ForwardingInfo->BBSHAElements[1]) == 2)
 			{
-				free(ForwardingInfo->BBSHAElements[1]);
-				ForwardingInfo->BBSHAElements[1] = _strdup(Continent->FourCharCode);
+				// Convert to 4 char Continent;
+				Continent = FindContinent(ForwardingInfo->BBSHAElements[1]);
+				if (Continent)
+				{
+					free(ForwardingInfo->BBSHAElements[1]);
+					ForwardingInfo->BBSHAElements[1] = _strdup(Continent->FourCharCode);
+				}
 			}
 		}
-#endif
-
 	}
 
 	free(SaveHText);
@@ -614,7 +619,7 @@ VOID SetupHAddreses(struct BBSForwardingInfo * ForwardingInfo)
 	int Count=0;
 	char ** HText = ForwardingInfo->Haddresses;
 	char * SaveHText, * ptr2;
-//	char * TopElement;
+	//	char * TopElement;
 	char * Num;
 	struct Continent * Continent;
 
@@ -626,7 +631,7 @@ VOID SetupHAddreses(struct BBSForwardingInfo * ForwardingInfo)
 		int Elements = 1;
 		ForwardingInfo->HADDRS = realloc(ForwardingInfo->HADDRS, (Count+2) * sizeof(void *));
 		ForwardingInfo->HADDROffet = realloc(ForwardingInfo->HADDROffet, (Count+2) * sizeof(void *));
-	
+
 		ForwardingInfo->HADDRS[Count] = zalloc(8);	// Always at lesat WWW and NULL
 
 		SaveHText = _strdup(HText[0]);
@@ -671,53 +676,56 @@ VOID SetupHAddreses(struct BBSForwardingInfo * ForwardingInfo)
 		// Far simpler to config it, but can users cope??
 		//	Will config for testing. HA, N
 
-/*
+		/*
 		TopElement=ForwardingInfo->HADDRS[Count][0];
 
 		if (strcmp(TopElement, MyElements[0]) == 0)
-			goto FullHR;
+		goto FullHR;
 
 		if (FindContinent(TopElement))
-			goto FullHR;
-	
+		goto FullHR;
+
 		// Need to add stuff from our HR
 
 		Elements--;
 
 		if (Elements < MyElementCount)
-			break;
+		break;
 
-FullHR:
-*/
+		FullHR:
+		*/
 
 		ForwardingInfo->HADDROffet[Count] = (Num)? atoi(Num): 0;
 
 		if (ForwardingInfo->HADDRS[Count][1])
 		{
-#ifdef TWOCHARCONT
-			if (strlen(ForwardingInfo->HADDRS[Count][1]) == 4)
+			if (FOURCHARCONT == 0)
 			{
-				// Convert to 2 char Continent;
-				Continent = FindContinent(ForwardingInfo->HADDRS[Count][1]);
-				if (Continent)
-				{
-					free(ForwardingInfo->HADDRS[Count][1]);
-					ForwardingInfo->HADDRS[Count][1] = _strdup(Continent->TwoCharCode);
-				}
-			}
-#else
-			if (strlen(ForwardingInfo->HADDRS[Count][1]) == 2)
-			{
-				// Convert to 4 char Continent;
-				Continent = FindContinent(ForwardingInfo->HADDRS[Count][1]);
-				if (Continent)
-				{
-					free(ForwardingInfo->HADDRS[Count][1]);
-					ForwardingInfo->HADDRS[Count][1] = _strdup(Continent->FourCharCode);
-				}
-			}
-#endif
 
+				if (strlen(ForwardingInfo->HADDRS[Count][1]) == 4)
+				{
+					// Convert to 2 char Continent;
+					Continent = FindContinent(ForwardingInfo->HADDRS[Count][1]);
+					if (Continent)
+					{
+						free(ForwardingInfo->HADDRS[Count][1]);
+						ForwardingInfo->HADDRS[Count][1] = _strdup(Continent->TwoCharCode);
+					}
+				}
+			}
+			else
+			{
+				if (strlen(ForwardingInfo->HADDRS[Count][1]) == 2)
+				{
+					// Convert to 4 char Continent;
+					Continent = FindContinent(ForwardingInfo->HADDRS[Count][1]);
+					if (Continent)
+					{
+						free(ForwardingInfo->HADDRS[Count][1]);
+						ForwardingInfo->HADDRS[Count][1] = _strdup(Continent->FourCharCode);
+					}
+				}
+			}
 		}
 		free(SaveHText);
 		HText++;
@@ -732,7 +740,7 @@ VOID SetupHAddresesP(struct BBSForwardingInfo * ForwardingInfo)
 	int Count=0;
 	char ** HText = ForwardingInfo->HaddressesP;
 	char * SaveHText, * ptr2;
-//	char * TopElement;
+	//	char * TopElement;
 	char * Num;
 	struct Continent * Continent;
 
@@ -742,7 +750,7 @@ VOID SetupHAddresesP(struct BBSForwardingInfo * ForwardingInfo)
 	{
 		int Elements = 1;
 		ForwardingInfo->HADDRSP = realloc(ForwardingInfo->HADDRSP, (Count+2) * sizeof(void *));
-	
+
 		ForwardingInfo->HADDRSP[Count] = zalloc(2 * sizeof(void *));	// Always at lesat WWW and NULL
 
 		SaveHText = _strdup(HText[0]);
@@ -781,29 +789,33 @@ VOID SetupHAddresesP(struct BBSForwardingInfo * ForwardingInfo)
 
 		if (ForwardingInfo->HADDRSP[Count][1])
 		{
-#ifdef TWOCHARCONT
-			if (strlen(ForwardingInfo->HADDRSP[Count][1]) == 4)
+			if (FOURCHARCONT == 0)
 			{
-				// Convert to 2 char Continent;
-				Continent = FindContinent(ForwardingInfo->HADDRSP[Count][1]);
-				if (Continent)
+
+				if (strlen(ForwardingInfo->HADDRSP[Count][1]) == 4)
 				{
-					free(ForwardingInfo->HADDRSP[Count][1]);
-					ForwardingInfo->HADDRSP[Count][1] = _strdup(Continent->TwoCharCode);
+					// Convert to 2 char Continent;
+					Continent = FindContinent(ForwardingInfo->HADDRSP[Count][1]);
+					if (Continent)
+					{
+						free(ForwardingInfo->HADDRSP[Count][1]);
+						ForwardingInfo->HADDRSP[Count][1] = _strdup(Continent->TwoCharCode);
+					}
 				}
 			}
-#else
-			if (strlen(ForwardingInfo->HADDRSP[Count][1]) == 2)
+			else
 			{
-				// Convert to 4 char Continent;
-				Continent = FindContinent(ForwardingInfo->HADDRSP[Count][1]);
-				if (Continent)
+				if (strlen(ForwardingInfo->HADDRSP[Count][1]) == 2)
 				{
-					free(ForwardingInfo->HADDRSP[Count][1]);
-					ForwardingInfo->HADDRSP[Count][1] = _strdup(Continent->FourCharCode);
+					// Convert to 4 char Continent;
+					Continent = FindContinent(ForwardingInfo->HADDRSP[Count][1]);
+					if (Continent)
+					{
+						free(ForwardingInfo->HADDRSP[Count][1]);
+						ForwardingInfo->HADDRSP[Count][1] = _strdup(Continent->FourCharCode);
+					}
 				}
 			}
-#endif
 		}
 		free(SaveHText);
 		HText++;
@@ -816,7 +828,7 @@ VOID SetupHAddresesP(struct BBSForwardingInfo * ForwardingInfo)
 VOID CheckAndSend(struct MsgInfo * Msg, CIRCUIT * conn, struct UserInfo * bbs) 
 {
 	struct BBSForwardingInfo * ForwardingInfo = bbs->ForwardingInfo;
-		
+
 	if (ForwardToMe || _stricmp(bbs->Call, BBSName) != 0) // Don't forward to ourself - already here! (unless ForwardToMe set)
 	{
 		if ((conn == NULL) || (!(conn->BBSFlags & BBS) || (_stricmp(conn->UserPointer->Call, bbs->Call) != 0))) // Dont send back
@@ -841,9 +853,9 @@ VOID CheckAndSend(struct MsgInfo * Msg, CIRCUIT * conn, struct UserInfo * bbs)
 			{
 				CheckAndSend(Msg, conn, user);
 			}
-			
+
 			Logprintf(LOG_BBS, conn, '?', "Message matches this BBS and RMS Redirect set - fwd to RMS");
-			
+
 		}
 		else
 			Logprintf(LOG_BBS, conn, '?', "Message matches this BBS and ForwardToMe not set - not queuing message");
@@ -857,7 +869,7 @@ VOID UpdateB2Dest(struct MsgInfo * Msg, char * Alias)
 	FILE * hFile;
 	char * MsgBytes;
 	struct stat STAT;
- 
+
 	sprintf_s(MsgFile, sizeof(MsgFile), "%s/m_%06d.mes", MailDir, Msg->number);
 
 	if (stat(MsgFile, &STAT) == -1)
@@ -1032,7 +1044,7 @@ int MatchMessagetoBBSList(struct MsgInfo * Msg, CIRCUIT * conn)
 
 			if (strlen(toCall) > 6)
 				toCall[6] = 0;
-			
+
 			strcpy(Msg->to, toCall);
 			strcpy(Msg->via, via);
 			Logprintf(LOG_BBS, conn, '?', "Routing Trace at %s is for us. Leave Here", AMPRDomain);
@@ -1048,7 +1060,7 @@ int MatchMessagetoBBSList(struct MsgInfo * Msg, CIRCUIT * conn)
 			if (bbs)
 			{
 				// We have bbs AMPR
-				
+
 				if (_stricmp(Msg->to, "RMS") == 0 || Msg->to[0] == 0)
 				{
 					// Was set to go via RMS or ISP - change it
@@ -1057,7 +1069,7 @@ int MatchMessagetoBBSList(struct MsgInfo * Msg, CIRCUIT * conn)
 				}		
 
 				Logprintf(LOG_BBS, conn, '?', "Routing Trace to ampr.org Matches BBS AMPR");
-			
+
 				set_fwd_bit(Msg->fbbs, bbs->BBSNumber);
 				bbs->ForwardingInfo->MsgCount++;
 				if (bbs->ForwardingInfo->SendNew)
@@ -1070,12 +1082,12 @@ int MatchMessagetoBBSList(struct MsgInfo * Msg, CIRCUIT * conn)
 		}
 	}
 
-//	See if sending @ winlink.org
+	//	See if sending @ winlink.org
 
 	if (_stricmp(Msg->to, "RMS") == 0)
 	{
 		// If a user of this bbs with Poll RMS set, leave it here - no point in sending to winlink
-	
+
 		// To = RMS could come from RMS:EMAIL Address. If so, we only check user if @winlink.org, or
 		// we will hold g8bpq@g8bpq.org.uk
 
@@ -1103,7 +1115,7 @@ int MatchMessagetoBBSList(struct MsgInfo * Msg, CIRCUIT * conn)
 
 						if (user->flags & F_BBS)	// User is also a BBS, so set FWD bit so he can get it
 							set_fwd_bit(Msg->fbbs, user->BBSNumber);
-	
+
 						return 1;
 					}
 				}
@@ -1118,7 +1130,7 @@ int MatchMessagetoBBSList(struct MsgInfo * Msg, CIRCUIT * conn)
 		if (RMS)
 		{
 			Logprintf(LOG_BBS, conn, '?', "Routing Trace to RMS Matches BBS RMS");
-			
+
 			set_fwd_bit(Msg->fbbs, RMS->BBSNumber);
 			RMS->ForwardingInfo->MsgCount++;
 			if (RMS->ForwardingInfo->SendNew)
@@ -1140,20 +1152,20 @@ int MatchMessagetoBBSList(struct MsgInfo * Msg, CIRCUIT * conn)
 			if (user->flags & F_POLLRMS)
 			{
 				Logprintf(LOG_BBS, conn, '?', "Routing Trace @ winlink.org, but local RMS user - leave here");
-		
+
 				if (user->flags & F_BBS)	// User is also a BBS, so set FWD bit so he can get it
 					set_fwd_bit(Msg->fbbs, user->BBSNumber);
 
 				return 1;					// Route found
 			}
 		}
-	
+
 		RMS = FindRMS();
 
 		if (RMS)
 		{
 			Logprintf(LOG_BBS, conn, '?', "Routing Trace @ winlink.org Matches BBS RMS");
-			
+
 			set_fwd_bit(Msg->fbbs, RMS->BBSNumber);
 			RMS->ForwardingInfo->MsgCount++;
 			if (RMS->ForwardingInfo->SendNew)
@@ -1169,7 +1181,7 @@ int MatchMessagetoBBSList(struct MsgInfo * Msg, CIRCUIT * conn)
 	// See if a well-known alias
 
 	Alias = FindAlias(RouteElements);
-	
+
 	if (Alias)
 	{
 		Logprintf(LOG_BBS, conn, '?', "Routing Trace Alias Substitution %s > %s",
@@ -1219,15 +1231,15 @@ int MatchMessagetoBBSList(struct MsgInfo * Msg, CIRCUIT * conn)
 	}
 
 	Country = FindCountry(ptr2);
-	
+
 	if (Country)
 	{
 		// Just need to add Continent and WW
-#ifdef TWOCHARCONT
-		sprintf_s(FullRoute, sizeof(FullRoute),"%s.%s.WW", RouteElements, Country->Continent2);
-#else
-		sprintf_s(FullRoute, sizeof(FullRoute),"%s.%s.WW", RouteElements, Country->Continent4);
-#endif
+		if (FOURCHARCONT == 0)
+			sprintf_s(FullRoute, sizeof(FullRoute),"%s.%s.WW", RouteElements, Country->Continent2);
+		else
+			sprintf_s(FullRoute, sizeof(FullRoute),"%s.%s.WW", RouteElements, Country->Continent4);
+
 		goto FULLHA;
 	}
 
@@ -1261,7 +1273,7 @@ FULLHA:
 
 			if (ptr2 != FullRoute)
 				*ptr2++ = 0;
-	
+
 			HElements[Elements++] = ptr2;
 
 
@@ -1270,29 +1282,32 @@ FULLHA:
 
 	if (HElements[1])
 	{
-#ifdef TWOCHARCONT
-		if (strlen(HElements[1]) == 4)
+		if (FOURCHARCONT == 0)
 		{
-			// Convert to 2 char Continent;
-			Continent = FindContinent(HElements[1]);
-			if (Continent)
+			if (strlen(HElements[1]) == 4)
 			{
-//				free(MyElements[1]);
-				HElements[1] = _strdup(Continent->TwoCharCode);
+				// Convert to 2 char Continent;
+				Continent = FindContinent(HElements[1]);
+				if (Continent)
+				{
+					//				free(MyElements[1]);
+					HElements[1] = _strdup(Continent->TwoCharCode);
+				}
 			}
 		}
-#else
-		if (strlen(HElements[1]) == 2)
+		else
 		{
-			// Convert to 4 char Continent;
-			Continent = FindContinent(HElements[1]);
-			if (Continent)
+			if (strlen(HElements[1]) == 2)
 			{
-//				free(MyElements[1]);
-				HElements[1] = _strdup(Continent->FourCharCode);
+				// Convert to 4 char Continent;
+				Continent = FindContinent(HElements[1]);
+				if (Continent)
+				{
+					//				free(MyElements[1]);
+					HElements[1] = _strdup(Continent->FourCharCode);
+				}
 			}
 		}
-#endif
 	}
 
 
@@ -1301,7 +1316,7 @@ FULLHA:
 	if (Msg->type == 'B')
 	{
 		int i = 0;
-		
+
 		// All elements of Helements must match Myelements
 
 		while (MyElements[i] && HElements[i]) // Until one set runs out
@@ -1345,7 +1360,7 @@ NOHA:
 			if (depth > -1)
 			{
 				Logprintf(LOG_BBS, conn, '?', "Routing Trace NTS Matches TO BBS %s Length %d", bbs->Call, depth);
-		
+
 				if (depth > bestmatch)
 				{
 					bestmatch = depth;
@@ -1386,7 +1401,63 @@ NOHA:
 		goto CheckWildCardedAT;
 	}
 
+	// First check P message to multiple destinations
 
+	// We should choose the BBS with most matching elements (ie match on #23.GBR better that GBR)
+	// If SendPtoMultiple is set I think we send to any with same match level
+
+	// So if SendPtoMultiple is set I think I need to find the best depth then send to all with the same depth
+	// If none are found on HA match drop through.
+
+	if (SendPtoMultiple && Msg->type == 'P')
+	{
+		struct UserInfo * bestbbs = NULL;
+		int bestmatch = 0;
+		int depth;
+		int Matched = 0;
+		int MultiPDepth = 0;
+
+		Count = 0;
+
+		Logprintf(LOG_BBS, conn, '?', "SendPtoMultiple is set. Checking for best match level");
+
+		for (bbs = BBSChain; bbs; bbs = bbs->BBSNext)
+		{		
+			ForwardingInfo = bbs->ForwardingInfo;
+
+			depth = CheckBBSHElements(Msg, bbs, ForwardingInfo, ATBBS, &HElements[0]);
+
+			if (depth)
+			{
+				if (depth > MultiPDepth)
+				{
+					MultiPDepth = depth;
+					bestbbs = bbs;
+				}
+			}
+		}
+
+		if (MultiPDepth)
+		{
+			for (bbs = BBSChain; bbs; bbs = bbs->BBSNext)
+			{		
+				ForwardingInfo = bbs->ForwardingInfo;
+
+				depth = CheckBBSHElements(Msg, bbs, ForwardingInfo, ATBBS, &HElements[0]);
+
+				if (depth == MultiPDepth)
+				{
+					Logprintf(LOG_BBS, conn, '?', "Routing Trace HR Matches BBS %s Depth %d", bbs->Call, depth);	
+					CheckAndSend(Msg, conn, bbs);
+					Count++;
+				}	
+			}
+			return	Count;		
+		}
+		else
+			Logprintf(LOG_BBS, conn, '?', "SendPtoMultiple is set but no match on HA");
+	}
+	
 	if (Msg->type == 'P' || Flood == 0)
 	{
 		// P messages are only sent to one BBS, but check the TO and AT of all BBSs before routing on HA,
@@ -1406,7 +1477,7 @@ NOHA:
 
 			if (ForwardingInfo->PersonalOnly && (Msg->type != 'P') && (Msg->type != 'T'))
 				continue;
-			
+
 			if (CheckBBSToList(Msg, bbs, ForwardingInfo))
 			{
 				Logprintf(LOG_BBS, conn, '?', "Routing Trace TO %s Matches BBS %s", Msg->to, bbs->Call);
@@ -1433,9 +1504,9 @@ NOHA:
 			if ((strcmp(ATBBS, bbs->Call) == 0))			// @BBS = BBS		
 			{
 				Logprintf(LOG_BBS, conn, '?', "Routing Trace %s Matches implied AT %s", ATBBS, bbs->Call);
-		
+
 				CheckAndSend(Msg, conn, bbs);
-	
+
 				Matched++;
 				if (SendPtoMultiple && Msg->type == 'P')
 					continue;
@@ -1467,50 +1538,7 @@ NOHA:
 			return 1;
 		}
 
-		// We should choose the BBS with most matching elements (ie match on #23.GBR better that GBR)
-		// If SendPtoMultiple is set I think we send to any with same match level
-
-		// So if SendPtoMultiple is set I think I need to find the best depth then send to all with the same depth
-
-
-		if (SendPtoMultiple && Msg->type == 'P')
-		{
-			Logprintf(LOG_BBS, conn, '?', "SendPtoMultiple is set. Checking for best match level");
-
-			for (bbs = BBSChain; bbs; bbs = bbs->BBSNext)
-			{		
-				ForwardingInfo = bbs->ForwardingInfo;
-
-				depth = CheckBBSHElements(Msg, bbs, ForwardingInfo, ATBBS, &HElements[0]);
-
-				if (depth)
-				{
-					if (depth > MultiPDepth)
-					{
-						MultiPDepth = depth;
-						bestbbs = bbs;
-					}
-				}
-
-				if (MultiPDepth)
-				{
-					for (bbs = BBSChain; bbs; bbs = bbs->BBSNext)
-					{		
-						ForwardingInfo = bbs->ForwardingInfo;
-
-						depth = CheckBBSHElements(Msg, bbs, ForwardingInfo, ATBBS, &HElements[0]);
-
-						if (depth == MultiPDepth)
-						{
-							Logprintf(LOG_BBS, conn, '?', "Routing Trace HR Matches BBS %s Depth %d", bbs->Call, depth);	
-							CheckAndSend(Msg, conn, bbs);
-						}
-					}
-
-					return 1;
-				}
-			}
-		}
+		// Normal HA match (not SendPToMultiple)
 
 		for (bbs = BBSChain; bbs; bbs = bbs->BBSNext)
 		{		
@@ -1586,182 +1614,182 @@ CheckWildCardedAT:
 
 		Logprintf(LOG_BBS, conn, '?', "Routing Trace - No Match");
 		return FALSE;	// No match
-		}
-
-		// Flood Bulls go to all matching BBSs in the flood area, so the order of checking doesn't matter
-
-		// For now I will only route on AT (for non-hierarchical addresses) and HA
-
-		// Ver 1.0.4.2 - Try including TO
-
-		for (bbs = BBSChain; bbs; bbs = bbs->BBSNext)
-		{		
-			ForwardingInfo = bbs->ForwardingInfo;
-
-			if (ForwardingInfo->PersonalOnly)
-				continue;
-
-			if (CheckBBSToList(Msg, bbs, ForwardingInfo))
-			{
-				Logprintf(LOG_BBS, conn, '?', "Routing Trace TO %s Matches BBS %s", Msg->to, bbs->Call);
-
-				if (ForwardToMe || _stricmp(bbs->Call, BBSName) != 0) // Dont forward to ourself - already here! (unless ForwardToMe set)
-				{
-					set_fwd_bit(Msg->fbbs, bbs->BBSNumber);
-					ForwardingInfo->MsgCount++;
-				}
-				Count++;
-				continue;
-			}
-
-			if ((strcmp(ATBBS, bbs->Call) == 0) ||			// @BBS = BBS		
-				CheckBBSAtList(Msg, ForwardingInfo, ATBBS))
-			{
-				Logprintf(LOG_BBS, conn, '?', "Routing Trace AT %s Matches BBS %s", Msg->to, bbs->Call);
-				CheckAndSend(Msg, conn, bbs);
-
-				Count++;
-				continue;
-			}
-
-
-			if (CheckBBSHElementsFlood(Msg, bbs, ForwardingInfo, Msg->via, &HElements[0]))
-			{
-				Logprintf(LOG_BBS, conn, '?', "Routing Trace HR %s %s %s %s %s Matches BBS %s",
-					HElements[0], HElements[1], HElements[2], 
-					HElements[3], HElements[4], bbs->Call);
-
-				CheckAndSend(Msg, conn, bbs);
-
-				Count++;
-			}
-
-		}
-
-		if (Count == 0)
-			goto CheckWildCardedAT;
-
-		Logprintf(LOG_BBS, conn, '?', "Routing Trace - No Match");
-
-		return Count;
 	}
 
-	BOOL CheckBBSToList(struct MsgInfo * Msg, struct UserInfo * bbs, struct	BBSForwardingInfo * ForwardingInfo)
-	{
-		char ** Calls;
+	// Flood Bulls go to all matching BBSs in the flood area, so the order of checking doesn't matter
 
-		// Check TO distributions
+	// For now I will only route on AT (for non-hierarchical addresses) and HA
 
-		if (ForwardingInfo->TOCalls)
+	// Ver 1.0.4.2 - Try including TO
+
+	for (bbs = BBSChain; bbs; bbs = bbs->BBSNext)
+	{		
+		ForwardingInfo = bbs->ForwardingInfo;
+
+		if (ForwardingInfo->PersonalOnly)
+			continue;
+
+		if (CheckBBSToList(Msg, bbs, ForwardingInfo))
 		{
-			Calls = ForwardingInfo->TOCalls;
+			Logprintf(LOG_BBS, conn, '?', "Routing Trace TO %s Matches BBS %s", Msg->to, bbs->Call);
 
-			while(Calls[0])
+			if (ForwardToMe || _stricmp(bbs->Call, BBSName) != 0) // Dont forward to ourself - already here! (unless ForwardToMe set)
 			{
-				if (strcmp(Calls[0], Msg->to) == 0)	
-					return TRUE;
-
-				Calls++;
+				set_fwd_bit(Msg->fbbs, bbs->BBSNumber);
+				ForwardingInfo->MsgCount++;
 			}
+			Count++;
+			continue;
 		}
-		return FALSE;
+
+		if ((strcmp(ATBBS, bbs->Call) == 0) ||			// @BBS = BBS		
+			CheckBBSAtList(Msg, ForwardingInfo, ATBBS))
+		{
+			Logprintf(LOG_BBS, conn, '?', "Routing Trace AT %s Matches BBS %s", Msg->to, bbs->Call);
+			CheckAndSend(Msg, conn, bbs);
+
+			Count++;
+			continue;
+		}
+
+
+		if (CheckBBSHElementsFlood(Msg, bbs, ForwardingInfo, Msg->via, &HElements[0]))
+		{
+			Logprintf(LOG_BBS, conn, '?', "Routing Trace HR %s %s %s %s %s Matches BBS %s",
+				HElements[0], HElements[1], HElements[2], 
+				HElements[3], HElements[4], bbs->Call);
+
+			CheckAndSend(Msg, conn, bbs);
+
+			Count++;
+		}
+
 	}
 
-	BOOL CheckBBSAtList(struct MsgInfo * Msg, struct BBSForwardingInfo * ForwardingInfo, char * ATBBS)
+	if (Count == 0)
+		goto CheckWildCardedAT;
+
+	Logprintf(LOG_BBS, conn, '?', "Routing Trace - No Match");
+
+	return Count;
+}
+
+BOOL CheckBBSToList(struct MsgInfo * Msg, struct UserInfo * bbs, struct	BBSForwardingInfo * ForwardingInfo)
+{
+	char ** Calls;
+
+	// Check TO distributions
+
+	if (ForwardingInfo->TOCalls)
 	{
-		char ** Calls;
+		Calls = ForwardingInfo->TOCalls;
 
-		// Check AT distributions
-
-		//	if (strcmp(ATBBS, bbs->Call) == 0)			// @BBS = BBS
-		//		return TRUE;
-
-		if (ForwardingInfo->ATCalls)
+		while(Calls[0])
 		{
-			Calls = ForwardingInfo->ATCalls;
+			if (strcmp(Calls[0], Msg->to) == 0)	
+				return TRUE;
 
-			while(Calls[0])
-			{
-				if (strcmp(Calls[0], ATBBS) == 0)	
-					return TRUE;
-
-				Calls++;
-			}
+			Calls++;
 		}
-		return FALSE;
 	}
+	return FALSE;
+}
 
-	int CheckBBSHElements(struct MsgInfo * Msg, struct UserInfo * bbs, struct BBSForwardingInfo * ForwardingInfo, char * ATBBS, char ** HElements)
+BOOL CheckBBSAtList(struct MsgInfo * Msg, struct BBSForwardingInfo * ForwardingInfo, char * ATBBS)
+{
+	char ** Calls;
+
+	// Check AT distributions
+
+	//	if (strcmp(ATBBS, bbs->Call) == 0)			// @BBS = BBS
+	//		return TRUE;
+
+	if (ForwardingInfo->ATCalls)
 	{
-		// Used for Personal Messages, and Bulls not yot at their target area
+		Calls = ForwardingInfo->ATCalls;
 
-		char *** HRoutes;
-		int i = 0, j, k = 0;
-		int bestmatch = 0;
-
-		if (ForwardingInfo->HADDRSP)
+		while(Calls[0])
 		{
-			// Match on Routes
+			if (strcmp(Calls[0], ATBBS) == 0)	
+				return TRUE;
 
-			HRoutes = ForwardingInfo->HADDRSP;
-			k=0;
-
-			while(HRoutes[k])
-			{
-				i = j = 0;
-
-				while (HRoutes[k][i] && HElements[j]) // Until one set runs out
-				{
-					if (strcmp(HRoutes[k][i], HElements[j]) != 0)
-						break;
-					i++;
-					j++;
-				}
-
-				// Only send if all BBS elements match
-
-				if (HRoutes[k][i] == 0)
-				{
-					if (i > bestmatch)
-						bestmatch = i;
-				}
-				k++;
-			}
+			Calls++;
 		}
-		return bestmatch;
 	}
+	return FALSE;
+}
 
+int CheckBBSHElements(struct MsgInfo * Msg, struct UserInfo * bbs, struct BBSForwardingInfo * ForwardingInfo, char * ATBBS, char ** HElements)
+{
+	// Used for Personal Messages, and Bulls not yot at their target area
 
-	int CheckBBSHElementsFlood(struct MsgInfo * Msg, struct UserInfo * bbs, struct BBSForwardingInfo * ForwardingInfo, char * ATBBS, char ** HElements)
+	char *** HRoutes;
+	int i = 0, j, k = 0;
+	int bestmatch = 0;
+
+	if (ForwardingInfo->HADDRSP)
 	{
-		char *** HRoutes;
-		char ** BBSHA;
+		// Match on Routes
 
-		int i = 0, j, k = 0;
-		int bestmatch = 0;
+		HRoutes = ForwardingInfo->HADDRSP;
+		k=0;
 
-		if (ForwardingInfo->HADDRS)
+		while(HRoutes[k])
 		{
-			// Match on Routes
-
-			// Message must be in right area (all elements of message match BBS Location HA)
-
-			BBSHA = ForwardingInfo->BBSHAElements;
-
-			if (BBSHA == NULL)
-				return 0;				// Not safe to flood
-
 			i = j = 0;
 
-			while (BBSHA[i] && HElements[j]) // Until one set runs out
+			while (HRoutes[k][i] && HElements[j]) // Until one set runs out
 			{
-				if (strcmp(BBSHA[i], HElements[j]) != 0)
+				if (strcmp(HRoutes[k][i], HElements[j]) != 0)
 					break;
 				i++;
 				j++;
 			}
 
-			if (HElements[j] != 0)
+			// Only send if all BBS elements match
+
+			if (HRoutes[k][i] == 0)
+			{
+				if (i > bestmatch)
+					bestmatch = i;
+			}
+			k++;
+		}
+	}
+	return bestmatch;
+}
+
+
+int CheckBBSHElementsFlood(struct MsgInfo * Msg, struct UserInfo * bbs, struct BBSForwardingInfo * ForwardingInfo, char * ATBBS, char ** HElements)
+{
+	char *** HRoutes;
+	char ** BBSHA;
+
+	int i = 0, j, k = 0;
+	int bestmatch = 0;
+
+	if (ForwardingInfo->HADDRS)
+	{
+		// Match on Routes
+
+		// Message must be in right area (all elements of message match BBS Location HA)
+
+		BBSHA = ForwardingInfo->BBSHAElements;
+
+		if (BBSHA == NULL)
+			return 0;				// Not safe to flood
+
+		i = j = 0;
+
+		while (BBSHA[i] && HElements[j]) // Until one set runs out
+		{
+			if (strcmp(BBSHA[i], HElements[j]) != 0)
+				break;
+			i++;
+			j++;
+		}
+
+		if (HElements[j] != 0)
 			return 0;				// Message is not for BBS's area 
 
 		HRoutes = ForwardingInfo->HADDRS;
@@ -1770,7 +1798,7 @@ CheckWildCardedAT:
 		while(HRoutes[k])
 		{
 			i = j = 0;
-			
+
 			while (HRoutes[k][i] && HElements[j]) // Until one set runs out
 			{
 				if (strcmp(HRoutes[k][i], HElements[j]) != 0)
@@ -1778,11 +1806,11 @@ CheckWildCardedAT:
 				i++;
 				j++;
 			}
-				
+
 			if (i > bestmatch)
 			{
 				// As Flooding, only match if all elements match, and elements matching > offset
-				
+
 				// As Flooding, only match if all elements from BBS are matched
 				// ie if BBS has #23.gbr.eu, and msg gbr.eu, don't match
 				// if BBS has gbr.eu, and msg #23.gbr.eu, ok (so long as bbs in in #23, checked above.
@@ -1807,7 +1835,7 @@ int CheckBBSToForNTS(struct MsgInfo * Msg, struct BBSForwardingInfo * Forwarding
 	int MatchLen = 0;
 
 	// Look for Matches on TO using Wildcarded Addresses. Intended for use with NTS traffic, with TO = ZIPCode
-	
+
 	// We forward to the BBS with the most specific match - ie minimum *'s in match
 
 	if (ForwardingInfo->TOCalls)
@@ -1848,7 +1876,7 @@ int CheckBBSToForNTS(struct MsgInfo * Msg, struct BBSForwardingInfo * Forwarding
 			else
 			{
 				//no star - just do a normal compare
-				
+
 				if (strcmp(Msg->to, Call) == 0)
 				{
 					if (Invert)
@@ -1877,7 +1905,7 @@ int CheckBBSATListWildCarded(struct MsgInfo * Msg, struct BBSForwardingInfo * Fo
 
 	// Look for Matches on AT using Wildcarded Addresses. Only applied after all other checks fail. Intended mainly
 	// for setting a default route, but could have other uses
-	
+
 	// We forward to the BBS with the most specific match - ie minimum *'s in match
 
 	if (ForwardingInfo->ATCalls)
@@ -1890,7 +1918,7 @@ int CheckBBSATListWildCarded(struct MsgInfo * Msg, struct BBSForwardingInfo * Fo
 			ptr = strchr(Call, '*');
 
 			// only look if * present - we have already tried routing on the full AT
-			
+
 			if (ptr)
 			{
 				MatchLen = ptr - Call;
@@ -1930,7 +1958,7 @@ struct ALIAS * CheckForNTSAlias(struct MsgInfo * Msg, char * ATFirstElement)
 			break;
 
 		ptr = strchr(Call, '*');
-	
+
 		if (ptr)
 		{
 			MatchLen = ptr - Call;
@@ -1941,7 +1969,7 @@ struct ALIAS * CheckForNTSAlias(struct MsgInfo * Msg, char * ATFirstElement)
 		else
 		{
 			//no star - just do a normal compare
-				
+
 			if (strcmp(Msg->to, Call) == 0)
 				return(Alias[0]);
 		}
@@ -2016,7 +2044,7 @@ VOID ReRouteMessages()
 					if (check_fwd_bit(Msg->fbbs, user->BBSNumber))		// for this BBS?	
 					{
 						if (check_fwd_bit(Msg->forw, user->BBSNumber))	// Already sent?
-							 clear_fwd_bit(Msg->fbbs, user->BBSNumber);
+							clear_fwd_bit(Msg->fbbs, user->BBSNumber);
 
 					}
 				}

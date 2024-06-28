@@ -319,6 +319,7 @@
 #define ID_MULTICAST                    40024
 #define IDC_DEFAULTNOWINLINK            41001
 #define IDC_MULTIP                      41002
+#define IDC_FOURCHARCONTINENT           41003
 
 // Next default values for new objects
 // 
