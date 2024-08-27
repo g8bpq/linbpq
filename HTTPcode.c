@@ -600,7 +600,8 @@ VOID HTTPTimer()
 
 				for (n = Last;;)
 				{
-					strcat(_REPLYBUFFER, Session->ScreenLines[n]);
+					if ((strlen(Session->ScreenLines[n]) + strlen(_REPLYBUFFER)) < 99999)
+						strcat(_REPLYBUFFER, Session->ScreenLines[n]);
 
 					if (n == 99)
 						n = -1;
@@ -680,13 +681,15 @@ struct HTTPConnectionInfo * FindSession(char * Key)
 
 void ProcessTermInput(SOCKET sock, char * MsgPtr, int MsgLen, char * Key)
 {
-	char _REPLYBUFFER[1024];
+	char _REPLYBUFFER[2048];
 	int ReplyLen;
 	char Header[256];
 	int HeaderLen;
 	int State;
 	struct HTTPConnectionInfo * Session = FindSession(Key);
 	int Stream;
+	int maxlen = 1000;
+
 
 	if (Session == NULL)
 	{
@@ -701,11 +704,23 @@ void ProcessTermInput(SOCKET sock, char * MsgPtr, int MsgLen, char * Key)
 		char c;
 		UCHAR hex;
 
+		int msglen = end - input;
+
 		struct TNCINFO * TNC = Session->TNC;
 		struct TCPINFO * TCP = 0;
 				
 		if (TNC)
 			TCP = TNC->TCPInfo;
+
+		if (TCP && TCP->WebTermCSS)
+			maxlen -= strlen(TCP->WebTermCSS);
+
+		if (MsgLen > maxlen)
+		{
+			Session->KillTimer = 99999; // close session
+			return;
+		}
+
 
 		if (TCP && TCP->WebTermCSS)	
 			ReplyLen = sprintf(_REPLYBUFFER, InputLine, Key, TCP->WebTermCSS);

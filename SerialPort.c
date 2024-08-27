@@ -452,8 +452,7 @@ ok:
 
 			if (buffptr == 0) return (0);			// No buffers, so ignore
 
-			buffptr->Len = 36;
-			memcpy(&buffptr->Data[0], "No Connection to TNC\r", 36);
+			buffptr->Len = sprintf(&buffptr->Data[0], "No Connection to TNC\r");
 
 			C_Q_ADD(&TNC->Streams[Stream].PACTORtoBPQ_Q, buffptr);
 			

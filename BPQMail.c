@@ -1137,6 +1137,7 @@
 //	Improve "New User" frequency determination (39)
 //	Allow selection of 2 or 4 character country codes for forward processing (39) 
 //	Fix Send P to multiple BBS's when routing on HR (40)
+//	Rewrite PG server code on Lunux (41)
 
 #include "bpqmail.h"
 #include "winstdint.h"

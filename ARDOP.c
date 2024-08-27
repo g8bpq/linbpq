@@ -880,6 +880,17 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			}
 		}
 
+		// Check ATTACH time limit
+
+		if (STREAM->Attached)
+		{
+			if (STREAM->AttachTime && TNC->AttachTimeLimit && time(NULL) > (TNC->AttachTimeLimit + STREAM->AttachTime))
+			{
+				STREAM->ReportDISC = 1;
+				STREAM->AttachTime = 0;
+			}
+		}
+
 		if (TNC->ARDOPCommsMode != 'T') // S I or E
 		{
 			ARDOPSCSCheckRX(TNC);
@@ -1190,6 +1201,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				Debugprintf("ARDOP New Attach Stream %d DEDStream %d", Stream, STREAM->DEDStream);
 			
 				STREAM->Attached = TRUE;
+				STREAM->AttachTime = time(NULL);
 			
 				calllen = ConvFromAX25(TNC->PortRecord->ATTACHEDSESSIONS[Stream]->L4USER, TNC->Streams[Stream].MyCall);
 				TNC->Streams[Stream].MyCall[calllen] = 0;

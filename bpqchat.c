@@ -70,8 +70,9 @@
 //	Allow /History to be shortened to /Hi (45)
 //	Fix extra r charater in Chat Config Web Page
 
+//.25
 
-// Increase sise of status display buffers (7)
+//  Increase size of status display buffers (7)
 
 #include "BPQChat.h"
 #include "Dbghelp.h"

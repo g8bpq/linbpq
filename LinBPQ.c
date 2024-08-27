@@ -1077,216 +1077,211 @@ int main(int argc, char * argv[])
 
 		BBSApplMask = 1<<(BBSApplNum-1);
 
-	// See if we need to warn of possible problem with BaseDir moved by installer
+		// See if we need to warn of possible problem with BaseDir moved by installer
 
-	sprintf(BaseDir, "%s", BPQDirectory);
+		sprintf(BaseDir, "%s", BPQDirectory);
 
 
-	// Set up file and directory names
+		// Set up file and directory names
 
-	strcpy(UserDatabasePath, BaseDir);
-	strcat(UserDatabasePath, "/");
-	strcat(UserDatabasePath, UserDatabaseName);
+		strcpy(UserDatabasePath, BaseDir);
+		strcat(UserDatabasePath, "/");
+		strcat(UserDatabasePath, UserDatabaseName);
 
-	strcpy(MsgDatabasePath, BaseDir);
-	strcat(MsgDatabasePath, "/");
-	strcat(MsgDatabasePath, MsgDatabaseName);
+		strcpy(MsgDatabasePath, BaseDir);
+		strcat(MsgDatabasePath, "/");
+		strcat(MsgDatabasePath, MsgDatabaseName);
 
-	strcpy(BIDDatabasePath, BaseDir);
-	strcat(BIDDatabasePath, "/");
-	strcat(BIDDatabasePath, BIDDatabaseName);
+		strcpy(BIDDatabasePath, BaseDir);
+		strcat(BIDDatabasePath, "/");
+		strcat(BIDDatabasePath, BIDDatabaseName);
 
-	strcpy(WPDatabasePath, BaseDir);
-	strcat(WPDatabasePath, "/");
-	strcat(WPDatabasePath, WPDatabaseName);
+		strcpy(WPDatabasePath, BaseDir);
+		strcat(WPDatabasePath, "/");
+		strcat(WPDatabasePath, WPDatabaseName);
 
-	strcpy(BadWordsPath, BaseDir);
-	strcat(BadWordsPath, "/");
-	strcat(BadWordsPath, BadWordsName);
+		strcpy(BadWordsPath, BaseDir);
+		strcat(BadWordsPath, "/");
+		strcat(BadWordsPath, BadWordsName);
 
-	strcpy(NTSAliasesPath, BaseDir);
-	strcat(NTSAliasesPath, "/");
-	strcat(NTSAliasesPath, NTSAliasesName);
+		strcpy(NTSAliasesPath, BaseDir);
+		strcat(NTSAliasesPath, "/");
+		strcat(NTSAliasesPath, NTSAliasesName);
 
-	strcpy(MailDir, BaseDir);
-	strcat(MailDir, "/");
-	strcat(MailDir, "Mail");
+		strcpy(MailDir, BaseDir);
+		strcat(MailDir, "/");
+		strcat(MailDir, "Mail");
 
 #ifdef WIN32
-	CreateDirectory(MailDir, NULL);		// Just in case
+		CreateDirectory(MailDir, NULL);		// Just in case
 #else
-	mkdir(MailDir, S_IRWXU | S_IRWXG | S_IRWXO);
-	chmod(MailDir, S_IRWXU | S_IRWXG | S_IRWXO);
+		mkdir(MailDir, S_IRWXU | S_IRWXG | S_IRWXO);
+		chmod(MailDir, S_IRWXU | S_IRWXG | S_IRWXO);
 #endif
 
-	// Make backup copies of Databases
+		// Make backup copies of Databases
 
-//	CopyConfigFile(ConfigName);
+		//	CopyConfigFile(ConfigName);
 
-	CopyBIDDatabase();
-	CopyMessageDatabase();
-	CopyUserDatabase();
-	CopyWPDatabase();
+		CopyBIDDatabase();
+		CopyMessageDatabase();
+		CopyUserDatabase();
+		CopyWPDatabase();
 
-	SetupMyHA();
-	SetupFwdAliases();
-	SetupNTSAliases(NTSAliasesPath);
+		SetupMyHA();
+		SetupFwdAliases();
+		SetupNTSAliases(NTSAliasesPath);
 
-	GetWPDatabase();
+		GetWPDatabase();
 
-	GetMessageDatabase();
-	GetUserDatabase();
-	GetBIDDatabase();
-	GetBadWordFile();
-	GetHTMLForms();
-	GetPGConfig();
+		GetMessageDatabase();
+		GetUserDatabase();
+		GetBIDDatabase();
+		GetBadWordFile();
+		GetHTMLForms();
+		GetPGConfig();
 
-	// Make sure there is a user record for the BBS, with BBS bit set.
+		// Make sure there is a user record for the BBS, with BBS bit set.
 
-	user = LookupCall(BBSName);
+		user = LookupCall(BBSName);
 
-	if (user == NULL)
-	{
-		user = AllocateUserRecord(BBSName);
-		user->Temp = zalloc(sizeof (struct TempUserInfo));
-	}
-
-	if ((user->flags & F_BBS) == 0)
-	{
-		// Not Defined as a BBS
-
-		if(SetupNewBBS(user))
-			user->flags |= F_BBS;
-	}
-
-	// if forwarding AMPR mail make sure User/BBS AMPR exists
-
-	if (SendAMPRDirect)
-	{
-		BOOL NeedSave = FALSE;
-		
-		user = LookupCall("AMPR");
-		
 		if (user == NULL)
 		{
-			user = AllocateUserRecord("AMPR");
+			user = AllocateUserRecord(BBSName);
 			user->Temp = zalloc(sizeof (struct TempUserInfo));
-			NeedSave = TRUE;
 		}
 
 		if ((user->flags & F_BBS) == 0)
 		{
 			// Not Defined as a BBS
 
-			if (SetupNewBBS(user))
+			if(SetupNewBBS(user))
 				user->flags |= F_BBS;
-			NeedSave = TRUE;
 		}
 
-		if (NeedSave)
-			SaveUserDatabase();
-	}
+		// if forwarding AMPR mail make sure User/BBS AMPR exists
 
-
-	// Make sure SYSOPCALL is set
-
-	if (SYSOPCall[0] == 0)
-		strcpy(SYSOPCall, BBSName);
-
-	// See if just want to add user (mainly for setup scripts)
-
-	if (argc == 5 && _stricmp(argv[1], "--adduser") == 0)
-	{
-		BOOL isBBS = FALSE;
-		char * response;
-
-		if (_stricmp(argv[4], "TRUE") == 0)
-			isBBS = TRUE;
-
-		printf("Adding User %s\r\n", argv[2]);
-		response = AddUser(argv[2], argv[3], isBBS);
-		printf("%s", response);
-		exit(0);
-	}
-	// Allocate Streams
-
-	strcpy(pgm, "BBS");
-
-	for (i=0; i < MaxStreams; i++)
-	{
-		conn = &Connections[i];
-		conn->BPQStream = FindFreeStream();
-
-		if (conn->BPQStream == 255) break;
-
-		NumberofStreams++;
-
-//		BPQSetHandle(conn->BPQStream, hWnd);
-
-		SetAppl(conn->BPQStream, (i == 0 && EnableUI) ? 0x82 : 2, BBSApplMask);
-		Disconnect(conn->BPQStream);
-	}
-
-	strcpy(pgm, "LINBPQ");
-
-	Debugprintf("POP3 Debug Before Init TCP Timer = %d", POP3Timer);
-
-	InitialiseTCP();
-	Debugprintf("POP3 Debug Before Init NNTP Timer = %d", POP3Timer);
-	InitialiseNNTP();
-
-	SetupListenSet();		// Master set of listening sockets
-
-	if (EnableUI || MailForInterval)
-		SetupUIInterface();
-
-	if (MailForInterval)
-		_beginthread(SendMailForThread, 0, 0);
-
-
-	// Calulate time to run Housekeeping
-	{
-		struct tm *tm;
-		time_t now;
-
-		now = time(NULL);
-
-		tm = gmtime(&now);
-
-		tm->tm_hour = MaintTime / 100;
-		tm->tm_min = MaintTime % 100;
-		tm->tm_sec = 0;
-
-		MaintClock = mktime(tm) - (time_t)_MYTIMEZONE;
-
-		while (MaintClock < now)
-			MaintClock += MaintInterval * 3600;
-
-		Debugprintf("Maint Clock %lld NOW %lld Time to HouseKeeping %lld", (long long)MaintClock, (long long)now, (long long)(MaintClock - now));
-
-		if (LastHouseKeepingTime)
+		if (SendAMPRDirect)
 		{
-			if ((now - LastHouseKeepingTime) > MaintInterval * 3600)
+			BOOL NeedSave = FALSE;
+
+			user = LookupCall("AMPR");
+
+			if (user == NULL)
 			{
-				DoHouseKeeping(FALSE);
+				user = AllocateUserRecord("AMPR");
+				user->Temp = zalloc(sizeof (struct TempUserInfo));
+				NeedSave = TRUE;
 			}
+
+			if ((user->flags & F_BBS) == 0)
+			{
+				// Not Defined as a BBS
+
+				if (SetupNewBBS(user))
+					user->flags |= F_BBS;
+				NeedSave = TRUE;
+			}
+
+			if (NeedSave)
+				SaveUserDatabase();
 		}
-		for (i = optind; i < argc; i++)
+
+
+		// Make sure SYSOPCALL is set
+
+		if (SYSOPCall[0] == 0)
+			strcpy(SYSOPCall, BBSName);
+
+		// See if just want to add user (mainly for setup scripts)
+
+		if (argc == 5 && _stricmp(argv[1], "--adduser") == 0)
 		{
-			if (_stricmp(argv[i], "tidymail") == 0)
-				DeleteRedundantMessages();
+			BOOL isBBS = FALSE;
+			char * response;
 
-			if (_stricmp(argv[i], "nohomebbs") == 0)
-				DontNeedHomeBBS = TRUE;
+			if (_stricmp(argv[4], "TRUE") == 0)
+				isBBS = TRUE;
+
+			printf("Adding User %s\r\n", argv[2]);
+			response = AddUser(argv[2], argv[3], isBBS);
+			printf("%s", response);
+			exit(0);
+		}
+		// Allocate Streams
+
+		strcpy(pgm, "BBS");
+
+		for (i=0; i < MaxStreams; i++)
+		{
+			conn = &Connections[i];
+			conn->BPQStream = FindFreeStream();
+
+			if (conn->BPQStream == 255) break;
+
+			NumberofStreams++;
+
+			//		BPQSetHandle(conn->BPQStream, hWnd);
+
+			SetAppl(conn->BPQStream, (i == 0 && EnableUI) ? 0x82 : 2, BBSApplMask);
+			Disconnect(conn->BPQStream);
 		}
 
-		printf("Mail Started\n");
-		Logprintf(LOG_BBS, NULL, '!', "Mail Starting");
+		strcpy(pgm, "LINBPQ");
 
-	}
-	}
+		InitialiseTCP();
+		InitialiseNNTP();
 
-	Debugprintf("POP3 Debug After Mail Init Timer = %d", POP3Timer);
+		SetupListenSet();		// Master set of listening sockets
+
+		if (EnableUI || MailForInterval)
+			SetupUIInterface();
+
+		if (MailForInterval)
+			_beginthread(SendMailForThread, 0, 0);
+
+
+		// Calulate time to run Housekeeping
+		{
+			struct tm *tm;
+			time_t now;
+
+			now = time(NULL);
+
+			tm = gmtime(&now);
+
+			tm->tm_hour = MaintTime / 100;
+			tm->tm_min = MaintTime % 100;
+			tm->tm_sec = 0;
+
+			MaintClock = mktime(tm) - (time_t)_MYTIMEZONE;
+
+			while (MaintClock < now)
+				MaintClock += MaintInterval * 3600;
+
+			Debugprintf("Maint Clock %lld NOW %lld Time to HouseKeeping %lld", (long long)MaintClock, (long long)now, (long long)(MaintClock - now));
+
+			if (LastHouseKeepingTime)
+			{
+				if ((now - LastHouseKeepingTime) > MaintInterval * 3600)
+				{
+					DoHouseKeeping(FALSE);
+				}
+			}
+			for (i = optind; i < argc; i++)
+			{
+				if (_stricmp(argv[i], "tidymail") == 0)
+					DeleteRedundantMessages();
+
+				if (_stricmp(argv[i], "nohomebbs") == 0)
+					DontNeedHomeBBS = TRUE;
+			}
+
+			printf("Mail Started\n");
+			Logprintf(LOG_BBS, NULL, '!', "Mail Starting");
+
+		}
+	}
 
 	if (NUMBEROFTNCPORTS)
 		InitializeTNCEmulator();

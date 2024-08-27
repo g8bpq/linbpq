@@ -2586,7 +2586,7 @@ VOID VARAProcessDataPacket(struct TNCINFO * TNC, UCHAR * Data, int Length)
 	STREAM->BytesRXed += Length;
 
 	Data[Length] = 0;	
-	Debugprintf("VARA: RXD %d bytes", Length);
+//	Debugprintf("VARA: RXD %d bytes", Length);
 
 	sprintf(TNC->WEB_TRAFFIC, "Sent %d RXed %d Queued %d",
 			STREAM->BytesTXed, STREAM->BytesRXed,STREAM->BytesOutstanding);

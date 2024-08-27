@@ -4859,7 +4859,6 @@ DllExport uint64_t APIENTRY GetPortFrequency(int PortNo, char * FreqString)
 
 		struct TNCINFO * TNC;
 		struct RIGINFO * RIG = 0;
-		int RigPort;
 
 		if (PORT->RIGPort)
 			TNC = TNCInfo[PORT->RIGPort];
@@ -5089,6 +5088,8 @@ void BuildPortMH(char * MHJSON, struct PORTCONTROL * PORT)
 	int len;
 	char * ptr;
 	char mhstr[400];
+	int i;
+	char c;
 
 	if (MH == NULL)
 		return;
@@ -5110,7 +5111,16 @@ void BuildPortMH(char * MHJSON, struct PORTCONTROL * PORT)
 			continue;
 		}
 
-		Normcall[len++] = 0;
+		// validate call to prevent corruption of json
+
+		for (i=0; i < len; i++)
+		{
+			c = Normcall[i];
+			
+			if (!isalnum(c) && !(c == '#') && !(c == ' ') && !(c == '-'))
+				goto skipit;
+		}
+
 
 		//format TIME
 
@@ -5123,7 +5133,7 @@ void BuildPortMH(char * MHJSON, struct PORTCONTROL * PORT)
 			Normcall, PORT->PORTNUMBER, MH->MHCOUNT, MHTIME);
 
 		strcat( MHJSON, mhstr );
-
+skipit:
 		MH++;
 	}
 }

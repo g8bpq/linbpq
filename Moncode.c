@@ -195,6 +195,9 @@ KC6OAR*>ID:
 	// Check Port
 
 	Port = msg->PORT;
+
+	if (Port == 40)
+		Port = Port;
 	
 	if (Port & 0x80)
 	{
@@ -250,10 +253,8 @@ KC6OAR*>ID:
 		ptr += 7;
 		n--;
 
-		if (n == 0)
-		{
+		if (n < 0)
 			return 0;						// Corrupt - no end of address bit
-		}
 	}
 
 	// Reached End of digis

@@ -1194,8 +1194,7 @@ int CountMessagestoForward(struct UserInfo * user);
 
 VOID * GetMultiLineDialogParam(HWND hDialog, int DLGItem);
 
-#define LIBCONFIG_STATIC
-#include "libconfig.h"
+
 VOID * GetMultiStringValue(config_setting_t * hKey, char * ValueName);
 VOID * RegGetMultiStringValue(HKEY hKey, char * ValueName);
 

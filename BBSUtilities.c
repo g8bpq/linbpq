@@ -11762,89 +11762,205 @@ BOOL CheckforMIME(SocketConn * sockptr, char * Msg, char ** Body, int * MsgLen);
 #include <sys/wait.h>
 #include <signal.h>
 
-typedef struct _POPENRET
-{
-	FILE * fp;
-	pid_t pid;
-} POPENRET;
+// G8BPQ Version of Steve G7TAJ's code
 
-/*
-* Check if the PG is still running after 5 sec
-* if so, kill it
+int pgret = 9999;
+int pindex = 0;
+
+void sigchild_handler(int sig , siginfo_t * siginfo, void * ucontext)
+{
+/* •  SIGCHLD fills in si_pid, si_uid, si_status, si_utime, and
+          si_stime, providing information about the child.  The si_pid
+          field is the process ID of the child; si_uid is the child's
+          real user ID.  The si_status field contains the exit status of
+          the child (if si_code is CLD_EXITED), or the signal number
+          that caused the process to change state. 
 */
-void run_pgTimeoutThread( pid_t process )
-{
-//	printf("watchdog thread: PID of subprocess: %d\n", process);
-//	fflush(stdout);
-	Sleep(5000);
-	// if still running PID (?) then kill.
-	if ( getpgid(process) >= 0 )
-	{
-		Debugprintf("watchdog thread: Still running, so killing %d ... ", process);
-		if ( kill( -process, SIGKILL ) == 0 )
-			Debugprintf("Killed PG watchdog Process %d", process);
-		else
-			Debugprintf("Failed to kill PG watchdog Process %d", process);   
-	}
-
-//	Debugprintf("watchdog thread: PID=%d Exit", process);
-//	fflush(stdout);
+//	printf("SIGCHLD PID %d Code %d status %d\n", siginfo->si_pid, siginfo->si_code, siginfo->si_status);
+	pgret = siginfo->si_status;
 }
 
 
-//https://sources.debian.org/src/cron/3.0pl1-45/popen.c/
-
-POPENRET my_popen(char *program, char *type, CIRCUIT *conn)
+void run_pg(CIRCUIT * conn, struct UserInfo * user)
 {
 	register char *cp;
 	FILE *iop;
 	int argc, pdes[2];
 	pid_t pid;
-	POPENRET PRET;
 
-	if (*type != 'r' && *type != 'w' || type[1])
-		return(PRET);
-	if (pipe(pdes) < 0)
-		return(PRET);
+	pgret = 9999;
+
+	int index = user->Temp->PG_INDEX;
 
 	iop = NULL;
-	switch(pid = fork()) {
+
+	conn->InputBuffer[conn->InputLen] = 0;
+	strlop(conn->InputBuffer, 13);
+	conn->InputLen = 0;
+
+	if (!user->Temp->RUNPGPARAMS)
+		user->Temp->RUNPGPARAMS = (RUNPGARGS_PTR) zalloc(sizeof(RUNPGARGS));
+
+	user->Temp->RUNPGPARAMS->user = user;
+	user->Temp->RUNPGPARAMS->conn = conn;
+	strncpy(user->Temp->RUNPGPARAMS->InputBuffer, conn->InputBuffer, 80); // needs to be length of actual input!
+	user->Temp->RUNPGPARAMS->Len = conn->InputLen;
+
+	if (conn == 0 || user == 0)
+	{
+		Debugprintf("run_pg conn or user null");
+		return;
+	}
+
+	// Build command line. Parmas are:
+
+	// - Callsign (format as F6FBB-8).
+	// - Level number (0 is the first time, up to 99).
+	// - Flags of the user (binary number as user`s mask of INIT.SRV).
+	// - Record number of the user in INF.SYS.
+	// - Received data (each word is a new argument).
+
+	// BPQ doesn't support params 3 and 4 (but may supply copy of user record later)
+
+	char cmd[20];
+	char *ptr = cmd;
+	char pg_dir[MAX_PATH];
+	char log_file[50] = "pg.log";
+	char call[10];
+	char data[80];
+	char line[80];
+	size_t bufsize = 80;
+
+	strcpy(pg_dir, BaseDir);
+	strcat(pg_dir, "/PG/");
+	sprintf(cmd, "./%s", SERVERLIST[user->Temp->PG_SERVER][1] );
+
+	sprintf(line, "%s%s", pg_dir, SERVERLIST[user->Temp->PG_SERVER][1]);
+//	printf("PG Prog %s%s\n", pg_dir, SERVERLIST[user->Temp->PG_SERVER][1]);
+
+	// check file exists and is executable
+
+	if (access(line, F_OK) == -1 || access(line, X_OK) == -1)
+	{
+		Debugprintf("%s FileNotFound || not executable", line);
+		BBSputs(conn, "Error running PG Server\r");
+		conn->InputMode=0;
+		SendPrompt(conn, user);
+		return;
+	}
+
+	strcpy(call, conn->UserPointer->Call);
+	index = user->Temp->PG_INDEX;
+
+	// remove ';' from input for security reasons 
+
+	ptr = strchr(user->Temp->RUNPGPARAMS->InputBuffer, ';');
+	if (ptr)
+		*ptr = '\0';
+
+	sprintf(data, "%s %d 0 0 %s", call, index, user->Temp->RUNPGPARAMS->InputBuffer);
+//	printf("PG Params %s\n", data);
+
+	conn->InputBufferLen = 0;
+
+	char buf[256];
+
+	sprintf (buf, "%s %s", line, data); // buf is command to exec
+//	printf ("PG exec cmd %s\n", buf); 
+
+	// Create pipe for reading PG program STDOUT
+
+	if (pipe(pdes) < 0)
+	{
+		Debugprintf("run_pg pipe failed");
+		BBSputs(conn, "Error running PG Server (pipe() failed)\r");
+		conn->InputMode=0;
+		SendPrompt(conn, user);
+		return;
+	}
+
+	// We will just fork and execute program. For now don't create a new thread
+
+	// Trap sigchild so we can tell when it exits and get return code
+
+	struct sigaction act;
+	memset(&act, 0, sizeof(struct sigaction));
+	act.sa_flags = SA_RESETHAND | SA_SIGINFO;		// Restore default handler when called
+	act.sa_sigaction = sigchild_handler;
+	sigaction(SIGCHLD, &act, NULL);
+
+	switch(pid = fork())
+	{
 	case -1:			/* error */
 		(void)close(pdes[0]);
 		(void)close(pdes[1]);
-		return PRET;
+		Debugprintf("run_pg fork failed");
+		BBSputs(conn, "Error running PG Server (fork() failed)\r");
+		conn->InputMode=0;
+		SendPrompt(conn, user);
+
+		return;
+
 	case 0:				/* child */
-		if (*type == 'r') {
-			if (pdes[1] != 1) {
-				dup2(pdes[1], 1);
-				dup2(pdes[1], 2);
-				(void)close(pdes[1]);
-			}
-			(void)close(pdes[0]);
-		} else {
-			if (pdes[0] != 0) {
-				dup2(pdes[0], 0);
-				(void)close(pdes[0]);
-			}
+
+		if (pdes[1] != 1)
+		{
+			dup2(pdes[1], 1);
+			dup2(pdes[1], 2);
 			(void)close(pdes[1]);
 		}
-		setpgid(-pid,pid);
-	        char *args[] = {"sh", "-c", program, NULL};
-                execve("/bin/sh", args, NULL);
+		(void)close(pdes[0]);
+	
+		setpgid(0, pid);
+
+		char *args[] = {"sh", "-c", buf, NULL};
+		execve("/bin/sh", args, NULL);
+
 		_exit(1);
 	}
 
 	/* parent */
 
-       _beginthread((void (*)(void *))run_pgTimeoutThread, 0, (VOID *) pid );
+//	printf("child PID %d\n", pid);
 
-	if (*type == 'r') {
-		iop = fdopen(pdes[0], type);
-		(void)close(pdes[1]);
-	} else {
-		iop = fdopen(pdes[1], type);
-		(void)close(pdes[0]);
+	struct timespec  duration;
+	duration.tv_sec = 5;
+	duration.tv_nsec = 0;
+
+    nanosleep(&duration, &duration);   // Will be interrupted by SIGCHLD
+
+//	printf("PG retcode %d\n", pgret);
+
+	if (pgret == 9999)		// Process still running
+	{
+		BBSputs(conn, "PG Program Looping\r");
+		kill(pid, SIGKILL);
+		user->Temp->PG_INDEX = 0;
+		conn->InputMode=0;
+		SendPrompt(conn, user);
+		return;
 	}
+
+	if (pgret > 127)
+	{
+		// Probably killed by signal
+
+		int err = pgret - 128;
+		char errmsg[256];
+
+		sprintf(errmsg, "PG Signal %s received\n", strsignal(err));
+
+		BBSputs(conn, errmsg);
+		user->Temp->PG_INDEX = 0;
+		conn->InputMode=0;
+		SendPrompt(conn, user);
+		return;
+	}
+
+	// Send STDOUT from PG program to BBS user
+
+	iop = fdopen(pdes[0], "r");
+	(void)close(pdes[1]);
 
   	char buffer[128];
 	while (fgets(buffer, sizeof(buffer), iop) != NULL)
@@ -11852,210 +11968,52 @@ POPENRET my_popen(char *program, char *type, CIRCUIT *conn)
 		BBSputs(conn, buffer);
 		buffer[0] = '\0';
   	}
-	PRET.fp = iop;
-	PRET.pid= pid;
 
-	return(PRET);
-}
-
-int
-my_pclose( POPENRET pret )
-{
-	register int fdes;
-	sigset_t omask, mask;
-	int stat_loc;
-	pid_t pid;
-	FILE * iop = pret.fp;
-
-	fdes = fileno(iop);
-	(void)fclose(iop);
-
-	sigemptyset(&mask);
-	sigaddset(&mask, SIGQUIT);
-	sigaddset(&mask, SIGINT);
-	sigaddset(&mask, SIGHUP);
-	sigprocmask(SIG_BLOCK, &mask, &omask);
-	pid = waitpid(pret.pid, &stat_loc, 0);
-	sigprocmask(SIG_SETMASK, &omask, NULL);
-	if (pid == -1 || !WIFEXITED(stat_loc))
-		return -1;
-	return stat_loc;
-}
-
-
-int run_server (char **cmd, int nb_cmd, int mode, char *log, char *pgdir, char *data, CIRCUIT * conn)
-{
-	int i;
-	int ret = 0;
-	FILE *fp;
-	POPENRET PRET;
-	pid_t pid;
-	char *ptr;
-	char file[256];
-	char buf[256];
-	char dir[256];
-	char arg[256];
-
-	if (mode)
-		//              sprintf (file, " >>%s", log);
-		//              sprintf (file, " | tee -a %s", log);
-		sprintf(file, "" );
-	else
-		sprintf (file, " </dev/null");
-
-	if (pgdir)
+	switch (pgret)
 	{
-		/* remove ';' security reasons */
-		ptr = strchr(pgdir, ';');
-		if (ptr)
-			*ptr = '\0';
+		case -1:	// ERROR or forced closed
+		case 0:
+			index=0;			// Goodbye/Exit
+			conn->InputMode=0;
+			SendPrompt(conn, user);
+			break;
+	case 1:
+		index++;			// inc & keep in PG
+		break;
 
-		sprintf (dir, "cd %s ; ", pgdir);
-	}
-	else
-		*dir = '\0';
+	case 2:
+		
+		index=0;			// disconnect
+		conn->InputMode=0;
+		Disconnect(conn->BPQStream);
+		break;
 
-	*arg = '\0';
+	case 3:
+		Debugprintf("data->BBS & end");
+		break;
 
-	if (data)
-	{
-		/* remove ';' security reasons */
-		ptr = strchr(data, ';');
-		if (ptr)
-			*ptr = '\0';
+	case 4:
+		Debugprintf("data->BBS and inc %d", pindex++);
+		break;
+	case 5:
+		Debugprintf("call no inc %d", pgret);
+		break;
 
-		sprintf (arg, " %s ", data);
-	}
-
-
-	for (i = 0; i < nb_cmd; i++)
-	{
-		/* remove ';' security reasons */
-		ptr = strchr(cmd[i], ';');
-		if (ptr)
-			*ptr = '\0';
-
-		sprintf (buf, "%s%s%s%s", dir, cmd[i], arg, file);
-
-		PRET = my_popen (buf, "r", conn);
-
-		if (PRET.fp == NULL)
-			Debugprintf ("Failed to run PG command %s\n", cmd[i] );
-
-		ret = my_pclose( PRET );
-		ret = ret >> 8;
-
-		if (verbose) {
-			Debugprintf ("Debug: command = {%s}\n", buf);
-			Debugprintf ("Debug: exit code = %d\n", ret);
-		}
-
-		/* fail-safe bypass if executable isn't found (exit code 127) (was ret ==127)*/
-		if (ret > 5)      // should never be more than 5
-			ret = 0;
-	}
-	return ( ret );
-}
-
-
-void run_pg( CIRCUIT * conn, struct UserInfo * user )
-{
-
-  if (!user->Temp->RUNPGPARAMS) {
-	user->Temp->RUNPGPARAMS = (RUNPGARGS_PTR) zalloc(sizeof(RUNPGARGS));
-  }
-
-  user->Temp->RUNPGPARAMS->user = user;
-  user->Temp->RUNPGPARAMS->conn = conn;
-  strncpy(user->Temp->RUNPGPARAMS->InputBuffer, conn->InputBuffer, 80); // needs to be length of actual input!
-  user->Temp->RUNPGPARAMS->Len = conn->InputLen;
-
-  if ( conn == 0 || user == 0 ) {
- 	Debugprintf("run_pg null err");
-	return;
-  }
-
-  _beginthread((void (*)(void *))startrun_pgThread, 0, user->Temp->RUNPGPARAMS );
-
-  return;
-}
-
-
-void startrun_pgThread( RUNPGARGS_PTR Args ) {
-
-	CIRCUIT * conn = Args->conn;
-	struct UserInfo * user = Args->user;
-
-	char cmd[20];
-	sprintf( cmd, "./%s", SERVERLIST[user->Temp->PG_SERVER][1] );
-	char *ptr = cmd;
-	char pg_dir[MAX_PATH];
-	char log_file[50] = "pg.log";
-	char call[6];
-	char data[80];
-	char line[80];
-	char *line_ptr = line;
-	int  index;
-	char *data_ptr = data;
-	size_t bufsize = 80;
-
-	strcpy(pg_dir, BaseDir);
-	strcat(pg_dir, "/PG/");
-
-	sprintf(line, "%s%s", pg_dir, SERVERLIST[user->Temp->PG_SERVER][1]);
-
-	// check file exists and is executable
-	if (access(line, F_OK) == -1 || access(line, X_OK) == -1) {
-		Debugprintf("%s FileNotFound || Not EXE", line);
-		BBSputs(conn, "Error running PG Server\r");
+	default:
+		BBSputs(conn, "PG unexexpected response\r");
+		user->Temp->PG_INDEX = 0;
 		conn->InputMode=0;
 		SendPrompt(conn, user);
 		return;
 	}
 
 
-	strcpy( call, conn->UserPointer->Call);
-	//  sprintf( log_file, "%s-%d.log", call, conn);
-	index = user->Temp->PG_INDEX;
+	user->Temp->PG_INDEX = index;
 
-	line[0] = '\0';
-	int Len = Args->Len;
-	UCHAR * Msg = Args->InputBuffer;
-	strncpy( line, Msg, Len);
-	line[ Len - 1 ] = 0;   //remove LF
-
-	sprintf( data, "%s %d 0 0 %s", call, index, line);
-
-	// clear the input queue
-	conn->InputLen = 0;
-	conn->InputBufferLen = 0;
-
-	int ret = run_server (&ptr, 1, 1, log_file, pg_dir, data_ptr, conn);
-
-	switch (ret)
-	{
-	case -1:	// ERROR or forced closed
-	case 0:       index=0;			// Goodbye/Exit
-		conn->InputMode=0;
-		SendPrompt(conn, user);
-		break;
-	case 1:       index++;			// inc & keep in PG
-		break;
-	case 2:       index=0;			// disconnect
-		conn->InputMode=0;
-		Disconnect(conn->BPQStream);
-		break;
-	case 3:       Debugprintf("data->BBS & end");
-		break;
-	case 4:       Debugprintf("data->BBS and inc %d", index++);
-		break;
-	case 5:       Debugprintf("call no inc %d", ret);
-		break;
-
-	}
-
-	user->Temp->PG_INDEX=index;
+//	printf("runpg return index = %d\n", index);
 }
+
+
 /*---- G7TAJ END ----- */
 
 #else
@@ -12076,7 +12034,7 @@ void ReadFromPipe(void);
 
 void run_pg( CIRCUIT * conn, struct UserInfo * user )
 {
-	// Run PG program, rend anything from program's stdout to the user
+	// Run PG program, read anything from program's stdout to the user
 
 	int retcode = -1;
 	SECURITY_ATTRIBUTES saAttr; 
@@ -12251,7 +12209,7 @@ void run_pg( CIRCUIT * conn, struct UserInfo * user )
 
 	case 4: 
 
-		// Send Output to BBS - was down above
+		// Send Output to BBS - was done above
 		break;
 
 	case 5:

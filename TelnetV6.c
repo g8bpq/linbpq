@@ -427,6 +427,7 @@ int ProcessLine(char * buf, int Port)
 		TCP->MaxSessions = 10;				// Default Values
 		TNC->Hardware = H_TELNET;
 		TCP->IPV4 = TRUE;
+		TCP->SecureTelnet = 1;
 		strcpy(TCP->CMSServer, "cms.winlink.org");
 	}
 

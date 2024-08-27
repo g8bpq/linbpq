@@ -57,7 +57,7 @@
 				UsePrecompiledHeader="0"
 				AssemblerOutput="2"
 				AssemblerListingLocation="c:\devprogs\bpq32\listings\debug\"
-				BrowseInformation="0"
+				BrowseInformation="1"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
@@ -234,6 +234,10 @@
 			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
+			<File
+				RelativePath=".\6pack.c"
+				>
+			</File>
 			<File
 				RelativePath="..\CommonSource\adif.c"
 				>

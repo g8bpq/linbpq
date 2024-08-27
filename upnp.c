@@ -85,6 +85,7 @@ char * leaseDuration = NULL;
 
 struct UPNPDev * devlist = 0;
 char lanaddr[64] = "unset";	/* my ip address on the LAN */
+char wanaddr[64] = "unset";	/* my ip address on the LAN */
 struct UPNPUrls urls;
 struct IGDdatas data;
 
@@ -126,7 +127,11 @@ int upnpInit()
 				return 0;
 			}
 
+#if MINIUPNPC_API_VERSION == 18
+			i = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr), wanaddr, sizeof(wanaddr));
+#else
 			i = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr));
+#endif
 		}
 		
 		AddMap(devlist->descURL, Config->LANport, Config->WANPort, Config->Protocol);		
@@ -153,7 +158,11 @@ int upnpClose()
 				return 0;
 			}
 
+#if MINIUPNPC_API_VERSION == 18
+			i = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr), wanaddr, sizeof(wanaddr));
+#else
 			i = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr));
+#endif	
 		}
 		
 		DeleteMap(devlist->descURL, Config->LANport, Config->WANPort, Config->Protocol);		

@@ -225,6 +225,8 @@ struct STREAMINFO
 	char AGWKey[21];			// Session Key for AGW Session Based Drivers
 
 	time_t ConnectTime;			// Time connection made
+	time_t AttachTime;
+
 	int BytesTXed;
 	int BytesAcked;
 	int BytesRXed;
@@ -258,6 +260,7 @@ struct STREAMINFO
 	HWND xIDC_DIRN;
 
 	int RelaySyncStream;
+	int VaraACMode;
 };
 
 typedef struct AGWINFO
@@ -409,7 +412,7 @@ struct FreeDataINFO
 	char * SSIDS[16];
 };
 
-
+struct sixPackInfo;
 
 typedef struct TNCINFO
 { 
@@ -426,6 +429,9 @@ typedef struct TNCINFO
 	int InitScriptLen;			// Length
 	time_t SessionTimeLimit;	// Optional limit to total session time
 	time_t DefaultSessionTimeLimit;	// Configured value
+
+	time_t AttachTimeLimit;		// to trap port left attached for a long time without other activity
+	time_t AttachTime;
 
 	int Hardware;				// Hardware Type
 
@@ -449,6 +455,7 @@ typedef struct TNCINFO
 #define H_WINRPR 17
 #define H_HSMODEM 18
 #define H_FREEDATA 19
+#define H_SIXPACK 20
 
 
 	int Port;					// BPQ Port Number
@@ -839,6 +846,8 @@ typedef struct TNCINFO
 	char * NRNeighbour;
 	int NRCloseTimer;
 	struct _LINKTABLE * DummyLink;	// Simulated link to simplify interface to ax,25 netrom code
+	struct sixPackPortInfo * sixPack;
+	int VaraACMode;
 
 } *PTNCINFO;
 
