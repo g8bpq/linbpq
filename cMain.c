@@ -46,6 +46,8 @@ int upnpInit();
 void AISTimer();
 void ADSBTimer();
 VOID SendSmartID(struct PORTCONTROL * PORT);
+int CanPortDigi(int Port);
+int	KissEncode(UCHAR * inbuff, UCHAR * outbuff, int len);
 
 #include "configstructs.h"
 
@@ -368,7 +370,8 @@ VOID EXTTX(PEXTPORTDATA PORTVEC, MESSAGE * Buffer)
 		if (LINK->L2TIMER)
 			LINK->L2TIMER = LINK->L2TIME;
 
-		Buffer->Linkptr = 0;	// CLEAR FLAG FROM BUFFER
+		if (PORT->TNC == 0 || PORT->TNC->Hardware != H_KISSHF)
+			Buffer->Linkptr = 0;	// CLEAR FLAG FROM BUFFER
 	}
 	
 	PORTVEC->PORT_EXT_ADDR(2, PORT->PORTNUMBER, Buffer);
@@ -1080,6 +1083,10 @@ BOOL Start()
 
 		PORT->SendtoM0LTEMap = PortRec->SendtoM0LTEMap;
 		PORT->PortFreq = PortRec->PortFreq;
+
+		PORT->M0LTEMapInfo = PortRec->M0LTEMapInfo;
+
+		PORT->QtSMPort = PortRec->QtSMPort;
 
 		if (PortRec->BBSFLAG)						// Appl 1 not permitted - BBSFLAG=NOBBS
 			PORT->PERMITTEDAPPLS &= 0xfffffffe;		// Clear bottom bit

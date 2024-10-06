@@ -158,13 +158,12 @@ int APIProcessHTTPMessage(char * response, char * Method, char * URL, char * req
 int request_token(char * response) 
 {
 	Token * token = generate_token();
-	int expires_in = 3600;
 	char scope[] = "create";
 
 	printf("Token generated: %s\n", token->token);
 
-	sprintf(response, "{\"access_token\":\"%s\", \"expires_in\":%d, \"scope\":\"create\"}\r\n",
-		token->token, expires_in);
+	sprintf(response, "{\"access_token\":\"%s\", \"expires_at\":%ld,\"scope\":\"create\"}\r\n",
+		token->token, token->expiration_time);
 
 	return strlen(response);
 }

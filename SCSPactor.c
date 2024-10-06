@@ -4297,15 +4297,21 @@ VOID PTCSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
 {
 	struct STREAMINFO * STREAM = &TNC->Streams[0];
 
+	strcpy(TNC->WEB_TNCSTATE, "Interlocked");
+	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
+
 	STREAM->CmdSet = STREAM->CmdSave = zalloc(100);
 	sprintf(STREAM->CmdSet, "I%s\r", "SCSPTC");		// Should prevent connects
 
-	Debugprintf("SCS Pactor CMDSet = %s", STREAM->CmdSet);
+//	Debugprintf("SCS Pactor CMDSet = %s", STREAM->CmdSet);
 }
 
 VOID PTCReleasePort(struct TNCINFO * TNC)
 {
 	struct STREAMINFO * STREAM = &TNC->Streams[0];
+
+	strcpy(TNC->WEB_TNCSTATE, "Free");
+	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
 
 	STREAM->CmdSet = STREAM->CmdSave = zalloc(100);
 
@@ -4315,7 +4321,7 @@ VOID PTCReleasePort(struct TNCINFO * TNC)
 	else
 		sprintf(STREAM->CmdSet, "I%s\r", TNC->NodeCall);
 
-	Debugprintf("SCS Pactor CMDSet = %s", STREAM->CmdSet);
+//	Debugprintf("SCS Pactor CMDSet = %s", STREAM->CmdSet);
 }
 
 

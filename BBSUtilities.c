@@ -124,7 +124,7 @@ void decodeblock( unsigned char in[4], unsigned char out[3]);
 int encode_quoted_printable(char *s, char * out, int Len);
 int32_t Encode(char * in, char * out, int32_t inlen, BOOL B1Protocol, int Compress);
 int APIENTRY ChangeSessionCallsign(int Stream, unsigned char * AXCall);
-void SendMessageReadEvent(char * user, struct MsgInfo * Msg);
+void SendMessageReadEvent(char * call, struct MsgInfo * Msg);
 void SendNewMessageEvent(char * call, struct MsgInfo * Msg);
 
 config_t cfg;
@@ -10059,6 +10059,7 @@ BOOL GetConfig(char * ConfigName)
 	char Size[80];
 	config_setting_t *setting;
 	const char * ptr;
+	char * ptr1;
 	char FBBString[8192]= "";
 	FBBFilter f;
 	config_init(&cfg);
@@ -10265,7 +10266,7 @@ BOOL GetConfig(char * ConfigName)
 
 	GetStringValue(group, "FBBFilters", FBBString);
 
-	ptr = FBBString;
+	ptr1 = FBBString;
 
 	// delete old list
 
@@ -10279,31 +10280,31 @@ BOOL GetConfig(char * ConfigName)
 	free(Filters);
 	Filters = NULL;
 
-	while (ptr && ptr[0])
+	while (ptr1 && ptr1[0])
 	{
 		FBBFilter * PFilter;
 
-		f.Action = ptr[0];
-		f.Type = ptr[2];
-		ptr = &ptr[4];
+		f.Action = ptr1[0];
+		f.Type = ptr1[2];
+		ptr1 = &ptr1[4];
 
-		memcpy(f.From, ptr, 10);
+		memcpy(f.From, ptr1, 10);
 		strlop(f.From, '|');
-		ptr = strlop(ptr, '|');
+		ptr1 = strlop(ptr1, '|');
 
-		memcpy(f.TO, ptr, 10);
+		memcpy(f.TO, ptr1, 10);
 		strlop(f.TO, '|');
-		ptr = strlop(ptr, '|');
+		ptr1 = strlop(ptr1, '|');
 
-		memcpy(f.AT, ptr, 10);
+		memcpy(f.AT, ptr1, 10);
 		strlop(f.AT, '|');
-		ptr = strlop(ptr, '|');
+		ptr1 = strlop(ptr1, '|');
 
-		memcpy(f.BID, ptr, 10);
+		memcpy(f.BID, ptr1, 10);
 		strlop(f.BID, '|');
-		ptr = strlop(ptr, '|');
+		ptr1 = strlop(ptr1, '|');
 
-		f.MaxLen = atoi(ptr);
+		f.MaxLen = atoi(ptr1);
 
 		// add to list
 
@@ -10325,7 +10326,7 @@ BOOL GetConfig(char * ConfigName)
 			p->Next = PFilter;
 		}
 
-		ptr = strlop(ptr, '|');
+		ptr1 = strlop(ptr1, '|');
 	}
 
 

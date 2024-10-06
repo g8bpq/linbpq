@@ -109,6 +109,9 @@ VOID TRKSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
 {
 	struct STREAMINFO * STREAM = &TNC->Streams[0];
 
+	strcpy(TNC->WEB_TNCSTATE, "Interlocked");
+	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
+
 	STREAM->CmdSet = STREAM->CmdSave = zalloc(100);
 	sprintf(STREAM->CmdSet, "\1\1\1IDSPTNC");
 }
@@ -116,6 +119,9 @@ VOID TRKSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
 VOID TRKReleasePort(struct TNCINFO * TNC)
 {
 	struct STREAMINFO * STREAM = &TNC->Streams[0];
+
+	strcpy(TNC->WEB_TNCSTATE, "Free");
+	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
 
 	STREAM->CmdSet = STREAM->CmdSave = zalloc(100);
 	sprintf(STREAM->CmdSet, "\1\1\1I%s", TNC->NodeCall);

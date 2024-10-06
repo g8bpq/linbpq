@@ -107,3 +107,16 @@ DllExport void APIENTRY RunEventProgram(char * Program, char * Param)
 
 	return;
 }
+
+void hookL2SessionAccepted(int Port, char * remotecall, char * ourcall, struct _LINKTABLE * LINK)
+{
+}
+
+void hookL2SessionDeleted(int Port, char * fromCall, char * toCall, struct _LINKTABLE * LINK)
+{
+}
+
+void hookL2SessionAttempt(int Port, char * ourcall, char * remotecall, struct _LINKTABLE * LINK)
+{
+}
+

@@ -50,8 +50,8 @@ int DoScanLine(struct TNCINFO * TNC, char * Buff, int Len);
 VOID SendInitScript(struct TNCINFO * TNC);
 int KISSHFGetLine(char * buf);
 int ProcessEscape(UCHAR * TXMsg);
-VOID KISSHFProcessReceivedPacket(struct TNCINFO * TNC);
-static int KissEncode(UCHAR * inbuff, UCHAR * outbuff, int len);
+VOID KISSHFProcessReceivedPacket(struct TNCINFO * TNC, int Channel);
+static int KissEncode(struct TNCINFO * TNC, UCHAR * inbuff, UCHAR * outbuff, int len, int Channel);
 int ConnecttoKISS(int port);
 TRANSPORTENTRY * SetupNewSession(TRANSPORTENTRY * Session, char * Bufferptr);
 BOOL DecodeCallString(char * Calls, BOOL * Stay, BOOL * Spy, UCHAR * AXCalls);
@@ -265,6 +265,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 	struct TNCINFO * TNC = TNCInfo[port];
 	struct STREAMINFO * STREAM = &TNC->Streams[0];
 	struct ScanEntry * Scan;
+	int Channel = ((TNC->PortRecord->PORTCONTROL.CHANNELNUM - 1) & 15) << 4;
 
 	if (TNC == NULL)
 		return 0;							// Port not defined
@@ -417,7 +418,10 @@ ok:
 
 		if (buff->PID != 240)			// ax.25 address
 		{
-			txlen = KissEncode(&buff->PID, txbuff, txlen);
+			txlen = KissEncode(TNC, &buff->PID, txbuff, txlen, Channel);
+
+			// We need to che check for ackmode
+
 			txlen = send(TNC->TCPSock, txbuff, txlen, 0);
 			return 1;
 		}
@@ -504,7 +508,8 @@ ok:
 			}
 		}
 
-		if (toupper(buff->L2DATA[0]) == 'C' && buff->L2DATA[1] == ' ' && txlen > 2)	// Connect
+		if ((toupper(buff->L2DATA[0]) == 'C' && buff->L2DATA[1] == ' ' && txlen > 2)	// Connect
+			|| (toupper(buff->L2DATA[0]) == 'N' && buff->L2DATA[1] == ' ' && txlen > 2))	// Connect
 		{
 			// Connect Command. Pass to L2 code to start session
 
@@ -616,9 +621,9 @@ noFlip3:
 
 			RESET2(LINK);						// RESET ALL FLAGS
 
-//			if (CMD->String[0] == 'N' && SUPPORT2point2)
-//				LINK->L2STATE = 1;					// New (2.2) send XID
-//			else
+			if (toupper(buff->L2DATA[0]) == 'N' && SUPPORT2point2)
+				LINK->L2STATE = 1;					// New (2.2) send XID
+			else
 				LINK->L2STATE = 2;					// Send SABM
 
 			LINK->CIRCUITPOINTER = NewSess;
@@ -722,10 +727,16 @@ VOID KISSHFReleaseTNC(struct TNCINFO * TNC)
 
 VOID KISSHFSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
 {
+	TNC->PortRecord->PORTCONTROL.PortSuspended = 1;
+	strcpy(TNC->WEB_TNCSTATE, "Interlocked");
+	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
 }
 
 VOID KISSHFReleasePort(struct TNCINFO * TNC)
 {
+	TNC->PortRecord->PORTCONTROL.PortSuspended = 0;
+	strcpy(TNC->WEB_TNCSTATE, "Free");
+	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
 }
 
 static int WebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
@@ -735,9 +746,9 @@ static int WebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
 		"function ScrollOutput()\r\n"
 		"{var textarea = document.getElementById('textarea');"
 		"textarea.scrollTop = textarea.scrollHeight;}</script>"
-		"</head><title>VARA Status</title></head><body id=Text onload=\"ScrollOutput()\">"
+		"</head><title>KISSHF Status</title></head><body id=Text onload=\"ScrollOutput()\">"
 		"<h2><form method=post target=\"POPUPW\" onsubmit=\"POPUPW = window.open('about:blank','POPUPW',"
-		"'width=440,height=150');\" action=ARDOPAbort?%d>KISSHF Status"
+		"'width=440,height=50');\" action=ARDOPAbort?%d>KISSHF Status"
 		"<input name=Save value=\"Abort Session\" type=submit style=\"position: absolute; right: 20;\"></form></h2>",
 		TNC->Port);
 
@@ -746,14 +757,14 @@ static int WebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
 
 	Len += sprintf(&Buff[Len], "<tr><td width=110px>Comms State</td><td>%s</td></tr>", TNC->WEB_COMMSSTATE);
 	Len += sprintf(&Buff[Len], "<tr><td>TNC State</td><td>%s</td></tr>", TNC->WEB_TNCSTATE);
-	Len += sprintf(&Buff[Len], "<tr><td>Mode</td><td>%s</td></tr>", TNC->WEB_MODE);
-	Len += sprintf(&Buff[Len], "<tr><td>Channel State</td><td>%s</td></tr>", TNC->WEB_CHANSTATE);
-	Len += sprintf(&Buff[Len], "<tr><td>Proto State</td><td>%s</td></tr>", TNC->WEB_PROTOSTATE);
-	Len += sprintf(&Buff[Len], "<tr><td>Traffic</td><td>%s</td></tr>", TNC->WEB_TRAFFIC);
+//	Len += sprintf(&Buff[Len], "<tr><td>Mode</td><td>%s</td></tr>", TNC->WEB_MODE);
+//	Len += sprintf(&Buff[Len], "<tr><td>Channel State</td><td>%s</td></tr>", TNC->WEB_CHANSTATE);
+//	Len += sprintf(&Buff[Len], "<tr><td>Proto State</td><td>%s</td></tr>", TNC->WEB_PROTOSTATE);
+//	Len += sprintf(&Buff[Len], "<tr><td>Traffic</td><td>%s</td></tr>", TNC->WEB_TRAFFIC);
 //	Len += sprintf(&Buff[Len], "<tr><td>TNC Restarts</td><td></td></tr>", TNC->WEB_RESTARTS);
 	Len += sprintf(&Buff[Len], "</table>");
 
-	Len += sprintf(&Buff[Len], "<textarea rows=10 style=\"width:500px; height:250px;\" id=textarea >%s</textarea>", TNC->WebBuffer);
+	Len += sprintf(&Buff[Len], "<textarea rows=2 style=\"width:500px; height:50px;\" id=textarea >%s</textarea>", TNC->WebBuffer);
 	Len = DoScanLine(TNC, Buff, Len);
 
 	return Len;
@@ -976,6 +987,7 @@ VOID KISSThread(void * portptr)
 	char * ptr1;
 	char * ptr2;
 	UINT * buffptr;
+	int Channel = ((TNC->PortRecord->PORTCONTROL.CHANNELNUM - 1) & 15) << 4;
 
 	if (TNC->HostName == NULL)
 		return;
@@ -1184,7 +1196,7 @@ VOID KISSThread(void * portptr)
 			if (FD_ISSET(TNC->TCPSock, &readfs))
 			{
 				GetSemaphore(&Semaphore, 52);
-				KISSHFProcessReceivedPacket(TNC);
+				KISSHFProcessReceivedPacket(TNC, Channel);
 				FreeSemaphore(&Semaphore);
 			}
 								
@@ -1243,15 +1255,42 @@ static int	KissDecode(UCHAR * inbuff, UCHAR * outbuff, int len)
 
 }
 
+#define ACKMODE	4				// CAN USE ACK REQURED FRAMES
+#define MSGHDDRLEN (USHORT)(sizeof(VOID *) + sizeof(UCHAR) + sizeof(USHORT))
+#define	ONEMINUTE 60*3
 
-static int	KissEncode(UCHAR * inbuff, UCHAR * outbuff, int len)
+static int	KissEncode(struct TNCINFO * TNC, UCHAR * inbuff, UCHAR * outbuff, int len, int Channel)
 {
 	int i,txptr=0;
 	UCHAR c;
 
-	outbuff[0]=FEND;
-	outbuff[1]=0;
+	outbuff[0] = FEND;
+	outbuff[1] = Channel;
 	txptr=2;
+
+	// See if we need ackmode
+
+	if (TNC->PortRecord->PORTCONTROL.KISSFLAGS & ACKMODE)
+	{
+		UCHAR * ptr =  inbuff - MSGHDDRLEN;
+		PMESSAGE Buffer = (PMESSAGE)ptr;
+
+		if (Buffer->Linkptr)					// Frame Needs ACK
+		{
+			UINT ACKWORD = (UINT)(Buffer->Linkptr - LINKS);
+			outbuff[1] |= 0x0c;			// ACK OPCODE 
+			outbuff[2] = ACKWORD & 0xff;
+			outbuff[3] = (ACKWORD >> 8) &0xff;
+
+			Buffer->Linkptr->L2TIMER = ONEMINUTE;		// Extend timeout
+
+			txptr = 4;
+
+			// have to reset flag so trace doesnt clear it
+
+			Buffer->Linkptr = 0;
+		}
+	}
 
 	for (i=0;i<len;i++)
 	{
@@ -1283,7 +1322,7 @@ static int	KissEncode(UCHAR * inbuff, UCHAR * outbuff, int len)
 }
 
 
-VOID KISSHFProcessReceivedPacket(struct TNCINFO * TNC)
+VOID KISSHFProcessReceivedPacket(struct TNCINFO * TNC, int Channel)
 {
 	int InputLen, MsgLen;
 	unsigned char * ptr;
@@ -1335,9 +1374,41 @@ VOID KISSHFProcessReceivedPacket(struct TNCINFO * TNC)
 
 		if (MsgLen > 1)
 		{
-			PMESSAGE Buff = GetBuff();
+			PMESSAGE Buff;
+
+			if ((TNC->ARDOPBuffer[1] & 0xf0) != Channel)
+				goto ignoreit;
+
+			Buff = GetBuff();
 
 			MsgLen = KissDecode(TNC->ARDOPBuffer, Buffer, MsgLen);
+
+			// See if ACKMODE ACK
+
+			if ((Buffer[1] & 0xf) == 12)
+			{
+				//Ackmode
+
+				struct _LINKTABLE * LINK;
+				int ACKWORD = Buffer[2] | Buffer[3] << 8;
+
+				if (ACKWORD < MAXLINKS)
+				{
+					LINK = LINKS + ACKWORD;
+
+					if (LINK->L2TIMER)
+						LINK->L2TIMER = LINK->L2TIME;
+				}
+
+				ReleaseBuffer(Buff);
+				goto ignoreit;
+			}
+
+			if ((Buffer[1] & 0xf) != 0)
+			{
+				ReleaseBuffer(Buff);
+				goto ignoreit;				// Not data
+			}
 
 			// we dont need the FENDS or control byte
 
@@ -1353,6 +1424,8 @@ VOID KISSHFProcessReceivedPacket(struct TNCINFO * TNC)
 				C_Q_ADD(&TNC->PortRecord->PORTCONTROL.PORTRX_Q, (UINT *)Buff);
 			}
 		}
+
+ignoreit:
 
 		if (TNC->InputLen == 0)
 			return;
@@ -1463,7 +1536,7 @@ void DetachKISSHF(struct PORTCONTROL * PORT)
 	struct STREAMINFO * STREAM = &TNC->Streams[0];
 
 	if (STREAM->Attached)
-		STREAM->ReportDISC = TRUE;		// Tell Node
+		STREAM->ReportDISC = 10;		// Tell Node but give time for error message to display
 
 	STREAM->Connecting = FALSE;
 	STREAM->Connected = FALSE;

@@ -1317,6 +1317,10 @@ FULLHA:
 	{
 		int i = 0;
 
+		// Log My HA for debugging
+
+		Logprintf(LOG_BBS, conn, '?', "Routing Trace. Check if reached correct area My HA is %s", HRoute);
+
 		// All elements of Helements must match Myelements
 
 		while (MyElements[i] && HElements[i]) // Until one set runs out
@@ -1409,6 +1413,9 @@ NOHA:
 	// So if SendPtoMultiple is set I think I need to find the best depth then send to all with the same depth
 	// If none are found on HA match drop through.
 
+	// But this means a message at the @BBS call will be forwarded without checking the Implied AT. So do that first
+
+
 	if (SendPtoMultiple && Msg->type == 'P')
 	{
 		struct UserInfo * bestbbs = NULL;
@@ -1424,6 +1431,16 @@ NOHA:
 		for (bbs = BBSChain; bbs; bbs = bbs->BBSNext)
 		{		
 			ForwardingInfo = bbs->ForwardingInfo;
+
+			// Check Implied AT
+
+			if ((strcmp(ATBBS, bbs->Call) == 0))			// @BBS = BBS		
+			{
+				Logprintf(LOG_BBS, conn, '?', "Routing Trace %s Matches implied AT %s", ATBBS, bbs->Call);
+
+				CheckAndSend(Msg, conn, bbs);
+				return 1;
+			}
 
 			depth = CheckBBSHElements(Msg, bbs, ForwardingInfo, ATBBS, &HElements[0]);
 

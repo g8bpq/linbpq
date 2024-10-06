@@ -1212,7 +1212,6 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add NodeAPI call sendLinks and remove get from other calls (32)
 //	Improve validation of Web Beacon Config (33)
 //	Support SNMP via host ip stack as well as IPGateway (34)
-
 //	Switch APRS Map to OSM tile servers (36)
 //	Fix potential buffer overflow in Telnet login (36)
 //	Allow longer serial device names (37)
@@ -1222,6 +1221,12 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Change default of SECURETELNET to 1 (41)
 //	Add optional ATTACH time limit for ARDOP (42)
 //	Fix buffer overflow risk in HTTP Terminal(42)
+//	Fix KISSHF Interlock (43)
+//	Support other than channel A on HFKISS (43)
+//	Support additional port info reporting for M0LTE Map (44)
+//	Allow interlocking of KISS and Session mode ports (eg ARDOP and VARA) (45)
+//	Add ARDOP UI Packets to MH (45)
+//	Add support for Qtsm Mgmt Interface (45)
 
 
 

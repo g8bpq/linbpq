@@ -958,7 +958,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				TNC->Streams[0].Connecting ||
 				TNC->Streams[0].Connected)
 			{
-				// discard if TNC not connected or sesison active
+				// discard if TNC not connected or session active
 
 				ReleaseBuffer(buffptr);
 				continue;
@@ -1865,13 +1865,11 @@ VOID ARDOPReleaseTNC(struct TNCINFO * TNC)
 
 	ARDOPChangeMYC(TNC, TNC->NodeCall);
 
-	ARDOPSendCommand(TNC, "LISTEN TRUE", TRUE);
-
 	strcpy(TNC->WEB_TNCSTATE, "Free");
 	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
 
-	//	Start Scanner
-				
+	ARDOPSendCommand(TNC, "LISTEN TRUE", TRUE);
+	
 	//	Start Scanner
 
 	if (TNC->DefaultRadioCmd)
@@ -1889,12 +1887,19 @@ VOID ARDOPReleaseTNC(struct TNCINFO * TNC)
 
 VOID ARDOPSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
 {
+	TNC->PortRecord->PORTCONTROL.PortSuspended = TRUE;
 	ARDOPSendCommand(TNC, "LISTEN FALSE", TRUE);
+	strcpy(TNC->WEB_TNCSTATE, "Interlocked");
+	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
+
 }
 
 VOID ARDOPReleasePort(struct TNCINFO * TNC)
 {
+	TNC->PortRecord->PORTCONTROL.PortSuspended = FALSE;
 	ARDOPSendCommand(TNC, "LISTEN TRUE", TRUE);
+	strcpy(TNC->WEB_TNCSTATE, "Free");
+	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
 }
 
 extern char WebProcTemplate[];
@@ -2953,6 +2958,15 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 		if (TNC->PTTMode)
 			Rig_PTT(TNC, TRUE);
 
+		TNC->PTTonTime = GetTickCount();
+
+		// Cancel Busy timer (stats include ptt on time in port active
+
+		if (TNC->BusyonTime)
+		{
+			TNC->BusyActivemS += (GetTickCount() - TNC->BusyonTime);
+			TNC->BusyonTime = 0;
+		}
 		return;
 	}
 	if (_memicmp(Buffer, "PTT F", 5) == 0)
@@ -2961,6 +2975,12 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 		if (TNC->PTTMode)
 			Rig_PTT(TNC, FALSE);
 
+		if (TNC->PTTonTime)
+		{
+			TNC->PTTActivemS += (GetTickCount() - TNC->PTTonTime);
+			TNC->PTTonTime = 0;
+		}
+
 		return;
 	}
 
@@ -2968,6 +2988,8 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 	{	
 		TNC->BusyFlags |= CDBusy;
 		TNC->Busy = TNC->BusyHold * 10;				// BusyHold  delay
+
+		TNC->BusyonTime = GetTickCount();
 
 		MySetWindowText(TNC->xIDC_CHANSTATE, "Busy");
 		strcpy(TNC->WEB_CHANSTATE, "Busy");
@@ -2984,6 +3006,12 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 			strcpy(TNC->WEB_CHANSTATE, "BusyHold");
 		else
 			strcpy(TNC->WEB_CHANSTATE, "Clear");
+
+		if (TNC->BusyonTime)
+		{
+			TNC->BusyActivemS += (GetTickCount() - TNC->BusyonTime);
+			TNC->BusyonTime = 0;
+		}
 
 		MySetWindowText(TNC->xIDC_CHANSTATE, TNC->WEB_CHANSTATE);
 		TNC->WinmorRestartCodecTimer = time(NULL);
@@ -3852,6 +3880,7 @@ VOID ARDOPProcessDataPacket(struct TNCINFO * TNC, UCHAR * Type, UCHAR * Data, in
 		char * ptr2;
 		char c;
 		int Len = Length;
+		char Call[10] = "";
 
 		Debugprintf(Data);
 
@@ -3924,7 +3953,12 @@ VOID ARDOPProcessDataPacket(struct TNCINFO * TNC, UCHAR * Type, UCHAR * Data, in
 							buffptr->LENGTH  = 16 + MSGHDDRLEN + APLen;
 							time(&buffptr->Timestamp);
 
+							memcpy(Call,ptr1, 9);
+							strlop(Call, '>');
+							UpdateMH(TNC, Call, '!', 'I');
+
 							BPQTRACE((MESSAGE *)buffptr, TRUE);
+
 						}
 						else
 						{

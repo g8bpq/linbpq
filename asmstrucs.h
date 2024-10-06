@@ -600,6 +600,8 @@ typedef struct PORTCONTROL
 	UCHAR AVSENDING;			// LAST MINUTE
 	UCHAR AVACTIVE;
 
+	char PktFlags[64];			// Decode stts rom QtSM
+
 	char PORTTYPE;	// H/W TYPE
 					// 0 = ASYNC, 2 = PC120, 4 = DRSI
 					// 6 = TOSH, 8 = QUAD, 10 = RLC100
@@ -691,6 +693,13 @@ typedef struct PORTCONTROL
 	time_t SmartIDInterval;		// Smart ID Interval (Secs)
 	int SendtoM0LTEMap;
 	uint64_t PortFreq;			// Configured freq
+	char * M0LTEMapInfo;
+	int QtSMPort;
+	BOOL QtSMConnected;
+
+	int StatsPointer;
+	UCHAR * TX;					// % Sending
+	UCHAR * BUSY;				// % Active (Normally DCD active or TX)
 
 }	PORTCONTROLX, *PPORTCONTROL;
 
@@ -704,7 +713,7 @@ typedef struct FULLPORTDATA
 
 typedef struct KISSINFO
 {
-	struct PORTCONTROL  PORT;	
+	struct PORTCONTROL PORT;	
 
 	int LINKSTS;			// CURRENT STATE
 	UINT * CURALP;			// CURRENT BUFFER
@@ -734,6 +743,19 @@ typedef struct KISSINFO
 
 	UCHAR * KISSCMD;			// Commands to be sent when port opened
 	int KISSCMDLEN;
+
+	int PTTMode;					// PTT Mode Flags
+	int PTTState;					// Current State
+	uint64_t PTTActivemS;				// For Stats
+	uint64_t PTTonTime;				//
+
+	uint64_t BusyActivemS;			// For channel busy stats
+	uint64_t BusyonTime;
+
+	char * QtSMModem;
+	int QtSMFreq;
+	int QtSMStats;				// Set if stats received as KISS Command 
+
 
 //	UCHAR WIN32INFO[16];		//	FOR WINDOWS DRIVER
 } *PKISSINFO;

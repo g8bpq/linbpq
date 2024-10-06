@@ -73,6 +73,7 @@ void SendDataToPktMap(char *Msg);
 extern BOOL LogAllConnects;
 extern BOOL M0LTEMap;
 
+char * stristr (char *ch1, char *ch2);
 
 extern VOID * ENDBUFFERPOOL;
 
@@ -547,6 +548,7 @@ VOID * _GetBuff(char * File, int Line)
 
 		Msg->Process = (short)GetCurrentProcessId();
 		Msg->Linkptr = NULL;
+		Msg->Padding[0] = 0;		// Used for modem status info 
 	}
 	else
 		Debugprintf("Warning - Getbuff returned NULL");
@@ -1669,7 +1671,7 @@ DllExport time_t APIENTRY GetRaw(int stream, char * msg, int * len, int * count)
 
 	Stamp = MSG->Timestamp;
 
-	memcpy(msg, MSG, Msglen);
+	memcpy(msg, MSG, BUFFLEN - sizeof(void *));		// To c
 
 	*len = Msglen;
 
@@ -2454,8 +2456,8 @@ HANDLE OpenCOMPort(VOID * pPort, int speed, BOOL SetDTR, BOOL SetRTS, BOOL Quiet
 	struct termios term;
 	struct speed_struct *s;
 
-	if ((UINT)pPort < 256)
-		sprintf(Port, "%s/com%d", BPQDirectory, (int)pPort);
+	if ((uintptr_t)pPort < 256)
+		sprintf(Port, "%s/com%d", BPQDirectory, (int)(uintptr_t)pPort);
 	else
 		strcpy(Port, pPort);
 
@@ -3688,7 +3690,7 @@ VOID OpenReportingSockets()
 	{
 		// Enable Node Map Reports
 
-		ReportTimer = 60;
+		ReportTimer = 1200;			// 2 mins - Give Rigcontrol time to start
 
 		ReportSocket = socket(AF_INET,SOCK_DGRAM,0);
 
@@ -5160,6 +5162,7 @@ void SendDataToPktMap(char *Msg)
 	char * Use;
 	char * Type;
 	char * Modulation;
+	char * Usage;
 
 	char locked[] = " ! ";
 	int Percent = 0;
@@ -5264,6 +5267,10 @@ void SendDataToPktMap(char *Msg)
 		Type = "RF";
 		Bitrate = 0;
 		Modulation = "FSK";
+		Usage = "Access";
+
+		if (PORT->PortFreq)
+			Freq = PORT->PortFreq;
 
 		if (PORT->PORTTYPE == 0)
 		{
@@ -5321,7 +5328,7 @@ void SendDataToPktMap(char *Msg)
 					continue;
 				}
 
-				if (TNC->RIG)
+				if (Freq == 0 && TNC->RIG)
 					Freq = TNC->RIG->RigFreq * 1000000;
 
 				switch (TNC->Hardware)				// Hardware Type
@@ -5387,6 +5394,15 @@ void SendDataToPktMap(char *Msg)
 
 					break;
 
+				case H_KISSHF:
+
+				// Try to get mode from ID then drop through
+
+					if (stristr(PORT->PORTDESCRIPTION, "BPSK"))
+					{
+						Modulation = "BPSK";
+					}
+
 				case H_WINMOR:
 				case H_V4:
 
@@ -5395,7 +5411,7 @@ void SendDataToPktMap(char *Msg)
 				case H_UIARQ:
 				case H_ARDOP:
 				case H_VARA:
-				case H_KISSHF:
+
 				case H_FREEDATA:
 
 					// TCP
@@ -5431,12 +5447,58 @@ void SendDataToPktMap(char *Msg)
 			while (*(ptr2) == ' ' && ptr2 != ID)
 				*(ptr2--) = 0;
 
+			if (PORT->M0LTEMapInfo)
+			{
+				// Override with user configured values - RF,7.045,BPSK,300,300,Access
+
+				char param[256];
+				char *p1, *p2, *p3, *p4, *p5;
+
+				strcpy(param, PORT->M0LTEMapInfo);
+
+				p1 = strlop(param, ',');
+				p2 = strlop(p1, ',');
+				p3 = strlop(p2, ',');
+				p4 = strlop(p3, ',');
+				p5 = strlop(p4, ',');
+
+	//			int n = sscanf(PORT->M0LTEMapInfo, "%s,%s,%s,%s,%s,%s", &p1, &p2, &p3, &p4, &p5, &p6);
+
+				if (p5)
+				{
+					if (param[0]) Type = param;
+
+					if (p1[0])
+					{
+						// if set to DIAL+=n and frequency set from config or rigcontrol modify it
+						
+						uint64_t offset = 0;
+				
+						if (_memicmp(p1, "DIAL+", 5) == 0)
+							offset = atoi(&p1[5]);
+						else if (_memicmp(p1, "DIAL-", 5) == 0)
+							offset = -atoi(&p1[5]);
+						else
+							Freq = atof(p1) * 1000000;
+
+						if (Freq != 0)
+							Freq += offset;
+
+					}
+
+					if (p2[0]) Modulation = p2;
+					if (p3[0]) Baud = atoi(p3);
+					if (p4[0]) Bitrate = atoi(p4);
+					if (p5[0]) Usage = p5;
+				}
+			}
+
 			ptr += sprintf(ptr, "{\"id\": \"%d\",\"linkType\": \"%s\","
 			"\"freq\": \"%lld\",\"mode\": \"%s\",\"modulation\": \"%s\","
 			"\"baud\": \"%d\",\"bitrate\": \"%d\",\"usage\": \"%s\",\"comment\": \"%s\"},\r\n",
 			PortNo, Type, 
 			Freq, Mode, Modulation,
-			Baud, Bitrate, "Access", ID);
+			Baud, Bitrate, Usage, ID);
 
 // G7TAJ //
 			// make MH list to be added later

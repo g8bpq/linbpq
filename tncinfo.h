@@ -532,6 +532,8 @@ typedef struct TNCINFO
 	BOOL TNCCONNECTING;			// For FreeData
 	BOOL TNCCONNECTED;
 
+	BOOL QtSMConnected;
+
 	char NodeCall[10];				// Call we listen for (PORTCALL or NODECALL
 	char CurrentMYC[10];			// Save current call so we don't change it unnecessarily
 	char * LISTENCALLS;				// Calls TNC will respond to (currently only for VARA)
@@ -543,6 +545,11 @@ typedef struct TNCINFO
 
 	int PTTMode;					// PTT Mode Flags
 	int PTTState;					// Current State
+	uint64_t PTTActivemS;			// For Stats
+	uint64_t PTTonTime;				//
+
+	uint64_t BusyActivemS;			// For channel busy stats
+	uint64_t BusyonTime;
 
 	char PTTOn[60];					// Port override of RIGCONTROL config
 	char PTTOff[60];
@@ -847,7 +854,12 @@ typedef struct TNCINFO
 	int NRCloseTimer;
 	struct _LINKTABLE * DummyLink;	// Simulated link to simplify interface to ax,25 netrom code
 	struct sixPackPortInfo * sixPack;
-	int VaraACMode;
+	int VaraACAllowed;				// Set by config
+	int VaraACMode;					// Set by first message received
+	int VaraModeSet;				// Have decicded if VarAC mode or not
+	char * VARACMsg;				// to build message from packets
+	int VarACTimer;					// delayed send timer
+	size_t VARACSize;					// malloc'ed size
 
 } *PTNCINFO;
 

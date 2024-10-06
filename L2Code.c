@@ -106,6 +106,13 @@ void AttachKISSHF(struct PORTCONTROL * PORT, MESSAGE * Buffer);
 void DetachKISSHF(struct PORTCONTROL * PORT);
 void KISSHFConnected(struct PORTCONTROL * PORT, struct _LINKTABLE * LINK);
 void WriteConnectLog(char * fromcall, char * tocall, UCHAR * Mode);
+int seeifInterlockneeded(struct PORTCONTROL * PORT);
+int seeifUnlockneeded(struct _LINKTABLE * LINK);
+int CheckKissInterlock(struct PORTCONTROL * MYPORT, int Exclusive);
+void hookL2SessionAccepted(int Port, char * fromCall, char * toCall, struct _LINKTABLE * LINK);
+void hookL2SessionDeleted(int Port, char * fromCall, char * toCall, struct _LINKTABLE * LINK);
+void hookL2SessionAttempt(int Port, char * fromCall, char * toCall, struct _LINKTABLE * LINK);
+
 
 extern int REALTIMETICKS;
 
@@ -773,163 +780,171 @@ VOID L2FORUS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buff
 
 VOID ProcessXIDCommand(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffer, MESSAGE * ADJBUFFER, UCHAR CTL, UCHAR MSGFLAG)
 {
-		// I think it is fairly safe to accept XID as soon as we
-		// can process SREJ, but only accept Mod 8 and 256 Byte frames
+	// I think it is fairly safe to accept XID as soon as we
+	// can process SREJ, but only accept Mod 8 and 256 Byte frames
 
-		// I think the only way to run 2.2 Mod 8 is to preceed a 
-		//	SABM with XID, but others don't seem to agree!
+	// I think the only way to run 2.2 Mod 8 is to preceed a 
+	//	SABM with XID, but others don't seem to agree!
 
-		//	Run through XID fields, changing any we don't like,
-		//	then return an XID response
+	//	Run through XID fields, changing any we don't like,
+	//	then return an XID response
 
-		// Decode and process XID
+	// Decode and process XID
 
-		UCHAR * ptr = &ADJBUFFER->PID;
-		UCHAR * ptr1, * ptr2;
-		UCHAR TEMPDIGI[57];
-		int n;
+	UCHAR * ptr = &ADJBUFFER->PID;
+	UCHAR * ptr1, * ptr2;
+	UCHAR TEMPDIGI[57];
+	int n;
 
-		if (*ptr++ == 0x82 && *ptr++ == 0x80)
-		{
-			int Type;
-			int Len;
-			unsigned int value;
-			int xidlen = *(ptr++) << 8;	
-			xidlen += *ptr++;
-		
-			// XID is set of Type, Len, Value n-tuples
+	// Check Interlock - should we also check exclude etc?. No, checked in L2FORUS
 
-			while (xidlen > 0)
-			{
-				Type = *ptr++;
-				Len = *ptr++;
-	
-				value = 0;
-				xidlen -= (Len + 2);
-
-				while (Len--)
-				{
-					value <<=8;
-					value += *ptr++;
-				}
-				switch(Type)
-				{
-				case 2:				//Bin fields
-
-					break;
-
-				case 3:
-
-					if ((value & OPMustHave) != OPMustHave)
-						goto BadXID;
-
-					if ((value & OPMod8) == 0)
-						goto BadXID;
-
-					if ((value & OPSREJMult) == 0)
-						goto BadXID;
-
-
-					//	Reply Mod 8 SREJMULTI
-
-					value = OPMustHave | OPSREJMult | OPMod8;
-					ptr -=3;
-					*ptr++ = value >> 16;
-					*ptr++ = value >> 8;
-					*ptr++ = value;
-
-
-					break;
-
-				case 6:				//RX Size
-
-					break;
-
-				case 8:				//RX Window
-
-					break;
-				}
-			}
-
-			// Send back as XID response
-
-			LINK->L2STATE = 1;			// XID received
-			LINK->Ver2point2 = TRUE;	// Must support 2.2 if sent XID
-			LINK->L2TIME = PORT->PORTT1;
-
-			LINK->LINKPORT = PORT;
-			
-			// save calls so we can match up SABM when it comes
-
-			memcpy(LINK->LINKCALL, Buffer->ORIGIN, 7);
-			LINK->LINKCALL[6] &= 0x1e;		// Mask SSID
-
-			memcpy(LINK->OURCALL, Buffer->DEST, 7);
-	
-			LINK->OURCALL[6] &= 0x1e;		// Mask SSID
-
-			memset(LINK->DIGIS, 0, 56);		// CLEAR DIGI FIELD IN CASE RECONNECT
-
-			if ((Buffer->ORIGIN[6] & 1) == 0)	// End of Address
-			{
-				//	THERE ARE DIGIS TO PROCESS - COPY TO WORK AREA reversed, THEN COPY BACK
-	
-				memset(TEMPDIGI, 0, 57);		// CLEAR DIGI FIELD IN CASE RECONNECT
-
-				ptr1 = &Buffer->ORIGIN[6];		// End of add 
-				ptr2 = &TEMPDIGI[7 * 7];		// Last Temp Digi
-
-				while((*ptr1 & 1) == 0)			// End of address bit
-				{
-					ptr1++;
-					memcpy(ptr2, ptr1, 7);
-					ptr2[6] &= 0x1e;			// Mask Repeated and Last bits
-					ptr2 -= 7;
-					ptr1 += 6;
-				}
-		
-				//	LIST OF DIGI CALLS COMPLETE - COPY TO LINK CONTROL ENTRY
-
-				n = PORT->PORTMAXDIGIS;
-
-				ptr1 = ptr2 + 7;				// First in TEMPDIGIS
-				ptr2 = &LINK->DIGIS[0];
-
-				while (*ptr1)
-				{
-					if (n == 0)
-					{
-						// Too many for us
-				
-						CLEAROUTLINK(LINK);
-						ReleaseBuffer(Buffer);
-						return;
-					}
-
-					memcpy(ptr2, ptr1, 7);
-					ptr1 += 7;
-					ptr2 += 7;
-					n--;
-				}
-			}
-
-			ADJBUFFER->CTL = CTL | PFBIT;
-
-// 			Buffer->LENGTH = (UCHAR *)ADJBUFFER - (UCHAR *)Buffer + MSGHDDRLEN + 15;	// SET UP BYTE COUNT
-
-			L2SWAPADDRESSES(Buffer);			// SWAP ADDRESSES AND SET RESP BITS
-
-			// We need to save APPLMASK and ALIASPTR so following SABM connects to application
-
-			LINK->APPLMASK = APPLMASK;
-			LINK->ALIASPTR = ALIASPTR;
-
-			PUT_ON_PORT_Q(PORT, Buffer);
-			return;
-		}
-BadXID:
-		L2SENDINVALIDCTRL(PORT, Buffer, ADJBUFFER, CTL);
+	if (CheckKissInterlock(PORT, TRUE))			// Interlock with ARDOP/VARA etc
+	{
+		L2SENDDM(PORT, Buffer, ADJBUFFER);
 		return;
+	}
+
+	if (*ptr++ == 0x82 && *ptr++ == 0x80)
+	{
+		int Type;
+		int Len;
+		unsigned int value;
+		int xidlen = *(ptr++) << 8;	
+		xidlen += *ptr++;
+
+		// XID is set of Type, Len, Value n-tuples
+
+		while (xidlen > 0)
+		{
+			Type = *ptr++;
+			Len = *ptr++;
+
+			value = 0;
+			xidlen -= (Len + 2);
+
+			while (Len--)
+			{
+				value <<=8;
+				value += *ptr++;
+			}
+			switch(Type)
+			{
+			case 2:				//Bin fields
+
+				break;
+
+			case 3:
+
+				if ((value & OPMustHave) != OPMustHave)
+					goto BadXID;
+
+				if ((value & OPMod8) == 0)
+					goto BadXID;
+
+				if ((value & OPSREJMult) == 0)
+					goto BadXID;
+
+
+				//	Reply Mod 8 SREJMULTI
+
+				value = OPMustHave | OPSREJMult | OPMod8;
+				ptr -=3;
+				*ptr++ = value >> 16;
+				*ptr++ = value >> 8;
+				*ptr++ = value;
+
+
+				break;
+
+			case 6:				//RX Size
+
+				break;
+
+			case 8:				//RX Window
+
+				break;
+			}
+		}
+
+		// Send back as XID response
+
+		LINK->L2STATE = 1;			// XID received
+		LINK->Ver2point2 = TRUE;	// Must support 2.2 if sent XID
+		LINK->L2TIME = PORT->PORTT1;
+
+		LINK->LINKPORT = PORT;
+
+		// save calls so we can match up SABM when it comes
+
+		memcpy(LINK->LINKCALL, Buffer->ORIGIN, 7);
+		LINK->LINKCALL[6] &= 0x1e;		// Mask SSID
+
+		memcpy(LINK->OURCALL, Buffer->DEST, 7);
+
+		LINK->OURCALL[6] &= 0x1e;		// Mask SSID
+
+		memset(LINK->DIGIS, 0, 56);		// CLEAR DIGI FIELD IN CASE RECONNECT
+
+		if ((Buffer->ORIGIN[6] & 1) == 0)	// End of Address
+		{
+			//	THERE ARE DIGIS TO PROCESS - COPY TO WORK AREA reversed, THEN COPY BACK
+
+			memset(TEMPDIGI, 0, 57);		// CLEAR DIGI FIELD IN CASE RECONNECT
+
+			ptr1 = &Buffer->ORIGIN[6];		// End of add 
+			ptr2 = &TEMPDIGI[7 * 7];		// Last Temp Digi
+
+			while((*ptr1 & 1) == 0)			// End of address bit
+			{
+				ptr1++;
+				memcpy(ptr2, ptr1, 7);
+				ptr2[6] &= 0x1e;			// Mask Repeated and Last bits
+				ptr2 -= 7;
+				ptr1 += 6;
+			}
+
+			//	LIST OF DIGI CALLS COMPLETE - COPY TO LINK CONTROL ENTRY
+
+			n = PORT->PORTMAXDIGIS;
+
+			ptr1 = ptr2 + 7;				// First in TEMPDIGIS
+			ptr2 = &LINK->DIGIS[0];
+
+			while (*ptr1)
+			{
+				if (n == 0)
+				{
+					// Too many for us
+
+					CLEAROUTLINK(LINK);
+					ReleaseBuffer(Buffer);
+					return;
+				}
+
+				memcpy(ptr2, ptr1, 7);
+				ptr1 += 7;
+				ptr2 += 7;
+				n--;
+			}
+		}
+
+		ADJBUFFER->CTL = CTL | PFBIT;
+
+		// 			Buffer->LENGTH = (UCHAR *)ADJBUFFER - (UCHAR *)Buffer + MSGHDDRLEN + 15;	// SET UP BYTE COUNT
+
+		L2SWAPADDRESSES(Buffer);			// SWAP ADDRESSES AND SET RESP BITS
+
+		// We need to save APPLMASK and ALIASPTR so following SABM connects to application
+
+		LINK->APPLMASK = APPLMASK;
+		LINK->ALIASPTR = ALIASPTR;
+
+		PUT_ON_PORT_Q(PORT, Buffer);
+		return;
+	}
+BadXID:
+	L2SENDINVALIDCTRL(PORT, Buffer, ADJBUFFER, CTL);
+	return;
 }
 
 
@@ -1100,8 +1115,17 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 
 	TRANSPORTENTRY * Session;
 	int CONERROR;
-	
+
+	char toCall[12], fromCall[12];
+
+
 	if (LINK == 0)			// NO LINK ENTRIES - SEND DM RESPONSE
+	{
+		L2SENDDM(PORT, Buffer, ADJBUFFER);
+		return;
+	}
+
+	if (CheckKissInterlock(PORT, TRUE))			// Interlock with ARDOP/VARA etc
 	{
 		L2SENDDM(PORT, Buffer, ADJBUFFER);
 		return;
@@ -1114,6 +1138,14 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 		L2SENDDM(PORT, Buffer, ADJBUFFER);		// Failed
 		return;
 	}
+
+	// See if need to Interlock non-sharable modes, eg ARDOP and VARA
+
+	seeifInterlockneeded(PORT);
+
+	toCall[ConvFromAX25(ADJBUFFER->DEST, toCall)] = 0;
+	fromCall[ConvFromAX25(ADJBUFFER->ORIGIN, fromCall)] = 0;
+
 
 	//	IF CONNECT TO APPL ADDRESS, SET UP APPL SESSION
 
@@ -1136,6 +1168,8 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 			fromCall[ConvFromAX25(ADJBUFFER->ORIGIN, fromCall)] = 0;
 			WriteConnectLog(fromCall, toCall, "AX.25");
 		}
+
+		hookL2SessionAccepted(PORT->PORTNUMBER, fromCall, toCall, LINK);
 		
 		L2SENDUA(PORT, Buffer, ADJBUFFER);
 
@@ -3226,6 +3260,15 @@ VOID SENDFRMR(struct _LINKTABLE * LINK)
 
 VOID CLEAROUTLINK(struct _LINKTABLE * LINK)
 {
+	char toCall[12], fromCall[12];
+
+	toCall[ConvFromAX25(LINK->LINKCALL, toCall)] = 0;
+	fromCall[ConvFromAX25(LINK->OURCALL, fromCall)] = 0;
+
+	hookL2SessionDeleted(LINK->LINKPORT->PORTNUMBER, fromCall, toCall, LINK);
+
+	seeifUnlockneeded(LINK);
+
 	CLEARL2QUEUES(LINK);				// TO RELEASE ANY BUFFERS
 
 	memset(LINK, 0, sizeof(struct _LINKTABLE));
@@ -3593,7 +3636,7 @@ VOID ConnectFailedOrRefused(struct _LINKTABLE * LINK, char * Msg)
 	Buffer->LENGTH = (int)(ptr1 - (UCHAR *)Buffer);
 
 	Session = LINK->CIRCUITPOINTER;			// GET CIRCUIT TABLE ENTRY
-	InSession = Session->L4CROSSLINK;		// TO INCOMMONG SESSION
+	InSession = Session->L4CROSSLINK;		// TO INCOMMING SESSION
 
 	CLEARSESSIONENTRY(Session);
 
@@ -3960,3 +4003,141 @@ BOOL CheckForListeningSession(struct PORTCONTROL * PORT, MESSAGE * Msg)
 	}
 	return FALSE;
 }
+
+
+int COUNTLINKS(int Port);
+VOID SuspendOtherPorts(struct TNCINFO * ThisTNC);
+VOID ReleaseOtherPorts(struct TNCINFO * ThisTNC);
+
+
+int CheckKissInterlock(struct PORTCONTROL * PORT, int Exclusive)
+{
+	// This checks for interlocked kiss and other ports. Returns 1 if attach/connect not allowed
+
+	// If Exclusive is not set allow connects on specified port up to l2limit,
+
+	// If Exclusive is set also don't allow any connects on specified port.
+
+	// Generally use Exclusive if locking a port that doesn't allow shared access, eg ARDOP, VARAus
+
+	// Maybe only Exclusive is needed, and just check session mode ports. Sharing of KISS ports is controlled by USERS
+
+	int Interlock = PORT->PORTINTERLOCK;
+
+	if (Interlock == 0)
+		return 0;				// No locking
+
+	PORT = PORTTABLE;
+
+	if (Exclusive)
+	{
+		while(PORT)
+		{
+			if (PORT->TNC)
+			{
+				struct TNCINFO * TNC = PORT->TNC;
+
+				if (Interlock == TNC->RXRadio || Interlock == TNC->TXRadio)	// Same Group
+				{
+					// See if port in use
+
+					int n;
+
+					for (n = 0; n <= 26; n++)
+					{
+						if (TNC->PortRecord->ATTACHEDSESSIONS[n])
+						{			
+							return TNC->Port;			; // Refuse Connect
+						}
+					}
+				}
+			}
+			PORT = PORT->PORTPOINTER;
+		}
+	}
+	return 0;					// ok to connect
+}
+
+int seeifInterlockneeded(struct PORTCONTROL * PORT)
+{
+	// Can we just call SuspendOtherPorts - it won't do any harm if already suspended
+	// No, at that needs a TNC Record, so duplicate code here
+
+	int i;
+	int Interlock = PORT->PORTINTERLOCK;
+	struct TNCINFO * TNC;
+
+	if (Interlock == 0)
+		return 0;				// No locking
+
+	for (i = 1; i <= MAXBPQPORTS; i++)
+	{
+		TNC = TNCInfo[i];
+
+		if (TNC)
+			if (Interlock == TNC->RXRadio || Interlock == TNC->TXRadio)	// Same Group	
+				if (TNC->SuspendPortProc &&	TNC->PortRecord->PORTCONTROL.PortSuspended == FALSE)
+					TNC->SuspendPortProc(TNC, TNC);
+	}
+
+	return 0;
+}
+
+int seeifUnlockneeded(struct _LINKTABLE * LINK)
+{
+	// We need to see if any other links are active on any interlocked KISS ports. If not, release the lock
+
+	int i;
+	int links = 0;
+
+	int Interlock;
+	struct TNCINFO * TNC;
+	struct PORTCONTROL * PORT = LINK->LINKPORT;
+
+	if (PORT == NULL)
+		return 0;
+
+	// Should only be called for KISS links, but just in case
+
+	if (PORT->PORTTYPE > 12)		// INTERNAL or EXTERNAL?
+		return 0;					// Not KISS Port
+
+	Interlock = PORT->PORTINTERLOCK;
+
+	if (Interlock == 0)
+		return 0;				// No locking
+
+
+	// Count all L2 links on interlocked KISS ports
+
+	PORT = PORTTABLE;
+
+	while(PORT)
+	{
+		if (PORT->PORTTYPE <= 12)		// INTERNAL or EXTERNAL?	
+			if (Interlock == PORT->PORTINTERLOCK)
+				links += COUNTLINKS(PORT->PORTNUMBER);
+
+		PORT = PORT->PORTPOINTER;
+	}
+
+	if (links > 1)				// must be the one we are closing
+		return 0;				// Keep lock
+	
+
+	for (i = 1; i <= MAXBPQPORTS; i++)
+	{
+		TNC = TNCInfo[i];
+
+		if (TNC)
+			if (Interlock == TNC->RXRadio || Interlock == TNC->TXRadio)	// Same Group	
+				if (TNC->ReleasePortProc &&	TNC->PortRecord->PORTCONTROL.PortSuspended == TRUE)
+					TNC->ReleasePortProc(TNC, TNC);
+	}
+
+	return 0;
+}
+
+
+
+

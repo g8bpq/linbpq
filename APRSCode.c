@@ -348,7 +348,7 @@ APRSHEARDRECORD MHTABLE[MAXHEARD] = {0};
 
 APRSHEARDRECORD * MHDATA = &MHTABLE[0];
 
-static SOCKET sock = (SOCKET) NULL;
+static SOCKET sock = (SOCKET)0;
 
 //Duplicate suppression Code
 
@@ -9154,7 +9154,7 @@ void GetSavedAPRSMessages()
 	FILE *file;
 	struct APRSMESSAGE * Message;
 	struct APRSMESSAGE * ptr;
-	char Line[256];
+	char Line[512];
 	char * Stamp = 0;
 	char * From = 0;
 	char * To = 0;

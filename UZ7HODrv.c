@@ -350,12 +350,17 @@ VOID UZ7HOSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
 		return;
 
 	TNC->PortRecord->PORTCONTROL.PortSuspended = TRUE;
+	strcpy(TNC->WEB_TNCSTATE, "Interlocked");
+	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
 	RegisterAPPLCalls(TNC, TRUE);
 }
 
 VOID UZ7HOReleasePort(struct TNCINFO * TNC)
 {
 	TNC->PortRecord->PORTCONTROL.PortSuspended = FALSE;
+	strcpy(TNC->WEB_TNCSTATE, "Free");
+	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
+
 	RegisterAPPLCalls(TNC, FALSE);
 }
 

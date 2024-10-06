@@ -67,7 +67,7 @@ static BOOL ReadConfigFile(int Port);
 static int ProcessLine(char * buf,int Port, BOOL CheckPort);
 int WritetoConsoleLocal(char * buff);
 
-int ExtProc(int fn, int port,unsigned char * buff)
+static size_t ExtProc(int fn, int port, PMESSAGE buff)
 {
 	int len,txlen=0,res;
 	char txbuff[500];
@@ -110,9 +110,8 @@ int ExtProc(int fn, int port,unsigned char * buff)
 
 			len-=3;
 		
-			memcpy(&buff[7],&rxbuff[19],len);
-		
-			len+=5;
+			memcpy(&buff->DEST, &rxbuff[19], len);
+			len += (1 + sizeof(void *));
 		}
 		else
 		{
@@ -121,14 +120,11 @@ int ExtProc(int fn, int port,unsigned char * buff)
 			if ((len < 16) || (len > 320)) return 0; // Probably RLI Mode Frame
 
 			len-=3;
-		
-			memcpy(&buff[7],&rxbuff[16],len);
-		
-			len+=5;
+			memcpy(&buff->DEST, &rxbuff[16], len);
+			len += (1 + sizeof(void *));
 		}
 
-		buff[5]=(len & 0xff);
-		buff[6]=(len >> 8);
+		PutLengthinBuffer((PDATAMESSAGE)buff, len);
 		
 		return 1;
 
@@ -140,9 +136,8 @@ int ExtProc(int fn, int port,unsigned char * buff)
 		//	RLI MODE - An extra 3 bytes before len, seem to be 00 00 41
 
 		{
-			txlen=(buff[6]<<8) + buff[5];		// BPQEther is DOS-based - chain word is 2 bytes
-
-			txlen-=2;
+			txlen = GetLengthfromBuffer((PDATAMESSAGE)buff); // 2 for CRC
+			txlen -= (sizeof(void *) - 2);
 			txbuff[16]=0x41;
 			txbuff[17]=(txlen & 0xff);
 			txbuff[18]=(txlen >> 8);
@@ -150,14 +145,14 @@ int ExtProc(int fn, int port,unsigned char * buff)
 			if (txlen < 1 || txlen > 400)
 				return 0;
 			
-			memcpy(&txbuff[19],&buff[7],txlen);
+			memcpy(&txbuff[19], &buff->DEST[0], txlen);
+
 
 		}
 		else
 		{
-			txlen=(buff[6]<<8) + buff[5];		// BPQEther is DOS-based - chain word is 2 bytes
-
-			txlen-=2;
+			txlen = GetLengthfromBuffer((PDATAMESSAGE)buff); // 2 for CRC
+			txlen -= (sizeof(void *) - 2);
 
 			txbuff[14]=(txlen & 0xff);
 			txbuff[15]=(txlen >> 8);
@@ -166,7 +161,7 @@ int ExtProc(int fn, int port,unsigned char * buff)
 				return 0;
 
 
-			memcpy(&txbuff[16],&buff[7],txlen);
+			memcpy(&txbuff[16], &buff->DEST[0], txlen);
 		}
 
 		memcpy(&txbuff[0], &IF->EthDest[0],6);
@@ -210,7 +205,7 @@ int ExtProc(int fn, int port,unsigned char * buff)
 }
 
 
-UINT ETHERExtInit(struct PORTCONTROL *  PortEntry)
+void * ETHERExtInit(struct PORTCONTROL *  PortEntry)
 {
 	//	Can have multiple ports, each mapping to a different Ethernet Adapter
 	
@@ -299,7 +294,7 @@ UINT ETHERExtInit(struct PORTCONTROL *  PortEntry)
 //	n=sprintf(buf,"Using %s Adapter = Interface %d\r", ifr.ifr_ifindex);
 //	WritetoConsole(buf);
 
-	return ((int) ExtProc);
+	return (ExtProc);
 }
 
 

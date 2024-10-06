@@ -686,8 +686,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 			if (buffptr == 0) return (0);			// No buffers, so ignore
 
-			buffptr->Len = 36;
-			memcpy(&buffptr->Data[0], "No Connection to TNC\r", 36);
+			buffptr->Len = sprintf(&buffptr->Data[0], "No Connection to TNC\r");
 
 			C_Q_ADD(&TNC->Streams[Stream].PACTORtoBPQ_Q, buffptr);
 			
@@ -3215,7 +3214,7 @@ void ProcessTNCJSON(struct TNCINFO * TNC, char * Msg, int Len)
 					}
 				}
 
-				else if (memcmp(ptr, "close", 12) == 0)
+				else if (memcmp(ptr, "close", 5) == 0)
 				{
 					if (TNC->FreeDataInfo->arqstate != 4)
 					{

@@ -44,6 +44,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //#include <netax25/ttyutils.h>
 //#include <netax25/daemon.h>
 
+#include <netinet/tcp.h>
+
 #ifdef MACBPQ
 #define NOI2C
 #endif
@@ -84,6 +86,7 @@ int i2cPoll(struct PORTCONTROL * PORT, NPASYINFO npKISSINFO);
 #define FESC 0xDB
 #define TFEND 0xDC
 #define TFESC 0xDD
+#define QTSMKISSCMD 7
 
 #define STX	2			// NETROM CONTROL CODES
 #define ETX	3
@@ -112,7 +115,8 @@ int ConnecttoTCP(NPASYINFO ASY);
 int KISSGetTCPMessage(NPASYINFO ASY);
 VOID CloseKISSPort(struct PORTCONTROL * PortVector);
 int ReadCOMBlockEx(HANDLE fd, char * Block, int MaxLength, BOOL * Error);
-void processDRATSFrame(unsigned char * Message, int Len, struct ConnectionInfo * sockptr);
+void processDRATSFrame(unsigned char * Message, int Len, void * sockptr);
+VOID ConnecttoQtSM(struct PORTCONTROL * PORT);
 
 extern struct PORTCONTROL * PORTTABLE;
 extern int	NUMBEROFPORTS;
@@ -801,10 +805,13 @@ VOID KISSINIT(struct KISSINFO * KISS)
 	PORTCONTROLX * PORT = (struct PORTCONTROL *)KISS;
 	struct KISSINFO * FIRSTCHAN = NULL;
 
-	PORT->PORTINTERLOCK = 0;	// CANT USE INTERLOCK ON KISS
-
 	if (PORT->CHANNELNUM == 0)
 		PORT->CHANNELNUM = 'A';
+
+	// As transition aid warn if Interlock is used on kiss port
+
+	if (PORT->PORTINTERLOCK)
+		WritetoConsoleLocal("Interlock defined on KISS port - is this intended? ");
 
 	FIRSTCHAN = (struct KISSINFO *)CHECKIOADDR(PORT);	// IF ANOTHER ENTRY FOR THIS ADDR
 								// MAY BE CHANGED IN ANOTHER CHANNEL USED
@@ -1510,7 +1517,7 @@ SeeifMore:
 		//	ACK FRAME. WE DONT SUPPORT ACK REQUIRED FRAMES AS A SLAVE - THEY ARE ONLY ACCEPTED BY TNCS
 
 		struct _LINKTABLE * LINK;
-		UINT ACKWORD = Port->RXMSG[1] | Port->RXMSG[2] << 8;
+		int ACKWORD = Port->RXMSG[1] | Port->RXMSG[2] << 8;
 
 		if (ACKWORD < MAXLINKS)
 		{
@@ -1524,6 +1531,66 @@ SeeifMore:
 
 	if (Port->RXMSG[0] & 0x0f)		// Not Data
 	{
+		// See if QTSM Status Packet
+
+		if ((Port->RXMSG[0] & 0x0f) == QTSMKISSCMD)
+		{
+			unsigned char * Msg = &Port->RXMSG[1];
+			int Chan = Port->RXMSG[0] & 0xf0;
+			len--;
+
+			Msg[len] = 0;
+
+			while (KISS->OURCTRL != Chan)
+			{
+				KISS = KISS->SUBCHAIN;
+
+				if (KISS == NULL)
+					goto SeeifMore;				// SEE IF ANYTHING ELSE
+			}
+	
+			//	ok, KISS now points to our port
+
+	//		Debugprintf("%d %x %s", PORT->PORTNUMBER, Port->RXMSG[0], Msg);
+	
+			if (memcmp(Msg, "STATS ", 6) == 0)
+			{
+				// Save busy 
+
+				int TX, DCD;
+				char * Msg1 = strlop(&Msg[6], ' ');
+				
+				TX = atoi(&Msg[6]);
+				if (Msg1)
+				{
+					DCD = atoi(Msg1);
+
+					KISS->PORT.AVSENDING = TX;
+					KISS->PORT.AVACTIVE = DCD + TX;
+
+					KISS->QtSMStats = 1;
+				}
+			}
+			else if (memcmp(Msg, "PKTINFO ", 8) == 0)
+			{
+				// Save State
+
+				char * Msg1 = &Msg[8];
+
+				if (strlen(Msg) > 63)
+					Msg[63] = 0;
+
+				strcpy(PORT->PktFlags, Msg1);
+			}
+			else
+				Debugprintf("Unknown Command %d %x %s", PORT->PORTNUMBER, Port->RXMSG[0], Msg);
+	
+			// Note status applies to NEXT data packet received
+
+			goto SeeifMore;
+		}
+
+
 		// If a reply to a manual KISS command(Session set and time not too long ago)
 		// send reponse to terminal
 
@@ -1618,6 +1685,8 @@ SeeifMore:
 			PORT->RXERRORS++;
 			Debugprintf("KISS Checksum Error");
 
+			PORT->PktFlags[0] = 0;
+
 			goto SeeifMore;				// SEE IF ANYTHING ELSE
 		}
 		len--;							// Remove Checksum
@@ -1630,7 +1699,12 @@ SeeifMore:
 		KISS = KISS->SUBCHAIN;
 
 		if (KISS == NULL)
-			goto SeeifMore;				// SEE IF ANYTHING ELSE
+		{
+			// Unknown channel - clear any status info
+
+			PORT->PktFlags[0] = 0;
+			goto SeeifMore;			// SEE IF ANYTHING ELSE
+		}	
 	}
 	
 	//	ok, KISS now points to our port
@@ -1647,6 +1721,13 @@ SeeifMore:
 		len += (3 + sizeof(void *));
 
 		PutLengthinBuffer((PDATAMESSAGE)Buffer, len);		// Needed for arm5 portability
+
+		if (PORT->PktFlags[0])
+			strcpy(Buffer->Padding, PORT->PktFlags);
+		else
+			Buffer->Padding[0] = 0;
+
+		PORT->PktFlags[0] = 0;
 
 /*
 		// Randomly drop packets
@@ -1893,6 +1974,10 @@ VOID ConnecttoTCPThread(NPASYINFO ASY)
 				if (KISS && KISS->KISSCMD && KISS->KISSCMDLEN)
 					send(sock, KISS->KISSCMD, KISS->KISSCMDLEN, 0);
 
+				// Try to open Mgmt Port
+
+				ConnecttoQtSM(&KISS->PORT);
+
 				continue;
 			}
 			else
@@ -2030,3 +2115,264 @@ int KISSGetTCPMessage(NPASYINFO ASY)
 	}
 	return 0;
 }
+
+// Interface to QtSM Managmemt Interface
+
+
+VOID QtSMThread(struct PORTCONTROL * PORT);
+
+VOID ConnecttoQtSM(struct PORTCONTROL * PORT)
+{
+	if (PORT && PORT->QtSMPort)
+		_beginthread(QtSMThread, 0, (void *)PORT);
+
+	return ;
+}
+
+VOID QtSMThread(struct PORTCONTROL * PORT)
+{
+	// This is the Managemt Interface in QtSM. It receives PTT ON/OFF msgs from QtSM and allows changing modem mode and freq.
+	//	Also will collect link usage stats
+	
+	char Msg[255];
+	int err, i, ret;
+	u_long param = 1;
+	BOOL bcopt = TRUE;
+	fd_set readfs;
+	fd_set errorfs;
+	struct timeval timeout;
+	SOCKET qtsmsock;
+
+	struct sockaddr_in qtsmaddr;	// For QtSM Management Session
+
+	qtsmaddr.sin_family = AF_INET;
+	memcpy(&qtsmaddr.sin_addr.s_addr, &PORT->PORTIPADDR, 4);		// Same as for KISS connection
+	qtsmaddr.sin_port = htons(PORT->QtSMPort);
+
+	qtsmsock = 0;
+	qtsmsock = socket(AF_INET,SOCK_STREAM,0);
+
+	if (qtsmsock == INVALID_SOCKET)
+	{
+		i=sprintf(Msg, "Socket Failed for QtSM Mgmt socket - error code = %d\r\n", WSAGetLastError());
+		WritetoConsoleLocal(Msg);
+  	 	return; 
+	}
+
+	setsockopt(qtsmsock, SOL_SOCKET, SO_REUSEADDR, (const char FAR *)&bcopt, 4);
+	setsockopt(qtsmsock, IPPROTO_TCP, TCP_NODELAY, (const char FAR *)&bcopt, 4); 
+
+	if (connect(qtsmsock,(LPSOCKADDR) &qtsmaddr,sizeof(qtsmaddr)) == 0)
+	{
+		//
+		//	Connected successful
+		//
+
+		ioctl(qtsmsock, FIONBIO, &param);
+		PORT->QtSMConnected = TRUE;
+	}
+	else
+	{
+			err = WSAGetLastError();
+
+   			sprintf(Msg, "Connect Failed for QtSM Mgmt - error code = %d Port %d\r\n",
+				err, PORT->QtSMPort);
+
+			WritetoConsoleLocal(Msg);
+	
+		
+		closesocket(qtsmsock);
+
+		qtsmsock = 0;
+	 	PORT->QtSMConnected = FALSE;
+		return;
+	}
+
+	PORT->QtSMConnected = TRUE;
+
+	while (PORT->QtSMConnected)
+	{
+		FD_ZERO(&readfs);	
+		FD_ZERO(&errorfs);
+
+		FD_SET(qtsmsock,&readfs);
+		FD_SET(qtsmsock,&errorfs);
+		
+		timeout.tv_sec = 5;
+		timeout.tv_usec = 0;
+		
+		ret = select((int)qtsmsock + 1, &readfs, NULL, &errorfs, &timeout);
+
+		if (ret == SOCKET_ERROR)
+		{
+			Debugprintf("QTSM Mgmt Select failed %d ", WSAGetLastError());
+			goto Lost;
+		}
+
+		if (ret > 0)
+		{
+			//	See what happened
+
+			if (FD_ISSET(qtsmsock, &readfs))
+			{
+				char Buffer[512];
+
+				char * Line = Buffer;
+				char * Rest;
+
+				int InputLen = recv(qtsmsock, Buffer, 500, 0);
+
+				if (InputLen == 0 || InputLen == SOCKET_ERROR)
+				{
+					goto Lost;
+				}
+
+				Buffer[InputLen] = 0;
+
+				while(Line && Line[0])
+				{
+					Rest = strlop(Line, '\r');
+
+
+					// Need to extract lines from data
+
+					if (strcmp(Line, "Ok") == 0)
+					{
+					}
+
+					else if (memcmp(Line, "PTT ", 4) == 0)
+					{
+						// PTT 43 OFF
+
+						int Port = atoi(&Line[4]);
+						char * State = strlop(&Line[4], ' ');
+
+						struct KISSINFO * KISS = (struct KISSINFO *)GetPortTableEntryFromPortNum(Port);
+
+						if (strcmp(State, "ON") == 0)
+						{
+							KISS->PTTonTime = GetTickCount();
+
+							// Cancel Busy timer (stats include ptt on time in port active)
+
+							if (KISS->BusyonTime)
+							{
+								KISS->BusyActivemS += (GetTickCount() - KISS->BusyonTime);
+								KISS->BusyonTime = 0;
+							}
+
+							//		if (KISS->PTTMode)
+							//			Rig_PTT(TNC, TRUE);
+						}
+						else if (strcmp(State, "OFF") == 0)
+						{
+							if (KISS->PTTonTime)
+							{
+								KISS->PTTActivemS += (GetTickCount() - KISS->PTTonTime);
+								KISS->PTTonTime = 0;
+							}
+
+							//		if (KISS->PTTMode)
+	//						Rig_PTT(TNC, FALSE);
+						}
+
+					}
+					else if (strcmp(Line, "Connected to QtSM") == 0)
+					{
+						char Msg[64];
+						int Len;
+
+						// We need tp send a QtSMPort message for each Channel sharing thia connection
+						// Note struct KISSINFO and struct PORTCONTROL are different mappings of the same data
+
+						struct KISSINFO * KISS = (struct KISSINFO *)PORT;
+
+						while (KISS)
+						{
+							Len = sprintf(Msg, "QtSMPort %d %d\r", KISS->PORT.CHANNELNUM - '@', KISS->PORT.PORTNUMBER);
+							send(qtsmsock, Msg, Len, 0);
+
+							Len = sprintf(Msg, "Modem %d\r", KISS->PORT.CHANNELNUM - '@');
+							send(qtsmsock, Msg, Len, 0);
+
+							KISS = KISS->SUBCHAIN;	
+						}
+					}
+					else if (memcmp(Line, "Port ", 5) == 0)
+					{
+						// Port 1 Freq 1500 Modem BPSK AX.25 300bd
+
+						int Port, chan, Freq;
+						char * Modem;
+						struct KISSINFO * KISS;
+						
+						Port = atoi(&Line[5]);
+						Line = strlop(&Line[9], ' ');
+						chan = atoi(Line);
+						Freq = atoi(&Line[6]);
+						Modem = strlop(&Line[13], ' ');
+
+						KISS = (struct KISSINFO *)GetPortTableEntryFromPortNum(Port);
+
+						if (KISS->QtSMModem)
+							free(KISS->QtSMModem);
+
+						KISS->QtSMModem = _strdup(Modem);
+						KISS->QtSMFreq = Freq;
+					}
+
+					else if (memcmp(Line, "XXSTATS ", 6) == 0)
+					{
+						// STATS PORT PTT BUSY
+
+						int Port, PTT, Busy;
+						struct PORTCONTROL * MPORT;
+						
+						Port = atoi(&Line[6]);
+						Line = strlop(&Line[6], ' ');
+						PTT = atoi(Line);
+						Line = strlop(Line, ' ');
+						Busy = atoi(Line);
+
+						MPORT  = GetPortTableEntryFromPortNum(Port);
+
+						if (MPORT)
+						{
+							MPORT->AVACTIVE = Busy + PTT;
+							MPORT->AVSENDING = PTT;
+						}
+					}
+					else
+						Debugprintf("Unexpected QtSM Message %s", Line);
+
+					Line = Rest;
+				}
+			}
+
+			if (FD_ISSET(qtsmsock, &errorfs))
+			{
+Lost:	
+				sprintf(Msg, "QtSM Mgmt Connection lost for TCP Port %d Port %d\r\n", PORT->QtSMPort, PORT->PORTNUMBER);
+				WritetoConsoleLocal(Msg);
+
+				PORT->QtSMConnected = FALSE;
+
+				closesocket(qtsmsock);
+				qtsmsock = 0;
+				return;
+			}
+			continue;
+		}
+		else
+		{
+		}
+	}
+
+	sprintf(Msg, "QtSM Mgmt Thread Terminated TCP Port %d Port %d\r\n", PORT->QtSMPort, PORT->PORTNUMBER);
+	WritetoConsoleLocal(Msg);
+}
+
+
+
+
+

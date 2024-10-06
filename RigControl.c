@@ -8941,7 +8941,7 @@ VOID FLRIGThread(struct RIGPORTINFO * PORT)
 	setsockopt(PORT->remoteSock, SOL_SOCKET, SO_REUSEADDR, (const char FAR *)&bcopt, 4);
 	setsockopt(PORT->remoteSock, IPPROTO_TCP, TCP_NODELAY, (const char FAR *)&bcopt, 4); 
 
-	if (connect(PORT->remoteSock,(LPSOCKADDR) &PORT->remoteDest,sizeof(PORT->remoteDest)) == 0)
+	if (connect(PORT->remoteSock,(LPSOCKADDR) &PORT->remoteDest, sizeof(PORT->remoteDest)) == 0)
 	{
 		//
 		//	Connected successful

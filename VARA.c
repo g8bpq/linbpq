@@ -258,6 +258,9 @@ static int ProcessLine(char * buf, int Port)
 			*ptr = 0;
 		}
 	
+		else if (_memicmp(buf, "VARAAC", 6) == 0)
+			TNC->VaraACAllowed = atoi(&buf[7]);
+
 		else if (_memicmp(buf, "BW2300", 6) == 0)
 		{
 			TNC->ARDOPCurrentMode[0] = 'W';				// Save current state for scanning
@@ -281,7 +284,8 @@ static int ProcessLine(char * buf, int Port)
 		else if (_memicmp(buf, "FM9600", 5) == 0)
 			TNC->DefaultMode = TNC->WL2KMode = 52;
 		else if (standardParams(TNC, buf) == FALSE)
-			strcat(TNC->InitScript, buf);	
+			strcat(TNC->InitScript, buf);
+
 	}
 
 	return (TRUE);	
@@ -304,12 +308,31 @@ static SOCKADDR_IN rxaddr;
 
 static int addrlen=sizeof(sinx);
 
+void doVarACSend(struct TNCINFO * TNC)
+{
+	int hdrlen;
+	int txlen = strlen(TNC->VARACMsg);
+	char txbuff[64];
+
+	txlen--;		// remove cr
+	hdrlen = sprintf(txbuff, "%d ", txlen); 
+	send(TNC->TCPDataSock, txbuff, hdrlen, 0);		// send length
+	send(TNC->TCPDataSock, TNC->VARACMsg, txlen, 0);
+
+	free (TNC->VARACMsg);
+	TNC->VARACMsg = 0;
+	TNC->VARACSize = 0;
+
+	TNC->VarACTimer = 0;
+	return ;
+}
 static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 {
 	size_t datalen;
 	PMSGWITHLEN buffptr;
 	char txbuff[500];
-	unsigned int bytes,txlen=0;
+	unsigned int bytes;
+	size_t txlen=0;
 	size_t Param;
 	HKEY hKey=0;
 	struct TNCINFO * TNC = TNCInfo[port];
@@ -341,6 +364,14 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 	case 7:
 
 		// approx 100 mS Timer. May now be needed, as Poll can be called more frequently in some circumstances
+
+		if (TNC->VarACTimer)
+		{
+			TNC->VarACTimer--;
+
+			if (TNC->VarACTimer == 0)
+				doVarACSend(TNC);
+		}
 
 		// G7TAJ's code to record activity for stats display
 			
@@ -528,7 +559,45 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 		{
 			PMSGWITHLEN buffptr = Q_REM(&TNC->Streams[0].BPQtoPACTOR_Q);
 			txlen = (int)buffptr->Len;
-			memcpy(txbuff, buffptr->Data, txlen);
+
+			if(TNC->VaraACMode || TNC->VaraModeSet == 0)
+			{
+				// Send in varac format - 
+
+				// 5 Hello, 15 de G8 BPQ
+
+				buffptr->Data[txlen] = 0;		//  Null terminate
+
+				STREAM->BytesTXed += txlen;
+				WritetoTrace(TNC, buffptr->Data, txlen);
+
+				// Always add to stored data and set timer. If it expires send message
+
+				if (TNC->VARACMsg == 0)
+				{
+					TNC->VARACMsg = zalloc(4096);
+					TNC->VARACSize = 4096;
+				}
+				else
+				{
+					if (strlen(TNC->VARACMsg) + txlen >= (TNC->VARACSize - 10))
+					{
+						TNC->VARACSize += 4096;
+						TNC->VARACMsg = realloc(TNC->VARACMsg, TNC->VARACSize);
+					}
+				}
+
+				strcat(TNC->VARACMsg, buffptr->Data);
+
+				TNC->VarACTimer = 10;		// One second
+				return 0;
+			}
+
+
+	
+			else
+				memcpy(txbuff, buffptr->Data, txlen);
+	
 			bytes = VARASendData(TNC, &txbuff[0], txlen);
 			STREAM->BytesTXed += bytes;
 			ReleaseBuffer(buffptr);
@@ -565,8 +634,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 			if (buffptr == 0) return (0);			// No buffers, so ignore
 
-			buffptr->Len=36;
-			memcpy(buffptr->Data,"No Connection to VARA TNC\r", 36);
+			buffptr->Len = sprintf(buffptr->Data,"No Connection to VARA TNC\r");
 
 			C_Q_ADD(&TNC->WINMORtoBPQ_Q, buffptr);
 			
@@ -595,11 +663,56 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 		if (TNC->Streams[0].Connected)
 		{
+			unsigned char txbuff[512];
+
 			STREAM->PacketsSent++;
 
-			bytes=send(TNC->TCPDataSock, buff->L2DATA, txlen, 0);
-			STREAM->BytesTXed += bytes;
+			if(TNC->VaraACMode == 0 && TNC->VaraModeSet == 1)
+			{
+				// Normal Send
+
+				memcpy(txbuff, buff->L2DATA, txlen);
+
+				bytes=send(TNC->TCPDataSock, txbuff, txlen, 0);
+				STREAM->BytesTXed += bytes;
+				WritetoTrace(TNC, buff->L2DATA, txlen);
+				return 0;
+			}
+
+			// Send in varac format - len space data. No cr on end, but is implied
+
+			// 5 Hello
+
+			// I think we have to send a whole message (something terminated with a new line)
+			// may need to combine packets. Also I think we need to combine seqential sends
+			// (eg CTEXT and SID)
+
+
+			buff->L2DATA[txlen] = 0;		//  Null terminate
+
+			STREAM->BytesTXed += txlen;
 			WritetoTrace(TNC, buff->L2DATA, txlen);
+		
+			// Always add to stored data and set timer. If it expires send message
+
+			if (TNC->VARACMsg == 0)
+			{
+				TNC->VARACMsg = zalloc(4096);
+				TNC->VARACSize = 4096;
+			}
+			else
+			{
+				if (strlen(TNC->VARACMsg) + txlen >= (TNC->VARACSize - 10))
+				{
+					TNC->VARACSize += 4096;
+					TNC->VARACMsg = realloc(TNC->VARACMsg, TNC->VARACSize);
+				}
+			}
+
+			strcat(TNC->VARACMsg, buff->L2DATA);
+
+			TNC->VarACTimer = 10;		// One second
+			return 0;
 		}
 		else
 		{
@@ -608,7 +721,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				TNC->Streams[0].ReportDISC = TRUE;		// Tell Node
 				return 0;
 			}
-	
+
 			// See if Local command (eg RADIO)
 
 			if (_memicmp(buff->L2DATA, "RADIO ", 6) == 0)
@@ -651,13 +764,13 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				if (buff->L2DATA[16] != 13)
 				{					
 					PMSGWITHLEN buffptr = (PMSGWITHLEN)GetBuff();
-	
+
 					TNC->SessionTimeLimit = atoi(&buff->L2DATA[16]) * 60;
 
 					if (buffptr)
 					{
 						buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "VARA} OK\r");
-					C_Q_ADD(&TNC->WINMORtoBPQ_Q, buffptr);
+						C_Q_ADD(&TNC->WINMORtoBPQ_Q, buffptr);
 					}
 					return 0;
 				}
@@ -704,7 +817,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				TNC->Streams[0].Connecting = TRUE;
 
 				// See if Busy
-				
+
 				if (InterlockedCheckBusy(TNC))
 				{
 					// Channel Busy. Unless override set, wait
@@ -712,7 +825,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 					if (TNC->OverrideBusy == 0)
 					{
 						// Save Command, and wait up to 10 secs
-						
+
 						sprintf(TNC->WEB_TNCSTATE, "Waiting for clear channel");
 						MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
 
@@ -979,12 +1092,19 @@ static int WebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
 
 VOID VARASuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
 {
+	TNC->PortRecord->PORTCONTROL.PortSuspended = TRUE;
 	VARASendCommand(TNC, "LISTEN OFF\r", TRUE);
+	strcpy(TNC->WEB_TNCSTATE, "Interlocked");
+	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
+
 }
 
 VOID VARAReleasePort(struct TNCINFO * TNC)
 {
+	TNC->PortRecord->PORTCONTROL.PortSuspended = FALSE;
 	VARASendCommand(TNC, "LISTEN ON\r", TRUE);
+	strcpy(TNC->WEB_TNCSTATE, "Free");
+	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
 }
 
 
@@ -1730,6 +1850,15 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 
 		TNC->Busy = TNC->BusyHold * 10;				// BusyHold  delay
 
+		TNC->PTTonTime = GetTickCount();
+
+		// Cancel Busy timer (stats include ptt on time in port active)
+
+		if (TNC->BusyonTime)
+		{
+			TNC->BusyActivemS += (GetTickCount() - TNC->BusyonTime);
+			TNC->BusyonTime = 0;
+		}
 		if (TNC->PTTMode)
 			Rig_PTT(TNC, TRUE);
 
@@ -1739,6 +1868,12 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 	if (_memicmp(Buffer, "PTT OFF", 6) == 0)
 	{
 //		Debugprintf("PTT Off");
+
+		if (TNC->PTTonTime)
+		{
+			TNC->PTTActivemS += (GetTickCount() - TNC->PTTonTime);
+			TNC->PTTonTime = 0;
+		}
 
 		if (TNC->PTTMode)
 			Rig_PTT(TNC, FALSE);
@@ -1760,6 +1895,8 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 		TNC->BusyFlags |= CDBusy;
 		TNC->Busy = TNC->BusyHold * 10;				// BusyHold  delay
 
+		TNC->BusyonTime = GetTickCount();
+
 		MySetWindowText(TNC->xIDC_CHANSTATE, "Busy");
 		strcpy(TNC->WEB_CHANSTATE, "Busy");
 
@@ -1774,6 +1911,13 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 			strcpy(TNC->WEB_CHANSTATE, "BusyHold");
 		else
 			strcpy(TNC->WEB_CHANSTATE, "Clear");
+
+		if (TNC->BusyonTime)
+		{
+			TNC->BusyActivemS += (GetTickCount() - TNC->BusyonTime);
+			TNC->BusyonTime = 0;
+		}
+
 
 		MySetWindowText(TNC->xIDC_CHANSTATE, TNC->WEB_CHANSTATE);
 		TNC->WinmorRestartCodecTimer = time(NULL);
@@ -1879,6 +2023,17 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 		STREAM->ConnectTime = time(NULL); 
 		STREAM->BytesRXed = STREAM->BytesTXed = STREAM->PacketsSent = 0;
 
+		if (TNC->VARACMsg)
+			free(TNC->VARACMsg);
+		
+		TNC->VaraACMode = 0;
+		TNC->VARACMsg = 0;
+		TNC->VARACSize = 0;
+		if (TNC->VaraACAllowed == 0)
+			TNC->VaraModeSet = 1;			// definitly not varaac
+		else
+			TNC->VaraModeSet = 0;			// Don't know yet
+
 		strcpy(TNC->WEB_MODE, "");
 
 		if (strstr(Buffer, "2300"))
@@ -1936,6 +2091,8 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 			SuspendOtherPorts(TNC);
 						
 			TNC->SessionTimeLimit = TNC->DefaultSessionTimeLimit;		// Reset Limit
+
+			// Only allow VarAC mode for incomming sessions
 
 			ProcessIncommingConnectEx(TNC, Call, 0, (TNC->NetRomMode == 0), TRUE);
 				
@@ -2125,7 +2282,6 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 
 				if (TNC->NetRomTxLen)
 				{
-
 					STREAM->PacketsSent++;
 
 					bytes = send(TNC->TCPDataSock, TNC->NetRomTxBuffer, TNC->NetRomTxLen, 0);
@@ -2137,6 +2293,9 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 			}
 			else
 			{
+				TNC->VaraACMode = 0;
+				TNC->VaraModeSet = 1;		// Don't allow connect to VaraAC
+
 				buffptr = GetBuff();
 
 				if (buffptr == 0)
@@ -2591,6 +2750,45 @@ VOID VARAProcessDataPacket(struct TNCINFO * TNC, UCHAR * Data, int Length)
 	sprintf(TNC->WEB_TRAFFIC, "Sent %d RXed %d Queued %d",
 			STREAM->BytesTXed, STREAM->BytesRXed,STREAM->BytesOutstanding);
 	MySetWindowText(TNC->xIDC_TRAFFIC, TNC->WEB_TRAFFIC);
+
+	// if VARAAC Mode, remove byte count from front and add cr
+	// could possibly be longer than buffer size
+
+	if (TNC->VaraModeSet == 0)		// Could be normal or VaraAC
+	{
+		unsigned char *ptr = memchr(Data, ' ', Length);	// contains a space
+		
+		if (ptr)
+		{
+			int ACLen = atoi(Data);
+			int lenLen = (ptr - Data) + 1;
+
+			if (ACLen == (Length - lenLen))
+				TNC->VaraACMode = 1;	// AC Mode
+		}
+		TNC->VaraModeSet = 1;		// Know which mode
+	}
+
+	if (TNC->VaraACMode)
+	{
+		char * lenp;
+		char * msg;
+		int len;
+
+		lenp = Data;
+		msg = strlop(lenp, ' ');
+
+		len = atoi(lenp);
+		if (len != strlen(msg))
+			return;
+
+		msg[len++] = 13;
+		msg[len] = 0;
+
+		Length = len;
+		memmove(Data, msg, len + 1);
+
+	}
 
 	//	May need to fragment
 

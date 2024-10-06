@@ -343,12 +343,12 @@ VOID ExpireMessages()
 
 	Killed = 0;
 
-	PRLimit = now - PR*86400;
-	PURLimit = now - PUR*86400;
-	PFLimit = now - PF*86400;
-	PNFLimit = now - PNF*86400;
-	BFLimit = now - BF*86400;
-	BNFLimit = now - BNF*86400;
+	PRLimit = now - (time_t)PR*86400;
+	PURLimit = now -(time_t)PUR*86400;
+	PFLimit = now - (time_t)PF*86400;
+	PNFLimit = now - (time_t)PNF*86400;
+	BFLimit = now - (time_t)BF*86400;
+	BNFLimit = now -(time_t) BNF*86400;
 
 	if (NTSU == 0)
 	{
@@ -391,7 +391,7 @@ VOID ExpireMessages()
 					if (Msg->datecreated < PURLimit)
 					{
 						if (SendNonDeliveryMsgs) 
-							SendNonDeliveryMessage(Msg, TRUE, PUR);
+							SendNonDeliveryMessage(Msg, TRUE, (int)PUR);
 
 						KillMsg(Msg);
 					}
@@ -401,7 +401,7 @@ VOID ExpireMessages()
 					if (Msg->datecreated < PNFLimit)
 					{
 						if (SendNonDeliveryMsgs) 
-							SendNonDeliveryMessage(Msg, FALSE, PNF);
+							SendNonDeliveryMessage(Msg, FALSE, (int)PNF);
 
 						KillMsg(Msg);
 					}

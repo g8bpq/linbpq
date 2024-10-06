@@ -1138,6 +1138,8 @@
 //	Allow selection of 2 or 4 character country codes for forward processing (39) 
 //	Fix Send P to multiple BBS's when routing on HR (40)
 //	Rewrite PG server code on Lunux (41)
+//	Fix SendPToMultiple not stopping at Implied AT match (45)
+//	Log Our HA when checking for flood bulls (45)
 
 #include "bpqmail.h"
 #include "winstdint.h"

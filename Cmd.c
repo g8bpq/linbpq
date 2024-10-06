@@ -10,7 +10,7 @@ the Free Software Foundation, either version 3 of the License, or
 
 LinBPQ/BPQ32 is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  S"paclenee the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
@@ -66,6 +66,10 @@ VOID SaveMH();
 BOOL RestartTNC(struct TNCINFO * TNC);
 void GetPortCTEXT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
 VOID WriteMiniDump();
+int CheckKissInterlock(struct PORTCONTROL * PORT, int Exclusive);
+int seeifInterlockneeded(struct PORTCONTROL * PORT);
+
+extern VOID KISSTX();
 
 char COMMANDBUFFER[81] = "";		// Command Hander input buffer
 char OrigCmdBuffer[81] = "";		// Command Hander input buffer before toupper
@@ -171,7 +175,8 @@ VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 VOID RECONFIGTELNET (TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
 VOID HELPCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
 VOID UZ7HOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * UserCMD);
-
+VOID QTSMCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * UserCMD);
+void hookL2SessionAttempt(int Port, char * fromCall, char * toCall, struct _LINKTABLE * LINK);
 
 
 
@@ -1196,11 +1201,12 @@ VOID CMDSTATS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX *
 	Bufferptr = Cmdprintf(Session, Bufferptr, "\r");
 
 	PORT = STARTPORT;
-	Bufferptr = Cmdprintf(Session, Bufferptr, "Link Active %%   ");
+//	Bufferptr = Cmdprintf(Session, Bufferptr, "Link Active %%   ");
+	Bufferptr = Cmdprintf(Session, Bufferptr, "Active(TX/Busy) %%");
 
 	for (i = 0; i < cols; i++)
 	{
-		Bufferptr = Cmdprintf(Session, Bufferptr, "   %2d %3d", PORT->AVSENDING, PORT->AVACTIVE);
+		Bufferptr = Cmdprintf(Session, Bufferptr, "  %2d %3d ", PORT->AVSENDING, PORT->AVACTIVE);
 		PORT = PORT->PORTPOINTER;	
 	}
 	Bufferptr = Cmdprintf(Session, Bufferptr, "\r");
@@ -2295,8 +2301,8 @@ VOID CMDC00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * C
 	int TextCallLen;
 	char PortString[10];
 	char cmdCopy[256];
-	struct _EXTPORTDATA * EXTPORT = (struct _EXTPORTDATA *)PORT;;
-
+	struct _EXTPORTDATA * EXTPORT = (struct _EXTPORTDATA *)PORT;
+	char toCall[12], fromCall[12];
 
 #ifdef EXCLUDEBITS
 
@@ -2737,6 +2743,16 @@ noFlip:
 		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 		return;
 	}
+
+	ret = CheckKissInterlock(PORT, TRUE);
+
+	if (ret)
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Sorry, Interlocked port %d is in use\r", ret);
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
 	
 	if (Session->L4USER[6] == 0x42 || Session->L4USER[6] == 0x44)
 	{	
@@ -2822,6 +2838,12 @@ noFlip3:
 
 	RESET2(LINK);						// RESET ALL FLAGS
 
+	toCall[ConvFromAX25(LINK->LINKCALL, toCall)] = 0;
+	fromCall[ConvFromAX25(LINK->OURCALL, fromCall)] = 0;
+
+	hookL2SessionAttempt(CONNECTPORT, fromCall, toCall, LINK);
+
+
 	if (CMD->String[0] == 'N' && SUPPORT2point2)
 		LINK->L2STATE = 1;					// New (2.2) send XID
 	else
@@ -2836,6 +2858,8 @@ noFlip3:
 
 	if (CQFLAG == 0)			// if a CQ CALL  DONT SEND SABM
 	{
+		seeifInterlockneeded(PORT);
+		
 		if (LINK->L2STATE == 1)
 			L2SENDXID(LINK);
 		else	
@@ -4166,7 +4190,7 @@ VOID ATTACHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 
 
 
-	if (EXTPORT->ATTACHEDSESSIONS[sess])
+	if (EXTPORT->ATTACHEDSESSIONS[sess] || 	PORT->PortSuspended)
 	{
 		// In use
 
@@ -4434,6 +4458,7 @@ CMDX COMMANDS[] =
 	"NAT         ",3,SHOWNAT,0,
 	"IPROUTE     ",3,SHOWIPROUTE,0,
 	"UZ7HO       ",5,UZ7HOCMD,0,
+	"QTSM        ",4,QTSMCMD,0,
 
 	"..FLMSG     ",7,FLMSG,0
 };
@@ -4897,19 +4922,69 @@ VOID DoTheCommand(TRANSPORTENTRY * Session)
 VOID StatsTimer()
 {
 	struct PORTCONTROL * PORT = PORTTABLE;
-	int sum;
+	uint64_t sum, sum2;
+
+	// Interval is 60 secs
 
 	while(PORT)
 	{
-		sum = PORT->SENDING / 11;
-		PORT->AVSENDING = sum;
+		int index = PORT->StatsPointer++;
 
-		sum = (PORT->SENDING + PORT->ACTIVE) /11;
-		PORT->AVACTIVE = sum;
+		if (index == 1439)
+			PORT->StatsPointer = 0;		// Cyclic through 24 hours (1440 Mins)
+
+		if (PORT->TNC)
+		{
+			struct TNCINFO * TNC = PORT->TNC;
+			if (TNC->Hardware == H_ARDOP || TNC->Hardware == H_VARA)
+			{
+				sum = TNC->PTTActivemS / 600;		// ms but  want %
+				PORT->AVSENDING = (UCHAR)sum;
+				TNC->PTTActivemS = 0;
+
+				sum2 = TNC->BusyActivemS / 600;		// ms but  want %
+				PORT->AVACTIVE = (UCHAR)(sum + sum2);
+				TNC->BusyActivemS = 0;
+			}
+		}
+		else
+		{
+			// if KISS port using QtSM Average is already updated
+
+			struct KISSINFO * KISS = (struct KISSINFO *)PORT;
+
+			if (PORT->PORTNUMBER == 17)
+			{
+				int x = 17;
+			}
+			
+			if (PORT->PORTTXROUTINE == KISSTX && (KISS->QtSMStats || KISS->FIRSTPORT->PORT.QtSMPort))			// KISS Port QtSM Stats
+			{
+			}
+			else
+			{
+				sum = PORT->SENDING / 11;
+				PORT->AVSENDING = (UCHAR)sum;
+
+				sum = (PORT->SENDING + PORT->ACTIVE) /11;
+				PORT->AVACTIVE = (UCHAR)sum;
+			}
+		}
+
+		if (PORT->TX == NULL && PORT->AVACTIVE)
+		{
+			PORT->TX = zalloc(1440);	// Keep 1 day history
+			PORT->BUSY = zalloc(1440);	
+		}
+		if (PORT->TX)
+		{
+			PORT->TX[index] = PORT->AVSENDING;
+			PORT->BUSY[index] = PORT->AVACTIVE;
+		}
 
 		PORT->SENDING = 0;
 		PORT->ACTIVE = 0;
-
+	
 		PORT = PORT->PORTPOINTER;
 	}
 }
@@ -5819,7 +5894,7 @@ VOID UZ7HOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX *
 		AGW = TNC->AGWInfo; 
 
 	if (TNC == 0 || AGW == 0)
-	{	
+	{
 		Bufferptr = Cmdprintf(Session, Bufferptr, "Error - %d is not UZ7HO port\r", port);
 		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 		return;
@@ -5864,6 +5939,43 @@ VOID UZ7HOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX *
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 	return;
 }
+
+VOID QTSMCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+{
+	int port;
+	struct PORTCONTROL * PORT;
+	struct KISSINFO * KISS;
+
+	CmdTail = CmdTail + (OrigCmdBuffer - COMMANDBUFFER); // Replace with original case version
+
+	port = atoi(CmdTail);
+
+	PORT = GetPortTableEntryFromPortNum(port);
+
+	if (PORT == NULL || PORT->PORTTXROUTINE != KISSTX)			// Must be a kiss like port
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Error - Port %d is not a KISS port\r", port);
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+	
+	KISS = (struct KISSINFO *)PORT;
+
+	if (KISS->QtSMModem == 0)
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Error - Port %d has no QtSM information\r", port);
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
+	Bufferptr = Cmdprintf(Session, Bufferptr, "Modem %s Centre frequency %d\r", 
+		(KISS->QtSMModem) ? KISS->QtSMModem : "Not Available", KISS->QtSMFreq);
+		
+	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+	return;
+}
+
+
 
 
 

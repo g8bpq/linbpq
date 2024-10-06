@@ -23,7 +23,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #include "bpqmail.h"
 
-void SendMessageReadEvent(struct UserInfo * user, struct MsgInfo * Msg);
+void SendMessageReadEvent(char * call, struct MsgInfo * Msg);
 
 
 VOID ProcessMBLLine(CIRCUIT * conn, struct UserInfo * user, UCHAR* Buffer, int len)

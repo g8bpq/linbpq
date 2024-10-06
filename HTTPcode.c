@@ -1623,23 +1623,23 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 	char * WebSock = 0;
 
 	char PortsHddr[] = "<h2 align=center>Ports</h2><table align=center border=2 bgcolor=white>"
-		"<tr><th>Port</th><th>Driver</th><th>ID</th><th>Beacons</th><th>Driver Window</th></tr>";
+		"<tr><th>Port</th><th>Driver</th><th>ID</th><th>Beacons</th><th>Driver Window</th><th>Stats Graph</th></tr>";
 
-	char PortLine[] = "<tr><td>%d</td><td><a href=PortStats?%d&%s>&nbsp;%s</a></td><td>%s</td></tr>";
+//	char PortLine[] = "<tr><td>%d</td><td><a href=PortStats?%d&%s>&nbsp;%s</a></td><td>%s</td></tr>";
 
 	char PortLineWithBeacon[] = "<tr><td>%d</td><td><a href=PortStats?%d&%s>&nbsp;%s</a></td><td>%s</td>"
-		"<td><a href=PortBeacons?%d>&nbsp;Beacons</a><td> </td></td></tr>\r\n";
+		"<td><a href=PortBeacons?%d>&nbsp;Beacons</a><td> </td></td><td>%s</td></tr>\r\n";
 
 	char SessionPortLine[] = "<tr><td>%d</td><td>%s</td><td>%s</td><td> </td>"
-		"<td> </td></tr>\r\n";
+		"<td> </td><td>%s</td></tr>\r\n";
 
 	char PortLineWithDriver[] = "<tr><td>%d</td><td>%s</td><td>%s</td><td> </td>"
-		"<td><a href=\"javascript:dev_win('/Node/Port?%d',%d,%d,%d,%d);\">Driver Window</a></td></tr>\r\n";
+		"<td><a href=\"javascript:dev_win('/Node/Port?%d',%d,%d,%d,%d);\">Driver Window</a></td><td>%s</td></tr>\r\n";
 
 
 	char PortLineWithBeaconAndDriver[] = "<tr><td>%d</td><td>%s</td><td>%s</td>"
 		"<td><a href=PortBeacons?%d>&nbsp;Beacons</a></td>"
-		"<td><a href=\"javascript:dev_win('/Node/Port?%d',%d,%d,%d,%d);\">Driver Window</a></td></tr>\r\n";
+		"<td><a href=\"javascript:dev_win('/Node/Port?%d',%d,%d,%d,%d);\">Driver Window</a></td><td>%s</td></tr>\r\n";
 
 	char RigControlLine[] = "<tr><td>%d</td><td>%s</td><td>%s</td><td> </td>"
 		"<td><a href=\"javascript:dev_win('/Node/RigControl.html',%d,%d,%d,%d);\">Rig Control</a></td></tr>\r\n";
@@ -2707,6 +2707,53 @@ doHeader:
 			return 0;
 		}
 
+		else if (_memicmp(NodeURL, "/portstats.txt", 15) == 0)
+		{
+			char * Compressed;
+			char * ptr;
+			int port;
+			struct PORTCONTROL * PORT;
+
+			ptr = &NodeURL[15];
+			
+			port = atoi(ptr);
+
+			PORT = GetPortTableEntryFromPortNum(port);
+
+			ReplyLen = 0;
+
+			if (PORT && PORT->TX)
+			{
+				// We send the last 24 hours worth of data. Buffer is cyclic so oldest byte is at StatsPointer
+
+				int first = PORT->StatsPointer;
+				int firstlen = 1440 - first;
+
+				memcpy(&_REPLYBUFFER[0], &PORT->TX[first], firstlen);
+				memcpy(&_REPLYBUFFER[firstlen], PORT->TX, first);
+
+				memcpy(&_REPLYBUFFER[1440], &PORT->BUSY[first], firstlen);
+				memcpy(&_REPLYBUFFER[1440 + firstlen], PORT->BUSY, first);
+
+				ReplyLen = 2880;
+			}
+
+			if (allowDeflate)
+				Compressed = Compressit(_REPLYBUFFER, ReplyLen, &ReplyLen);
+			else
+				Compressed = _REPLYBUFFER;
+
+			HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: %d\r\nContent-Type: Text\r\n%s\r\n", ReplyLen, Encoding);
+			sendandcheck(sock, Header, HeaderLen);
+			sendandcheck(sock, Compressed, ReplyLen);
+
+			if (allowDeflate)
+				free (Compressed);
+
+			return 0;
+		}
+
+
 		else if (_memicmp(NodeURL, "/Icon", 5) == 0 && _memicmp(&NodeURL[10], ".png", 4) == 0)
 		{
 			// APRS internal Icon
@@ -2880,7 +2927,7 @@ doHeader:
 					" {"
 					"  // The browser doesn't support WebSocket\r\n"
 					"	const div = document.getElementById('div');\r\n"
-					"	div.innerHTML = 'WebSocket not supported by your Browser - RigControl Page not availble'\r\n"
+					"	div.innerHTML = 'WebSocket not supported by your Browser - RigControl Page not availible'\r\n"
 					" }"
 					"}"
 					"function PTT(p)"
@@ -3235,6 +3282,7 @@ doHeader:
 
 				int count;
 				char DLL[20];
+				char StatsURL[64];
 
 				ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], "%s", PortsHddr);
 
@@ -3242,6 +3290,13 @@ doHeader:
 				{
 					Port = GetPortTableEntryFromSlot(count);
 					ExtPort = (struct _EXTPORTDATA *)Port;
+
+					// see if has a stats page
+
+					if (Port->AVACTIVE)
+						sprintf(StatsURL, "<a href=/PortStats.html?%d>&nbsp;Stats Graph</a>", Port->PORTNUMBER);
+					else
+						StatsURL[0] = 0;
 
 					if (Port->PORTTYPE == 0x10)
 					{	
@@ -3265,20 +3320,20 @@ doHeader:
 					{
 						if (Port->UICAPABLE)
 							ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], PortLineWithBeaconAndDriver, Port->PORTNUMBER, DLL,
-							Port->PORTDESCRIPTION, Port->PORTNUMBER, Port->PORTNUMBER, Port->TNC->WebWinX, Port->TNC->WebWinY, 200, 200);
+							Port->PORTDESCRIPTION, Port->PORTNUMBER, Port->PORTNUMBER, Port->TNC->WebWinX, Port->TNC->WebWinY, 200, 200, StatsURL);
 						else
 							ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], PortLineWithDriver, Port->PORTNUMBER, DLL,
-							Port->PORTDESCRIPTION, Port->PORTNUMBER, Port->TNC->WebWinX, Port->TNC->WebWinY, 200, 200);
+							Port->PORTDESCRIPTION, Port->PORTNUMBER, Port->TNC->WebWinX, Port->TNC->WebWinY, 200, 200, StatsURL);
 
 						continue;
 					}
 
 					if (Port->PORTTYPE == 16 && Port->PROTOCOL == 10 && Port->UICAPABLE == 0)		// EXTERNAL, Pactor/WINMO
 						ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], SessionPortLine, Port->PORTNUMBER, DLL,
-						Port->PORTDESCRIPTION, Port->PORTNUMBER);
+						Port->PORTDESCRIPTION, Port->PORTNUMBER, StatsURL);
 					else
 						ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], PortLineWithBeacon, Port->PORTNUMBER, Port->PORTNUMBER,
-						DLL, DLL, Port->PORTDESCRIPTION, Port->PORTNUMBER);
+						DLL, DLL, Port->PORTDESCRIPTION, Port->PORTNUMBER, StatsURL);
 				}
 
 				if (RigActive)

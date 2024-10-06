@@ -365,7 +365,7 @@ static char *pkeywords[] =
 "BCALL", "DIGIMASK", "NOKEEPALIVES", "COMPORT", "DRIVER", "WL2KREPORT", "UIONLY",
 "UDPPORT", "IPADDR", "I2CBUS", "I2CDEVICE", "UDPTXPORT", "UDPRXPORT", "NONORMALIZE",
 "IGNOREUNLOCKEDROUTES", "INP3ONLY", "TCPPORT", "RIGPORT", "PERMITTEDAPPLS", "HIDE",
-"SMARTID", "KISSCOMMAND", "SendtoM0LTEMap", "PortFreq"};           /* parameter keywords */
+"SMARTID", "KISSCOMMAND", "SendtoM0LTEMap", "PortFreq", "M0LTEMapInfo", "QTSMPort"};           /* parameter keywords */
 
 static void * poffset[] =
 {
@@ -379,7 +379,7 @@ static void * poffset[] =
 &xxp.BCALL, &xxp.DIGIMASK, &xxp.DefaultNoKeepAlives, &xxp.IOADDR, &xxp.DLLNAME, &xxp.WL2K, &xxp.UIONLY,
 &xxp.IOADDR, &xxp.IPADDR, &xxp.INTLEVEL, &xxp.IOADDR, &xxp.IOADDR, &xxp.ListenPort, &xxp.NoNormalize,
 &xxp.IGNOREUNLOCKED, &xxp.INP3ONLY, &xxp.TCPPORT, &xxp.RIGPORT, &xxp.PERMITTEDAPPLS, &xxp.Hide,
-&xxp.SmartID, &xxp.KissParams, &xxp.SendtoM0LTEMap, &xxp.PortFreq};	/* offset for corresponding data in config file */
+&xxp.SmartID, &xxp.KissParams, &xxp.SendtoM0LTEMap, &xxp.PortFreq, &xxp.M0LTEMapInfo, &xxp.QtSMPort};	/* offset for corresponding data in config file */
 
 static int proutine[] = 
 {
@@ -393,7 +393,7 @@ static int proutine[] =
 0, 1, 2, 18, 15, 16, 2,
 1, 17, 1, 1, 1, 1, 2,
 2, 2, 1, 1, 19, 2,
-1, 20, 1, 21};							/* routine to process parameter */
+1, 20, 1, 21, 22, 1};							/* routine to process parameter */
 
 int PPARAMLIM = sizeof(proutine)/sizeof(int);
 
@@ -2237,7 +2237,10 @@ int decode_port_rec(char * rec)
 			cn = int64_value(poffset[i], value, rec);	     /* INTEGER VALUES */
 			break;
 
-
+		case 22:
+			xxp.M0LTEMapInfo = _strdup(value);
+			cn = 1;
+			break;
 
 		case 9:
 			

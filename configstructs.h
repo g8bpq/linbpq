@@ -79,6 +79,8 @@ struct PORTCONFIG
 	unsigned char * KissParams;
 	int SendtoM0LTEMap;
 	uint64_t PortFreq;
+	char * M0LTEMapInfo;
+	int QtSMPort;
 };
 
 struct ROUTECONFIG
