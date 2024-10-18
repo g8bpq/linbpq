@@ -116,7 +116,7 @@ int SendWebMailHeader(char * Reply, char * Key, struct HTTPConnectionInfo * Sess
 struct UserInfo * FindBBS(char * Name);
 void ReleaseWebMailStruct(WebMailInfo * WebMail);
 VOID TidyWelcomeMsg(char ** pPrompt);
-int MailAPIProcessHTTPMessage(char * response, char * Method, char * URL, char * request, BOOL LOCAL, char * Param);
+int MailAPIProcessHTTPMessage(struct HTTPConnectionInfo * Session, char * response, char * Method, char * URL, char * request, BOOL LOCAL, char * Param);
 
 char UNC[] = "";
 char CHKD[] = "checked=checked ";
@@ -494,9 +494,9 @@ void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, 
 		return;
 	}
 
-	if (_memicmp(URL, "/Mail/API/", 10) == 0)
+	if (_memicmp(URL, "/Mail/API/v1/", 13) == 0)
 	{
-		*RLen = MailAPIProcessHTTPMessage(Reply, Method, URL, input, LOCAL, Context);
+		*RLen = MailAPIProcessHTTPMessage(Session, Reply, Method, URL, input, LOCAL, Context);
 		return;
 	}
 

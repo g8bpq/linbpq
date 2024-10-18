@@ -2019,20 +2019,7 @@ VOID FreeDataProcessTNCMessage(struct TNCINFO * TNC, char * Call, unsigned char 
 		{
 			// Create a traffic record
 		
-			char logmsg[120];	
-			time_t Duration;
-
-			Duration = time(NULL) - STREAM->ConnectTime;
-
-			if (Duration == 0)
-				Duration = 1;
-				
-			sprintf(logmsg,"Port %2d %9s Bytes Sent %d  BPS %d Bytes Received %d BPS %d Time %d Seconds",
-				TNC->Port, STREAM->RemoteCall,
-				STREAM->BytesTXed, (int)(STREAM->BytesTXed/Duration),
-				STREAM->BytesRXed, (int)(STREAM->BytesRXed/Duration), (int)Duration);
-
-			Debugprintf(logmsg);
+			hookL4SessionDeleted(TNC, STREAM);
 		}
 
 		STREAM->Connected = FALSE;		// Back to Command Mode
@@ -3158,22 +3145,8 @@ void ProcessTNCJSON(struct TNCINFO * TNC, char * Msg, int Len)
 
 					if (STREAM->Connected)
 					{
-						// Create a traffic record
-
-						char logmsg[120];	
-						time_t Duration;
-
-						Duration = time(NULL) - STREAM->ConnectTime;
-
-						if (Duration == 0)
-							Duration = 1;
-
-						sprintf(logmsg,"Port %2d %9s Bytes Sent %d  BPS %d Bytes Received %d BPS %d Time %d Seconds",
-							TNC->Port, STREAM->RemoteCall,
-							STREAM->BytesTXed, (int)(STREAM->BytesTXed/Duration),
-							STREAM->BytesRXed, (int)(STREAM->BytesRXed/Duration), (int)Duration);
-
-						Debugprintf(logmsg);
+	
+						hookL4SessionDeleted(TNC, STREAM);
 
 						STREAM->Connected = FALSE;		// Back to Command Mode
 						STREAM->ReportDISC = TRUE;		// Tell Node
@@ -3351,20 +3324,7 @@ void ProcessTNCJSON(struct TNCINFO * TNC, char * Msg, int Len)
 				{
 					// Create a traffic record
 
-					char logmsg[120];	
-					time_t Duration;
-
-					Duration = time(NULL) - STREAM->ConnectTime;
-
-					if (Duration == 0)
-						Duration = 1;
-
-					sprintf(logmsg,"Port %2d %9s Bytes Sent %d  BPS %d Bytes Received %d BPS %d Time %d Seconds",
-						TNC->Port, STREAM->RemoteCall,
-						STREAM->BytesTXed, (int)(STREAM->BytesTXed/Duration),
-						STREAM->BytesRXed, (int)(STREAM->BytesRXed/Duration), (int)Duration);
-
-					Debugprintf(logmsg);
+					hookL4SessionDeleted(TNC, STREAM);
 
 					STREAM->Connected = FALSE;		// Back to Command Mode
 					STREAM->ReportDISC = TRUE;		// Tell Node

@@ -756,7 +756,6 @@ typedef struct KISSINFO
 	int QtSMFreq;
 	int QtSMStats;				// Set if stats received as KISS Command 
 
-
 //	UCHAR WIN32INFO[16];		//	FOR WINDOWS DRIVER
 } *PKISSINFO;
 
@@ -880,6 +879,11 @@ typedef struct _LINKTABLE
 	UCHAR	OURCALL[7];		// CALLSIGN OF OUR END
 	UCHAR	DIGIS[56];		// LEVEL 2 DIGIS IN PATH
 
+	char callingCall[10];	// for reporting. Link and Our calls depand on which end connected
+	char receivingCall[10];	// for reporting. Link and Our calls depand on which end connected
+
+	char Direction[4];		// In or Out
+
 	PPORTCONTROL	LINKPORT;		// PORT NUMBER
 	UCHAR	LINKTYPE;		// 1 = UP, 2= DOWN, 3 = INTERNODE
 
@@ -926,6 +930,10 @@ typedef struct _LINKTABLE
 	VOID *	L2FRAG_Q;		// DEFRAGMENTATION QUEUE
 
 	int		IFrameRetryCounter;	// Number of times an I frame in repeated without a frame being acked 
+
+	time_t ConnectTime;		// For session stats
+	int bytesRXed;			// Info bytes only
+	int bytesTXed;
 
 } LINKTABLE;
 

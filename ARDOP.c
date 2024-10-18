@@ -3260,7 +3260,7 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 					STREAM->NeedDisc = 100;	// 10 secs
 				}
 			}
-		
+			strcpy(STREAM->MyCall, TNC->TargetCall);
 			return;
 		}
 		else
@@ -3347,29 +3347,13 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 
 		WritetoTrace(TNC, Buffer, MsgLen - 1);
 
-		// Release Session3
+		// Release Session
 
 		if (TNC->Streams[0].Connected)
 		{
 			// Create a traffic record
 		
-			char logmsg[120];	
-			time_t Duration;
-
-			Duration = time(NULL) - STREAM->ConnectTime;
-
-			if (Duration == 0)
-				Duration = 1;
-				
-			sprintf(logmsg,"Port %2d %9s Bytes Sent %d  BPS %d Bytes Received %d BPS %d Time %d Seconds",
-				TNC->Port, STREAM->RemoteCall,
-				STREAM->BytesTXed, (int)(STREAM->BytesTXed/Duration),
-				STREAM->BytesRXed, (int)(STREAM->BytesRXed/Duration), (int)Duration);
-
-			Debugprintf(logmsg);
-
-			STREAM->ConnectTime = 0;		// Prevent retrigger
-
+			hookL4SessionDeleted(TNC, STREAM);
 
 		}
 
@@ -3853,7 +3837,6 @@ VOID ARDOPProcessDataPacket(struct TNCINFO * TNC, UCHAR * Type, UCHAR * Data, in
 	STREAM->BytesRXed += Length;
 
 	Data[Length] = 0;	
-	Debugprintf("ARDOP: RXD %d bytes", Length);
 
 	sprintf(TNC->WEB_TRAFFIC, "Sent %d RXed %d Queued %d",
 			STREAM->BytesTXed - STREAM->BytesOutstanding, STREAM->BytesRXed, STREAM->BytesOutstanding);
@@ -3958,6 +3941,8 @@ VOID ARDOPProcessDataPacket(struct TNCINFO * TNC, UCHAR * Type, UCHAR * Data, in
 							UpdateMH(TNC, Call, '!', 'I');
 
 							BPQTRACE((MESSAGE *)buffptr, TRUE);
+
+							ReleaseBuffer(buffptr);
 
 						}
 						else

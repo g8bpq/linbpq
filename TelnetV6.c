@@ -4677,7 +4677,7 @@ MsgLoop:
 
 		if (strstr(MsgPtr, "Password :")) 
 		{
-			// Send “CMSTelnet” + gateway callsign + frequency + emission type if info is available
+			// Send "CMSTelnet" + gateway callsign + frequency + emission type if info is available
 
 			TRANSPORTENTRY * Sess1 = TNC->PortRecord->ATTACHEDSESSIONS[Stream];
 			TRANSPORTENTRY * Sess2 = NULL;

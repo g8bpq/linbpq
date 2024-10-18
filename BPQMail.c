@@ -1392,7 +1392,7 @@ DWORD Stack[16];
 
 BOOL Restarting = FALSE;
 
-Dump_Process_State(struct _EXCEPTION_POINTERS * exinfo, char * Msg)
+void Dump_Process_State(struct _EXCEPTION_POINTERS * exinfo, char * Msg)
 {
 	unsigned int SPPtr;
 	unsigned int SPVal;

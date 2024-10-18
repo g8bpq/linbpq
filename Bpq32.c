@@ -1227,6 +1227,9 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Allow interlocking of KISS and Session mode ports (eg ARDOP and VARA) (45)
 //	Add ARDOP UI Packets to MH (45)
 //	Add support for Qtsm Mgmt Interface (45)
+//	NodeAPI improvements (46)
+//	Add MQTT Interface (46)
+//	Fix buffer leak in ARDOP codev(46)
 
 
 

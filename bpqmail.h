@@ -55,7 +55,7 @@ extern int ProgramErrors;
 extern struct _EXCEPTION_POINTERS exinfox;
 
 #ifdef WIN32
-Dump_Process_State(struct _EXCEPTION_POINTERS * exinfo, char * Msg);
+void Dump_Process_State(struct _EXCEPTION_POINTERS * exinfo, char * Msg);
 
 #define My__except_Routine(Message) \
 __except(memcpy(&exinfo, GetExceptionInformation(), sizeof(struct _EXCEPTION_POINTERS)), EXCEPTION_EXECUTE_HANDLER)\

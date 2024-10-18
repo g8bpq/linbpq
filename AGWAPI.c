@@ -563,10 +563,28 @@ int AGWConnected(struct BPQConnectionInfo * Con, int Stream)
 				(memcmp(sockptr->CallSign1, ApplCall, 10) == 0) || (memcmp(sockptr->CallSign2, ApplCall, 10) == 0))
 			{
 				// Create Key
-            
+
+				char callsign[10];
+				int port;
+				int sesstype;
+				int paclen;
+				int maxframe;
+				int l4window;
+
+           
 				keyptr=(byte *)&Con->CallKey;
 
-				*(keyptr++)='1';
+				// Try using the BPQ Port Number if a L2 connect, first free port number if not
+
+				GetConnectionInfo(Stream, callsign,
+										 &port, &sesstype, &paclen,
+										 &maxframe, &l4window);
+
+
+				if (port == 0)
+					port = 64;
+
+				*(keyptr++)='0' + port;
 				memcpy(keyptr, ApplCall, 10);
 				keyptr+=10;
 				memcpy(keyptr,ConnectingCall, 10);
@@ -686,8 +704,9 @@ int AGWDoMonitorData()
 	struct AGWSocketConnectionInfo * sockptr;	
 	byte AGWBuffer[1000];
 	int n;
-	int Stamp, Frametype;
+	int Frametype;
 	BOOL RXFlag;
+	time_t Stamp;
 
 	// Look for Monitor Data
 
@@ -708,7 +727,7 @@ int AGWDoMonitorData()
 			return 0;
 		}
 
-		Stamp = (UINT)monbuff->Timestamp;
+		Stamp = monbuff->Timestamp;
 
 		memcpy(Buffer, monbuff, RawLen);
 

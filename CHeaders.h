@@ -153,6 +153,7 @@ int APIENTRY Reboot();
 int APIENTRY Reconfig();
 Dll int APIENTRY SaveNodes ();
 
+
 struct SEM;
 
 void GetSemaphore(struct SEM * Semaphore, int ID);
@@ -251,6 +252,7 @@ extern UCHAR	MYCALLWITHALIAS[13];
 extern APPLCALLS APPLCALLTABLE[NumberofAppls];
 
 extern UCHAR MYNODECALL[];				// NODE CALLSIGN (ASCII)
+extern char NODECALLLOPPED[];			// NODE CALLSIGN (ASCII). Null terminated
 extern UCHAR MYNETROMCALL[];			// NETROM CALLSIGN (ASCII)
 
 extern UCHAR NETROMCALL[];				// NETORM CALL (AX25)
@@ -427,4 +429,16 @@ extern char Message[MaxBPQPortNo + 1][1000];		// Beacon Text
 extern int MinCounter[MaxBPQPortNo + 1];			// Interval Countdown
 extern BOOL SendFromFile[MaxBPQPortNo + 1];
 
+extern BOOL MQTT;
+extern char MQTT_HOST[80];
+extern int MQTT_PORT;
+extern char MQTT_USER[80];
+extern char MQTT_PASS[80];
+
 DllExport uint64_t APIENTRY GetPortFrequency(int PortNo, char * FreqStringMhz);
+
+
+void hookL2SessionAccepted(int Port, char * remotecall, char * ourcall, struct _LINKTABLE * LINK);
+void hookL2SessionDeleted(struct _LINKTABLE * LINK);
+void hookL2SessionAttempt(int Port, char * ourcall, char * remotecall, struct _LINKTABLE * LINK);
+void hookL4SessionDeleted(struct TNCINFO * TNC, void * STREAM);

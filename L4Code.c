@@ -603,6 +603,9 @@ VOID L4BG()
 			// If we want to enforce PACLEN this may be a good place to do it
 
 			Msglen = Msg->LENGTH - (MSGHDDRLEN + 1); //Dont include PID
+
+			LINK->bytesTXed += Msglen;
+
 			Paclen = L4->SESSPACLEN;
 
 			if (Paclen == 0)

@@ -36,6 +36,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include "kernelresource.h"
 #include "CHeaders.h"
 #include "tncinfo.h"
+#include "mqtt.h"
 
 VOID L2Routine(struct PORTCONTROL * PORT, PMESSAGE Buffer);
 VOID ProcessIframe(struct _LINKTABLE * LINK, PDATAMESSAGE Buffer);
@@ -48,6 +49,7 @@ void ADSBTimer();
 VOID SendSmartID(struct PORTCONTROL * PORT);
 int CanPortDigi(int Port);
 int	KissEncode(UCHAR * inbuff, UCHAR * outbuff, int len);
+void MQTTTimer();
 
 #include "configstructs.h"
 
@@ -82,6 +84,7 @@ char	MYCALL[7] = ""; //		DB	7 DUP (0)	; NODE CALLSIGN (BIT SHIFTED)
 char	MYALIASTEXT[6] = ""; //	DB	'      '	; NODE ALIAS (KEEP TOGETHER)
 
 char MYALIASLOPPED[10];
+char MYCALLLOPPED[10];
 
 UCHAR	MYCALLWITHALIAS[13] = "";
 
@@ -91,6 +94,7 @@ APPLCALLS APPLCALLTABLE[NumberofAppls] = {0};
 
 UCHAR	MYNODECALL[10] = "";				// NODE CALLSIGN (ASCII)
 UCHAR	MYNETROMCALL[10] = "";				// NETROM CALLSIGN (ASCII)
+char NODECALLLOPPED[10];
 
 VOID * FREE_Q = NULL;
 
@@ -142,6 +146,15 @@ extern UCHAR LogDirectory[260];
 extern BOOL EventsEnabled;
 extern BOOL SaveAPRSMsgs;
 BOOL M0LTEMap = FALSE;
+BOOL MQTT = FALSE;
+char MQTT_HOST[80] = "";
+int MQTT_PORT = 0;
+char MQTT_USER[80] = "";
+char MQTT_PASS[80] = "";
+
+int MQTT_Connecting = 0;
+int MQTT_Connected = 0;
+
 
 //TNCTABLE	DD	0
 //NUMBEROFSTREAMS	DD	0
@@ -438,7 +451,6 @@ Loop:
 				if (TNC->DisconnectScript)
 				{
 					int n = 0;
-					char command[256];
 					struct DATAMESSAGE * Buffer;
 
 					TRANSPORTENTRY Session = {0};		//	= TNC->PortRecord->ATTACHEDSESSIONS[Sessno];
@@ -729,6 +741,10 @@ BOOL Start()
 		memcpy(MYNETROMCALL, cfg->C_NETROMCALL, 10);
 
 	strlop(MYNETROMCALL, ' ');
+	strlop(MYNODECALL, ' ');
+
+	memcpy(NODECALLLOPPED, MYNODECALL, 10);
+	strlop(NODECALLLOPPED, ' ');
 
 	APPLCALLTABLE[0].APPLQUAL = BBSQUAL;
 
@@ -793,8 +809,12 @@ BOOL Start()
 	EventsEnabled = cfg->C_EVENTS;
 	SaveAPRSMsgs = cfg->C_SaveAPRSMsgs;
 	M0LTEMap = cfg->C_M0LTEMap;
-
-
+	MQTT = cfg->C_MQTT;
+	strcpy(MQTT_HOST, cfg->C_MQTT_HOST);
+	MQTT_PORT = cfg->C_MQTT_PORT;
+	strcpy(MQTT_USER, cfg->C_MQTT_USER);
+	strcpy(MQTT_PASS, cfg->C_MQTT_PASS);
+ 
 	// Get pointers to PASSWORD and APPL1 commands
 
 //	int APPL1 = 0;
@@ -2067,6 +2087,9 @@ VOID TIMERINTERRUPT()
 		sendFreqReport();
 		sendModeReport();
 
+		if (MQTT)
+			MQTTTimer();
+
 /*
 		if (QCOUNT < 200)
 		{
@@ -2218,6 +2241,9 @@ L2Packet:
 			time(&Message->Timestamp);
 
 			Message->PORT = CURRENTPORT;
+
+			if (MQTT && PORT->PROTOCOL == 0)
+				MQTTKISSRX(Buffer);
 			
 			// Bridge if requested
 

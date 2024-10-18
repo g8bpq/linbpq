@@ -2264,6 +2264,8 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 					STREAM->NeedDisc = 100;	// 10 secs
 				}
 			}
+
+			strcpy(STREAM->MyCall, TNC->TargetCall);
 			return;
 		}
 		else
@@ -2374,22 +2376,7 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 		{
 			// Create a traffic record
 		
-			char logmsg[120];	
-			time_t Duration;
-
-			Duration = time(NULL) - STREAM->ConnectTime;
-
-			if (Duration == 0)
-				Duration = 1;
-				
-			sprintf(logmsg,"Port %2d %9s Bytes Sent %d  BPS %d Bytes Received %d BPS %d Time %d Seconds",
-				TNC->Port, STREAM->RemoteCall,
-				STREAM->BytesTXed, (int)(STREAM->BytesTXed/Duration),
-				STREAM->BytesRXed, (int)(STREAM->BytesRXed/Duration), (int)Duration);
-
-			Debugprintf(logmsg);
-
-			STREAM->ConnectTime= 0;  //Prevent retrigger
+			hookL4SessionDeleted(TNC, STREAM);
 		}
 
 

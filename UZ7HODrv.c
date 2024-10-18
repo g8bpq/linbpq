@@ -884,6 +884,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 			if (STREAM->ReportDISC)
 			{
+				hookL4SessionDeleted(TNC, STREAM);
 				STREAM->ReportDISC = FALSE;
 				buff->PORT = Stream;
 
@@ -2230,6 +2231,8 @@ VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message)
 				buffptr->Len  = RXHeader->DataLength;
 				memcpy(buffptr->Data, Message, RXHeader->DataLength);
 
+				STREAM->BytesRXed += RXHeader->DataLength;
+
 				C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 				return;
 			}
@@ -2291,7 +2294,7 @@ VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message)
 
 		//		if (STREAM->Disconnecting)		// 
 		//			ReleaseTNC(TNC);
-
+		
 				STREAM->Disconnecting = FALSE;
 				STREAM->DiscWhenAllSent = 10;
 				STREAM->FramesOutstanding = 0;
@@ -2467,6 +2470,8 @@ GotStream:
 
 				}
 
+				strcpy(STREAM->MyCall, TNC->TargetCall);
+
 				if (App < 32)
 				{
 					char AppName[13];
@@ -2502,6 +2507,9 @@ GotStream:
 					return;
 				}
 			}
+
+			strcpy(STREAM->MyCall, TNC->TargetCall);
+
 		
 			// Not to a known appl - drop through to Node
 
@@ -2740,7 +2748,7 @@ GotStream:
 		// Capabilities - along with Version used to indicate QtSoundModem
 		// with ability to set and read Modem type and frequency/
 
-		if (Message[2] == 24 && Message[3] == 3 && Message[4] == 100)
+		if ((Message[2] == 24 && Message[3] == 3 && Message[4] == 100) || TNC->AGWInfo->isQTSM)
 		{
 			// Set flag on any other ports on same TNC (all ports with this as master port)
 
@@ -2927,6 +2935,9 @@ VOID SendData(int Stream, struct TNCINFO * TNC, char * Key, char * Msg, int MsgL
 	AGW->TXHeader.DataKind='D';
 	memcpy(AGW->TXHeader.callfrom, &Key[11], 10);
 	memcpy(AGW->TXHeader.callto, &Key[1], 10);
+
+	TNC->Streams[Stream].BytesTXed += MsgLen;
+
 
 	// If Length is greater than Paclen we should fragment
 

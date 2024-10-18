@@ -2368,22 +2368,7 @@ VOID ProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 
 		if (TNC->Streams[0].Connected)
 		{
-			// Create a traffic record
-		
-			char logmsg[120];	
-			time_t Duration;
-
-			Duration = time(NULL) - STREAM->ConnectTime;
-
-			if (Duration == 0)
-				Duration = 1;		// Avoid zero divide
-	
-			sprintf(logmsg,"Port %2d %9s Bytes Sent %d  BPS %d Bytes Received %d BPS %d Time %d Seconds",
-				TNC->Port, STREAM->RemoteCall,
-				STREAM->BytesTXed, (int)(STREAM->BytesTXed/Duration),
-				STREAM->BytesRXed, (int)(STREAM->BytesRXed/Duration), (int)Duration);
-
-			Debugprintf(logmsg);
+			hookL4SessionDeleted(TNC, STREAM);
 
 			GetSemaphore(&Semaphore, 50);
 			WritetoTrace(TNC, Buffer, MsgLen - 2);

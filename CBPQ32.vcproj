@@ -20,7 +20,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="d:\devprogs\bpq32"
+			OutputDirectory="C:\Dev\Msdev2005\$(SolutionName)\$(ProjectName)\$(ConfigurationName)"
 			IntermediateDirectory="C:\Dev\Msdev2005\Intermed\$(SolutionName)\$(ProjectName)\$(ConfigurationName)"
 			ConfigurationType="2"
 			CharacterSet="0"
@@ -74,7 +74,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions=" /section:_BPQDATA,srw"
-				AdditionalDependencies="WS2_32.Lib winmm.lib DbgHelp.lib comctl32.lib Iphlpapi.lib setupapi.lib ..\lib\libconfigd.lib miniupnpc.lib zlibstat.lib"
+				AdditionalDependencies="WS2_32.Lib winmm.lib DbgHelp.lib comctl32.lib Iphlpapi.lib setupapi.lib paho-mqtt3a.lib ..\lib\libconfigd.lib miniupnpc.lib zlibstat.lib"
 				OutputFile="c:\DevProgs\BPQ32\bpq32.dll"
 				LinkIncremental="2"
 				IgnoreAllDefaultLibraries="false"
@@ -180,7 +180,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions=" /section:_BPQDATA,srw"
-				AdditionalDependencies="WS2_32.Lib winmm.lib comctl32.lib setupapi.lib ..\lib\libconfig.lib miniupnpc.lib zlibstat.lib DbgHelp.lib"
+				AdditionalDependencies="WS2_32.Lib winmm.lib comctl32.lib setupapi.lib ..\lib\libconfig.lib miniupnpc.lib zlibstat.lib DbgHelp.lib paho-mqtt3a.lib"
 				OutputFile="C:\DevProgs\BPQ32\bpq32.dll"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames=""
@@ -437,6 +437,18 @@
 			<File
 				RelativePath="..\CommonSource\Moncode.c"
 				>
+			</File>
+			<File
+				RelativePath=".\mqtt.c"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="1"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\CommonSource\MULTIPSK.c"

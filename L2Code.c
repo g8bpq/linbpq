@@ -110,7 +110,7 @@ int seeifInterlockneeded(struct PORTCONTROL * PORT);
 int seeifUnlockneeded(struct _LINKTABLE * LINK);
 int CheckKissInterlock(struct PORTCONTROL * MYPORT, int Exclusive);
 void hookL2SessionAccepted(int Port, char * fromCall, char * toCall, struct _LINKTABLE * LINK);
-void hookL2SessionDeleted(int Port, char * fromCall, char * toCall, struct _LINKTABLE * LINK);
+void hookL2SessionDeleted(struct _LINKTABLE * LINK);
 void hookL2SessionAttempt(int Port, char * fromCall, char * toCall, struct _LINKTABLE * LINK);
 
 
@@ -1131,6 +1131,9 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 		return;
 	}
 
+	toCall[ConvFromAX25(ADJBUFFER->DEST, toCall)] = 0;
+	fromCall[ConvFromAX25(ADJBUFFER->ORIGIN, fromCall)] = 0;
+
 	SETUPNEWL2SESSION(LINK, PORT, Buffer, MSGFLAG);
 
 	if (LINK->L2STATE != 5)			// Setup OK?
@@ -1142,10 +1145,6 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 	// See if need to Interlock non-sharable modes, eg ARDOP and VARA
 
 	seeifInterlockneeded(PORT);
-
-	toCall[ConvFromAX25(ADJBUFFER->DEST, toCall)] = 0;
-	fromCall[ConvFromAX25(ADJBUFFER->ORIGIN, fromCall)] = 0;
-
 
 	//	IF CONNECT TO APPL ADDRESS, SET UP APPL SESSION
 
@@ -1161,13 +1160,8 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 		int Paclen= PORT->PORTPACLEN;
 		UCHAR * ptr;
 
-		if (LogAllConnects)
-		{		
-			char toCall[12], fromCall[12];
-			toCall[ConvFromAX25(ADJBUFFER->DEST, toCall)] = 0;
-			fromCall[ConvFromAX25(ADJBUFFER->ORIGIN, fromCall)] = 0;
+		if (LogAllConnects)	
 			WriteConnectLog(fromCall, toCall, "AX.25");
-		}
 
 		hookL2SessionAccepted(PORT->PORTNUMBER, fromCall, toCall, LINK);
 		
@@ -1284,7 +1278,9 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 		//	ACCEPT THE CONNECT, THEN INVOKE THE ALIAS
 
 		L2SENDUA(PORT, Buffer, ADJBUFFER);
-	
+
+		hookL2SessionAccepted(PORT->PORTNUMBER, fromCall, toCall, LINK);
+
 		if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
 		{
 			struct DATAMESSAGE * Msg;
@@ -1382,6 +1378,9 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 	}
 
 	L2SENDUA(PORT, Buffer, ADJBUFFER);
+
+	hookL2SessionAccepted(PORT->PORTNUMBER, fromCall, toCall, LINK);
+
 
 	if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
 	{
@@ -2442,6 +2441,8 @@ VOID PROC_I_FRAME(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE *
 	Length = Buffer->LENGTH - (MSGHDDRLEN + 15);	// Buffer Header + addrs + CTL
 	Info  = &Buffer->PID;
 
+	LINK->bytesRXed += Length;
+
 	// Adjust for DIGIS
 
 	EOA = &Buffer->ORIGIN[6];		// End of address Bit
@@ -2647,6 +2648,13 @@ VOID RESET2(struct _LINKTABLE * LINK)
 
 VOID SENDSABM(struct _LINKTABLE * LINK)
 {
+	char toCall[10];
+	char fromCall[10];
+
+	toCall[ConvFromAX25(LINK->LINKCALL, toCall)] = 0;
+	fromCall[ConvFromAX25(LINK->OURCALL, fromCall)] = 0;
+	hookL2SessionAttempt(LINK->LINKPORT->PORTNUMBER, fromCall, toCall, LINK);
+
 	L2SENDCOMMAND(LINK, SABM | PFBIT);
 }
 
@@ -3260,12 +3268,7 @@ VOID SENDFRMR(struct _LINKTABLE * LINK)
 
 VOID CLEAROUTLINK(struct _LINKTABLE * LINK)
 {
-	char toCall[12], fromCall[12];
-
-	toCall[ConvFromAX25(LINK->LINKCALL, toCall)] = 0;
-	fromCall[ConvFromAX25(LINK->OURCALL, fromCall)] = 0;
-
-	hookL2SessionDeleted(LINK->LINKPORT->PORTNUMBER, fromCall, toCall, LINK);
+	hookL2SessionDeleted(LINK);
 
 	seeifUnlockneeded(LINK);
 

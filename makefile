@@ -13,22 +13,26 @@ OBJS = pngwtran.o pngrtran.o pngset.o pngrio.o pngwio.o pngtrans.o pngrutil.o pn
  MailCommands.o MailDataDefs.o LinBPQ.o MailRouting.o MailTCP.o MBLRoutines.o md5.o Moncode.o \
  NNTPRoutines.o RigControl.o TelnetV6.o WINMOR.o TNCCode.o UZ7HODrv.o WPRoutines.o \
  SCSTrackeMulti.o SCSPactor.o SCSTracker.o HanksRT.o  UIRoutines.o AGWAPI.o AGWMoncode.o \
- DRATS.o FreeDATA.o base64.o Events.o nodeapi.o mailapi.o
+ DRATS.o FreeDATA.o base64.o Events.o nodeapi.o mailapi.o mqtt.o
 
 # Configuration:
 
 CC = gcc
 		                       
 all: CFLAGS = -DLINBPQ -MMD -g -fcommon
+all: LDFLAGS = -l:libpaho-mqtt3a.a -l:libjansson.a
 all: linbpq
 
+
+nomqtt: CFLAGS = -DLINBPQ -MMD -fcommon -g -DNOMQTT
+nomqtt: linbpq
 
 noi2c: CFLAGS = -DLINBPQ -MMD -DNOI2C -g -fcommon
 noi2c: linbpq
 
-	
+
 linbpq: $(OBJS)
-	gcc $(OBJS) -Xlinker -Map=output.map -l:libminiupnpc.a -lrt -lm -lz -lpthread -lconfig -lpcap -o linbpq
+	gcc $(OBJS) -Xlinker -Map=output.map -l:libminiupnpc.a -lrt -lm -lz $(LDFLAGS) -lpthread -lconfig -lpcap -o linbpq
 	sudo setcap "CAP_NET_ADMIN=ep CAP_NET_RAW=ep CAP_NET_BIND_SERVICE=ep" linbpq		
 
 -include *.d

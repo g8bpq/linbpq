@@ -28,6 +28,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include "mqtt.h"
 
 #pragma data_seg("_BPQDATA")
 
@@ -735,22 +736,7 @@ VOID CheckForDetach(struct TNCINFO * TNC, int Stream, struct STREAMINFO * STREAM
 
 			// Create a traffic record
 
-			if (STREAM->Connected && STREAM->ConnectTime)
-			{
-				Duration = time(NULL) - STREAM->ConnectTime;
-
-				if (Duration == 0)
-					Duration = 1;				// Or will get divide by zero error 
-
-				sprintf(logmsg,"Port %2d %9s Bytes Sent %d  BPS %d Bytes Received %d BPS %d Time %d Seconds",
-					TNC->Port, STREAM->RemoteCall,
-					STREAM->BytesTXed, (int)(STREAM->BytesTXed/Duration),
-					STREAM->BytesRXed, (int)(STREAM->BytesRXed/Duration), (int)Duration);
-
-				Debugprintf(logmsg);
-
-				STREAM->ConnectTime = 0;
-			}
+			hookL4SessionDeleted(TNC, STREAM);
 
 			if (STREAM->BPQtoPACTOR_Q)					// Still data to send?
 				return;									// Will close when all acked
@@ -3716,6 +3702,11 @@ VOID OpenReportingSockets()
 	Chatreportdest.sin_port = htons(81);
 
 	_beginthread(ResolveUpdateThread, 0, NULL);
+
+	printf("MQTT Enabled %d\n", MQTT);
+
+	if (MQTT) 
+		MQTTConnect(MQTT_HOST, MQTT_PORT, MQTT_USER, MQTT_PASS);
 }
 
 VOID WriteMiniDumpThread();

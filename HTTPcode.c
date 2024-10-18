@@ -112,6 +112,7 @@ struct PORTCONTROL * APIENTRY GetPortTableEntryFromSlot(int portslot);
 int SetupNodeMenu(char * Buff, int SYSOP);
 int StatusProc(char * Buff);
 int ProcessMailSignon(struct TCPINFO * TCP, char * MsgPtr, char * Appl, char * Reply, struct HTTPConnectionInfo ** Session, BOOL WebMail, int LOCAL);
+int ProcessMailAPISignon(struct TCPINFO * TCP, char * MsgPtr, char * Appl, char * Reply, struct HTTPConnectionInfo ** Session, BOOL WebMail, int LOCAL);
 int ProcessChatSignon(struct TCPINFO * TCP, char * MsgPtr, char * Appl, char * Reply, struct HTTPConnectionInfo ** Session, int LOCAL);
 VOID APRSProcessHTTPMessage(SOCKET sock, char * MsgPtr, BOOL LOCAL, BOOL COOKIE);
 
@@ -1166,6 +1167,9 @@ int SendMessageFile(SOCKET sock, char * FN, BOOL OnlyifExists, int allowDeflate)
 
 		if (_stricmp(ptr, "js") == 0)
 			strcpy(Type, "Content-Type: text/javascript\r\n");
+	
+		if (_stricmp(ptr, "css") == 0)
+			strcpy(Type, "Content-Type: text/css\r\n");
 
 		if (_stricmp(ptr, "pdf") == 0)
 			strcpy(Type, "Content-Type: application/pdf\r\n");
@@ -1180,7 +1184,8 @@ int SendMessageFile(SOCKET sock, char * FN, BOOL OnlyifExists, int allowDeflate)
 			Compressed = MsgBytes;
 		}
 
-		if (_stricmp(ptr, "jpg") == 0 || _stricmp(ptr, "jpeg") == 0 || _stricmp(ptr, "png") == 0 || _stricmp(ptr, "gif") == 0 || _stricmp(ptr, "ico") == 0)
+		if (_stricmp(ptr, "jpg") == 0 || _stricmp(ptr, "jpeg") == 0 || _stricmp(ptr, "png") == 0 ||
+			_stricmp(ptr, "gif") == 0 || _stricmp(ptr, "bmp") == 0 || _stricmp(ptr, "ico") == 0)
 			strcpy(Type, "Content-Type: image\r\n");
 
 		HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\n"
@@ -1793,37 +1798,60 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 		if (_memicmp(Context, "/api/", 5) == 0 || _stricmp(Context, "/api") == 0)
 		{
 			char * Compressed;
-			ReplyLen = APIProcessHTTPMessage(_REPLYBUFFER, Method, Context, MsgPtr, LOCAL, COOKIE);
-				
-			if (memcmp(_REPLYBUFFER, "HTTP", 4) == 0)
-			{
-				// Full Message - just send it
 
-				sendandcheck(sock, _REPLYBUFFER, ReplyLen);
+			// if for mail api process signon here and rearrange url from
+			// api/v1/mail to mail/api/v1 so it goes to mail handler later
+
+			if (_memicmp(Context, "/api/v1/mail/", 13) == 0)
+			{
+				memcpy(MsgPtr, "GET /mail/api/v1/", 17);
+		
+				if (memcmp(&Context[13], "login", 5) == 0)
+				{
+					ReplyLen = ProcessMailAPISignon(TCP, MsgPtr, "M", Reply, &Session, FALSE, LOCAL);
+					memcpy(MsgPtr, "GET /mail/api/v1/", 17);
+
+					if (ReplyLen)			// Error message
+						goto Returnit;
+				}
+
+				memcpy(Context, "/mail/api/v1/", 13);
+				goto doHeader;
+			}
+			else
+			{
+				ReplyLen = APIProcessHTTPMessage(_REPLYBUFFER, Method, Context, MsgPtr, LOCAL, COOKIE);
+				
+				if (memcmp(_REPLYBUFFER, "HTTP", 4) == 0)
+				{
+					// Full Message - just send it
+
+					sendandcheck(sock, _REPLYBUFFER, ReplyLen);
+
+					return 0;
+				}
+
+				if (allowDeflate)
+					Compressed = Compressit(_REPLYBUFFER, ReplyLen, &ReplyLen);
+				else
+					Compressed = _REPLYBUFFER;
+
+				HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\n"
+					"Content-Length: %d\r\n"
+					"Content-Type: application/json\r\n"
+					"Connection: close\r\n"
+					"Access-Control-Allow-Origin: *\r\n"
+					"%s\r\n", ReplyLen, Encoding);
+
+				sendandcheck(sock, Header, HeaderLen);
+				sendandcheck(sock, Compressed, ReplyLen);
+
+				if (allowDeflate)
+					free (Compressed);
 
 				return 0;
 			}
-
-			if (allowDeflate)
-				Compressed = Compressit(_REPLYBUFFER, ReplyLen, &ReplyLen);
-			else
-				Compressed = _REPLYBUFFER;
-
-			HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\n"
-				"Content-Length: %d\r\n"
-				"Content-Type: application/json\r\n"
-				"Connection: close\r\n"
-				"%s\r\n", ReplyLen, Encoding);
-
-			sendandcheck(sock, Header, HeaderLen);
-			sendandcheck(sock, Compressed, ReplyLen);
-
-			if (allowDeflate)
-				free (Compressed);
-
-			return 0;
 		}
-
 
 		// APRS process internally
 
@@ -2128,9 +2156,32 @@ doHeader:
 			if (Session == 0)
 				Session = &Dummy;
 
-			Session->TNC = (void *)LOCAL;		// TNC only used for Web Terminal Sessions
+			if (LOCAL)
+				Session->TNC = (void *)1;		// TNC only used for Web Terminal Sessions
+			else
+				Session->TNC = (void *)0;
 
 			ProcessMailHTTPMessage(Session, Method, Context, MsgPtr, _REPLYBUFFER, &ReplyLen, MsgLen);
+
+			if (Context && _memicmp(Context, "/mail/api/", 10) == 0)
+			{
+
+				// compress if allowed
+
+				if (allowDeflate)
+					Compressed = Compressit(_REPLYBUFFER, ReplyLen, &ReplyLen);
+				else
+					Compressed = Reply;
+
+				HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n%s\r\n", ReplyLen, Encoding);
+				sendandcheck(sock, Header, HeaderLen);
+				sendandcheck(sock, Compressed, ReplyLen);
+
+				if (allowDeflate)
+					free (Compressed);
+
+				return 0;
+			}
 
 			if (memcmp(_REPLYBUFFER, "HTTP", 4) == 0)
 			{
@@ -2156,10 +2207,15 @@ doHeader:
 				return 0;
 			}
 
+			if (Context && _memicmp(Context, "/mail/api/", 10) != 0)
+			{
+
 			// Add tail
 
 			strcpy(&_REPLYBUFFER[ReplyLen], Tail);
 			ReplyLen += strlen(Tail);
+
+			}
 
 			// compress if allowed
 				
@@ -4180,6 +4236,67 @@ int ProcessNodeSignon(SOCKET sock, struct TCPINFO * TCP, char * MsgPtr, char * A
 	return 0;
 
 
+	return ReplyLen;
+}
+
+int ProcessMailAPISignon(struct TCPINFO * TCP, char * MsgPtr, char * Appl, char * Reply, struct HTTPConnectionInfo ** Session, BOOL WebMail, int LOCAL)
+{
+	int ReplyLen = 0;
+	char * input = strstr(MsgPtr, "\r\n\r\n");	// End of headers
+	char * user, * password, * Key;
+	struct HTTPConnectionInfo * NewSession;
+	int i;
+	struct UserRec * USER;
+
+	user = strlop(MsgPtr, '?');
+	password = strlop(user, '&');
+	strlop(password, ' ');
+
+
+	for (i = 0; i < TCP->NumberofUsers; i++)
+	{
+		USER = TCP->UserRecPtr[i];
+
+		if (user && _stricmp(user, USER->UserName) == 0)
+		{
+			if ((strcmp(password, USER->Password) == 0) && (USER->Secure || WebMail))
+			{
+				// ok
+
+				NewSession = AllocateSession(Appl[0], 'M');
+
+				*Session = NewSession;
+
+				if (NewSession)
+				{
+					ReplyLen = 0;
+					strcpy(NewSession->Callsign, USER->Callsign);
+				}
+				else
+				{
+					ReplyLen =  SetupNodeMenu(Reply, LOCAL);
+					ReplyLen += sprintf(&Reply[ReplyLen], "%s", BusyError);
+				}
+				return ReplyLen;
+			
+			}
+		}
+	}	
+
+	// Pass failed attempt to BBS code so it can try a bbs user login
+
+	NewSession = AllocateSession(Appl[0], 'M');
+
+	*Session = NewSession;
+
+	if (NewSession)
+		ReplyLen = 0;
+	else
+	{
+		ReplyLen =  SetupNodeMenu(Reply, LOCAL);
+		ReplyLen += sprintf(&Reply[ReplyLen], "%s", BusyError);
+	}
+	
 	return ReplyLen;
 }
 

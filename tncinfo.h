@@ -222,6 +222,9 @@ struct STREAMINFO
 	char MyCall[10]	;			// Call we are using
 	char RemoteCall[10];		// Callsign
 
+	char callingCall[10];	// for reporting. My abnd Remote calls depend on which end connected
+	char receivingCall[10];	// for reporting. Link and Our calls depand on which end connected
+
 	char AGWKey[21];			// Session Key for AGW Session Based Drivers
 
 	time_t ConnectTime;			// Time connection made

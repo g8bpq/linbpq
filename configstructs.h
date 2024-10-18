@@ -165,7 +165,12 @@ struct CONFIGTABLE
 	struct ROUTECONFIG C_ROUTE[MaxLockedRoutes];
 	struct APPLCONFIG C_APPL[NumberofAppls];
 	struct PORTCONFIG C_PORT[MaxBPQPortNo + 4];
-
+	int C_MQTT;
+	char C_MQTT_HOST[80];
+	int C_MQTT_PORT;
+	char C_MQTT_USER[80];
+	char C_MQTT_PASS[80];
+ 
 //#define ApplOffset 80000			// Applications offset in config buffer
 //#define InfoOffset 85000			// Infomsg offset in  buffer
 //#define InfoMax	2000				// Max Info

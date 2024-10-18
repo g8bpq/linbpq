@@ -69,7 +69,7 @@ static UCHAR * DISPLAYIPDATAGRAM(IPMSG * IP, UCHAR * Output, int MsgLen);
 static UCHAR * DISPLAYARPDATAGRAM(UCHAR * Datagram, UCHAR * Output);
 
 
-int InternalAGWDecodeFrame(MESSAGE * msg, char * buffer, int Stamp, int * FrameType, int useLocalTime, int DoNodes)
+int InternalAGWDecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp, int * FrameType, int useLocalTime, int DoNodes)
 {
 	UCHAR * ptr;
 	int n;
@@ -365,7 +365,7 @@ int InternalAGWDecodeFrame(MESSAGE * msg, char * buffer, int Stamp, int * FrameT
 	}
 
 	if (Output == NULL)
-		return NULL;
+		return 0;
 
 	if (Output[-1] != 13)
 		Output += sprintf((char *)Output, "\r");
