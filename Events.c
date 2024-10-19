@@ -40,6 +40,7 @@ VOID __cdecl Debugprintf(const char * format, ...);
 
 extern BOOL EventsEnabled;
 void MQTTReportSession(char * Msg);
+extern int MQTT;
 
 
 extern char Modenames[19][10];
@@ -162,7 +163,8 @@ void hookL2SessionDeleted(struct _LINKTABLE * LINK)
 				"KISS", LINK->Direction, LINK->LINKPORT->PORTNUMBER, LINK->callingCall, LINK->receivingCall, sessionTime,
 				LINK->bytesTXed,  avBytesSent, LINK->bytesRXed, avBytesRXed, timestamp);
 
-			MQTTReportSession(Msg);
+			if (MQTT)
+				MQTTReportSession(Msg);
 		}
 
 		LINK->ConnectTime = 0;
@@ -203,7 +205,8 @@ void hookL4SessionDeleted(struct TNCINFO * TNC, struct STREAMINFO * STREAM)
 			Modenames[TNC->Hardware - 1], TNC->Port, STREAM->MyCall, STREAM->RemoteCall, sessionTime,
 			STREAM->BytesTXed,  avBytesSent, STREAM->BytesRXed, avBytesRXed, timestamp);
 
-		MQTTReportSession(Msg);
+		if (MQTT)
+			MQTTReportSession(Msg);
 
 		STREAM->ConnectTime = 0;
 	}
