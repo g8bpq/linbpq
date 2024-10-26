@@ -1972,7 +1972,7 @@ VOID SCSPoll(int Port)
 				}
 
 				Poll[3] = 0;			// Data?
-				TNC->Streams[Stream].BytesTXed += datalen;
+				TNC->Streams[Stream].bytesTXed += datalen;
 
 				Poll[4] = datalen - 1;
 				memcpy(&Poll[5], Buffer, datalen);
@@ -2324,7 +2324,7 @@ void SCSTryToSendDATA(struct TNCINFO * TNC, int Stream)
 	}
 
 	Poll[3] = 0;			// Data
-	STREAM->BytesTXed += datalen;
+	STREAM->bytesTXed += datalen;
 
 	Poll[4] = datalen - 1;
 	memcpy(&Poll[5], Buffer, datalen);
@@ -3402,7 +3402,7 @@ VOID ProcessDEDFrame(struct TNCINFO * TNC, UCHAR * Msg, int framelen)
 				{					
 					if (TNC->TXBuffer[6]== 'T')	// TX count Status
 					{
-						sprintf(TNC->WEB_TRAFFIC, "RX %d TX %d ACKED %s", TNC->Streams[Stream].BytesRXed, TNC->Streams[Stream].BytesTXed, Buffer);
+						sprintf(TNC->WEB_TRAFFIC, "RX %d TX %d ACKED %s", TNC->Streams[Stream].bytesRXed, TNC->Streams[Stream].bytesTXed, Buffer);
 						SetWindowText(TNC->xIDC_TRAFFIC, TNC->WEB_TRAFFIC);
 						return;
 					}
@@ -3501,7 +3501,7 @@ VOID ProcessDEDFrame(struct TNCINFO * TNC, UCHAR * Msg, int framelen)
 				STREAM->Connected = TRUE;			// Subsequent data to data channel
 				STREAM->Connecting = FALSE;
 				STREAM->ConnectTime = time(NULL); 
-				STREAM->BytesRXed = STREAM->BytesTXed = 0;
+				STREAM->bytesRXed = STREAM->bytesTXed = 0;
 
 				//	Stop Scanner
 
@@ -3897,7 +3897,7 @@ VOID ProcessDEDFrame(struct TNCINFO * TNC, UCHAR * Msg, int framelen)
 		if (buffptr == NULL) return;			// No buffers, so ignore
 			
 		buffptr->Len = Msg[4] + 1;				// Length
-		TNC->Streams[Stream].BytesRXed += (int)buffptr->Len;
+		TNC->Streams[Stream].bytesRXed += (int)buffptr->Len;
 		memcpy(buffptr->Data, &Msg[5], buffptr->Len);
 
 		WritetoTrace(TNC, &Msg[5], (int)buffptr->Len);

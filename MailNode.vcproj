@@ -41,7 +41,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\CKernel;..\CommonSource;..\CInclude"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;LINBPQ;_USE_32BIT_TIME_T"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;LINBPQ;_USE_32BIT_TIME_T;NOMQTT"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -454,6 +454,10 @@
 			</File>
 			<File
 				RelativePath="..\CommonSource\Moncode.c"
+				>
+			</File>
+			<File
+				RelativePath=".\mqtt.c"
 				>
 			</File>
 			<File

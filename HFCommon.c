@@ -1602,7 +1602,7 @@ VOID ShowTraffic(struct TNCINFO * TNC)
 	char Status[80];
 
 	sprintf(Status, "RX %d TX %d ACKED %d ", 
-		TNC->Streams[0].BytesRXed, TNC->Streams[0].BytesTXed, TNC->Streams[0].BytesAcked);
+		TNC->Streams[0].bytesRXed, TNC->Streams[0].bytesTXed, TNC->Streams[0].BytesAcked);
 #ifndef LINBPQ
 	SetDlgItemText(TNC->hDlg, IDC_TRAFFIC, Status);
 #endif

@@ -1637,7 +1637,7 @@ static VOID ConnecttoFLDigiThread(void * portptr)
 VOID UpdateStatsLine(struct TNCINFO * TNC, struct STREAMINFO * STREAM)
 {
 	sprintf(TNC->WEB_TRAFFIC, "RX %d TX %d ACKED %d Resent %d Queued %d",
-	STREAM->BytesRXed, STREAM->BytesTXed, STREAM->BytesAcked, STREAM->BytesResent, STREAM->BytesOutstanding);
+	STREAM->bytesRXed, STREAM->bytesTXed, STREAM->BytesAcked, STREAM->BytesResent, STREAM->BytesOutstanding);
 	SetWindowText(TNC->xIDC_TRAFFIC, TNC->WEB_TRAFFIC);
 }
 
@@ -2531,7 +2531,7 @@ VOID ProcessFLDigiData(struct TNCINFO * TNC, UCHAR * Input, int Len, char Channe
 
 		strcpy(STREAM->MyCall, call2);
 		STREAM->ConnectTime = time(NULL); 
-		STREAM->BytesRXed = STREAM->BytesTXed = STREAM->BytesAcked = STREAM->BytesResent = 0;
+		STREAM->bytesRXed = STREAM->bytesTXed = STREAM->BytesAcked = STREAM->BytesResent = 0;
 		
 		if (TNC->RIG && TNC->RIG != &TNC->DummyRig && strcmp(TNC->RIG->RigName, "PTT"))
 		{
@@ -2690,7 +2690,7 @@ AckConnectRequest:
 			goto SendKReply;		// Repeated ACK
 
 		STREAM->ConnectTime = time(NULL); 
-		STREAM->BytesRXed = STREAM->BytesTXed = STREAM->BytesAcked = STREAM->BytesResent = 0;
+		STREAM->bytesRXed = STREAM->bytesTXed = STREAM->BytesAcked = STREAM->BytesResent = 0;
 		STREAM->Connected = TRUE;
 
 		ARQ->ARQTimerState = 0;
@@ -3014,7 +3014,7 @@ SendKReply:
 
 			buffptr->Len = Len;
 			memcpy(buffptr->Data, &Input[1], Len);
-			STREAM->BytesRXed += Len;
+			STREAM->bytesRXed += Len;
 
 			UpdateStatsLine(TNC, STREAM);
 
@@ -3131,7 +3131,7 @@ VOID SendARQData(struct TNCINFO * TNC, PMSGWITHLEN Buffer)
 
 	ARQ->TXHOLDQ[ARQ->TXSeq] = Buffer;
 
-	STREAM->BytesTXed += Origlen;
+	STREAM->bytesTXed += Origlen;
 
 	UpdateStatsLine(TNC, STREAM);
 

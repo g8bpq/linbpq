@@ -1288,6 +1288,10 @@ int main(int argc, char * argv[])
 
 	AGWActive = AGWAPIInit();
 
+	if (Redirected == 0)
+		ConTerm.BPQStream = FindFreeStream();
+
+
 #ifndef WIN32
 
 	for (i = 1; i < argc; i++)

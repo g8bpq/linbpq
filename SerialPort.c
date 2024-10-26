@@ -402,7 +402,7 @@ ok:
 				UCHAR * data = &buffptr->Data[0];
 				STREAM->FramesQueued--;
 				txlen = (int)buffptr->Len;
-				STREAM->BytesTXed += txlen;
+				STREAM->bytesTXed += txlen;
 
 				bytes=SerialSendData(TNC, data, txlen);
 				WritetoTrace(TNC, data, txlen);
@@ -491,7 +491,7 @@ ok:
 
 			bytes=SerialSendData(TNC, TXMsg, txlen);
 			TNC->Streams[Stream].BytesOutstanding += bytes;		// So flow control works - will be updated by BUFFER response
-			STREAM->BytesTXed += bytes;
+			STREAM->bytesTXed += bytes;
 //			WritetoTrace(TNC, &buff->L2DATA[0], txlen);
 	
 			return 1;

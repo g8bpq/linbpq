@@ -394,6 +394,18 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			}
 		}
 
+		// Check ATTACH time limit
+
+		if (STREAM->Attached)
+		{
+			if (STREAM->AttachTime && TNC->AttachTimeLimit && time(NULL) > (TNC->AttachTimeLimit + STREAM->AttachTime))
+			{
+				STREAM->ReportDISC = 1;
+				STREAM->AttachTime = 0;
+			}
+		}
+
+
 		while (TNC->PortRecord->UI_Q)
 		{
 			buffptr = Q_REM(&TNC->PortRecord->UI_Q);
@@ -506,6 +518,8 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			int calllen;
 			char Msg[80];
 
+			memset(STREAM, 0, sizeof(struct STREAMINFO));
+
 			TNC->Streams[0].Attached = TRUE;
 
 			calllen = ConvFromAX25(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4USER, TNC->Streams[0].MyCall);
@@ -516,6 +530,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			VARASendCommand(TNC, "LISTEN OFF\r", TRUE);
 
 			TNC->SessionTimeLimit = TNC->DefaultSessionTimeLimit;		// Reset Limit
+			STREAM->AttachTime = time(NULL);
 
 			// Stop other ports in same group
 
@@ -568,7 +583,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 				buffptr->Data[txlen] = 0;		//  Null terminate
 
-				STREAM->BytesTXed += txlen;
+				STREAM->bytesTXed += txlen;
 				WritetoTrace(TNC, buffptr->Data, txlen);
 
 				// Always add to stored data and set timer. If it expires send message
@@ -599,7 +614,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				memcpy(txbuff, buffptr->Data, txlen);
 	
 			bytes = VARASendData(TNC, &txbuff[0], txlen);
-			STREAM->BytesTXed += bytes;
+			STREAM->bytesTXed += bytes;
 			ReleaseBuffer(buffptr);
 		}
 
@@ -647,7 +662,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			txlen = (int)buffptr->Len;
 			memcpy(txbuff, buffptr->Data, txlen);
 			bytes=send(TNC->TCPDataSock, buff->L2DATA, txlen, 0);
-			STREAM->BytesTXed += bytes;
+			STREAM->bytesTXed += bytes;
 			WritetoTrace(TNC, txbuff, txlen);
 			ReleaseBuffer(buffptr);
 		}
@@ -674,7 +689,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				memcpy(txbuff, buff->L2DATA, txlen);
 
 				bytes=send(TNC->TCPDataSock, txbuff, txlen, 0);
-				STREAM->BytesTXed += bytes;
+				STREAM->bytesTXed += bytes;
 				WritetoTrace(TNC, buff->L2DATA, txlen);
 				return 0;
 			}
@@ -690,7 +705,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 			buff->L2DATA[txlen] = 0;		//  Null terminate
 
-			STREAM->BytesTXed += txlen;
+			STREAM->bytesTXed += txlen;
 			WritetoTrace(TNC, buff->L2DATA, txlen);
 		
 			// Always add to stored data and set timer. If it expires send message
@@ -815,6 +830,8 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				// Need to set connecting here as if we delay for busy we may incorrectly process OK response
 
 				TNC->Streams[0].Connecting = TRUE;
+	
+				hookL4SessionAttempt(STREAM, &buff->L2DATA[2], TNC->Streams[0].MyCall);
 
 				// See if Busy
 
@@ -2000,7 +2017,7 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 		}
 
 		sprintf(TNC->WEB_TRAFFIC, "Sent %d RXed %d Queued %s",
-			STREAM->BytesTXed, STREAM->BytesRXed, &Buffer[7]);
+			STREAM->bytesTXed, STREAM->bytesRXed, &Buffer[7]);
 		MySetWindowText(TNC->xIDC_TRAFFIC, TNC->WEB_TRAFFIC);
 
 		return;
@@ -2020,8 +2037,7 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 		Debugprintf(Buffer);
 		WritetoTrace(TNC, Buffer, MsgLen - 1);
 
-		STREAM->ConnectTime = time(NULL); 
-		STREAM->BytesRXed = STREAM->BytesTXed = STREAM->PacketsSent = 0;
+		STREAM->bytesRXed = STREAM->bytesTXed = STREAM->PacketsSent = 0;
 
 		if (TNC->VARACMsg)
 			free(TNC->VARACMsg);
@@ -2088,6 +2104,10 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 
 			// Stop other ports in same group
 
+			memset(STREAM, 0, sizeof(struct STREAMINFO));
+
+			STREAM->ConnectTime = time(NULL); 
+	
 			SuspendOtherPorts(TNC);
 						
 			TNC->SessionTimeLimit = TNC->DefaultSessionTimeLimit;		// Reset Limit
@@ -2183,7 +2203,7 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 					STREAM->PacketsSent++;
 
 					bytes = send(TNC->TCPDataSock, TNC->NetRomTxBuffer, TNC->NetRomTxLen, 0);
-					STREAM->BytesTXed += TNC->NetRomTxLen;
+					STREAM->bytesTXed += TNC->NetRomTxLen;
 
 					free(TNC->NetRomTxBuffer);
 					TNC->NetRomTxBuffer = NULL;
@@ -2275,6 +2295,7 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 			char Reply[80];
 			int ReplyLen;
 			
+			STREAM->ConnectTime = time(NULL); 
 
 			if (TNC->NetRomMode)
 			{
@@ -2287,7 +2308,7 @@ VOID VARAProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 					STREAM->PacketsSent++;
 
 					bytes = send(TNC->TCPDataSock, TNC->NetRomTxBuffer, TNC->NetRomTxLen, 0);
-					STREAM->BytesTXed += TNC->NetRomTxLen;
+					STREAM->bytesTXed += TNC->NetRomTxLen;
 					free(TNC->NetRomTxBuffer);
 					TNC->NetRomTxBuffer = NULL;
 					TNC->NetRomTxLen = 0;
@@ -2729,13 +2750,13 @@ VOID VARAProcessDataPacket(struct TNCINFO * TNC, UCHAR * Data, int Length)
 		
 	TNC->TimeSinceLast = 0;
 
-	STREAM->BytesRXed += Length;
+	STREAM->bytesRXed += Length;
 
 	Data[Length] = 0;	
 //	Debugprintf("VARA: RXD %d bytes", Length);
 
 	sprintf(TNC->WEB_TRAFFIC, "Sent %d RXed %d Queued %d",
-			STREAM->BytesTXed, STREAM->BytesRXed,STREAM->BytesOutstanding);
+			STREAM->bytesTXed, STREAM->bytesRXed,STREAM->BytesOutstanding);
 	MySetWindowText(TNC->xIDC_TRAFFIC, TNC->WEB_TRAFFIC);
 
 	// if VARAAC Mode, remove byte count from front and add cr
@@ -2878,7 +2899,7 @@ int VARASendData(struct TNCINFO * TNC, UCHAR * Buff, int Len)
 	struct STREAMINFO * STREAM = &TNC->Streams[0];
 
 	int bytes=send(TNC->TCPDataSock,(const char FAR *)Buff, Len, 0);
-	STREAM->BytesTXed += bytes;
+	STREAM->bytesTXed += bytes;
 	WritetoTrace(TNC, Buff, Len);
 	return bytes;
 }
@@ -2977,7 +2998,7 @@ void SendVARANetrom(struct TNCINFO * TNC, unsigned char * Data, int Len)
 		STREAM->PacketsSent++;
 
 		bytes = send(TNC->TCPDataSock, TNC->NetRomTxBuffer, TNC->NetRomTxLen, 0);
-		STREAM->BytesTXed += TNC->NetRomTxLen;
+		STREAM->bytesTXed += TNC->NetRomTxLen;
 
 		free(TNC->NetRomTxBuffer);
 		TNC->NetRomTxBuffer = NULL;

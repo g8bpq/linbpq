@@ -358,7 +358,7 @@ ok:
 				UCHAR * data = &buffptr->Data[0];
 				STREAM->FramesQueued--;
 				txlen = (int)buffptr->Len;
-				STREAM->BytesTXed += txlen;
+				STREAM->bytesTXed += txlen;
 
 				bytes=SerialSendData(TNC, data, txlen);
 				WritetoTrace(TNC, data, txlen);

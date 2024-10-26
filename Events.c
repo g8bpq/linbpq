@@ -181,6 +181,29 @@ void hookL2SessionAttempt(int Port, char * ourcall, char * remotecall, struct _L
 	strcpy(LINK->Direction, "Out");
 }
 
+void hookL4SessionAttempt(struct STREAMINFO * STREAM, char * remotecall, char * ourcall)
+{
+	// Outgoing Connect
+
+	STREAM->ConnectTime = time(NULL);
+	STREAM->bytesTXed = STREAM->bytesRXed = 0;
+
+	strcpy(STREAM->callingCall, ourcall);
+	strcpy(STREAM->receivingCall, remotecall);
+	strcpy(STREAM->Direction, "Out");
+}
+
+void hookL4SessionAccepted(struct STREAMINFO * STREAM, char * remotecall, char * ourcall)
+{
+	// Incoming Connect
+
+	STREAM->ConnectTime = time(NULL);
+	STREAM->bytesTXed = STREAM->bytesRXed = 0;
+
+	strcpy(STREAM->callingCall, remotecall);
+	strcpy(STREAM->receivingCall, ourcall);
+	strcpy(STREAM->Direction, "In");
+}
 
 void hookL4SessionDeleted(struct TNCINFO * TNC, struct STREAMINFO * STREAM)
 {
@@ -191,8 +214,8 @@ void hookL4SessionDeleted(struct TNCINFO * TNC, struct STREAMINFO * STREAM)
 	if (STREAM->ConnectTime)
 	{
 		time_t sessionTime = time(NULL) - STREAM->ConnectTime;
-		double avBytesRXed = STREAM->BytesRXed / (sessionTime / 60.0);
-		double avBytesSent = STREAM->BytesTXed / (sessionTime / 60.0);
+		double avBytesRXed = STREAM->bytesRXed / (sessionTime / 60.0);
+		double avBytesSent = STREAM->bytesTXed / (sessionTime / 60.0);
 		time_t Now = time(NULL);
 		struct tm * TM = localtime(&Now);
 		sprintf(timestamp, "%02d:%02d:%02d", TM->tm_hour, TM->tm_min, TM->tm_sec);
@@ -200,10 +223,10 @@ void hookL4SessionDeleted(struct TNCINFO * TNC, struct STREAMINFO * STREAM)
 		if (sessionTime == 0)
 			sessionTime = 1;				// Or will get divide by zero error 
  
-		sprintf(Msg, "{\"mode\": \"%s\", \"port\": %d, \"callfrom\": \"%s\", \"callto\": \"%s\", \"time\": %d,  \"bytesSent\": %d," 
-			"\"BPMSent\": %4.2f, \"BytesReceived\": %d,  \"BPMRECEIVED\": %4.2f, \"timestamp\": \"%s\"}",
-			Modenames[TNC->Hardware - 1], TNC->Port, STREAM->MyCall, STREAM->RemoteCall, sessionTime,
-			STREAM->BytesTXed,  avBytesSent, STREAM->BytesRXed, avBytesRXed, timestamp);
+		sprintf(Msg, "{\"mode\": \"%s\", \"direction\": \"%s\", \"port\": %d, \"callfrom\": \"%s\", \"callto\": \"%s\", \"time\": %d,  \"bytesSent\": %d," 
+			"\"BPMSent\": %4.2f, \"BytesReceived\": %d,  \"BPMReceived\": %4.2f, \"timestamp\": \"%s\"}",
+			Modenames[TNC->Hardware - 1], STREAM->Direction, TNC->Port, STREAM->callingCall, STREAM->receivingCall, sessionTime,
+			STREAM->bytesTXed,  avBytesSent, STREAM->bytesRXed, avBytesRXed, timestamp);
 
 		if (MQTT)
 			MQTTReportSession(Msg);

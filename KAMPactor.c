@@ -1099,7 +1099,7 @@ VOID KAMPoll(int Port)
 
 					// Limit amount in TX, so we keep some on the TX Q and don't send turnround too early
 
-					if (TNC->Streams[0].BytesTXed - TNC->Streams[0].BytesAcked > 200)
+					if (TNC->Streams[0].bytesTXed - TNC->Streams[0].BytesAcked > 200)
 						continue;
 
 					// Dont send if IRS State
@@ -1132,7 +1132,7 @@ VOID KAMPoll(int Port)
 				}
 
 				Next = 0;
-				STREAM->BytesTXed += datalen; 
+				STREAM->bytesTXed += datalen; 
 
 				if (Stream == 0)
 				{
@@ -1157,7 +1157,7 @@ VOID KAMPoll(int Port)
 				if (Stream == 0)
 				{
 					sprintf(Status, "RX %d TX %d ACKED %d ",
-						TNC->Streams[0].BytesRXed, TNC->Streams[0].BytesTXed, TNC->Streams[0].BytesAcked);
+						TNC->Streams[0].bytesRXed, TNC->Streams[0].bytesTXed, TNC->Streams[0].BytesAcked);
 					SetWindowText(TNC->xIDC_TRAFFIC, Status);
 
 					if ((TNC->HFPacket == 0) && (TNC->Streams[0].BPQtoPACTOR_Q == 0))		// Nothing following
@@ -1532,14 +1532,14 @@ VOID ProcessKHOSTPacket(struct TNCINFO * TNC, UCHAR * Msg, int Len)
 	{
 		if (Msg[1] == '2')				// HF Port
 		{
-			if (TNC->Streams[0].BytesTXed)
+			if (TNC->Streams[0].bytesTXed)
 				TNC->Streams[0].BytesAcked += Len - 3;	// We get an ack before the first send
 
 			sprintf(Status, "RX %d TX %d ACKED %d ",
-				TNC->Streams[0].BytesRXed, TNC->Streams[0].BytesTXed, TNC->Streams[0].BytesAcked);
+				TNC->Streams[0].bytesRXed, TNC->Streams[0].bytesTXed, TNC->Streams[0].BytesAcked);
 			SetWindowText(TNC->xIDC_TRAFFIC, Status);
 
-			if (TNC->Streams[0].BytesTXed - TNC->Streams[0].BytesAcked < 500)
+			if (TNC->Streams[0].bytesTXed - TNC->Streams[0].BytesAcked < 500)
 				TNC->Streams[0].FramesOutstanding = 0;
 		}
 		return;
@@ -1555,7 +1555,7 @@ VOID ProcessKHOSTPacket(struct TNCINFO * TNC, UCHAR * Msg, int Len)
 		Len-=3;							// Remove Header
 
 		buffptr->Len = Len;				// Length
-		STREAM->BytesRXed += Len;
+		STREAM->bytesRXed += Len;
 		memcpy(buffptr->Data, Buffer, Len);
 
 		C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
@@ -1563,7 +1563,7 @@ VOID ProcessKHOSTPacket(struct TNCINFO * TNC, UCHAR * Msg, int Len)
 		if (Stream == 0)
 		{
 			sprintf(TNC->WEB_TRAFFIC, "RX %d TX %d ACKED %d ", 
-					TNC->Streams[0].BytesRXed, TNC->Streams[0].BytesTXed, TNC->Streams[0].BytesAcked);
+					TNC->Streams[0].bytesRXed, TNC->Streams[0].bytesTXed, TNC->Streams[0].BytesAcked);
 			SetWindowText(TNC->xIDC_TRAFFIC, TNC->WEB_TRAFFIC);
 		}
 
@@ -1762,7 +1762,7 @@ VOID ProcessKHOSTPacket(struct TNCINFO * TNC, UCHAR * Msg, int Len)
 				Buffer[Len-4] = 0;
 			}
 
-			STREAM->BytesRXed = STREAM->BytesTXed = STREAM->BytesAcked = 0;
+			STREAM->bytesRXed = STREAM->bytesTXed = STREAM->BytesAcked = 0;
 			STREAM->ConnectTime = time(NULL); 
 
 			if (Stream == 0)
@@ -1776,7 +1776,7 @@ VOID ProcessKHOSTPacket(struct TNCINFO * TNC, UCHAR * Msg, int Len)
 				Rig_Command( (TRANSPORTENTRY *) -1, Msg);
 
 				sprintf(TNC->WEB_TRAFFIC, "RX %d TX %d ACKED %d ", 
-					TNC->Streams[0].BytesRXed, TNC->Streams[0].BytesTXed, TNC->Streams[0].BytesAcked);
+					TNC->Streams[0].bytesRXed, TNC->Streams[0].bytesTXed, TNC->Streams[0].BytesAcked);
 				
 				SetWindowText(TNC->xIDC_TRAFFIC, TNC->WEB_TRAFFIC);
 			}
@@ -1874,7 +1874,7 @@ VOID ProcessKHOSTPacket(struct TNCINFO * TNC, UCHAR * Msg, int Len)
 					memcpy(&CTBuff[3], &CTEXTMSG[Next], Len);
 					EncodeAndSend(TNC, CTBuff, Len + 3);
 					EncodeAndSend(TNC, "E", 1);			// Changeover when all sent
-					TNC->Streams[0].BytesTXed += CTEXTLEN;
+					TNC->Streams[0].bytesTXed += CTEXTLEN;
 				}
 				return;
 

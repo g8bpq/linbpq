@@ -2382,7 +2382,7 @@ nosocks:
 				{
 					char logmsg[120];
 					sprintf(logmsg,"%d Disconnected. Bytes Sent = %d Bytes Received %d\n",
-						sockptr->Number, STREAM->BytesTXed, STREAM->BytesRXed);
+						sockptr->Number, STREAM->bytesTXed, STREAM->bytesRXed);
 
 					WriteLog (logmsg);
 				}
@@ -2407,7 +2407,7 @@ nosocks:
 					{
 						char logmsg[120];
 						sprintf(logmsg,"%d Disconnected. Bytes Sent = %d Bytes Received %d Time %d Seconds\r\n",
-							sockptr->Number, STREAM->BytesTXed, STREAM->BytesRXed, (int)(time(NULL) - sockptr->ConnectTime));
+							sockptr->Number, STREAM->bytesTXed, STREAM->bytesRXed, (int)(time(NULL) - sockptr->ConnectTime));
 
 						WriteCMSLog (logmsg);
 					}
@@ -2415,7 +2415,7 @@ nosocks:
 					// Don't report if Internet down unless ReportRelayTraffic set)
 
 					if (sockptr->RelaySession == FALSE || TCP->ReportRelayTraffic)
-						SendWL2KSessionRecord(sockptr->ADIF, STREAM->BytesTXed, STREAM->BytesRXed);
+						SendWL2KSessionRecord(sockptr->ADIF, STREAM->bytesTXed, STREAM->bytesRXed);
 
 					WriteADIFRecord(sockptr->ADIF);
 
@@ -3285,7 +3285,7 @@ int Socket_Accept(struct TNCINFO * TNC, SOCKET SocketId, int Port)
 			sockptr->Keepalive = FALSE;
 			sockptr->UTF8 = 0;
 
-			TNC->Streams[n].BytesRXed = TNC->Streams[n].BytesTXed = 0;
+			TNC->Streams[n].bytesRXed = TNC->Streams[n].bytesTXed = 0;
 			TNC->Streams[n].FramesQueued = 0;
 
 			sockptr->HTTPMode = FALSE;	
@@ -3834,7 +3834,7 @@ MsgLoop:
 
 		// Normal Data State
 			
-		STREAM->BytesRXed += MsgLen;
+		STREAM->bytesRXed += MsgLen;
 		SendIndex = 0;
 
 		// Line could be up to 500 chars if coming from a program rather than an interative user
@@ -3986,7 +3986,7 @@ MsgLoop:
             
             if (ctlen > 0)  send(sock, ct, ctlen, 0);
 
-			STREAM->BytesTXed = ctlen;
+			STREAM->bytesTXed = ctlen;
 
             if (LogEnabled)
 			{
@@ -4067,7 +4067,7 @@ int DataSocket_ReadRelay(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, 
 	MsgPtr = &sockptr->InputBuffer[0];
 	InputLen = sockptr->InputLen;
 
-	STREAM->BytesRXed += InputLen;
+	STREAM->bytesRXed += InputLen;
 
 	if (sockptr->LoginState == 2)
 	{
@@ -4077,7 +4077,7 @@ int DataSocket_ReadRelay(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, 
 
 		// Queue to Node. Data may arrive it large quatities, possibly exceeding node buffer capacity
 
-		STREAM->BytesRXed += InputLen;
+		STREAM->bytesRXed += InputLen;
 
 		if (sockptr->FromHostBuffPutptr + InputLen > sockptr->FromHostBufferSize)
 		{
@@ -4347,7 +4347,7 @@ int DataSocket_ReadSync(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, S
 	InputLen = sockptr->InputLen;
 	MsgPtr[InputLen] = 0;
 
-	STREAM->BytesRXed += InputLen;
+	STREAM->bytesRXed += InputLen;
 
 	if (sockptr->LoginState == 0)			// Initial connection
 	{
@@ -4495,7 +4495,7 @@ MsgLoop:
 
 		// Queue to Node. Data may arrive it large quantities, possibly exceeding node buffer capacity
 
-		STREAM->BytesRXed += InputLen;
+		STREAM->bytesRXed += InputLen;
 		BuffertoNode(sockptr, MsgPtr, InputLen); 
 		sockptr->InputLen = 0;
 
@@ -5650,7 +5650,7 @@ int Telnet_Connected(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, SOCK
 
 	sockptr->FromHostBuffPutptr = sockptr->FromHostBuffGetptr = 0;
 
-	TNC->Streams[Stream].BytesRXed = TNC->Streams[Stream].BytesTXed = 0;
+	TNC->Streams[Stream].bytesRXed = TNC->Streams[Stream].bytesTXed = 0;
 
 	return 0;
 }
@@ -6508,7 +6508,7 @@ BOOL TelSendPacket(int Stream, struct STREAMINFO * STREAM, PMSGWITHLEN buffptr, 
 	datalen = (int)buffptr->Len;
 	MsgPtr = &buffptr->Data[0];
 
-	STREAM->BytesTXed += datalen;
+	STREAM->bytesTXed += datalen;
 
 	sock = sockptr->socket;
 

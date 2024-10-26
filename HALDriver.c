@@ -749,7 +749,7 @@ VOID HALPoll(int Port)
 
 		STREAM->Attached = TRUE;
 
-		STREAM->BytesRXed = STREAM->BytesTXed = STREAM->BytesAcked = 0;
+		STREAM->bytesRXed = STREAM->bytesTXed = STREAM->BytesAcked = 0;
 
 		calllen = ConvFromAX25(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4USER, STREAM->MyCall);
 		STREAM->MyCall[calllen] = 0;
@@ -829,7 +829,7 @@ VOID HALPoll(int Port)
 
 	//for (Stream = 0; Stream <= MaxStreams; Stream++)
 	{
-		if (TNC->TNCOK && STREAM->BPQtoPACTOR_Q && (STREAM->BytesTXed - STREAM->BytesAcked < 600))
+		if (TNC->TNCOK && STREAM->BPQtoPACTOR_Q && (STREAM->bytesTXed - STREAM->BytesAcked < 600))
 		{
 			int datalen;
 			PMSGWITHLEN buffptr;
@@ -872,7 +872,7 @@ VOID HALPoll(int Port)
 				ReleaseBuffer(buffptr);
 				WriteLogLine(2, MsgPtr, datalen);
 
-				STREAM->BytesTXed += datalen; 
+				STREAM->bytesTXed += datalen; 
 				STREAM->FramesQueued--;
 
 				ShowTraffic(TNC);
@@ -1090,10 +1090,10 @@ VOID ProcessHALData(struct TNCINFO * TNC)
 		STREAM->BytesAcked += Len;
 //		Debugprintf("Acked %d", Len);
 
-		if (STREAM->BytesAcked > STREAM->BytesTXed)
+		if (STREAM->BytesAcked > STREAM->bytesTXed)
 			Debugprintf("Too Much Acked");
 
-		if ((STREAM->BPQtoPACTOR_Q == 0) && STREAM->BytesAcked >= STREAM->BytesTXed)
+		if ((STREAM->BPQtoPACTOR_Q == 0) && STREAM->BytesAcked >= STREAM->bytesTXed)
 		{
 			// All sent 
 
@@ -1121,7 +1121,7 @@ VOID ProcessHALData(struct TNCINFO * TNC)
 
 			WriteLogLine(1, TNC->DataBuffer, Len);
 
-			STREAM->BytesRXed += Len;
+			STREAM->bytesRXed += Len;
 
 			memcpy(buffptr->Data, TNC->DataBuffer, Len);
 
@@ -1756,7 +1756,7 @@ BOOL HALConnected(struct TNCINFO * TNC, char * Call)
 	strcpy(CallCopy, Call);
 	strcat(CallCopy, "          ");			// Some routines expect 10 char calls
 
-	STREAM->BytesRXed = STREAM->BytesTXed = STREAM->BytesAcked = 0;
+	STREAM->bytesRXed = STREAM->bytesTXed = STREAM->BytesAcked = 0;
 	STREAM->ConnectTime = time(NULL); 
 
 	// Stop Scanner
@@ -1804,7 +1804,7 @@ BOOL HALConnected(struct TNCINFO * TNC, char * Call)
 			EncodeAndSend(TNC, CTEXTMSG, CTEXTLEN);
 			WriteLogLine(2, CTEXTMSG, CTEXTLEN);
 
-			STREAM->BytesTXed += CTEXTLEN;
+			STREAM->bytesTXed += CTEXTLEN;
 		}
 		return TRUE;
 	}

@@ -915,7 +915,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			txlen = buffptr->Len;
 			memcpy(txbuff, buffptr->Data, txlen);
 			bytes = send(TNC->TCPDataSock, txbuff, (int)txlen, 0);
-			STREAM->BytesTXed += bytes;
+			STREAM->bytesTXed += bytes;
 			WritetoTrace(TNC, txbuff, (int)txlen);
 			ReleaseBuffer(buffptr);
 		}
@@ -941,7 +941,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			}
 
 			bytes = send(TNC->TCPDataSock,buff->L2DATA, (int)txlen, 0);
-			STREAM->BytesTXed += bytes;
+			STREAM->bytesTXed += bytes;
 			WritetoTrace(TNC, &buff->L2DATA[0], (int)txlen);
 
 		}
@@ -2106,7 +2106,7 @@ VOID ProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 		FreeSemaphore(&Semaphore);
 
 		STREAM->ConnectTime = time(NULL); 
-		STREAM->BytesRXed = STREAM->BytesTXed = STREAM->PacketsSent = 0;
+		STREAM->bytesRXed = STREAM->bytesTXed = STREAM->PacketsSent = 0;
 
 		if (TNC->StartInRobust)
 			send(TNC->TCPSock, "ROBUST TRUE\r\n", 13, 0);
@@ -2207,7 +2207,7 @@ VOID ProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 				PMSGWITHLEN buffptr = Q_REM(&STREAM->BPQtoPACTOR_Q);
 
 				send(TNC->TCPDataSock, buffptr->Data, (int)buffptr->Len, 0);
-				STREAM->BytesTXed += (int)buffptr->Len;
+				STREAM->bytesTXed += (int)buffptr->Len;
 				WritetoTrace(TNC, buffptr->Data, (int)buffptr->Len);
 				ReleaseBuffer(buffptr);
 			}
@@ -2693,7 +2693,7 @@ loop:
 		return;					
 	}
 
-	STREAM->BytesRXed += InputLen;
+	STREAM->bytesRXed += InputLen;
 
 	msg = &buffptr->Data[0];
 	msg[InputLen] = 0;	

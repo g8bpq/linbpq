@@ -367,10 +367,10 @@ static VOID UpdateStatsLine(struct TNCINFO * TNC, struct STREAMINFO * STREAM)
 {
 	char Count[16];
 	
-	sprintf(Count, "%d", STREAM->BytesRXed);
+	sprintf(Count, "%d", STREAM->bytesRXed);
 	SetWindowText(STREAM->xIDC_RXED, Count);
 
-	sprintf(Count, "%d", STREAM->BytesTXed);
+	sprintf(Count, "%d", STREAM->bytesTXed);
 	SetWindowText(STREAM->xIDC_SEND, Count);
 	
 	sprintf(Count, "%d", STREAM->BytesResent);
@@ -849,7 +849,7 @@ static VOID ProcessFLDigiData(struct TNCINFO * TNC, UCHAR * Input, int Len, int 
 
 		strcpy(STREAM->MyCall, call2);
 		STREAM->ConnectTime = time(NULL); 
-		STREAM->BytesRXed = STREAM->BytesTXed = STREAM->BytesAcked = STREAM->BytesResent = 0;
+		STREAM->bytesRXed = STREAM->bytesTXed = STREAM->BytesAcked = STREAM->BytesResent = 0;
 		
 		if (WL2K)
 			strcpy(SESS->RMSCall, WL2K->RMSCall);
@@ -1001,7 +1001,7 @@ AckConnectRequest:
 			goto SendKReply;		// Repeated ACK
 
 		STREAM->ConnectTime = time(NULL); 
-		STREAM->BytesRXed = STREAM->BytesTXed = STREAM->BytesAcked = STREAM->BytesResent = 0;
+		STREAM->bytesRXed = STREAM->bytesTXed = STREAM->BytesAcked = STREAM->BytesResent = 0;
 		STREAM->Connected = TRUE;
 
 		ARQ->ARQTimerState = 0;
@@ -1300,7 +1300,7 @@ SendKReply:
 
 			buffptr->Len  = Len;
 			memcpy(buffptr->Data, &Input[1], Len);
-			STREAM->BytesRXed += Len;
+			STREAM->bytesRXed += Len;
 
 			UpdateStatsLine(TNC, STREAM);
 
@@ -1388,7 +1388,7 @@ static VOID SendARQData(struct TNCINFO * TNC, PMSGWITHLEN Buffer, int Stream)
 
 	ARQ->TXHOLDQ[ARQ->TXSeq] = Buffer;
 
-	STREAM->BytesTXed += Origlen;
+	STREAM->bytesTXed += Origlen;
 
 	UpdateStatsLine(TNC, STREAM);
 

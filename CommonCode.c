@@ -906,6 +906,7 @@ BOOL ProcessIncommingConnectEx(struct TNCINFO * TNC, char * Call, int Stream, BO
 	int Totallen = 0;
 	UCHAR * ptr;
 	struct PORTCONTROL * PORT = (struct PORTCONTROL *)TNC->PortRecord;
+	struct STREAMINFO * STREAM = &TNC->Streams[Stream];
 	
 	// Stop Scanner
 
@@ -938,7 +939,11 @@ BOOL ProcessIncommingConnectEx(struct TNCINFO * TNC, char * Call, int Stream, BO
 
 	memset(Session, 0, sizeof(TRANSPORTENTRY));
 
-	memcpy(TNC->Streams[Stream].RemoteCall, Call, 9);	// Save Text Callsign
+	memcpy(STREAM->RemoteCall, Call, 9);	// Save Text Callsign
+
+	// May be subsequently rejected but a good place to capture calls
+
+	hookL4SessionAccepted(STREAM, Call, TNC->TargetCall);
 
 	if (AllowTR)
 		ConvToAX25Ex(Call, Session->L4USER);				// Allow -T and -R SSID's for MPS
@@ -951,7 +956,7 @@ BOOL ProcessIncommingConnectEx(struct TNCINFO * TNC, char * Call, int Stream, BO
 	if (NEXTID == 0) NEXTID++;		// Keep non-zero
 
 	TNC->PortRecord->ATTACHEDSESSIONS[Stream] = Session;
-	TNC->Streams[Stream].Attached = TRUE;
+	STREAM->Attached = TRUE;
 
 	Session->L4TARGET.EXTPORT = TNC->PortRecord;
 
@@ -962,7 +967,7 @@ BOOL ProcessIncommingConnectEx(struct TNCINFO * TNC, char * Call, int Stream, BO
 	Session->SESSPACLEN = TNC->PortRecord->PORTCONTROL.PORTPACLEN;
 	Session->KAMSESSION = Stream;
 
-	TNC->Streams[Stream].Connected = TRUE;			// Subsequent data to data channel
+	STREAM->Connected = TRUE;			// Subsequent data to data channel
 
 	if (LogAllConnects)
 	{

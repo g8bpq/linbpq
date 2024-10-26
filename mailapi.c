@@ -247,7 +247,7 @@ int MailAPIProcessHTTPMessage(struct HTTPConnectionInfo * Session, char * respon
 
 		// Return Token
 
-		sprintf(response, "{\"access_token\":\"%s\", \"expires_in\":%d, \"scope\":\"create\"}\r\n",
+		sprintf(response, "{\"access_token\":\"%s\", \"expires_at\":%d, \"scope\":\"create\"}\r\n",
 			Token->token, Token->expiration_time);
 
 		return strlen(response);
@@ -514,7 +514,7 @@ char * APIConvTime(int ss)
 	mm = (ss - (hh * 3600)) / 60;
 	ss = ss % 60;
 
-	sprintf(timebuf, "%02d:%02d:%02d", hh, mm, ss);
+	sprintf(timebuf, "\"%02d:%02d:%02d\"", hh, mm, ss);
 
 	return timebuf;
 }
@@ -528,7 +528,9 @@ int sendFwdConfig(struct HTTPConnectionInfo * Session, char * response, char * R
 	int i = 0;
 	int Len = 0;
 
-
+	n = sprintf(ptr,"{\"forwardconfig\":[\r\n");
+	ptr += n;
+	
 	for (USER = BBSChain; USER; USER = USER->BBSNext)
 	{
 		struct BBSForwardingInfo * FWDInfo = USER->ForwardingInfo;
@@ -575,10 +577,15 @@ int sendFwdConfig(struct HTTPConnectionInfo * Session, char * response, char * R
 		ptr += sprintf(ptr, " }\r\n},\r\n");
 	}
 
-	if (response[n])		// No entries
+	if (response[n] == 0)		// No entries
+	{
+		response[strlen(response) - 2] = '\0';          // remove \r\n
+		strcat(response, "]}\r\n");
+	}
+	else
 	{
 		response[strlen(response)-3 ] = '\0';          // remove ,\r\n
-		strcat(response, "\r\n");
+		strcat(response, "\r\n]}\r\n");
 	}
 
 	return strlen(response);

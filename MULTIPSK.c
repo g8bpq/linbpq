@@ -1317,7 +1317,7 @@ VOID ProcessMSPKData(struct TNCINFO * TNC)
 
 			C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 
-			STREAM->BytesRXed += TNC->DataLen;
+			STREAM->bytesRXed += TNC->DataLen;
 		}
 
 		TNC->DataLen = 0;
@@ -1387,7 +1387,7 @@ DataLoop:
 				STREAM->Connected = TRUE;
 				STREAM->Connecting = FALSE;
 				STREAM->ConnectTime = time(NULL); 
-				STREAM->BytesRXed = STREAM->BytesTXed = 0;
+				STREAM->bytesRXed = STREAM->bytesTXed = 0;
 
 				buffptr = GetBuff();
 				if (buffptr)
@@ -1402,7 +1402,7 @@ DataLoop:
 
 					STREAM->Connected = TRUE;
 					STREAM->ConnectTime = time(NULL); 
-					STREAM->BytesRXed = STREAM->BytesTXed = 0;
+					STREAM->bytesRXed = STREAM->bytesTXed = 0;
 
 					UpdateMH(TNC, CallFrom, '+', 'I');
 	
@@ -1483,7 +1483,7 @@ VOID SendData(struct TNCINFO * TNC, char * Msg, int MsgLen)
 	char * inptr = Msg;
 	SOCKET sock = TNCInfo[MasterPort[TNC->Port]]->TCPSock;
 
-	TNC->Streams[0].BytesTXed += MsgLen;
+	TNC->Streams[0].bytesTXed += MsgLen;
 
 	for (n = 0; n < MsgLen; n++)
 	{

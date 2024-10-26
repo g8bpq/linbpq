@@ -1230,6 +1230,9 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 					ViaList[0] = Digis;
 				}
 
+				hookL4SessionAttempt(STREAM,&STREAM->AGWKey[1], &STREAM->AGWKey[11]);
+
+
 				sent = send(TNCInfo[MasterPort[port]]->TCPSock, (char *)&AGW->TXHeader, AGWHDDRLEN, 0);
 				if (Digis)
 					send(TNCInfo[MasterPort[port]]->TCPSock, ViaList, Digis * 10 + 1, 0);
@@ -2231,7 +2234,7 @@ VOID ProcessAGWPacket(struct TNCINFO * TNC, UCHAR * Message)
 				buffptr->Len  = RXHeader->DataLength;
 				memcpy(buffptr->Data, Message, RXHeader->DataLength);
 
-				STREAM->BytesRXed += RXHeader->DataLength;
+				STREAM->bytesRXed += RXHeader->DataLength;
 
 				C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 				return;
@@ -2373,7 +2376,7 @@ GotStream:
 			memcpy(STREAM->AGWKey, Key, 21);
 			STREAM->Connected = TRUE;
 			STREAM->ConnectTime = time(NULL); 
-			STREAM->BytesRXed = STREAM->BytesTXed = 0;
+			STREAM->bytesRXed = STREAM->bytesTXed = 0;
 
 			SuspendOtherPorts(TNC);
 
@@ -2534,7 +2537,7 @@ GotStream:
 					STREAM->Connected = TRUE;
 					STREAM->Connecting = FALSE;
 					STREAM->ConnectTime = time(NULL); 
-					STREAM->BytesRXed = STREAM->BytesTXed = 0;
+					STREAM->bytesRXed = STREAM->bytesTXed = 0;
 
 					buffptr = GetBuff();
 					if (buffptr == 0) return;			// No buffers, so ignore
@@ -2936,7 +2939,7 @@ VOID SendData(int Stream, struct TNCINFO * TNC, char * Key, char * Msg, int MsgL
 	memcpy(AGW->TXHeader.callfrom, &Key[11], 10);
 	memcpy(AGW->TXHeader.callto, &Key[1], 10);
 
-	TNC->Streams[Stream].BytesTXed += MsgLen;
+	TNC->Streams[Stream].bytesTXed += MsgLen;
 
 
 	// If Length is greater than Paclen we should fragment

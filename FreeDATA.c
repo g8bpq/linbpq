@@ -971,7 +971,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			memset(STREAM->RemoteCall, 0, 10);
 			strcpy(STREAM->RemoteCall, &buff->L2DATA[2]);
 			STREAM->ConnectTime = time(NULL); 
-			STREAM->BytesRXed = STREAM->BytesTXed = STREAM->PacketsSent = 0;
+			STREAM->bytesRXed = STREAM->bytesTXed = STREAM->PacketsSent = 0;
 
 			sprintf(TNC->WEB_TNCSTATE, "%s Connecting to %s", STREAM->MyCall, STREAM->RemoteCall);
 			MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
@@ -1950,7 +1950,7 @@ VOID FreeDataProcessTNCMessage(struct TNCINFO * TNC, char * Call, unsigned char 
 		MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
 
 		STREAM->ConnectTime = time(NULL); 
-		STREAM->BytesRXed = STREAM->BytesTXed = STREAM->PacketsSent = 0;
+		STREAM->bytesRXed = STREAM->bytesTXed = STREAM->PacketsSent = 0;
 		STREAM->Connected = TRUE;
 
 		// Send Connect ACK
@@ -2049,7 +2049,7 @@ VOID FreeDataProcessTNCMessage(struct TNCINFO * TNC, char * Call, unsigned char 
 			WritetoTrace(TNC, Msg, 256);
 			Len -= 256;
 			Msg += 256;
-			STREAM->BytesRXed += 256;
+			STREAM->bytesRXed += 256;
 
 		}
 
@@ -2058,9 +2058,9 @@ VOID FreeDataProcessTNCMessage(struct TNCINFO * TNC, char * Call, unsigned char 
 		memcpy(buffptr->Data, Msg, Len);
 		C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 		WritetoTrace(TNC, Msg, Len);
-		STREAM->BytesRXed += Len;
+		STREAM->bytesRXed += Len;
 		sprintf(TNC->WEB_TRAFFIC, "Sent %d RXed %d Queued %d",
-				STREAM->BytesTXed - TNC->FreeDataInfo->toSendCount, STREAM->BytesRXed, TNC->FreeDataInfo->toSendCount);
+				STREAM->bytesTXed - TNC->FreeDataInfo->toSendCount, STREAM->bytesRXed, TNC->FreeDataInfo->toSendCount);
 		MySetWindowText(TNC->xIDC_TRAFFIC, TNC->WEB_TRAFFIC);
 
 		return;
@@ -2313,7 +2313,7 @@ VOID FreeDataProcessNewConnect(struct TNCINFO * TNC, char * fromCall, char * toC
 	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
 
 	STREAM->ConnectTime = time(NULL); 
-	STREAM->BytesRXed = STREAM->BytesTXed = STREAM->PacketsSent = 0;
+	STREAM->bytesRXed = STREAM->bytesTXed = STREAM->PacketsSent = 0;
 	STREAM->Connected = TRUE;
 
 	return;
@@ -2413,7 +2413,7 @@ void FlushData(struct TNCINFO * TNC)
 	Info->toSendTimeout = 0;
 
 	sprintf(TNC->WEB_TRAFFIC, "Sent %d RXed %d Queued %d",
-			STREAM->BytesTXed - TNC->FreeDataInfo->toSendCount, STREAM->BytesRXed, TNC->FreeDataInfo->toSendCount);
+			STREAM->bytesTXed - TNC->FreeDataInfo->toSendCount, STREAM->bytesRXed, TNC->FreeDataInfo->toSendCount);
 	MySetWindowText(TNC->xIDC_TRAFFIC, TNC->WEB_TRAFFIC);
 
 }
@@ -2436,10 +2436,10 @@ static int SendAsFile(struct TNCINFO * TNC, char * Call, char * Msg, int Len)
 	Info->toSendCount += Len;
 	Info->toSendTimeout = 10;		// About a second
 
-	STREAM->BytesTXed += Len;
+	STREAM->bytesTXed += Len;
 
 	sprintf(TNC->WEB_TRAFFIC, "Sent %d RXed %d Queued %d",
-			STREAM->BytesTXed - TNC->FreeDataInfo->toSendCount, STREAM->BytesRXed, TNC->FreeDataInfo->toSendCount);
+			STREAM->bytesTXed - TNC->FreeDataInfo->toSendCount, STREAM->bytesRXed, TNC->FreeDataInfo->toSendCount);
 	MySetWindowText(TNC->xIDC_TRAFFIC, TNC->WEB_TRAFFIC);
 
 	return Len;
@@ -2706,7 +2706,7 @@ void ProcessMessageObject(struct TNCINFO * TNC, char * This)
 					WritetoTrace(TNC, Line, 256);
 					Len -= 256;
 					Line += 256;
-					STREAM->BytesRXed += 256;
+					STREAM->bytesRXed += 256;
 				}
 
 				buffptr = GetBuff();
@@ -2714,12 +2714,12 @@ void ProcessMessageObject(struct TNCINFO * TNC, char * This)
 				memcpy(buffptr->Data, Line, Len);
 				C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 				WritetoTrace(TNC, Line, Len);
-				STREAM->BytesRXed += Len;
+				STREAM->bytesRXed += Len;
 
 			}
 
 			sprintf(TNC->WEB_TRAFFIC, "Sent %d RXed %d Queued %d",
-				STREAM->BytesTXed - TNC->FreeDataInfo->toSendCount, STREAM->BytesRXed, TNC->FreeDataInfo->toSendCount);
+				STREAM->bytesTXed - TNC->FreeDataInfo->toSendCount, STREAM->bytesRXed, TNC->FreeDataInfo->toSendCount);
 			MySetWindowText(TNC->xIDC_TRAFFIC, TNC->WEB_TRAFFIC);
 		}
 		return;
@@ -2798,7 +2798,7 @@ void ProcessMessageObject(struct TNCINFO * TNC, char * This)
 						WritetoTrace(TNC, Line, 256);
 						Len -= 256;
 						TEXT += 256;
-						STREAM->BytesRXed += 256;
+						STREAM->bytesRXed += 256;
 					}
 
 					buffptr = GetBuff();
@@ -2806,14 +2806,14 @@ void ProcessMessageObject(struct TNCINFO * TNC, char * This)
 					memcpy(buffptr->Data, Line, Len);
 					C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 					WritetoTrace(TNC, Line, Len);
-					STREAM->BytesRXed += Len;
+					STREAM->bytesRXed += Len;
 
 					TEXT = rest;
 					rest = strlop(TEXT, 10);		// FreeData chat ues LF
 				}
 				
 				sprintf(TNC->WEB_TRAFFIC, "Sent %d RXed %d Queued %d",
-					STREAM->BytesTXed - TNC->FreeDataInfo->toSendCount, STREAM->BytesRXed, TNC->FreeDataInfo->toSendCount);
+					STREAM->bytesTXed - TNC->FreeDataInfo->toSendCount, STREAM->bytesRXed, TNC->FreeDataInfo->toSendCount);
 				MySetWindowText(TNC->xIDC_TRAFFIC, TNC->WEB_TRAFFIC);
 			}
 		}

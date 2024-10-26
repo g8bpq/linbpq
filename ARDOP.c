@@ -314,7 +314,7 @@ void SendARDOPorPacketData(struct TNCINFO * TNC, int Stream, UCHAR * Buff, int t
 	if (Stream == 0)
 	{
 		ARDOPSendData(TNC, Buff, txlen);
-		STREAM->BytesTXed += txlen;
+		STREAM->bytesTXed += txlen;
 		WritetoTrace(TNC, Buff, txlen);
 	}
 	else
@@ -1274,7 +1274,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 					UCHAR * data = &buffptr->Data[0];
 					STREAM->FramesQueued--;
 					txlen = (int)buffptr->Len;
-					STREAM->BytesTXed += txlen;
+					STREAM->bytesTXed += txlen;
 
 					if (Stream == 0)
 					{
@@ -1381,7 +1381,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			{
 				bytes=ARDOPSendData(TNC, &buff->L2DATA[0], txlen);
 				TNC->Streams[Stream].BytesOutstanding += bytes;		// So flow control works - will be updated by BUFFER response
-				STREAM->BytesTXed += bytes;
+				STREAM->bytesTXed += bytes;
 				WritetoTrace(TNC, &buff->L2DATA[0], txlen);
 			}
 			else
@@ -1626,6 +1626,8 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 					sprintf(Connect, "ARQCALL %s %d", &buff->L2DATA[2], TNC->MaxConReq);
 
 					ARDOPChangeMYC(TNC, TNC->Streams[0].MyCall);
+
+					hookL4SessionAttempt(STREAM, &buff->L2DATA[2], TNC->Streams[0].MyCall);
 
 					// See if Busy
 
@@ -2263,7 +2265,7 @@ VOID TNCLost(struct TNCINFO * TNC)
 		if (Stream == 0)
 		{
 			sprintf(TNC->WEB_TRAFFIC, "Sent %d RXed %d Queued %d",
-			STREAM->BytesTXed - STREAM->BytesOutstanding, STREAM->BytesRXed, STREAM->BytesOutstanding);
+			STREAM->bytesTXed - STREAM->BytesOutstanding, STREAM->bytesRXed, STREAM->BytesOutstanding);
 			MySetWindowText(TNC->xIDC_TRAFFIC, TNC->WEB_TRAFFIC);
 		}
 
@@ -3063,7 +3065,7 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 		}
 
 		sprintf(TNC->WEB_TRAFFIC, "Sent %d RXed %d Queued %d",
-			STREAM->BytesTXed - STREAM->BytesOutstanding, STREAM->BytesRXed, STREAM->BytesOutstanding);
+			STREAM->bytesTXed - STREAM->BytesOutstanding, STREAM->bytesRXed, STREAM->BytesOutstanding);
 		MySetWindowText(TNC->xIDC_TRAFFIC, TNC->WEB_TRAFFIC);
 		return;
 	}
@@ -3083,7 +3085,7 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 		WritetoTrace(TNC, Buffer, MsgLen - 1);
 
 		STREAM->ConnectTime = time(NULL); 
-		STREAM->BytesRXed = STREAM->BytesTXed = STREAM->PacketsSent = 0;
+		STREAM->bytesRXed = STREAM->bytesTXed = STREAM->PacketsSent = 0;
 
 		memcpy(Call, &Buffer[10], 10);
 
@@ -3834,12 +3836,12 @@ VOID ARDOPProcessDataPacket(struct TNCINFO * TNC, UCHAR * Type, UCHAR * Data, in
 		return;
 	}
 
-	STREAM->BytesRXed += Length;
+	STREAM->bytesRXed += Length;
 
 	Data[Length] = 0;	
 
 	sprintf(TNC->WEB_TRAFFIC, "Sent %d RXed %d Queued %d",
-			STREAM->BytesTXed - STREAM->BytesOutstanding, STREAM->BytesRXed, STREAM->BytesOutstanding);
+			STREAM->bytesTXed - STREAM->BytesOutstanding, STREAM->bytesRXed, STREAM->BytesOutstanding);
 	MySetWindowText(TNC->xIDC_TRAFFIC, TNC->WEB_TRAFFIC);
 
 	
@@ -4988,7 +4990,7 @@ tcpHostFrame:
 				WritetoTrace(TNC, Buffer, len);
 
 				STREAM->ConnectTime = time(NULL); 
-				STREAM->BytesRXed = STREAM->BytesTXed = STREAM->PacketsSent = 0;
+				STREAM->bytesRXed = STREAM->bytesTXed = STREAM->PacketsSent = 0;
 
 				memcpy(Call, &Buffer[19], 10);
 				ptr = strchr(Call, ' ');	

@@ -441,4 +441,7 @@ DllExport uint64_t APIENTRY GetPortFrequency(int PortNo, char * FreqStringMhz);
 void hookL2SessionAccepted(int Port, char * remotecall, char * ourcall, struct _LINKTABLE * LINK);
 void hookL2SessionDeleted(struct _LINKTABLE * LINK);
 void hookL2SessionAttempt(int Port, char * ourcall, char * remotecall, struct _LINKTABLE * LINK);
+
+void hookL4SessionAttempt(void * STREAM, char * remotecall, char * ourcall);
+void hookL4SessionAccepted(void * STREAM, char * remotecall, char * ourcall);
 void hookL4SessionDeleted(struct TNCINFO * TNC, void * STREAM);

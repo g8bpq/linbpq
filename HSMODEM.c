@@ -589,7 +589,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				UCHAR * data = &buffptr->Data[0];
 				STREAM->FramesQueued--;
 				txlen = (int)buffptr->Len;
-				STREAM->BytesTXed += txlen;
+				STREAM->bytesTXed += txlen;
 
 				bytes=HSMODEMSendData(TNC, data, txlen);
 				WritetoTrace(TNC, data, txlen);
@@ -668,7 +668,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 			bytes=HSMODEMSendData(TNC, TXMsg, txlen);
 			TNC->Streams[Stream].BytesOutstanding += bytes;		// So flow control works - will be updated by BUFFER response
-			STREAM->BytesTXed += bytes;
+			STREAM->bytesTXed += bytes;
 //			WritetoTrace(TNC, &buff->L2DATA[0], txlen);
 	
 			return 1;

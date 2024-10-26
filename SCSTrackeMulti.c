@@ -825,7 +825,7 @@ static VOID DEDPoll(int Port)
 				}
 
 				Poll[1] = 0;			// Data
-				TNC->Streams[Stream].BytesTXed += datalen;
+				TNC->Streams[Stream].bytesTXed += datalen;
 
 				Poll[2] = datalen - 1;
 				memcpy(&Poll[3], Buffer, datalen);
@@ -1508,7 +1508,7 @@ static VOID ProcessDEDFrame(struct TNCINFO * TNC)
 				STREAM->Connected = TRUE;			// Subsequent data to data channel
 				STREAM->Connecting = FALSE;
 
-				STREAM->BytesRXed = STREAM->BytesTXed = 0;
+				STREAM->bytesRXed = STREAM->bytesTXed = 0;
 
 				memcpy(MHCall, Call, 9);
 				MHCall[9] = 0;
@@ -1677,7 +1677,7 @@ static VOID ProcessDEDFrame(struct TNCINFO * TNC)
 		if (buffptr == NULL) return;			// No buffers, so ignore
 			
 		buffptr->Len = framelen;				// Length
-		TNC->Streams[Stream].BytesRXed += buffptr->Len;
+		TNC->Streams[Stream].bytesRXed += buffptr->Len;
 		memcpy(buffptr->Data, Msg, buffptr->Len);
 		
 		C_Q_ADD(&TNC->Streams[Stream].PACTORtoBPQ_Q, buffptr);
