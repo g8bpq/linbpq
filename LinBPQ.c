@@ -1269,6 +1269,7 @@ int main(int argc, char * argv[])
 				}
 			}
 			for (i = optind; i < argc; i++)
+
 			{
 				if (_stricmp(argv[i], "tidymail") == 0)
 					DeleteRedundantMessages();

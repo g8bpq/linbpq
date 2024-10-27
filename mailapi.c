@@ -15,7 +15,6 @@
 struct MsgInfo * GetMsgFromNumber(int msgno);
 BOOL CheckUserMsg(struct MsgInfo * Msg, char * Call, BOOL SYSOP);
 char * doXMLTransparency(char * string);
-void ConvertTitletoUTF8(WebMailInfo * WebMail, char * Title, char * UTF8Title, int Len);
 
 
 // Constants
@@ -70,6 +69,49 @@ static struct MailAPI APIList[] =
 
 static int APICount = sizeof(APIList) / sizeof(struct MailAPI);
 
+#ifndef WIN32
+iconv_t * icu = NULL;
+#endif
+
+void APIConvertTitletoUTF8(char * Title, char * UTF8Title, int Len)
+{
+	if (WebIsUTF8(Title, (int)strlen(Title)) == FALSE)
+	{
+		// With Windows it is simple - convert using current codepage
+		// I think the only reliable way is to convert to unicode and back
+
+		int origlen = (int)strlen(Title) + 1;
+#ifdef WIN32
+		WCHAR BufferW[128];
+		int wlen;
+		int len = origlen;
+
+		wlen = MultiByteToWideChar(CP_ACP, 0, Title, len, BufferW, origlen * 2); 
+		len = WideCharToMultiByte(CP_UTF8, 0, BufferW, wlen, UTF8Title, origlen * 2, NULL, NULL); 
+#else
+		size_t left = Len - 1;
+		size_t len = origlen;
+
+		if (icu == NULL)
+			icu = iconv_open("UTF-8//IGNORE", "CP1252");
+
+		if (icu == (iconv_t)-1)
+		{
+			strcpy(UTF8Title, Title);
+			icu = NULL;
+			return;
+		}
+
+		char * orig = UTF8Title;
+
+		iconv(icu, NULL, NULL, NULL, NULL);		// Reset State Machine
+		iconv(icu, &Title, &len, (char ** __restrict__)&UTF8Title, &left);
+
+#endif
+	}
+	else
+		strcpy(UTF8Title, Title);
+}
 
 static MailToken * generate_token() 
 {
@@ -408,7 +450,7 @@ int sendMsgList(struct HTTPConnectionInfo * Session, char * response, char * Res
 			EncodedTitle = doXMLTransparency(Msg->title);
 
 			memset(UTF8Title, 0, 4096);		// In case convert fails part way through
-			ConvertTitletoUTF8(Session->WebMail, EncodedTitle, UTF8Title, 4095);
+			APIConvertTitletoUTF8(EncodedTitle, UTF8Title, 4095);
 
 			ptr += sprintf(ptr, "\"id\": \"%d\",\r\n", Msg->number);
 			ptr += sprintf(ptr, "\"mid\": \"%s\",\r\n", Msg->bid);
