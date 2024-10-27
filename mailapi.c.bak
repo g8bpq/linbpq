@@ -570,8 +570,6 @@ int sendFwdConfig(struct HTTPConnectionInfo * Session, char * response, char * R
 	int i = 0;
 	int Len = 0;
 
-	response[n] = 0;
-
 
 	for (USER = BBSChain; USER; USER = USER->BBSNext)
 	{
@@ -622,7 +620,7 @@ int sendFwdConfig(struct HTTPConnectionInfo * Session, char * response, char * R
 	if (response[n])		// No entries
 	{
 		response[strlen(response)-3 ] = '\0';          // remove ,\r\n
-		strcat(response, "\r\n");
+		strcat(response, "\r\n]}\r\n");
 	}
 
 	return strlen(response);

@@ -477,6 +477,13 @@ void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, 
 
 	}
 
+
+	if (_memicmp(URL, "/Mail/API/v1/", 13) == 0)
+	{
+		*RLen = MailAPIProcessHTTPMessage(Session, Reply, Method, URL, input, LOCAL, Context);
+		return;
+	}
+
 	// There is a problem if Mail is reloaded without reloading the node
 
 	if (GotFirstMessage == 0)
@@ -491,12 +498,6 @@ void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, 
 		}
 		
 		GotFirstMessage = 1;
-		return;
-	}
-
-	if (_memicmp(URL, "/Mail/API/v1/", 13) == 0)
-	{
-		*RLen = MailAPIProcessHTTPMessage(Session, Reply, Method, URL, input, LOCAL, Context);
 		return;
 	}
 
