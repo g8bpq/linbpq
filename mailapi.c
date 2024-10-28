@@ -572,6 +572,8 @@ int sendFwdConfig(struct HTTPConnectionInfo * Session, char * response, char * R
 
 	response[n] = 0;
 
+	n = sprintf(ptr, "{\r\n");
+	ptr += n;
 
 	for (USER = BBSChain; USER; USER = USER->BBSNext)
 	{
@@ -594,7 +596,7 @@ int sendFwdConfig(struct HTTPConnectionInfo * Session, char * response, char * R
 		APIMultiStringValue(FWDInfo->HaddressesP, HRP);
 
 
-		ptr += sprintf(ptr, "{\r\n");
+
 		ptr += sprintf(ptr, " \"%s\": {\r\n", USER->Call);
 		ptr += sprintf(ptr, "  \"queueLength\": %d,\r\n", Count);
 		ptr += sprintf(ptr, "  \"to\": [%s],\r\n", TO);
@@ -616,13 +618,17 @@ int sendFwdConfig(struct HTTPConnectionInfo * Session, char * response, char * R
 		ptr += sprintf(ptr, "  \"useB1Protocol\": %s,\r\n", (FWDInfo->AllowB1)?"true":"false");
 		ptr += sprintf(ptr, "  \"useB2Protocol\": %s,\r\n", (FWDInfo->AllowB2)?"true":"false");
 		ptr += sprintf(ptr, "  \"incomingConnectTimeout\": %s\r\n", APIConvTime(FWDInfo->ConTimeout));
-		ptr += sprintf(ptr, " }\r\n},\r\n");
+		ptr += sprintf(ptr, " },\r\n");
 	}
 
-	if (response[n])		// No entries
+	if (response[n] == 0)		// No entries
+	{
+		strcpy(response, "{}\r\n");
+	}
+	else
 	{
 		response[strlen(response)-3 ] = '\0';          // remove ,\r\n
-		strcat(response, "\r\n");
+		strcat(response, "\r\n}\r\n");
 	}
 
 	return strlen(response);
