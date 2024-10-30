@@ -106,7 +106,7 @@ char * strlop(char * buf, char delim);
 VOID sendandcheck(SOCKET sock, const char * Buffer, int Len);
 int CompareNode(const void *a, const void *b);
 int CompareAlias(const void *a, const void *b);
-void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, char * URL, char * input, char * Reply, int * RLen, int InputLen);
+void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, char * URL, char * input, char * Reply, int * RLen, int InputLen, char * Token);
 void ProcessChatHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, char * URL, char * input, char * Reply, int * RLen);
 struct PORTCONTROL * APIENTRY GetPortTableEntryFromSlot(int portslot);
 int SetupNodeMenu(char * Buff, int SYSOP);
@@ -2123,11 +2123,7 @@ Returnit:
 					Compressed = Reply;
 
 				if (NodeURL && _memicmp(NodeURL, "/mail/api/", 10) == 0)
-					HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\n"
-						"Content-Length: %d\r\n"
-						"Content-Type: application/json\r\n"
-						"Connection: close\r\n"
-						"%s\r\n", ReplyLen, Encoding);
+					HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: application/json\r\nConnection: close\r\n%s\r\n", ReplyLen, Encoding);
 				else
 					HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n%s\r\n", ReplyLen, Encoding);
 				
@@ -2150,6 +2146,27 @@ doHeader:
 			char _REPLYBUFFER[250000];
 			struct HTTPConnectionInfo Dummy = {0};
 			int Sent, Loops = 0;
+			char token[16] = "";
+
+			// look for auth header	
+
+			const char * auth_header = "Authorization: Bearer ";
+			char * token_begin = strstr(MsgPtr, auth_header);
+			int Flags = 0, n;
+
+			char * Tok;
+			char * param;
+
+			if (token_begin)
+			{
+				// Using Auth Header
+
+				// Extract the token from the request (assuming it's present in the request headers)
+
+				token_begin += strlen(auth_header); // Move to the beginning of the token
+				strncpy(token, token_begin, 13);
+				token[13] = '\0'; // Null-terminate the token
+			}
 
 			ReplyLen = 0;
 
@@ -2161,7 +2178,7 @@ doHeader:
 			else
 				Session->TNC = (void *)0;
 
-			ProcessMailHTTPMessage(Session, Method, Context, MsgPtr, _REPLYBUFFER, &ReplyLen, MsgLen);
+			ProcessMailHTTPMessage(Session, Method, Context, MsgPtr, _REPLYBUFFER, &ReplyLen, MsgLen, token);
 
 			if (Context && _memicmp(Context, "/mail/api/", 10) == 0)
 			{
@@ -2171,9 +2188,9 @@ doHeader:
 				if (allowDeflate)
 					Compressed = Compressit(_REPLYBUFFER, ReplyLen, &ReplyLen);
 				else
-					Compressed = Reply;
+					Compressed = _REPLYBUFFER;
 
-				HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n%s\r\n", ReplyLen, Encoding);
+				HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: application/json\r\nConnection: close\r\n%s\r\n", ReplyLen, Encoding);
 				sendandcheck(sock, Header, HeaderLen);
 				sendandcheck(sock, Compressed, ReplyLen);
 
@@ -2305,6 +2322,8 @@ doHeader:
 #else
 
 		// Pass to MailChat if active
+
+		NodeURL = Context;
 
 		if ((_memicmp(Context, "/MAIL/", 6) == 0) || (_memicmp(Context, "/WebMail", 8) == 0))
 		{
@@ -4248,42 +4267,53 @@ int ProcessMailAPISignon(struct TCPINFO * TCP, char * MsgPtr, char * Appl, char 
 	int i;
 	struct UserRec * USER;
 
-	user = strlop(MsgPtr, '?');
-	password = strlop(user, '&');
-	strlop(password, ' ');
-
-
-	for (i = 0; i < TCP->NumberofUsers; i++)
+	if (strchr(MsgPtr, '?'))
 	{
-		USER = TCP->UserRecPtr[i];
+		// Check Password
 
-		if (user && _stricmp(user, USER->UserName) == 0)
+		user = strlop(MsgPtr, '?');
+		password = strlop(user, '&');
+		strlop(password, ' ');
+
+		for (i = 0; i < TCP->NumberofUsers; i++)
 		{
-			if ((strcmp(password, USER->Password) == 0) && (USER->Secure || WebMail))
+			USER = TCP->UserRecPtr[i];
+
+			if (user && _stricmp(user, USER->UserName) == 0)
 			{
-				// ok
-
-				NewSession = AllocateSession(Appl[0], 'M');
-
-				*Session = NewSession;
-
-				if (NewSession)
+				if ((strcmp(password, USER->Password) == 0) && (USER->Secure || WebMail))
 				{
-					ReplyLen = 0;
-					strcpy(NewSession->Callsign, USER->Callsign);
+					// ok
+
+					NewSession = AllocateSession(Appl[0], 'M');
+
+					*Session = NewSession;
+
+					if (NewSession)
+					{
+						ReplyLen = 0;
+						strcpy(NewSession->Callsign, USER->Callsign);
+					}
+					else
+					{
+						ReplyLen =  SetupNodeMenu(Reply, LOCAL);
+						ReplyLen += sprintf(&Reply[ReplyLen], "%s", BusyError);
+					}
+					return ReplyLen;
+
 				}
-				else
-				{
-					ReplyLen =  SetupNodeMenu(Reply, LOCAL);
-					ReplyLen += sprintf(&Reply[ReplyLen], "%s", BusyError);
-				}
-				return ReplyLen;
-			
 			}
 		}
-	}	
 
-	// Pass failed attempt to BBS code so it can try a bbs user login
+		// Pass failed attempt to BBS code so it can try a bbs user login
+
+		// Need to put url back together
+
+		if (user && user[0] && password && password[0])
+		{
+			sprintf(MsgPtr, "%s?%s&%s", MsgPtr, user, password); 
+		}
+	}
 
 	NewSession = AllocateSession(Appl[0], 'M');
 

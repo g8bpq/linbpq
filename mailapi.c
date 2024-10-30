@@ -1,6 +1,6 @@
 // basic JASON API to BPQ Node
 
-// Authentication is via Telnet USER records.
+// Authentication is via Telnet USER records or bbs records
 
 
 #define _CRT_SECURE_NO_DEPRECATE
@@ -62,9 +62,9 @@ int sendFwdConfig(struct HTTPConnectionInfo * Session, char * response, char * R
 
 static struct MailAPI APIList[] =
 {
-	"/mail/api/v1/msgs", 17, sendMsgList, AuthBBSUser | AuthSysop,
-	"/mail/api/v1/FwdQLen", 20, sendFwdQueueLen, AuthBBSUser | AuthSysop,
-	"/mail/api/v1/FwdConfig", 22, sendFwdConfig, AuthBBSUser | AuthSysop,
+	"/mail/api/v1/msgs", 17, sendMsgList, 0,
+	"/mail/api/v1/FwdQLen", 20, sendFwdQueueLen, AuthSysop,
+	"/mail/api/v1/FwdConfig", 22, sendFwdConfig, AuthSysop,
 };
 
 static int APICount = sizeof(APIList) / sizeof(struct MailAPI);
@@ -152,29 +152,6 @@ static void add_token_to_list(MailToken * token)
 	}
 }
 
-static int verify_token(const char* token)
-{
-	// Find the token in the token list
-	MailToken * existing_token = find_token(token);
-
-	if (existing_token != NULL)
-	{
-		// Check if the token has expired
-		time_t current_time = time(NULL);
-		if (current_time > existing_token->expiration_time)
-		{
-			// Token has expired, remove it from the token list
-			remove_expired_tokens();
-			return 0;
-		}
-		// Token is valid
-		return 1;
-	}
-
-	// Token doesn't exist in the token list
-	return 0;
-}
-
 static void remove_expired_tokens()
 {
 	time_t current_time = time(NULL);
@@ -206,6 +183,7 @@ static void remove_expired_tokens()
 static MailToken * find_token(const char* token) 
 {
 	MailToken * current_token = token_list;
+
 	while (current_token != NULL) 
 	{
 		if (strcmp(current_token->token, token) == 0) 
@@ -223,7 +201,7 @@ static int send_http_response(char * response, const char* msg)
 }
 
 
-int MailAPIProcessHTTPMessage(struct HTTPConnectionInfo * Session, char * response, char * Method, char * URL, char * request, BOOL LOCAL, char  *Params)
+int MailAPIProcessHTTPMessage(struct HTTPConnectionInfo * Session, char * response, char * Method, char * URL, char * request, BOOL LOCAL, char  *Params, char * TokenString)
 {
 	char * pass = strlop(Params, '&');
 	int Flags = 0, n;
@@ -261,6 +239,11 @@ int MailAPIProcessHTTPMessage(struct HTTPConnectionInfo * Session, char * respon
 			
 				strcpy(Session->Callsign, User->Call);
 				Auth = AuthBBSUser;
+				if (User->flags & F_SYSOP)
+					Auth |= AuthSysop;
+
+
+
 			}
 		}
 		else
@@ -294,6 +277,29 @@ int MailAPIProcessHTTPMessage(struct HTTPConnectionInfo * Session, char * respon
 
 		return strlen(response);
 	}
+
+	// Find Token
+
+	if (TokenString[0])					// Token form Auth Header
+		Token = find_token(TokenString);
+	else
+		Token = find_token(Params);		// Token form URL
+
+	if (Token != NULL)
+	{
+		// Check if the token has expired
+	
+		time_t current_time = time(NULL);
+		if (current_time > Token->expiration_time)
+		{
+			// Token has expired, remove it from the token list
+			remove_expired_tokens();
+			Token = NULL;
+		}
+	}
+
+	if (Token)
+		Auth |= Token->Auth;
 
 	// Determine the requested API endpoint
 
@@ -329,6 +335,9 @@ int MailAPIProcessHTTPMessage(struct HTTPConnectionInfo * Session, char * respon
 			if (APIEntry->Auth)
 			{
 				// Check Level 
+
+				if ((Auth & APIEntry->Auth) == 0)
+					return send_http_response(response, "403 (Not Authorized)");
 			}
 
 			if (rest[0] == ' ' || rest[0] == '/' || rest[0] == '?')

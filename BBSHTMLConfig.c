@@ -116,7 +116,7 @@ int SendWebMailHeader(char * Reply, char * Key, struct HTTPConnectionInfo * Sess
 struct UserInfo * FindBBS(char * Name);
 void ReleaseWebMailStruct(WebMailInfo * WebMail);
 VOID TidyWelcomeMsg(char ** pPrompt);
-int MailAPIProcessHTTPMessage(struct HTTPConnectionInfo * Session, char * response, char * Method, char * URL, char * request, BOOL LOCAL, char * Param);
+int MailAPIProcessHTTPMessage(struct HTTPConnectionInfo * Session, char * response, char * Method, char * URL, char * request, BOOL LOCAL, char * Param, char * Token);
 
 char UNC[] = "";
 char CHKD[] = "checked=checked ";
@@ -447,7 +447,7 @@ void ConvertTitletoUTF8(WebMailInfo * WebMail, char * Title, char * UTF8Title, i
 
 BOOL GotFirstMessage = 0;
 
-void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, char * URL, char * input, char * Reply, int * RLen, int InputLen)
+void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, char * URL, char * input, char * Reply, int * RLen, int InputLen, char * Token)
 {
 	char * Context = 0, * NodeURL;
 	int ReplyLen;
@@ -480,7 +480,7 @@ void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, 
 
 	if (_memicmp(URL, "/Mail/API/v1/", 13) == 0)
 	{
-		*RLen = MailAPIProcessHTTPMessage(Session, Reply, Method, URL, input, LOCAL, Context);
+		*RLen = MailAPIProcessHTTPMessage(Session, Reply, Method, URL, input, LOCAL, Context, Token);
 		return;
 	}
 
@@ -2997,6 +2997,8 @@ int ProcessWebmailWebSock(char * MsgPtr, char * OutBuffer);
 
 static char PipeFileName[] = "\\\\.\\pipe\\BPQMailWebPipe";
 
+// Constants
+
 static DWORD WINAPI InstanceThread(LPVOID lpvParam)
 
 // This routine is a thread processing function to read from and reply to a client
@@ -3017,6 +3019,7 @@ static DWORD WINAPI InstanceThread(LPVOID lpvParam)
 	char URL[100001];
 	char * Context, * Method;
 	int n;
+	char token[16]= "";
 
 	char * ptr;
 
@@ -3052,17 +3055,42 @@ static DWORD WINAPI InstanceThread(LPVOID lpvParam)
 	}
 	else
 	{
-		strcpy(URL, MsgPtr);
+		// look for auth header	
+		
+		const char * auth_header = "Authorization: Bearer ";
+		char * token_begin = strstr(MsgPtr, auth_header);
+		int Flags = 0, n;
 
-		ptr = strstr(URL, " HTTP");
+		// Node Flags isn't currently used
 
-		if (ptr)
-			*ptr = 0;
+		char * Tok;
+		char * param;
 
-		Method = strtok_s(URL, " ", &Context);
+		if (token_begin)
+		{
+			// Using Auth Header
 
-		ProcessMailHTTPMessage(&Session, Method, Context, MsgPtr, OutBuffer, &OutputLen, InputLen);
+			// Extract the token from the request (assuming it's present in the request headers)
+
+			token_begin += strlen(auth_header); // Move to the beginning of the token
+			strncpy(token, token_begin, 13);
+			token[13] = '\0'; // Null-terminate the token
+		}
 	}
+
+	strcpy(URL, MsgPtr);
+
+
+
+	ptr = strstr(URL, " HTTP");
+
+	if (ptr)
+		*ptr = 0;
+
+	Method = strtok_s(URL, " ", &Context);
+
+	ProcessMailHTTPMessage(&Session, Method, Context, MsgPtr, OutBuffer, &OutputLen, InputLen, token);
+
 
 	WriteFile(hPipe, &Session, sizeof (struct HTTPConnectionInfo), &n, NULL);
 	WriteFile(hPipe, OutBuffer, OutputLen, &cbWritten, NULL); 

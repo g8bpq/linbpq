@@ -8136,6 +8136,15 @@ BOOL ProcessBBSConnectScript(CIRCUIT * conn, char * Buffer, int len)
 			Line = Scripts[n];
 		}
 
+		if (Line == NULL)
+		{
+			// No more lines - Disconnect
+
+			conn->BBSFlags &= ~RunningConnectScript;	// so it doesn't get reentered
+			Disconnect(conn->BPQStream);
+			return FALSE;
+		}
+
 		if (_memicmp(Line, "TIMES", 5) == 0)
 		{
 		NextBand:
