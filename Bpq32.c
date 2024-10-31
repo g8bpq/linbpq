@@ -1232,7 +1232,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix buffer leak in ARDOP codev(46)
 //	Fix possible crash if MQTT not in use (47)
 //	Add optional ATTACH time limit for VARA (48)
-//	API foramt fixes (48)
+//	API format fixes (48)
 
 #define CKernel
 

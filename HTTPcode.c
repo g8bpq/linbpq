@@ -2182,6 +2182,29 @@ doHeader:
 
 			if (Context && _memicmp(Context, "/mail/api/", 10) == 0)
 			{
+				if (memcmp(_REPLYBUFFER, "HTTP", 4) == 0)
+				{
+					// Full Header provided by appl - just send it
+
+					// Send may block
+
+					Sent = send(sock, _REPLYBUFFER, ReplyLen, 0);
+
+					while (Sent != ReplyLen && Loops++ < 3000)					// 100 secs max
+					{	
+						//				Debugprintf("%d out of %d sent %d Loops", Sent, InputLen, Loops);
+
+						if (Sent > 0)					// something sent
+						{
+							InputLen -= Sent;
+							memmove(_REPLYBUFFER, &_REPLYBUFFER[Sent], ReplyLen);
+						}	
+
+						Sleep(30);
+						Sent = send(sock, _REPLYBUFFER, ReplyLen, 0);
+					}
+					return 0;
+				}
 
 				// compress if allowed
 
