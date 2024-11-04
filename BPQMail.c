@@ -1140,6 +1140,8 @@
 //	Rewrite PG server code on Lunux (41)
 //	Fix SendPToMultiple not stopping at Implied AT match (45)
 //	Log Our HA when checking for flood bulls (45)
+//	Semaphore calls to SaveConfig
+//	Include SERVIC as valid from call (for Winlink Service messages) (49)
 
 #include "bpqmail.h"
 #include "winstdint.h"

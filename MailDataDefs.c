@@ -43,6 +43,7 @@ struct SEM AllocSemaphore = {0, 0};
 struct SEM ConSemaphore = {0, 0};
 struct SEM Semaphore = {0, 0};
 struct SEM OutputSEM = {0, 0};
+struct SEM ConfigSEM = {0, 0};
 
 struct UserInfo ** UserRecPtr=NULL;
 int NumberofUsers=0;

@@ -2838,12 +2838,6 @@ noFlip3:
 
 	RESET2(LINK);						// RESET ALL FLAGS
 
-	toCall[ConvFromAX25(LINK->LINKCALL, toCall)] = 0;
-	fromCall[ConvFromAX25(LINK->OURCALL, fromCall)] = 0;
-
-	hookL2SessionAttempt(CONNECTPORT, fromCall, toCall, LINK);
-
-
 	if (CMD->String[0] == 'N' && SUPPORT2point2)
 		LINK->L2STATE = 1;					// New (2.2) send XID
 	else

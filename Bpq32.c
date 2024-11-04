@@ -1229,7 +1229,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add support for Qtsm Mgmt Interface (45)
 //	NodeAPI improvements (46)
 //	Add MQTT Interface (46)
-//	Fix buffer leak in ARDOP codev(46)
+//	Fix buffer leak in ARDOP code(46)
 //	Fix possible crash if MQTT not in use (47)
 //	Add optional ATTACH time limit for VARA (48)
 //	API format fixes (48)

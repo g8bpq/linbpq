@@ -269,6 +269,8 @@ char FilesNames[4][100] = {"", "", "", ""};
 
 char * Logs[4] = {"BBS", "CHAT", "TCP", "DEBUG"};
 
+extern struct SEM ConfigSEM;
+
 
 BOOL OpenLogfile(int Flags)
 {
@@ -2209,7 +2211,7 @@ BOOL CheckValidCall(char * From)
 	if (DontCheckFromCall)
 		return TRUE;
 	
-	if (strcmp(From, "SYSOP") == 0 || strcmp(From, "SYSTEM") == 0 || 
+	if (strcmp(From, "SYSOP") == 0 || strcmp(From, "SYSTEM") == 0 || strcmp(From, "SERVIC") == 0 || 
 		strcmp(From, "IMPORT") == 0 || strcmp(From, "SMTP:") == 0 || strcmp(From, "RMS:") == 0)
 		return TRUE;
 
@@ -9531,6 +9533,8 @@ VOID SaveConfig(char * ConfigName)
 	char FBBString[8192]= "";
 	FBBFilter * p = Filters;
 	char * ptr = FBBString;
+	
+	GetSemaphore(&ConfigSEM, 60);
 
 	if (configSaved == 0)
 	{
@@ -9954,10 +9958,11 @@ VOID SaveConfig(char * ConfigName)
 
 #ifdef LINBPQ
 
-	if(! config_write_file(&cfg,"/dev/shm/linmail.cfg.temp" ))
+	if(!config_write_file(&cfg,"/dev/shm/linmail.cfg.temp" ))
 	{
 		print("Error while writing file.\n");
 		config_destroy(&cfg);
+		FreeSemaphore(&ConfigSEM);
 		return;
 	}
 
@@ -9969,6 +9974,8 @@ VOID SaveConfig(char * ConfigName)
 	{
 		fprintf(stderr, "Error while writing file.\n");
 		config_destroy(&cfg);
+		FreeSemaphore(&ConfigSEM);
+
 		return;
 	}
 
@@ -9997,6 +10004,8 @@ VOID SaveConfig(char * ConfigName)
 	}
 #endif
 */
+
+	FreeSemaphore(&ConfigSEM);
 }
 
 int GetIntValue(config_setting_t * group, char * name)
