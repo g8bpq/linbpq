@@ -1142,6 +1142,7 @@
 //	Log Our HA when checking for flood bulls (45)
 //	Semaphore calls to SaveConfig
 //	Include SERVIC as valid from call (for Winlink Service messages) (49)
+//	Attempt to detect line draw characters in Webmail (50)
 
 #include "bpqmail.h"
 #include "winstdint.h"

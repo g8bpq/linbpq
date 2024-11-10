@@ -2656,6 +2656,7 @@ VOID ProcessPOP3ServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 				// Must be some other coding
 
 				int code = TrytoGuessCode(msgbytes, Len);
+
 				UCHAR * UTF = malloc(Len * 3);
 
 				if (code == 437)

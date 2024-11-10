@@ -36,14 +36,14 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 struct AGWHeader
 {
-    int Port;
+    unsigned int Port;
 	unsigned char DataKind;
     unsigned char filler2;
 	unsigned char PID;
     unsigned char filler3;
     unsigned char callfrom[10];
     unsigned char callto[10];
-    int DataLength;
+    unsigned int DataLength;
     int reserved;
 };
 
@@ -1063,6 +1063,8 @@ int AGWDataSocket_Read(struct AGWSocketConnectionInfo * sockptr, SOCKET sock)
 	{
 		if (DataLength > 35)//         A header
 		{
+			struct AGWHeader * AGW = &sockptr->AGWRXHeader;
+
 			i=recv(sock,(char *)&sockptr->AGWRXHeader, 36, 0);
             
 			if (i == SOCKET_ERROR)
@@ -1074,6 +1076,16 @@ int AGWDataSocket_Read(struct AGWSocketConnectionInfo * sockptr, SOCKET sock)
 
 			
 			sockptr->MsgDataLength = sockptr->AGWRXHeader.DataLength;
+
+			// Validate packet to protect against accidental (or malicious!) connects from a non-agw application
+
+
+			if (AGW->Port > 64 || AGW->filler2 != 0 || AGW->filler3 != 0 || AGW->DataLength > 400)
+			{
+				Debugprintf("Corrupt AGW Packet Received");
+				AGWDataSocket_Disconnect(sockptr);
+				return 0;
+			}
 
 			if (sockptr->MsgDataLength > 500)
 				OutputDebugString("Corrupt AGW message");

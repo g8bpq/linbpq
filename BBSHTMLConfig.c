@@ -405,41 +405,20 @@ int SendHeader(char * Reply, char * Key)
 
 void ConvertTitletoUTF8(WebMailInfo * WebMail, char * Title, char * UTF8Title, int Len)
 {
-	if (WebIsUTF8(Title, (int)strlen(Title)) == FALSE)
+	Len = strlen(Title);
+
+	if (WebIsUTF8(Title, Len) == FALSE)
 	{
-		// With Windows it is simple - convert using current codepage
-		// I think the only reliable way is to convert to unicode and back
+		int code = TrytoGuessCode(Title, Len);
 
-		int origlen = (int)strlen(Title) + 1;
-#ifdef WIN32
-		WCHAR BufferW[128];
-		int wlen;
-		int len = origlen;
+		if (code == 437)
+			Len = Convert437toUTF8(Title, Len, UTF8Title);
+		else if (code == 1251)
+			Len = Convert1251toUTF8(Title, Len, UTF8Title);
+		else
+			Len = Convert1252toUTF8(Title, Len, UTF8Title);
 
-		wlen = MultiByteToWideChar(CP_ACP, 0, Title, len, BufferW, origlen * 2); 
-		len = WideCharToMultiByte(CP_UTF8, 0, BufferW, wlen, UTF8Title, origlen * 2, NULL, NULL); 
-#else
-		size_t left = Len - 1;
-		size_t len = origlen;
-
-		iconv_t * icu = WebMail->iconv_toUTF8;
-
-		if (WebMail->iconv_toUTF8 == NULL)
-			icu = WebMail->iconv_toUTF8 = iconv_open("UTF-8//IGNORE", "CP1252");
-
-		if (icu == (iconv_t)-1)
-		{
-			strcpy(UTF8Title, Title);
-			WebMail->iconv_toUTF8 = NULL;
-			return;
-		}
-
-		char * orig = UTF8Title;
-
-		iconv(icu, NULL, NULL, NULL, NULL);		// Reset State Machine
-		iconv(icu, &Title, &len, (char ** __restrict__)&UTF8Title, &left);
-
-#endif
+		UTF8Title[Len] = 0;
 	}
 	else
 		strcpy(UTF8Title, Title);

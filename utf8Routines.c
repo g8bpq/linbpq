@@ -548,8 +548,8 @@ int TrytoGuessCode(unsigned char * Char, int Len)
 	if (Above127 == 0)			// DOesn't really matter!
 		return 1252;
 
-	if (Above127 == LineDraw)
-		return 437;			// If only Line Draw chars, assume line draw
+	if (LineDraw > ((Above127 * 9) / 10))
+		return 437;			// If mainly Line Draw chars, assume line draw
 
 	// If mainly below 128, it is probably Latin if mainly above, probably Cyrillic
 

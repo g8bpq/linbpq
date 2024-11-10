@@ -1246,63 +1246,25 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 		User->Total.MsgsSent[Index] ++;
 		//		User->Total.BytesForwardedOut[Index] += Length;
 
-
 		// if body not UTF-8, convert it
 
 		if (WebIsUTF8(MsgBytes, msgLen) == FALSE)
 		{
-			// With Windows it is simple - convert using current codepage
-			// I think the only reliable way is to convert to unicode and back
+			int code = TrytoGuessCode(MsgBytes, msgLen);
 
-			size_t origlen = msgLen + 1;
+			UCHAR * UTF = malloc(msgLen * 3);
 
-			UCHAR * BufferB = malloc(2 * origlen);
-#ifdef WIN32
-			WCHAR * BufferW = malloc(2 * origlen);
-			int wlen;
-			int len = (int)origlen;
-
-			wlen = MultiByteToWideChar(CP_ACP, 0, MsgBytes, len, BufferW, (int)(origlen * 2)); 
-			len = WideCharToMultiByte(CP_UTF8, 0, BufferW, wlen, BufferB, (int)(origlen * 2), NULL, NULL); 
-
-			free(Save);
-			Save = MsgBytes = BufferB;
-			free(BufferW);
-			msgLen = len - 1;		// exclude NULL
-#else
-			size_t left = 2 * msgLen;
-			size_t outbuflen = left;
-			size_t len = msgLen + 1;		// include null
-			int ret;
-			UCHAR * BufferBP = BufferB;
-			char * orig = MsgBytes;
-			MsgBytes[msgLen] = 0;
-
-			iconv_t * icu = Session->WebMail->iconv_toUTF8;
-				
-			if (icu == NULL)
-				icu = Session->WebMail->iconv_toUTF8 = iconv_open("UTF-8//IGNORE", "CP1252");
-
-			if (icu == (iconv_t) -1)
-			{
-				Session->WebMail->iconv_toUTF8 = NULL;
-				strcpy(BufferB, MsgBytes);
-			}
+			if (code == 437)
+				msgLen = Convert437toUTF8(MsgBytes, msgLen, UTF);
+			else if (code == 1251)
+				msgLen = Convert1251toUTF8(MsgBytes, msgLen, UTF);
 			else
-			{
-				iconv(icu, NULL, NULL, NULL, NULL);		// Reset State Machine
-				ret = iconv(icu, &MsgBytes, &len, (char ** __restrict__)&BufferBP, &left);
-			}
-
-			// left is next location to write, so length written is outbuflen - left
-			// add a null in case iconv didn't complete comversion
-
-			BufferB[outbuflen - left] = 0;
-
-			free(Save);
-			Save = MsgBytes = BufferB;
-			msgLen = strlen(MsgBytes);
-#endif
+				msgLen = Convert1252toUTF8(MsgBytes, msgLen, UTF);
+			
+			free(MsgBytes);
+			Save = MsgBytes = UTF;
+	
+			MsgBytes[msgLen] = 0;
 		}
 
 		//		ptr += sprintf(ptr, "%s", MsgBytes);
