@@ -2897,6 +2897,8 @@ SocketConn * SMTPConnect(char * Host, int Port, BOOL AMPR, struct MsgInfo * Msg,
 	sinx.sin_addr.s_addr = INADDR_ANY;
 	sinx.sin_port = 0;
 
+	sockptr->Timeout = 0;
+
 	if (bind(sockptr->socket, (LPSOCKADDR) &sinx, addrlen) != 0 )
 	{
 		//
@@ -3590,7 +3592,6 @@ VOID ProcessPOP3ClientMessage(SocketConn * sockptr, char * Buffer, int Len)
 			if (sockptr->POP3MsgCount > sockptr->POP3MsgNum++)
 			{
 				sockprintf(sockptr, "RETR %d", sockptr->POP3MsgNum);
-
 				sockptr->State = WaitingForRETRResponse;
 			}
 			else

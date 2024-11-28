@@ -1143,6 +1143,8 @@
 //	Semaphore calls to SaveConfig
 //	Include SERVIC as valid from call (for Winlink Service messages) (49)
 //	Attempt to detect line draw characters in Webmail (50)
+//	Fix sending ampr.org mail when RMS is not enabled (51)
+//	Send forwarding info tp packetnodes.spots.radio database (51)
 
 #include "bpqmail.h"
 #include "winstdint.h"
@@ -1161,6 +1163,8 @@ FARPROCZ pGetLOC;
 FARPROCX pRefreshWebMailIndex;
 FARPROCX pRunEventProgram;
 FARPROCX pGetPortFrequency;
+FARPROCX pSendWebRequest;
+FARPROCX pGetLatLon;
 
 BOOL WINE = FALSE;
 
@@ -1385,6 +1389,7 @@ char * CheckToAddress(CIRCUIT * conn, char * Addr);
 BOOL CheckifPacket(char * Via);
 int GetHTMLForms();
 VOID GetPGConfig();
+void SendBBSDataToPktMap();
 
 struct _EXCEPTION_POINTERS exinfox;
 	
@@ -1936,6 +1941,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		pRefreshWebMailIndex = GetProcAddress(ExtDriver,"_RefreshWebMailIndex@0");
 		pRunEventProgram = GetProcAddress(ExtDriver,"_RunEventProgram@8");
 		pGetPortFrequency = GetProcAddress(ExtDriver,"_GetPortFrequency@8");
+		pSendWebRequest = GetProcAddress(ExtDriver,"_SendWebRequest@16");
+		pGetLatLon = GetProcAddress(ExtDriver,"_GetLatLon@8");
 		
 
 		if (pGetLOC)
@@ -2183,6 +2190,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					Debugprintf("|Enter HouseKeeping");
 					DoHouseKeeping(FALSE);
 				}
+				
+				if (APIClock < NOW)
+				{
+					SendBBSDataToPktMap();
+					APIClock = NOW + 7200;			// Every 2 hours
+				}
+
 				tm = gmtime(&NOW);	
 
 				if (tm->tm_wday == 0)		// Sunday
@@ -3057,7 +3071,6 @@ static PSOCKADDR_IN psin;
 SOCKET sock;
 
 
-
 BOOL Initialise()
 {
 	int i, len;
@@ -3382,6 +3395,9 @@ BOOL Initialise()
 
 	CreatePipeThread();
 	GetPGConfig();
+
+	
+	APIClock = 0;
 
 	return TRUE;
 }

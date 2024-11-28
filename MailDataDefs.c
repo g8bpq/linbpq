@@ -205,6 +205,7 @@ int MailForInterval = 0;
 char zeros[NBMASK];						// For forward bitmask tests
 
 time_t MaintClock;						// Time to run housekeeping
+time_t APIClock;						// Time to sent to MOLTE's Database
 
 struct MsgInfo * MsgnotoMsg[100000];	// Message Number to Message Slot List.
 

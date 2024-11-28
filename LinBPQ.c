@@ -76,6 +76,7 @@ void SaveAIS();
 void initAIS();
 void DRATSPoll();
 VOID GetPGConfig();
+void SendBBSDataToPktMap();
 
 extern uint64_t timeLoadedMS;
 
@@ -1281,6 +1282,10 @@ int main(int argc, char * argv[])
 			printf("Mail Started\n");
 			Logprintf(LOG_BBS, NULL, '!', "Mail Starting");
 
+			APIClock = 0;
+
+			SendBBSDataToPktMap();
+
 		}
 	}
 
@@ -1578,6 +1583,13 @@ int main(int argc, char * argv[])
 					Debugprintf("|Enter HouseKeeping");
 					DoHouseKeeping(FALSE);
 				}
+
+				if (APIClock < NOW)
+				{
+					SendBBSDataToPktMap();
+					APIClock = NOW + 7200;			// Every 2 hours
+				}
+
 
 				tm = gmtime(&NOW);
 

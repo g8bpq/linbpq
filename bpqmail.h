@@ -1191,6 +1191,7 @@ BOOL FBBDoForward(CIRCUIT * conn);
 BOOL FindMessagestoForward(CIRCUIT * conn);
 BOOL SeeifMessagestoForward(int BBSNumber, CIRCUIT * Conn);
 int CountMessagestoForward(struct UserInfo * user);
+int CountBytestoForward(struct UserInfo * user);
 
 VOID * GetMultiLineDialogParam(HWND hDialog, int DLGItem);
 
@@ -1632,6 +1633,8 @@ extern BOOL NoWPGuesses;
 extern char ** SendWPAddrs;					// Replacers WP To and VIA
 
 extern BOOL DontCheckFromCall;
+
+extern time_t APIClock;;
 
 // YAPP stuff
 

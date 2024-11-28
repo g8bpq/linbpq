@@ -1017,6 +1017,7 @@ int AGWDataSocket_Read(struct AGWSocketConnectionInfo * sockptr, SOCKET sock)
 {
 	int i;
 	int DataLength;
+	struct AGWHeader * AGW = &sockptr->AGWRXHeader;
 
 	ioctlsocket(sock,FIONREAD,&DataLength);
 
@@ -1028,18 +1029,83 @@ int AGWDataSocket_Read(struct AGWSocketConnectionInfo * sockptr, SOCKET sock)
 		return 0;
 	}
 
+	if (DataLength < 36)		//         A header
+	{
+		// If we don't get a header within a few ms assume a rogue connection and close it
 
+		int n = 50;
+
+		while (n--)
+		{
+			Sleep(10);
+			ioctlsocket(sock,FIONREAD,&DataLength);
+			
+			if (DataLength >= 36)
+				break;
+		}
+
+		if (n < 1)
+		{
+			Debugprintf("Corrupt AGW Packet Received");
+			AGWDataSocket_Disconnect(sockptr);
+			return 0;			
+		}
+	}
+
+	// Have a header
+
+	i=recv(sock,(char *)&sockptr->AGWRXHeader, 36, 0);
+            
+	if (i == SOCKET_ERROR)
+	{
+		i=WSAGetLastError();
+		AGWDataSocket_Disconnect(sockptr);
+	}
+	
+	sockptr->MsgDataLength = sockptr->AGWRXHeader.DataLength;
+
+	// Validate packet to protect against accidental (or malicious!) connects from a non-agw application
+
+	if (AGW->Port > 64 || AGW->filler2 != 0 || AGW->filler3 != 0 || AGW->DataLength > 400)
+	{
+		Debugprintf("Corrupt AGW Packet Received");
+		AGWDataSocket_Disconnect(sockptr);
+		return 0;
+	}
+	
+	if (sockptr->MsgDataLength == 0)
+	   ProcessAGWCommand (sockptr);
+	else
+		sockptr->GotHeader = TRUE;			// Wait for data
+
+	ioctlsocket(sock,FIONREAD,&DataLength);	// See if more data
+			
 	if (sockptr->GotHeader)
 	{
 		// Received a header, without sufficient data bytes
    
 		if (DataLength < sockptr->MsgDataLength)
 		{
-			// Fiddle - seem to be problems somtimes with un-Neagled hosts
-        
-			Sleep(500);
+			// Fiddle - seem to be problems somtimes with un-Neagled hosts so wait a few ms
+			// if we don't get a full packet assume a rogue connection and close it
 
-			ioctlsocket(sock,FIONREAD,&DataLength);
+			int n = 50;
+
+			while (n--)
+			{
+				Sleep(10);
+				ioctlsocket(sock,FIONREAD,&DataLength);
+			
+				if (DataLength >= sockptr->MsgDataLength)
+					break;
+			}
+
+			if (n < 1)
+			{
+				Debugprintf("Corrupt AGW Packet Received");
+				AGWDataSocket_Disconnect(sockptr);
+				return 0;			
+			}
 		}
 		
 		if (DataLength >= sockptr->MsgDataLength)
@@ -1052,60 +1118,9 @@ int AGWDataSocket_Read(struct AGWSocketConnectionInfo * sockptr, SOCKET sock)
 
 			ProcessAGWCommand (sockptr);
 			free(sockptr->MsgData);
-        
 			sockptr->GotHeader = FALSE;
 		}
-
-		// Not Enough Data - wait
-
 	}
-	else	// Not got header
-	{
-		if (DataLength > 35)//         A header
-		{
-			struct AGWHeader * AGW = &sockptr->AGWRXHeader;
-
-			i=recv(sock,(char *)&sockptr->AGWRXHeader, 36, 0);
-            
-			if (i == SOCKET_ERROR)
-			{
-				i=WSAGetLastError();
-
-				AGWDataSocket_Disconnect(sockptr);
-			}
-
-			
-			sockptr->MsgDataLength = sockptr->AGWRXHeader.DataLength;
-
-			// Validate packet to protect against accidental (or malicious!) connects from a non-agw application
-
-
-			if (AGW->Port > 64 || AGW->filler2 != 0 || AGW->filler3 != 0 || AGW->DataLength > 400)
-			{
-				Debugprintf("Corrupt AGW Packet Received");
-				AGWDataSocket_Disconnect(sockptr);
-				return 0;
-			}
-
-			if (sockptr->MsgDataLength > 500)
-				OutputDebugString("Corrupt AGW message");
-
-            
-		    if (sockptr->MsgDataLength == 0)
-			{
-				ProcessAGWCommand (sockptr);
-			}
-			else
-			{
-				sockptr->GotHeader = TRUE;            // Wait for data
-			}
-
-		} 
-		
-		// not got 36 bytes
-
-	}
-	
 	return 0;
 }
 

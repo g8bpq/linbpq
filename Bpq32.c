@@ -1086,7 +1086,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add ? and * wildcards to NODES command (74)
 //  Add Port RADIO config parameter (74)
 
-//  Version 6.0.24.1 August 2024
+//  Version 6.0.24.1 August 2023
 
 //	Apply NODES command wildcard to alias as well a call (2)
 //	Add STOPPORT/STARTPORT to VARA Driver (2)
@@ -1234,6 +1234,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add optional ATTACH time limit for VARA (48)
 //	API format fixes (48)
 //	AGWAPI Add protection against accidental connects from a non-agw application (50)
+//	Save MH and NODES every hour (51)
 
 #define CKernel
 
@@ -1373,6 +1374,9 @@ extern int  MAXDESTS;			// MAX NODES IN SYSTEM
 extern struct _LINKTABLE * LINKS;
 extern int	LINK_TABLE_LEN; 
 extern int	MAXLINKS;
+
+extern double LatFromLOC;
+extern double LonFromLOC;
 
 
 extern int BPQHOSTAPI();
@@ -3068,7 +3072,7 @@ SkipInit:
 
 		if (AttachedProcesses < 2)
 		{
-			if (AUTOSAVE == 1)
+			if (AUTOSAVE)
 				SaveNodes();
 			if (AUTOSAVEMH)
 				SaveMH();
@@ -6621,10 +6625,18 @@ int GetListeningPortsPID(int Port)
 	return 0;			// Not found
 }
 
-DllExport char *  APIENTRY GetLOC()
+DllExport char * APIENTRY GetLOC()
 {
 	return LOC;
 }
+
+DllExport void  APIENTRY GetLatLon(double * lat, double * lon)
+{
+	*lat = LatFromLOC;
+	*lon = LonFromLOC;
+	return;
+}
+
 
 // UZ7HO Dll PTT interface
 

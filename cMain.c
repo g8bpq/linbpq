@@ -50,6 +50,7 @@ VOID SendSmartID(struct PORTCONTROL * PORT);
 int CanPortDigi(int Port);
 int	KissEncode(UCHAR * inbuff, UCHAR * outbuff, int len);
 void MQTTTimer();
+void SaveMH();
 
 #include "configstructs.h"
 
@@ -1507,7 +1508,7 @@ BOOL Start()
 
 	upnpInit();
 
-	CurrentSecs = lastSlowSecs = time(NULL);
+	lastSaveSecs = CurrentSecs = lastSlowSecs = time(NULL);
 
 	return 0;
 }
@@ -2105,7 +2106,19 @@ VOID TIMERINTERRUPT()
 		}
 */
 	}
-	
+
+	// Check Autosave Nodes and MH timer
+
+	if (CurrentSecs - lastSaveSecs >= 3600)		// 1 per hour
+	{
+		lastSaveSecs = CurrentSecs;
+
+		if (AUTOSAVE == 1)
+			SaveNodes();
+		if (AUTOSAVEMH == 1)
+			SaveMH();
+	}
+
 	if (L4TIMERFLAG >= 10)				// 1 PER SEC
 	{
 		L4TIMERFLAG -= 10;

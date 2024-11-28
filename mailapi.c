@@ -706,3 +706,390 @@ packetmail_queue_length{partner="GB7NWL"} 0 1729090716916
 packetmail_queue_length{partner="GM8BPQ"} 0 1729090716916
 
 */
+
+
+// Stuff send to  packetnodes.spots.radio/api/bbsdata/{bbsCall}
+//https://nodes.ukpacketradio.network/swagger/index.html
+
+
+/*
+BbsData{
+callsign*	[...]
+time*	[...]
+hroute*	[...]
+peers	[...]
+software*	[...]
+version*	[...]
+mailQueues	[...]
+messages	[...]
+latitude	[...]
+longitude	[...]
+locator	[...]
+location	[...]
+unroutable	[...]
+}
+
+[
+
+{
+    "callsign": "GE8PZT",
+    "time": "2024-11-25T10:07:41+00:00",
+    "hroute": ".#24.GBR.EU",
+    "peers": [
+      "GB7BBS",
+      "VE2PKT",
+      "GB7NXT",
+      "VA2OM"
+    ],
+    "software": "XrLin",
+    "version": "504a",
+    "mailQueues": [],
+    "messages": [
+      {
+        "to": "TECH@WW",
+        "mid": "20539_GB7CIP",
+        "rcvd": "2024-11-24T09:27:59+00:00",
+        "routing": [
+          "R:241124/0927Z @:GE8PZT.#24.GBR.EU [Lamanva] #:2315 XrLin504a",
+ 
+
+      {
+        "to": "TNC@WW",
+        "mid": "37_PA2SNK",
+        "rcvd": "2024-11-18T21:56:55+00:00",
+        "routing": [
+          "R:241118/2156Z @:GE8PZT.#24.GBR.EU [] #:2215 XrLin504a",
+          "R:241118/2156Z 12456@VE2PKT.#TRV.QC.CAN.NOAM BPQ6.0.24",
+          "R:241118/2130Z 51539@VE3KPG.#ECON.ON.CAN.NOAM BPQK6.0.23",
+          "R:241118/2130Z 26087@VE3CGR.#SCON.ON.CAN.NOAM LinBPQ6.0.24",
+          "R:241118/2130Z 37521@PA8F.#ZH1.NLD.EURO LinBPQ6.0.24",
+          "R:241118/2129Z 48377@PI8LAP.#ZLD.NLD.EURO LinBPQ6.0.24",
+          "R:241118/2129Z @:PD0LPM.FRL.EURO.NLD #:33044 [Joure] $:37_PA2SNK"
+        ]
+      }
+    ],
+    "latitude": 50.145832,
+    "longitude": -5.125,
+    "locator": "IO70KD",
+    "location": "Lamanva",
+    "unroutable": [
+      {
+        "type": "P",
+        "at": "WW"
+      },
+      {
+        "type": "P",
+        "at": "G8PZT-2"
+      },
+      {
+        "type": "P",
+        "at": "g8pzt._24.gbr.eu"
+      },
+      {
+        "type": "P",
+        "at": "G8PZT.#24.GBR.EU"
+      },
+      {
+        "type": "P",
+        "at": "GE8PZT.#24.GBR.EU"
+      },
+      {
+        "type": "P",
+        "at": "G8PZT.#24.GBR.EURO"
+      }
+    ]
+  },
+
+*/
+
+
+//	https://packetnodes.spots.radio/swagger/index.html
+
+// 	   "unroutable": [{"type": "P","at": "WW"}, {"type": "P", "at": "G8PZT.#24.GBR.EURO"}]
+
+char * ViaList[100000];			// Pointers to the Message Header field
+char TypeList[100000];
+
+int unroutableCount = 0;
+
+
+void CheckifRoutable(struct MsgInfo * Msg)
+{
+	char NextBBS[64];
+	int n;
+
+	if (Msg->status == 'K')
+		return;
+
+	if (Msg->via[0] == 0)		// No routing
+		return;
+
+	strcpy(NextBBS, Msg->via);
+	strlop(NextBBS, '.');
+
+	if (strcmp(NextBBS, BBSName) == 0)	// via this BBS
+		return;
+
+	if ((memcmp(Msg->fbbs, zeros, NBMASK) != 0) || (memcmp(Msg->forw, zeros, NBMASK) != 0))	// Has Forwarding Info
+		return;
+
+	// See if we already have it
+
+	for (n = 0; n < unroutableCount; n++)
+	{
+		if ((TypeList[n] == Msg->type) && strcmp(ViaList[n], Msg->via) == 0)
+			return;
+
+	}
+
+	// Add to list
+
+	TypeList[unroutableCount] = Msg->type;
+	ViaList[unroutableCount] = Msg->via;
+
+	unroutableCount++;
+}
+
+
+extern char LOC[7];
+
+
+DllExport VOID WINAPI SendWebRequest(char * Host, char * Request, char * Params, char * Return);
+
+#ifdef LINBPQ
+extern double LatFromLOC;
+extern double LonFromLOC;
+#else
+typedef int (WINAPI FAR *FARPROCX)();
+extern FARPROCX pSendWebRequest;
+extern FARPROCX pGetLatLon;
+double LatFromLOC = 0;
+double LonFromLOC = 0;
+#endif
+
+void SendBBSDataToPktMap()
+{
+	char Return[4096];
+	char Request[64];
+	char Params[50000];
+	char * ptr = Params;
+	struct MsgInfo * Msg;
+
+	struct UserInfo * ourBBSRec = LookupCall(BBSName);
+	struct UserInfo * USER;
+	char Time[64];
+	struct tm * tm;
+	time_t Date = time(NULL);
+	char Peers[2048] = "[]";
+	char MsgQueues[16000] = "[]";
+	char * Messages = malloc(1000000);	
+	char * Unroutables;
+	int m;
+	char * MsgBytes;
+	char * Rlineptr;
+	char * Rlineend;
+	char * RLines;
+	char * ptr1, * ptr2;
+	int n;
+
+#ifndef LINBPQ
+	if (pSendWebRequest == 0)
+		return;						// Old Version of bpq32.dll
+
+	pGetLatLon(&LatFromLOC, &LonFromLOC);
+
+#endif
+	if (ourBBSRec == 0)
+		return;		// Wot!!
+
+	// Get peers and Mail Queues
+
+	ptr = &Peers[1];
+	ptr1 = &MsgQueues[1];
+
+	for (USER = BBSChain; USER; USER = USER->BBSNext)
+	{
+		if (strcmp(USER->Call, BBSName) != 0)
+		{
+			int Bytes;
+			
+			int Count = CountMessagestoForward(USER);	
+			
+			ptr += sprintf(ptr, "\"%s\",", USER->Call);
+
+			if (Count)
+			{
+				Bytes = CountBytestoForward(USER);
+
+				ptr1 += sprintf(ptr1, "{\"peerCall\": \"%s\", \"numQueued\": %d, \"bytesQueued\": %d},",
+					USER->Call, Count, Bytes);
+			}
+      }
+	}
+
+	if ((*ptr) != ']')		// Have some entries
+	{
+		ptr--;				// over trailing comms
+		*(ptr++) = ']';
+		*(ptr) = 0;
+	}
+
+	if ((*ptr1) != ']')		// Have some entries
+	{
+		ptr1--;				// over trailing comms
+		*(ptr1++) = ']';
+		*(ptr1) = 0;
+	}
+
+	// Get Messages
+
+	strcpy(Messages, "[]");
+	ptr = &Messages[1];
+
+	for (m = LatestMsg; m >= 1; m--)
+	{
+		if (ptr > &Messages[999000])
+			break;						// protect buffer
+
+		Msg = GetMsgFromNumber(m);
+
+		if (Msg == 0 || Msg->type == 0 || Msg->status == 0)
+			continue;					// Protect against corrupt messages
+
+		// Paula suggests including H and K but limit it to the last 30 days or the last 100 messages, whichever is the smaller.
+
+//		if (Msg->status == 'K' || Msg->status == 'H')
+//			continue;
+
+		if ((Date - Msg->datereceived) > 30 * 86400)		// Too old
+			continue;
+
+		CheckifRoutable(Msg);
+
+		tm = gmtime(&Msg->datereceived);
+
+		sprintf(Time, "%04d-%02d-%02dT%02d:%02d:%02d+00:00", 
+			tm->tm_year + 1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+
+		// Get Routing
+
+		MsgBytes = ReadMessageFile(Msg->number);
+		RLines = malloc(Msg->length * 2);				// Very unlikely to need so much but better safe..
+
+		strcpy(RLines, "[]");
+
+		ptr2 = &RLines[1];
+		
+		// Need to skip B2 header if B2 Message
+
+		Rlineptr = MsgBytes;
+
+		// If it is a B2 Message, Must Skip B2 Header
+
+		if (Msg->B2Flags & B2Msg)
+		{
+			Rlineptr = strstr(Rlineptr, "\r\n\r\n");
+			if (Rlineptr)
+				Rlineptr += 4;
+			else
+				Rlineptr = MsgBytes;
+		}
+
+		// We have to process R: lines one at a time as we need to send each one as a separate string
+
+		while (memcmp(Rlineptr, "R:", 2) == 0)
+		{
+			// Have R Lines
+
+			Rlineend = strstr(Rlineptr, "\r\n");
+			Rlineend[0] = 0;
+			ptr2 += sprintf(ptr2, "\"%s\",", Rlineptr);
+
+			Rlineptr = Rlineend + 2;		// over crlf
+		}
+
+		if ((*ptr2) == ']')		// no entries
+			continue;
+
+		ptr2--;				// over trailing comms
+		*(ptr2++) = ']';
+		*(ptr2) = 0;
+	
+		ptr += sprintf(ptr, "{\"to\": \"%s\", \"mid\": \"%s\", \"rcvd\": \"%s\", \"routing\": %s},",
+			Msg->to, Msg->bid, Time, RLines);
+
+		free(MsgBytes);
+		free(RLines);
+
+	}
+
+	if ((*ptr) != ']')	// Have some entries?
+	{
+		ptr--;				// over trailing comms
+		*(ptr++) = ']';
+		*(ptr) = 0;
+	}
+
+	// Get unroutables
+
+	Unroutables = malloc((unroutableCount + 1) * 100);
+
+	strcpy(Unroutables, "[]");
+	ptr = &Unroutables[1];
+
+
+	for (n = 0; n < unroutableCount; n++)
+	{
+		ptr += sprintf(ptr, "{\"type\": \"%c\",\"at\": \"%s\"},", TypeList[n], ViaList[n]);
+	}
+
+	if ((*ptr) != ']')	// Have some entries?
+	{
+		ptr--;				// over trailing comms
+		*(ptr++) = ']';
+		*(ptr) = 0;
+	}
+
+
+
+	/*
+char * ViaList[100000];			// Pointers to the Message Header field
+char TypeList[100000];
+
+int unroutableCount = 0;
+	   "unroutable": [{"type": "P","at": "WW"}, {"type": "P", "at": "G8PZT.#24.GBR.EURO"}]
+	*/
+
+
+	tm = gmtime(&Date);
+
+	sprintf(Time, "%04d-%02d-%02dT%02d:%02d:%02d+00:00", 
+		tm->tm_year + 1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+
+
+	ptr = Params;
+
+	sprintf(Request, "/api/bbsdata/%s", BBSName);
+
+	ptr += sprintf(ptr, "{\"callsign\": \"%s\",\r\n", BBSName);
+	ptr += sprintf(ptr, "\"time\": \"%s\",\r\n", Time);
+	ptr += sprintf(ptr, "\"hroute\": \"%s\",\r\n", HRoute);
+	ptr += sprintf(ptr, "\"peers\": %s,\r\n", Peers);
+#ifdef LINBPQ
+	ptr += sprintf(ptr, "\"software\": \"%s\",\r\n", "linbpq");
+#else
+	ptr += sprintf(ptr, "\"software\": \"%s\",\r\n", "BPQMail");
+#endif
+	ptr += sprintf(ptr, "\"version\": \"%s\",\r\n", VersionString);
+	ptr += sprintf(ptr, "\"mailQueues\": %s,\r\n", MsgQueues);
+	ptr += sprintf(ptr, "\"messages\": %s,\r\n", Messages);
+	ptr += sprintf(ptr, "\"latitude\": %1.6f,\r\n", LatFromLOC);
+	ptr += sprintf(ptr, "\"longitude\": %.6f,\r\n", LonFromLOC);
+	ptr += sprintf(ptr, "\"locator\": \"%s\",\r\n", LOC);
+	ptr += sprintf(ptr, "\"location\": \"%s\",\r\n", ourBBSRec->Address);
+	ptr += sprintf(ptr, "\"unroutable\": %s\r\n}\r\n", Unroutables);
+
+	SendWebRequest("packetnodes.spots.radio", Request, Params, Return);
+	free(Messages);
+	free(Unroutables);
+}

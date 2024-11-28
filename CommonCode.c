@@ -4912,7 +4912,7 @@ SOCKET OpenHTTPSock(char * Host)
 	{
 		err = WSAGetLastError();
 
-		Debugprintf("Resolve Failed for %s %d %x", "api.winlink.org", err, err);
+		Debugprintf("Resolve Failed for %s %d %x", Host, err, err);
 		return 0 ;			// Resolve failed
 	}
 	
@@ -4945,7 +4945,7 @@ SOCKET OpenHTTPSock(char * Host)
 }
 
 static char HeaderTemplate[] = "POST %s HTTP/1.1\r\n"
-	"Accept: application/json\r\n"
+	"Accept: app  N B lication/json\r\n"
 //	"Accept-Encoding: gzip,deflate,gzip, deflate\r\n"
 	"Content-Type: application/json\r\n"
 	"Host: %s:%d\r\n"
@@ -4955,14 +4955,24 @@ static char HeaderTemplate[] = "POST %s HTTP/1.1\r\n"
 	"\r\n";
 
 
-VOID SendWebRequest(SOCKET sock, char * Host, char * Request, char * Params, int Len, char * Return)
+DllExport VOID WINAPI SendWebRequest(char * Host, char * Request, char * Params, char * Return)
 {
+	SOCKET sock;
 	int InputLen = 0;
 	int inptr = 0;
 	char Buffer[4096];
 	char Header[256];
 	char * ptr, * ptr1;
 	int Sent;
+	int Len = strlen(Params);
+
+	if (M0LTEMap == 0)
+		return;
+
+	sock = OpenHTTPSock(Host);
+
+	if (sock == 0)
+		return;
 
 #ifdef LINBPQ
 	sprintf(Header, HeaderTemplate, Request, Host, 80, Len, "linbpq/", VersionString, Params);
@@ -4976,6 +4986,7 @@ VOID SendWebRequest(SOCKET sock, char * Host, char * Request, char * Params, int
 	{
 		int Err = WSAGetLastError();
 		Debugprintf("Error %d from Web Update send()", Err);
+		closesocket(sock);
 		return;
 	}
 
@@ -4987,11 +4998,9 @@ VOID SendWebRequest(SOCKET sock, char * Host, char * Request, char * Params, int
 		{
 			int Err = WSAGetLastError();
 			Debugprintf("Error %d from Web Update recv()", Err);
+			closesocket(sock);
 			return;
 		}
-
-		//	As we are using a persistant connection, can't look for close. Check
-		//	for complete message
 
 		inptr += InputLen;
 
@@ -5035,6 +5044,7 @@ VOID SendWebRequest(SOCKET sock, char * Host, char * Request, char * Params, int
 
 						Debugprintf("Map Update failed - %s", Buffer);
 					}
+					closesocket(sock);
 					return;
 				}
 			}
@@ -5046,6 +5056,7 @@ VOID SendWebRequest(SOCKET sock, char * Host, char * Request, char * Params, int
 				{
 					// Just accept anything until I've sorted things with Lee
 					Debugprintf("%s", ptr1);
+					closesocket(sock);
 					Debugprintf("Web Database update ok");
 					return;
 				}
@@ -5584,19 +5595,11 @@ void SendDataToPktMap(char *Msg)
     }
   ],
 
-
-
 */
 	//  "contact": "string",
 	//  "neighbours": [{"node": "G7TAJ","port": "30"}]
 
-	sock = OpenHTTPSock("packetnodes.spots.radio");
-
-	if (sock == 0)
-		return;
-
-	SendWebRequest(sock, "packetnodes.spots.radio", Request, Params, strlen(Params), Return);
-	closesocket(sock);
+	SendWebRequest("packetnodes.spots.radio", Request, Params, Return);
 }
 
 //	="{\"neighbours\": [{\"node\": \"G7TAJ\",\"port\": \"30\"}]}";

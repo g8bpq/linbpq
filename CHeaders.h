@@ -398,6 +398,7 @@ extern int REALTIMETICKS;
 
 extern time_t CurrentSecs;
 extern time_t lastSlowSecs;
+extern time_t lastSaveSecs;
 
 // SNMP Variables
 

@@ -5566,14 +5566,19 @@ BOOL CreateMessage(CIRCUIT * conn, char * From, char * ToCall, char * ATBBS, cha
 	{
 		if (_memicmp(ToCall, "rms:", 4) == 0)
 		{
-			if (!FindRMS())
-			{
-				nodeprintf(conn, "*** Error - Forwarding via RMS is not configured on this BBS\r");
-				return FALSE;
-			}
+			// Could be ampr.org message 
 
+			if (!isAMPRMsg(ToCall))
+			{
+				if (!FindRMS())
+				{
+					nodeprintf(conn, "*** Error - Forwarding via RMS is not configured on this BBS\r");
+					return FALSE;
+				}
+			}
 			via=strlop(ToCall, ':');
 			_strupr(ToCall);
+
 		}
 		else if (_memicmp(ToCall, "rms/", 4) == 0)
 		{
@@ -6877,7 +6882,7 @@ int CountMessagestoForward (struct UserInfo * user)
 		if ((Msg->status != 'H') && (Msg->status != 'D') && Msg->type && check_fwd_bit(Msg->fbbs, BBSNumber))
 		{
 			n++;
-			continue;			// So we dont count twice in Flag set and NTS MPS
+			continue;			// So we dont count twice if Flag set and NTS MPS
 		}
 
 		// if an NTS MPS, also check for any matches
@@ -6909,6 +6914,66 @@ int CountMessagestoForward (struct UserInfo * user)
 				if (depth > -1 && Msg->Locked == 0)
 				{
 					n++;
+					continue;
+				}
+			}
+		}
+	}
+
+	return n;
+}
+
+int CountBytestoForward (struct UserInfo * user)
+{
+	// See if any messages are queued for this BBS. If so return total bytes queued
+
+	int m, n=0;
+	struct MsgInfo * Msg;
+	int BBSNumber = user->BBSNumber;
+	int FirstMessage = FirstMessageIndextoForward;
+
+	if ((user->flags & F_NTSMPS))
+		FirstMessage = 1;
+
+	for (m = FirstMessage; m <= NumberofMessages; m++)
+	{
+		Msg=MsgHddrPtr[m];
+
+		if ((Msg->status != 'H') && (Msg->status != 'D') && Msg->type && check_fwd_bit(Msg->fbbs, BBSNumber))
+		{
+			n += Msg->length;
+			continue;			// So we dont count twice if Flag set and NTS MPS
+		}
+
+		// if an NTS MPS, also check for any matches
+
+		if (Msg->type == 'T' && (user->flags & F_NTSMPS))
+		{
+			struct BBSForwardingInfo * ForwardingInfo = user->ForwardingInfo;
+			int depth;
+				
+			if (Msg->status == 'N' && ForwardingInfo)
+			{
+				depth = CheckBBSToForNTS(Msg, ForwardingInfo);
+
+				if (depth > -1 && Msg->Locked == 0)
+				{
+					n += Msg->length;
+					continue;
+				}						
+				depth = CheckBBSAtList(Msg, ForwardingInfo, Msg->via);
+
+				if (depth && Msg->Locked == 0)
+				{
+					n += Msg->length;
+					continue;
+				}						
+
+				depth = CheckBBSATListWildCarded(Msg, ForwardingInfo, Msg->via);
+
+				if (depth > -1 && Msg->Locked == 0)
+				{
+					n += Msg->length;
 					continue;
 				}
 			}
@@ -15822,6 +15887,11 @@ void SendMessageReadEvent(char * call, struct MsgInfo * Msg)
 #endif
 	}
 }
+
+void SendMessageForwardedToM0LTE(char * call, struct MsgInfo * Msg)
+{
+}
+
 
 void SendNewMessageEvent(char * call, struct MsgInfo * Msg)
 {

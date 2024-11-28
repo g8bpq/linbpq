@@ -174,11 +174,16 @@ extern BOOL Loopflag;
 extern char NodeMapServer[80];
 extern char ChatMapServer[80];
 
+double LatFromLOC;
+double LonFromLOC;
+
+
 
 VOID * zalloc(int len);
 
 int WritetoConsoleLocal(char * buff);
 char * stristr (char *ch1, char *ch2);
+int FromLOC(char * Locator, double * pLat, double * pLon);
 
 VOID Consoleprintf(const char * format, ...)
 {
@@ -342,7 +347,7 @@ static int routine[] =
 14, 14, 14, 14,
 14, 14 ,14, 14,
 15, 0, 2, 9, 9,
-2, 2, 2, 2, 2, 2,
+2, 2, 1, 2, 2, 2,
 2, 2, 0, 1, 20, 20} ;			// Routine to process param
 
 int PARAMLIM = sizeof(routine)/sizeof(int);
@@ -924,11 +929,21 @@ NextAPRS:
 				strcat(LOCATOR, ":");
 				strcat(LOCATOR, ptr2);
 				ToLOC(atof(ptr1), atof(ptr2), LOC);
+				LatFromLOC = atof(ptr1);
+				LonFromLOC = atof(ptr2);
+
 			}
 			else
 			{
 				if (strlen(ptr1) == 6)
+				{
 					strcpy(LOC, ptr1);
+					FromLOC(LOC, &LatFromLOC, &LonFromLOC);
+					// Randomise in square
+					LatFromLOC += ((rand() / 24.0) / RAND_MAX);
+					LonFromLOC += ((rand() / 12.0) / RAND_MAX);
+
+				}
 			}
 		}
 		return 0;

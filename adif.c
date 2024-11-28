@@ -609,7 +609,6 @@ VOID ADIFWriteFreqList()
 
 	fprintf(Handle, "[Channels]\r\n");
 
-
 	for (i = 0; i < freqCount; i++)
 		fprintf(Handle, "Frequency %d=%lld\r\n" , i + 1, Freqs[i]); 
 

@@ -768,6 +768,9 @@ BOOL CheckifPacket(char * Via)
 	if (FindContinent(ptr1))
 		return TRUE;			// Packet
 
+	if (FindCountry(ptr1))
+		return TRUE;			// Packet
+
 	if ((_stricmp(ptr1, "MARS") == 0) || (_stricmp(ptr1, "USA") == 0))		// MARS used both
 		return TRUE;			// Packet
 

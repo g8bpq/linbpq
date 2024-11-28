@@ -49,6 +49,9 @@ char MAPCOMMENT[250] = "";
 char LOC[7] = "";				// Must be in shared mem// Maidenhead Locator for Reporting
 char ReportDest[7];
 
+double LatFromLOC = 0;
+double LonFromLOC = 0;
+
 UCHAR BPQDirectory[260] = ".";
 UCHAR ConfigDirectory[260] = ".";
 UCHAR LogDirectory[260] = "";
@@ -62,6 +65,7 @@ UCHAR L3KEEP[7] = {'K'+'K','E'+'E','E'+'E','P'+'P','L'+'L','I'+'I', 0xe0};	//  K
 
 time_t CurrentSecs;
 time_t lastSlowSecs;
+time_t lastSaveSecs;
 
 char WL2KCall[10] = "";
 char WL2KLoc[7] = "";

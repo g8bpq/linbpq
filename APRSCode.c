@@ -88,7 +88,7 @@ double myDistance(double laa, double loa, BOOL KM);
 struct STATIONRECORD * FindStation(char * Call, BOOL AddIfNotFound);
 int DecodeAPRSPayload(char * Payload, struct STATIONRECORD * Station);
 BOOL KillOldTNC(char * Path);
-int FromLOC(char * Locator, double * pLat, double * pLon);
+
 BOOL ToLOC(double Lat, double Lon , char * Locator);
 BOOL InternalSendAPRSMessage(char * Text, char * Call);
 void UndoTransparency(char * input);
@@ -104,6 +104,7 @@ void ClearSavedMessages();
 void GetSavedAPRSMessages();
 static VOID GPSDConnect(void * unused);
 int CanPortDigi(int Port);
+int FromLOC(char * Locator, double * pLat, double * pLon);
 
 extern int SemHeldByAPI;
 extern int APRSMONDECODE();
