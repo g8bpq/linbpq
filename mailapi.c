@@ -871,8 +871,9 @@ void SendBBSDataToPktMap()
 {
 	char Return[4096];
 	char Request[64];
-	char Params[50000];
-	char * ptr = Params;
+	char * Params;
+	char * ptr;
+	int paramLen;
 	struct MsgInfo * Msg;
 
 	struct UserInfo * ourBBSRec = LookupCall(BBSName);
@@ -1067,6 +1068,17 @@ int unroutableCount = 0;
 		tm->tm_year + 1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
 
 
+	paramLen = strlen(Peers) + strlen(MsgQueues) + strlen(Messages) + strlen(Unroutables);
+
+	Params = malloc(paramLen + 1000);
+
+	if (Params == 0)
+	{
+		free(Messages);
+		free(Unroutables);
+		return;
+	}
+
 	ptr = Params;
 
 	sprintf(Request, "/api/bbsdata/%s", BBSName);
@@ -1092,4 +1104,5 @@ int unroutableCount = 0;
 	SendWebRequest("packetnodes.spots.radio", Request, Params, Return);
 	free(Messages);
 	free(Unroutables);
+	free(Params);
 }
