@@ -471,7 +471,7 @@ VOID * HALExtInit(EXTPORTDATA *  PortEntry)
 	int port;
 	char * ptr;
 	int len;
-	char Msg[80];
+	char Msg[512];
 #ifndef LINBPQ
 	HWND x;
 #endif
@@ -548,7 +548,7 @@ VOID * HALExtInit(EXTPORTDATA *  PortEntry)
 	TNC->WebWinX = 510;
 	TNC->WebWinY = 280;
 
-	TNC->WEB_COMMSSTATE = zalloc(100);
+	TNC->WEB_COMMSSTATE = zalloc(512);
 	TNC->WEB_TNCSTATE = zalloc(100);
 	strcpy(TNC->WEB_TNCSTATE, "Free");
 	TNC->WEB_MODE = zalloc(100);

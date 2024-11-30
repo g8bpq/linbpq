@@ -735,7 +735,7 @@ VOID SerialReleasePort(struct TNCINFO * TNC)
 VOID * SerialExtInit(EXTPORTDATA * PortEntry)
 {
 	int port;
-	char Msg[255];
+	char Msg[512];
 	char * ptr;
 	struct TNCINFO * TNC;
 	char * TempScript;

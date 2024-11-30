@@ -209,7 +209,7 @@ VOID EnableFLDIGIReports(struct PORTCONTROL * PORT)
 
 VOID ASYDISP(struct PORTCONTROL * PortVector)
 {
-	char Msg[80];
+	char Msg[512];
 
 	if (PortVector->PORTIPADDR.s_addr  || PortVector->KISSTCP)
 
@@ -235,7 +235,7 @@ VOID ASYDISP(struct PORTCONTROL * PortVector)
 
 int	ASYINIT(int comport, int speed, struct PORTCONTROL * PortVector, char Channel )
 {
-	char Msg[80];
+	char Msg[256];
 	NPASYINFO npKISSINFO;
 	int BPQPort = PortVector->PORTNUMBER;
 

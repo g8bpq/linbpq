@@ -1144,7 +1144,7 @@
 //	Include SERVIC as valid from call (for Winlink Service messages) (49)
 //	Attempt to detect line draw characters in Webmail (50)
 //	Fix sending ampr.org mail when RMS is not enabled (51)
-//	Send forwarding info tp packetnodes.spots.radio database (51)
+//	Send forwarding info to packetnodes.spots.radio database (51)
 
 #include "bpqmail.h"
 #include "winstdint.h"

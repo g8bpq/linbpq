@@ -1235,6 +1235,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	API format fixes (48)
 //	AGWAPI Add protection against accidental connects from a non-agw application (50)
 //	Save MH and NODES every hour (51)
+//	Fix handling long unix device names (now max 250 bytes) (52)
 
 #define CKernel
 

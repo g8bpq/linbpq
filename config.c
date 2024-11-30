@@ -187,7 +187,7 @@ int FromLOC(char * Locator, double * pLat, double * pLon);
 
 VOID Consoleprintf(const char * format, ...)
 {
-	char Mess[255];
+	char Mess[512];
 	va_list(arglist);
 
 	va_start(arglist, format);
@@ -2412,11 +2412,11 @@ int doSerialPortName(int i, char * value, char * rec)
 {
 	rec += 8;
 
-	if (strlen(rec) > 79)
+	if (strlen(rec) > 250)
 	{
 	   Consoleprintf("Serial Port Name too long - Truncated");
 	   Consoleprintf("%s\r\n",rec);
-	   rec[79] = 0;
+	   rec[250] = 0;
 	}
 
 	strlop(rec, ' ');
