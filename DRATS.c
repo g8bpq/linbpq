@@ -168,7 +168,7 @@ int AllocateDRATSStream(struct DRATSSession * Sess)
 
 	if (Stream == 255) return 0;
 
-	if (memcmp(Sess->CallTo, "NODE", 6) == 0)
+	if (memcmp(Sess->CallTo, "NODE", 4) == 0)
 	{
 		//  Just connect to command level on switch
 	}

@@ -869,7 +869,6 @@ double LonFromLOC = 0;
 
 void SendBBSDataToPktMap()
 {
-	char Return[4096];
 	char Request[64];
 	char * Params;
 	char * ptr;
@@ -967,7 +966,7 @@ void SendBBSDataToPktMap()
 
 		CheckifRoutable(Msg);
 
-		tm = gmtime(&Msg->datereceived);
+		tm = gmtime((time_t *)&Msg->datereceived);
 
 		sprintf(Time, "%04d-%02d-%02dT%02d:%02d:%02d+00:00", 
 			tm->tm_year + 1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
@@ -1101,7 +1100,7 @@ int unroutableCount = 0;
 	ptr += sprintf(ptr, "\"location\": \"%s\",\r\n", ourBBSRec->Address);
 	ptr += sprintf(ptr, "\"unroutable\": %s\r\n}\r\n", Unroutables);
 
-	SendWebRequest("packetnodes.spots.radio", Request, Params, Return);
+	SendWebRequest("packetnodes.spots.radio", Request, Params, 0);
 	free(Messages);
 	free(Unroutables);
 	free(Params);

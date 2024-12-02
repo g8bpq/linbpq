@@ -2424,7 +2424,7 @@ int doSerialPortName(int i, char * value, char * rec)
 	if (IsNumeric(rec))
 		xxp.IOADDR = atoi(rec);
 	else
-		strcpy(xxp.SerialPortName, rec);
+		xxp.SerialPortName = strdup(rec);
 
 	return 1;
 }

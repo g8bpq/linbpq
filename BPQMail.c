@@ -3396,7 +3396,6 @@ BOOL Initialise()
 	CreatePipeThread();
 	GetPGConfig();
 
-	
 	APIClock = 0;
 
 	return TRUE;

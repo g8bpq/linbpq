@@ -93,6 +93,7 @@ VOID CheckFLDigiData(struct TNCINFO * TNC);
 VOID SendPacket(struct TNCINFO * TNC, UCHAR * Msg, int MsgLen);
 int	KissEncode(UCHAR * inbuff, UCHAR * outbuff, int len);
 VOID SendXMLCommand(struct TNCINFO * TNC, char * Command, char * Value, char ParamType);
+VOID SendXMLCommandInt(struct TNCINFO * TNC, char * Command, int Value, char ParamType);
 VOID FLSlowTimer(struct TNCINFO * TNC);
 VOID SendKISSCommand(struct TNCINFO * TNC, char * Msg);
 
@@ -592,7 +593,7 @@ pollloop:
 				}
 				else
 				{
-					SendXMLCommand(TNC, "modem.set_carrier", (char *)atoi(&buff->L2DATA[5]), 'I');
+					SendXMLCommandInt(TNC, "modem.set_carrier", atoi(&buff->L2DATA[5]), 'I');
 				}
 
 				TNC->InternalCmd = TRUE;
@@ -3197,7 +3198,7 @@ VOID FLReleaseTNC(struct TNCINFO * TNC)
 		else
 		{
 			SendXMLCommand(TNC, "modem.set_by_name", TNC->FLInfo->DefaultMode, 'S');
-			SendXMLCommand(TNC, "modem.set_carrier", (char *)TNC->FLInfo->DefaultFreq, 'I');
+			SendXMLCommandInt(TNC, "modem.set_carrier", TNC->FLInfo->DefaultFreq, 'I');
 		}
 	}
 	//	Start Scanner
@@ -3887,6 +3888,27 @@ VOID SendXMLCommand(struct TNCINFO * TNC, char * Command, char * Value, char Par
 			sprintf(ValueString, "<params><param><value><string>%s</string></value></param></params\r\n>", Value);
 		else
 			sprintf(ValueString, "<params><param><value><i4>%d</i4></value></param></params\r\n>", Value);
+
+	strcpy(FL->LastXML, Command);
+	Len = sprintf(ReqBuf, Req, FL->LastXML, ValueString);
+	Len = sprintf(SendBuff, MsgHddr, Len, ReqBuf);
+	send(TNC->TCPSock, SendBuff, Len, 0); 
+	return;
+}
+
+VOID SendXMLCommandInt(struct TNCINFO * TNC, char * Command, int Value, char ParamType)
+{
+	int Len;
+	char ReqBuf[512];
+	char SendBuff[512];
+	struct FLINFO *	FL = TNC->FLInfo;
+	struct ARQINFO * ARQ = TNC->ARQInfo;
+	char ValueString[256] ="";
+
+	if (!TNC->CONNECTED || TNC->FLInfo->KISSMODE)
+		return;
+
+	sprintf(ValueString, "<params><param><value><i4>%d</i4></value></param></params\r\n>", Value);
 
 	strcpy(FL->LastXML, Command);
 	Len = sprintf(ReqBuf, Req, FL->LastXML, ValueString);

@@ -643,9 +643,9 @@ struct MsgInfo
 // For 64 bit time_t compatibility define as long long 
 // (so struct is same with 32 or 64 bit time_t)
 	
-	long long datereceived;
-	long long datecreated;
-	long long datechanged;
+	int64_t datereceived;
+	int64_t datecreated;
+	int64_t datechanged;
 
 	char	Spare[61 - 24];			//  For future use
 } ;

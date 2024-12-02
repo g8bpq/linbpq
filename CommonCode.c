@@ -5040,8 +5040,6 @@ DllExport VOID WINAPI SendWebRequest(char * Host, char * Request, char * Params,
 					else
 					{
 						strlop(Buffer, 13);
-						Debugprintf("Map Update Params - %s", Params);
-
 						Debugprintf("Map Update failed - %s", Buffer);
 					}
 					closesocket(sock);

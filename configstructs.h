@@ -67,7 +67,7 @@ struct PORTCONFIG
 	char Pad2[10];			// 246
 	char VALIDCALLS[256];	//   256 - 512
 	struct WL2KInfo * WL2K;			// 512
-	char SerialPortName[80]; // 516
+	char * SerialPortName; // 516
 	struct XDIGI * XDIGIS;	//  596 Cross port digi setup
 	int RIGPORT;			// Linked port with RigControl 
 	unsigned int PERMITTEDAPPLS;	// Appls allowed on this port

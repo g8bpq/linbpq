@@ -1416,7 +1416,7 @@ int CreateWPMessage()
 //		if (ptr->last_modif > LASTWPSendTime && ptr->Type == 'U' && ptr->first_homebbs[0])
 		if (ptr->changed && ptr->last_modif > LASTWPSendTime && ptr->first_homebbs[0])
 		{
-			tm = gmtime(&ptr->last_modif);
+			tm = gmtime((time_t *)&ptr->last_modif);
 			MsgLen += sprintf(Buffptr, "On %02d%02d%02d %s/%c @ %s zip %s %s %s\r\n", 
 				tm->tm_year-100, tm->tm_mon+1, tm->tm_mday,
 				ptr->callsign, ptr->Type, ptr->first_homebbs,
@@ -1533,8 +1533,8 @@ VOID CreateWPReport()
 		len = sprintf(Line, "%-7s,%c,%s,%s,%s,%s,%s,%s,%s,%d,%s,%s\r\n",
 			WP->callsign, WP->Type, WP->first_homebbs, WP->first_qth, WP->first_zip, 
 			WP->secnd_homebbs, WP->secnd_qth, WP->secnd_zip, WP->name, WP->changed,
-			FormatWPDate(WP->last_modif),
-			FormatWPDate(WP->last_seen));
+			FormatWPDate((time_t)WP->last_modif),
+			FormatWPDate((time_t)WP->last_seen));
 		
 		fwrite(Line, 1, len, hFile);
 	}

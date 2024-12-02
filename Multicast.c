@@ -612,16 +612,16 @@ struct MSESSION * FindMSession(unsigned int Key)
 
 #define LZMA_STR "\1LZMA"
 
-UCHAR * LZUncompress(UCHAR * Decoded, int Len, int * NewLen)
+UCHAR * LZUncompress(UCHAR * Decoded, size_t Len, size_t * NewLen)
 {
 	unsigned char * buf;
 	unsigned char inprops[LZMA_PROPS_SIZE];
 	size_t inlen;
 	int r;
 	
-	UINT rlen;
-	UINT outlen;
-	
+	size_t rlen = 0;
+	size_t outlen;
+
 	memcpy(&rlen, &Decoded[5], 4);
 
 	outlen = ntohl(rlen);
@@ -668,8 +668,8 @@ void SaveMulticastMessage(struct MSESSION * MSession)
 {
 	UCHAR * Decoded = NULL;			// Output from Basexxx decode
 	UCHAR * Uncompressed = NULL;
-	int DecodedLen;					// Length of decoded message
-	int UncompressedLen;			// Length of decompressed message
+	size_t DecodedLen;				// Length of decoded message
+	size_t UncompressedLen;			// Length of decompressed message
 	int ExpectedLen;				// From front of Base128 or Base256 message
 	int HddrLen;					// Length of Expected Len Header
 

@@ -912,7 +912,7 @@ BOOL Start()
 		PORT->PROTOCOL = (char)PortRec->PROTOCOL;
 		PORT->IOBASE = PortRec->IOADDR;
 
-		if (PortRec->SerialPortName[0])
+		if (PortRec->SerialPortName && PortRec->SerialPortName[0])
 			PORT->SerialPortName = _strdup(PortRec->SerialPortName);
 		else
 		{
