@@ -317,7 +317,60 @@ int MQTTConnect(char* host, int port, char* user, char* pass)
 	return 0;
 }
 
-/*
+// Message Database Entry. Designed to be compatible with FBB
+
+#define NBBBS 160			// Max BBSes we can forward to. Must be Multiple of 8, and must be 80 for FBB compatibliliy
+#define NBMASK NBBBS/8		// Number of bytes in Forward bitlists.
+
+#pragma pack(1)
+
+struct MsgInfo
+{
+	char	type;
+	char	status;
+	int		number;
+	int		length;
+	int		xdatereceived;
+	char	bbsfrom[7];			// ? BBS we got it from ?
+	char	via[41];
+	char	from[7];
+	char	to[7];
+	char	bid[13];
+	char	title[61];
+	int		nntpnum;			// Number within topic (ie Bull TO Addr) - used for nntp
+
+	UCHAR	B2Flags;			// Not all flags specific to B2
+
+	#define B2Msg 1				// Set if Message File is a formatted B2 message
+	#define Attachments 2		// Set if B2 message has attachments
+	#define FromPaclink 4
+	#define FromCMS 8
+	#define FromRMSExpress 16 
+	#define RadioOnlyMsg 32		// Received using call-T
+	#define RadioOnlyFwd 64		// Received using call-R
+	#define WarnNotForwardedSent 128
+
+	int		xdatecreated;
+	int		xdatechanged;
+	UCHAR	fbbs[NBMASK];
+	UCHAR	forw[NBMASK];
+	char	emailfrom[41];
+	char	Locked;				//	Set if selected for sending (NTS Pickup)
+	char	Defered;			//	FBB response '=' received
+	UCHAR	UTF8;				//	Set if Message is in UTF8 (ie from POP/SMTP)
+
+// For 64 bit time_t compatibility define as long long 
+// (so struct is same with 32 or 64 bit time_t)
+	
+	int64_t datereceived;
+	int64_t datecreated;
+	int64_t datechanged;
+
+	char	Spare[61 - 24];			//  For future use
+} ;
+
+#pragma pack()
+
 void MQTTMessageEvent(void* message)
 {
 	struct MsgInfo* msg = (struct MsgInfo *)message;
@@ -360,7 +413,6 @@ void MQTTMessageEvent(void* message)
 
 	MQTTAsync_sendMessage(client, topic, &pubmsg, &opts);
 }
-*/
 
 #else
 

@@ -1186,7 +1186,7 @@ static BOOL CheckforDups(ChatCIRCUIT * circuit, char * Call, char * Msg)
 			// Duplicate, so discard, but save time
 
 			DupInfo[i].DupTime = Now;
-			Logprintf(LOG_CHAT, circuit, '?', "Duplicate Message From %s %s supressed", Call, Msg);
+			Logprintf(LOG_CHAT, circuit, '?', "Duplicate Message From %s %s suppressed", Call, Msg);
 
 			return TRUE;					// Duplicate
 		}

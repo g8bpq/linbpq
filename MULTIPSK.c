@@ -60,7 +60,7 @@ static void ConnecttoMPSKThread(void * portptr);
 void CreateMHWindow();
 int Update_MH_List(struct in_addr ipad, char * call, char proto);
 
-static int ConnecttoMPSK();
+static int ConnecttoMPSK(int port);
 static int ProcessReceivedData(int bpqport);
 static int ProcessLine(char * buf, int Port);
 int KillTNC(struct TNCINFO * TNC);
@@ -70,8 +70,6 @@ struct TNCINFO * GetSessionKey(char * key, struct TNCINFO * TNC);
 static VOID SendData(struct TNCINFO * TNC, char * Msg, int MsgLen);
 static VOID DoMonitorHddr(struct TNCINFO * TNC, struct AGWHEADER * RXHeader, UCHAR * Msg);
 VOID SendRPBeacon(struct TNCINFO * TNC);
-
-char * strlop(char * buf, char delim);
 
 extern UCHAR BPQDirectory[];
 

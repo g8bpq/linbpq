@@ -63,8 +63,6 @@ extern char LOC[];
 static RECT Rect;
 
 VOID __cdecl Debugprintf(const char * format, ...);
-char * strlop(char * buf, char delim);
-
 char NodeCall[11];		// Nodecall, Null Terminated
 
 static BOOL WriteCommBlock(struct TNCINFO * TNC);

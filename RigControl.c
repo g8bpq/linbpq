@@ -1291,7 +1291,7 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 
 			// use text command
 
-			Len = sprintf(CmdPtr, ptr1);
+			Len = sprintf(CmdPtr, "%S", ptr1);
 			break;
 
 		case YAESU:
@@ -3205,7 +3205,7 @@ VOID ReleasePermission(struct RIGINFO *RIG)
 	while (RIG->PortRecord[i])
 	{
 		PortRecord = RIG->PortRecord[i];
-		PortRecord->PORT_EXT_ADDR(6, PortRecord->PORTCONTROL.PORTNUMBER, 3);	// Release Perrmission
+		PortRecord->PORT_EXT_ADDR(6, PortRecord->PORTCONTROL.PORTNUMBER, (PDATAMESSAGE)3);	// Release Perrmission
 		i++;
 	}
 }
@@ -3235,7 +3235,7 @@ int GetPermissionToChange(struct RIGPORTINFO * PORT, struct RIGINFO *RIG)
 		// TNC has been asked for permission, and we are waiting respoonse
 		// Only SCS pactor returns WaitingForPrmission, so check shouldn't be called on others
 		
-		RIG->OKtoChange = (int)(intptr_t)RIG->PortRecord[0]->PORT_EXT_ADDR(6, RIG->PortRecord[0]->PORTCONTROL.PORTNUMBER, 2);	// Get Ok Flag
+		RIG->OKtoChange = (int)(intptr_t)RIG->PortRecord[0]->PORT_EXT_ADDR(6, RIG->PortRecord[0]->PORTCONTROL.PORTNUMBER, (PDATAMESSAGE)2);	// Get Ok Flag
 	
 		if (RIG->OKtoChange == 1)
 		{
@@ -3277,7 +3277,7 @@ int GetPermissionToChange(struct RIGPORTINFO * PORT, struct RIGINFO *RIG)
 		// not waiting for permission, so must be first call of a cycle
 
 		if (RIG->PortRecord[0] && RIG->PortRecord[0]->PORT_EXT_ADDR)
-			RIG->WaitingForPermission = (int)(intptr_t)RIG->PortRecord[0]->PORT_EXT_ADDR(6, RIG->PortRecord[0]->PORTCONTROL.PORTNUMBER, 1);	// Request Perrmission
+			RIG->WaitingForPermission = (int)(intptr_t)RIG->PortRecord[0]->PORT_EXT_ADDR(6, RIG->PortRecord[0]->PORTCONTROL.PORTNUMBER, (PDATAMESSAGE)1);	// Request Perrmission
 				
 		// If it returns zero there is no need to wait.
 		// Normally SCS Returns True for first call, but returns 0 if Link not running
@@ -3300,7 +3300,7 @@ CheckOtherPorts:
 	{
 		PortRecord = RIG->PortRecord[i];
 
-		if (PortRecord->PORT_EXT_ADDR && PortRecord->PORT_EXT_ADDR(6, PortRecord->PORTCONTROL.PORTNUMBER, 1))
+		if (PortRecord->PORT_EXT_ADDR && PortRecord->PORT_EXT_ADDR(6, PortRecord->PORTCONTROL.PORTNUMBER, (PDATAMESSAGE)1))
 		{
 			// 1 means can't change - release all
 
@@ -3392,7 +3392,7 @@ VOID DoBandwidthandAntenna(struct RIGINFO *RIG, struct ScanEntry * ptr)
 
 			RIG->CurrentBandWidth = ptr->Bandwidth;
 
-			PortRecord->PORT_EXT_ADDR(6, PortRecord->PORTCONTROL.PORTNUMBER, ptr);
+			PortRecord->PORT_EXT_ADDR(6, PortRecord->PORTCONTROL.PORTNUMBER, (PDATAMESSAGE)ptr);
 
 /*			if (ptr->Bandwidth == 'R')			// Robust Packet
 				PortRecord->PORT_EXT_ADDR(6, PortRecord->PORTCONTROL.PORTNUMBER, 6);	// Set Robust Packet
@@ -8385,7 +8385,7 @@ int ProcessHAMLIBSlaveMessage(SOCKET Sock, struct RIGINFO * RIG, unsigned char *
 
 	switch (Msg[0])
 	{
-	case 'f':			// Get Freqency
+	case 'f':			// Get Frequency
 
 		HLGetFreq(Sock, RIG, sep);
 		return 0;
@@ -9938,14 +9938,10 @@ void ProcessSDRANGELFrame(struct RIGPORTINFO * PORT)
 	int Length;
 
 	char * msg;
-	char * rest;
 
 	struct RIGINFO * RIG;
 	char * ptr, * ptr1, * ptr2, * ptr3, * pos;
-	int Len, TotalLen;
 	char cmd[80];
-	char ReqBuf[256];
-	char SendBuff[256];
 	int chunklength;
 	int headerlen;
 	int i, n = 0;
@@ -10332,7 +10328,6 @@ VOID SDRANGELPoll(struct RIGPORTINFO * PORT)
 
 	struct RIGINFO * RIG = &PORT->Rigs[0];
 	int Len, i;
-	char ReqBuf[256];
 	char SendBuff[256];
 	//char * SDRANGEL_GETheader = "GET /sdrangel/deviceset/%d/device/settings "
 	//			   "HTTP/1.1\nHost: %s\nConnection: keep-alive\n\r\n";
@@ -10379,7 +10374,6 @@ VOID SDRANGELPoll(struct RIGPORTINFO * PORT)
 			if (GetPermissionToChange(PORT, RIG))
 			{
 				char cmd[80];
-				double freq;
 
 				if (RIG->RIG_DEBUG)
 					Debugprintf("BPQ32 Change Freq to %9.4f", PORT->FreqPtr->Freq);
@@ -10451,7 +10445,6 @@ VOID SDRANGELPoll(struct RIGPORTINFO * PORT)
 VOID SDRANGELSendCommand(struct RIGPORTINFO * PORT, char * Command, char * Value)
 {
 	int Len, ret;
-	char ReqBuf[512];
 	char SendBuff[512];
 	char ValueString[256] ="";
 	char * SDRANGEL_PATCHheader = "PATCH /sdrangel/deviceset/%d/device/settings "

@@ -48,7 +48,6 @@ extern UCHAR BPQDirectory[];
 static RECT Rect;
 
 VOID __cdecl Debugprintf(const char * format, ...);
-char * strlop(char * buf, char delim);
 BOOL KAMStartPort(struct PORTCONTROL * PORT);
 BOOL KAMStopPort(struct PORTCONTROL * PORT);
 

@@ -95,9 +95,13 @@ TODo	?Multiple Adapters
 #pragma comment(lib, "IPHLPAPI.lib")
 #endif
 
-#include "pcap.h"
+#include <pcap.h>
 
+#ifdef WIN32
 int pcap_sendpacket(pcap_t *p, u_char *buf, int size);
+#else
+ PCAP_API int pcap_sendpacket(pcap_t *, const u_char *, int);
+#endif
 
 #ifndef LINBPQ
 #include "kernelresource.h"
@@ -4731,7 +4735,7 @@ void OpenTAP()
 extern struct DATAMESSAGE * REPLYBUFFER;
 char * __cdecl Cmdprintf(TRANSPORTENTRY * Session, char * Bufferptr, const char * format, ...);
 
-VOID PING(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID PING(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	// Send ICMP Echo Request
 
@@ -4789,7 +4793,7 @@ VOID PING(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD
 	return;
 }
 
-VOID SHOWARP(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID SHOWARP(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	//	DISPLAY IP Gateway ARP status or Clear
 	
@@ -4884,7 +4888,7 @@ VOID SHOWARP(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 
-VOID SHOWNAT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID SHOWNAT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	//	DISPLAY IP Gateway ARP status or Clear
 	
@@ -4943,7 +4947,7 @@ int CountBits(uint32_t in)
 	return n;
 }
 
-VOID SHOWIPROUTE(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID SHOWIPROUTE(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	//	DISPLAY IP Gateway ARP status or Clear
 
@@ -5334,7 +5338,7 @@ int ProcessSNMPPayload(UCHAR * Msg, int Len, UCHAR * Reply, int * OffPtr)
 		// Should be nothing left
 	}
 
-	if (RequestType = 160)
+	if (RequestType == 160)
 	{
 		int Offset = 255;
 		int PDULen = 0;

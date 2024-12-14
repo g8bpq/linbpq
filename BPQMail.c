@@ -2830,6 +2830,12 @@ gotAddr:
 
 			EndDialog(hDlg, LOWORD(wParam));
 
+#ifndef NOMQTT
+			if (MQTT)
+				MQTTMessageEvent(Msg);
+#endif
+
+
 			return TRUE;
 		}
 
@@ -3084,6 +3090,8 @@ BOOL Initialise()
 	struct stat STAT;
 
 	GetTimeZoneInformation(&TimeZoneInformation);
+
+	Debugprintf("%d", sizeof(struct MsgInfo));
 
 	_tzset();
 	_MYTIMEZONE = timezone;

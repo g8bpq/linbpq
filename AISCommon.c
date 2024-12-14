@@ -832,6 +832,7 @@ void SaveNavAidDataBase()
 	char FN[256];
 	struct NAVAIDRECORD * navptr;
 
+
 	if (BPQDirectory[0] == 0)
 	{
 		strcpy(FN, "AIS_NavAids.txt");
@@ -2372,6 +2373,8 @@ void ProcessAISNavAidMessage()
 	NavAidCount++;
 
 	ProcessAISNavAidMessage();
+	NavAidDBChanged = 1;
+	
 	
 	return;
 	

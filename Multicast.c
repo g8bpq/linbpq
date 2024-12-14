@@ -1612,7 +1612,7 @@ int MulticastStatusHTML(char * Reply)
 	if (Sess ==NULL)
 		return 0;
 
-	Len = sprintf(Reply, StatusPage);
+	Len = sprintf(Reply, "%s", StatusPage);
 
 	while (Sess)
 	{
@@ -1670,7 +1670,7 @@ int MulticastStatusHTML(char * Reply)
 		Sess = Sess->Next;
 	}
 
-	Len += sprintf(&Reply[Len], StatusTail);
+	Len += sprintf(&Reply[Len], "%s", StatusTail);
 
 	return Len;
 }

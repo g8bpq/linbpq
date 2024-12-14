@@ -42,7 +42,7 @@ VOID L2Routine(struct PORTCONTROL * PORT, PMESSAGE Buffer);
 VOID ProcessIframe(struct _LINKTABLE * LINK, PDATAMESSAGE Buffer);
 VOID FindLostBuffers();
 VOID ReadMH();
-void GetPortCTEXT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
+void GetPortCTEXT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
 int upnpInit();
 void AISTimer();
 void ADSBTimer();
@@ -332,7 +332,7 @@ BOOL LINKTXCHECK()
 	return 0;
 }
 
-void * Dummy()				// Dummy for missing EXT Driver
+void * Dummy(int fn, int port, PDATAMESSAGE buff)				// Dummy for missing EXT Driver
 {
 	return 0;
 }
@@ -340,27 +340,32 @@ void * Dummy()				// Dummy for missing EXT Driver
 VOID EXTINIT(PEXTPORTDATA PORTVEC)
 {
 	// LOAD DLL - NAME IS IN PORT_DLL_NAME
-	
-	VOID * Routine;
+
+	void *(* Startup) (PEXTPORTDATA PORTVEC);		// ADDR OF Startup ROUTINE
 
 	PORTVEC->PORT_EXT_ADDR = Dummy;
 
-	Routine = InitializeExtDriver(PORTVEC);
-	
-	if (Routine == 0)
+	Startup = InitializeExtDriver(PORTVEC);
+
+	if (Startup == 0)
 	{
 		WritetoConsoleLocal("Driver installation failed\n");
 		return;
 	}
-	PORTVEC->PORT_EXT_ADDR = Routine;
 
-//	ALSO CALL THE ROUTINE TO START IT UP, ESPECIALLY IF A L2 ROUTINE
 
-	Routine = (VOID *)PORTVEC->PORT_EXT_ADDR(PORTVEC);
+//	CALL THE ROUTINE TO START IT UP
 
 //	Startup returns address of processing routine
 
-	PORTVEC->PORT_EXT_ADDR = Routine;
+	PORTVEC->PORT_EXT_ADDR = (void *(__cdecl *)(int,int,PDATAMESSAGE))Startup(PORTVEC);;
+	
+	if (PORTVEC->PORT_EXT_ADDR == 0)
+	{
+		WritetoConsoleLocal("Driver Initialisation failed\n");
+		return;
+	}
+
 }
 
 VOID EXTTX(PEXTPORTDATA PORTVEC, MESSAGE * Buffer)
@@ -372,7 +377,7 @@ VOID EXTTX(PEXTPORTDATA PORTVEC, MESSAGE * Buffer)
 
 	if (PORT->KISSFLAGS == 255)	// Used for BAYCOM
 	{
-		PORTVEC->PORT_EXT_ADDR(2, PORT->PORTNUMBER, Buffer);
+		PORTVEC->PORT_EXT_ADDR(2, PORT->PORTNUMBER, (PDATAMESSAGE)Buffer);
 		
 		return;				// Baycom driver passes frames to trace once sent
 	}
@@ -388,7 +393,7 @@ VOID EXTTX(PEXTPORTDATA PORTVEC, MESSAGE * Buffer)
 			Buffer->Linkptr = 0;	// CLEAR FLAG FROM BUFFER
 	}
 	
-	PORTVEC->PORT_EXT_ADDR(2, PORT->PORTNUMBER, Buffer);
+	PORTVEC->PORT_EXT_ADDR(2, PORT->PORTNUMBER, (PDATAMESSAGE)Buffer);
 	
 	if (PORT->PROTOCOL == 10 && PORT->TNC && PORT->TNC->Hardware != H_KISSHF)
 	{
@@ -418,7 +423,7 @@ Loop:
 	if (Message == NULL)
 		return;
 
-	Len = (size_t)PORTVEC->PORT_EXT_ADDR(1, PORT->PORTNUMBER, Message);
+	Len = (size_t)PORTVEC->PORT_EXT_ADDR(1, PORT->PORTNUMBER, (PDATAMESSAGE)Message);
 	
 	if (Len == 0)
 	{
@@ -502,7 +507,9 @@ VOID EXTSLOWTIMER(PEXTPORTDATA PORTVEC)
 
 size_t EXTTXCHECK(PEXTPORTDATA PORTVEC, int Chan)
 {
-	return (size_t)PORTVEC->PORT_EXT_ADDR(3, PORTVEC->PORTCONTROL.PORTNUMBER, Chan);
+	uintptr_t Temp = Chan;
+
+	return (size_t)PORTVEC->PORT_EXT_ADDR(3, PORTVEC->PORTCONTROL.PORTNUMBER, (void *)Temp);
 }
 
 VOID PostDataAvailable(TRANSPORTENTRY * Session)
@@ -578,8 +585,8 @@ extern VOID HDLCTXCHECK();
 #endif
 
 extern VOID KISSINIT(), KISSTX(), KISSRX(), KISSTIMER(), KISSCLOSE();
-extern VOID EXTINIT(), EXTTX(), LINKRX(), EXTRX();
-extern VOID LINKCLOSE(), EXTCLOSE() ,LINKTIMER(), EXTTIMER();
+extern VOID EXTINIT(PEXTPORTDATA PORTVEC), EXTTX(PEXTPORTDATA PORTVEC, MESSAGE * Buffer), LINKRX(), EXTRX(PEXTPORTDATA PORTVEC);
+extern VOID LINKCLOSE(), EXTCLOSE() ,LINKTIMER(), EXTTIMER(PEXTPORTDATA PORTVEC);
 
 //	VECTORS TO HARDWARE DEPENDENT ROUTINES
 
@@ -609,7 +616,7 @@ extern int L4TimerProc();
 extern int L3FastTimer();
 extern int StatsTimer();
 extern int COMMANDHANDLER();
-extern int SDETX();
+VOID SDETX(struct _LINKTABLE * LINK);
 extern int L4BG();
 extern int L3BG();
 extern int TNCTimerProc();
@@ -628,7 +635,7 @@ BOOL Start()
 	APPLCALLS * APPL;
 	struct ROUTE * ROUTE;
 	struct DEST_LIST * DEST;
-	CMDX * CMD;
+	struct CMDX * CMD;
 	int PortSlot = 1;
 	uintptr_t int3;
 
@@ -2342,7 +2349,7 @@ L2Packet:
 				PORT->L2FRAMESSENT++;
 				OutOctets[PORT->PORTNUMBER] += Buffer->LENGTH - MSGHDDRLEN;
 
-				PORT->PORTTXROUTINE(PORT, Buffer);
+				PORT->PORTTXROUTINE((struct _EXTPORTDATA *)PORT, Buffer);
 				Sent++;
 
 				continue;
@@ -2388,7 +2395,7 @@ PACTORLOOP:
 			PORT->L2FRAMESSENT++;
 			OutOctets[PORT->PORTNUMBER] += Message->LENGTH;
 
-			PORT->PORTTXROUTINE(PORT, Buffer);
+			PORT->PORTTXROUTINE((struct _EXTPORTDATA *)PORT, Buffer);
 			Sent++;
 
 			if (Sent < 5)
@@ -2401,7 +2408,7 @@ ENDOFLIST:
 			break;
 		}
 
-		PORT->PORTRXROUTINE(PORT);			// SEE IF MESSAGE RECEIVED
+		PORT->PORTRXROUTINE((struct _EXTPORTDATA *)PORT);			// SEE IF MESSAGE RECEIVED
 		PORT = PORT->PORTPOINTER;
 	}
 

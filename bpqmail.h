@@ -471,6 +471,8 @@ struct UserInfo
 {
 	// New Format - with stats maintained by message type and unused fields removed.
 
+	//	This is no longer a fixed length record so can't be saved as a binarl
+
 	char	Call[10];			//	Connected call without SSID	
 
 	int		Length;				// To make subsequent format changes easier
@@ -877,7 +879,7 @@ struct MSESSION
 };
 
 VOID __cdecl nprintf(CIRCUIT * conn, const char * format, ...);
-char * strlop(char * buf, char delim);
+char * strlop(const char * buf, char delim);
 int rt_cmd(CIRCUIT *circuit, char * Buffer);
 CIRCUIT *circuit_new(CIRCUIT *circuit, int flags);
 VOID BBSputs(CIRCUIT * conn, char * buf);
@@ -1211,10 +1213,9 @@ VOID Do_Delete_User(HWND hDlg);
 VOID FlagSentMessages(CIRCUIT * conn, struct UserInfo * user);
 VOID HoldSentMessages(CIRCUIT * conn, struct UserInfo * user);
 VOID Do_Save_User(HWND hDlg, BOOL ShowBox);
-VOID DeleteBBS();
-VOID AddBBS();
+VOID DeleteBBS(struct UserInfo * user);
 VOID SaveBBSConfig();
-BOOL GetChatConfig();
+BOOL GetChatConfig(char * ConfigName);
 VOID SaveChatConfig();
 VOID SaveISPConfig();
 VOID SaveFWDConfig();

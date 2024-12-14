@@ -111,7 +111,7 @@ int main(int argc, char ** argv)
 
 	if (argc < 3)
 	{
-		printf ("Missing paramters - you need COM port and IP Address and rigctl port of BPQ, eg \r\n"
+		printf ("Missing parameters - you need COM port and IP Address and rigctl port of BPQ, eg \r\n"
 			"  WinRPRHelper com10 192.168.1.64:4532\r\n\r\n"
 			"Press any key to exit\r\n");
 

@@ -44,6 +44,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include "tncinfo.h"
 #include "telnetserver.h"
 
+
+
 //#include "GetVersion.h"
 
 //#define DllImport	__declspec( dllimport )
@@ -64,12 +66,12 @@ VOID L2SENDXID(struct _LINKTABLE * LINK);
 int CountBits(unsigned long in);
 VOID SaveMH();
 BOOL RestartTNC(struct TNCINFO * TNC);
-void GetPortCTEXT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
+void GetPortCTEXT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
 VOID WriteMiniDump();
 int CheckKissInterlock(struct PORTCONTROL * PORT, int Exclusive);
 int seeifInterlockneeded(struct PORTCONTROL * PORT);
 
-extern VOID KISSTX();
+extern VOID KISSTX(struct KISSINFO * KISS, PMESSAGE Buffer);
 
 char COMMANDBUFFER[81] = "";		// Command Hander input buffer
 char OrigCmdBuffer[81] = "";		// Command Hander input buffer before toupper
@@ -134,8 +136,8 @@ int L4FRAMESRETRIED = 0;
 int OLDFRAMES = 0;
 int L3FRAMES = 0;
 
-VOID SENDSABM();
-VOID RESET2();
+VOID SENDSABM(struct _LINKTABLE * LINK);
+VOID RESET2(struct _LINKTABLE * LINK);
 
 int APPL1 = 0;
 int PASSCMD = 0;
@@ -149,33 +151,35 @@ char * ALIASPTR	= &CMDALIAS[0][0];
 
 extern int RigReconfigFlag;
 
-CMDX COMMANDS[];
 
-int CMDXLEN	= sizeof (CMDX);
+
+struct CMDX COMMANDS[];
+
+int CMDXLEN	= sizeof (struct CMDX);
 
 VOID SENDNODESMSG();
-VOID KISSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
-VOID STOPCMS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
-VOID STARTCMS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
-VOID STOPPORT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
-VOID STARTPORT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
-VOID FINDBUFFS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
-VOID WL2KSYSOP(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
-VOID AXRESOLVER(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
-VOID AXMHEARD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
-VOID SHOWTELNET(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
-VOID SHOWAGW(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
-VOID SHOWARP(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
-VOID SHOWNAT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
-VOID PING(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
-VOID SHOWIPROUTE(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
-VOID FLMSG(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * UserCMD);
-void ListExcludedCalls(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
-VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
-VOID RECONFIGTELNET (TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
-VOID HELPCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
-VOID UZ7HOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * UserCMD);
-VOID QTSMCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * UserCMD);
+VOID KISSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID STOPCMS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID STARTCMS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID STOPPORT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID STARTPORT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID FINDBUFFS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID WL2KSYSOP(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID AXRESOLVER(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID AXMHEARD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID SHOWTELNET(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID SHOWAGW(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID SHOWARP(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID SHOWNAT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID PING(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID SHOWIPROUTE(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID FLMSG(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * UserCMD);
+void ListExcludedCalls(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID RECONFIGTELNET (TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID HELPCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID UZ7HOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * UserCMD);
+VOID QTSMCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * UserCMD);
 void hookL2SessionAttempt(int Port, char * fromCall, char * toCall, struct _LINKTABLE * LINK);
 
 
@@ -242,7 +246,7 @@ char * __cdecl Cmdprintf(TRANSPORTENTRY * Session, char * Bufferptr, const char 
 }
 
 
-VOID SENDNODES(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID SENDNODES(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	SENDNODESMSG();
 
@@ -252,7 +256,7 @@ VOID SENDNODES(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 
-VOID SAVEMHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID SAVEMHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	SaveMH();
 							
@@ -262,7 +266,7 @@ VOID SAVEMHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 
-VOID SAVENODES(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID SAVENODES(struct _TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail,  struct CMDX * CMD)
 {
 	SaveNodes();
 							
@@ -272,7 +276,7 @@ VOID SAVENODES(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 
-VOID DUMPCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID DUMPCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	WriteMiniDump();
 
@@ -282,7 +286,7 @@ VOID DUMPCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 
-VOID RIGRECONFIG(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID RIGRECONFIG(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	if (!ProcessConfig())
 	{
@@ -297,7 +301,7 @@ VOID RIGRECONFIG(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMD
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 
-VOID REBOOT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID REBOOT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	if (Reboot())
 	{
@@ -313,7 +317,7 @@ VOID REBOOT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * C
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 	
-VOID RESTART(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID RESTART(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	if (Restart())
 	{
@@ -329,7 +333,7 @@ VOID RESTART(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 
-VOID RESTARTTNC(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID RESTARTTNC(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	char * ptr, *Context;
 	int portno;
@@ -373,20 +377,20 @@ VOID RESTARTTNC(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX
 
 UCHAR VALNODESFLAG = 0, EXTONLY = 0;
 
-VOID PORTVAL (TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD);
+VOID PORTVAL (TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
 
-VOID VALNODES(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID VALNODES(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	VALNODESFLAG = 1;
 	PORTVAL(Session, Bufferptr, CmdTail, CMD);
 }
 
-VOID EXTPORTVAL(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID EXTPORTVAL(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	EXTONLY = 1;
 	PORTVAL(Session, Bufferptr, CmdTail, CMD);
 }
-VOID PORTVAL(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID PORTVAL(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	//	PROCESS PORT VALUE COMMANDS
 
@@ -501,7 +505,7 @@ VOID PORTVAL(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 
 }
 
-VOID SWITCHVAL (TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID SWITCHVAL (TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	// Update switch 8 bit value
 	
@@ -546,7 +550,7 @@ VOID SWITCHVAL (TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX
 
 }
 
-VOID SWITCHVALW (TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID SWITCHVALW (TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	// Update switch 16 bit value
 	
@@ -709,7 +713,7 @@ BOOL cATTACHTOBBS(TRANSPORTENTRY * Session, UINT Mask, int Paclen, int * AnySess
 	return FALSE;
 }
 
-VOID APPLCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID APPLCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {		
 	BOOL CONFAILED = 0;
 	UINT CONERROR ;
@@ -820,13 +824,13 @@ VOID APPLCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 }
 
 
-VOID CMDI00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID CMDI00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	Bufferptr = Cmdprintf(Session, Bufferptr, "%s", INFOMSG);
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 	
-VOID CMDV00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID CMDV00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	if (sizeof(void *) == 4)
 		Bufferptr = Cmdprintf(Session, Bufferptr, "Version %s\r", VersionString);
@@ -836,14 +840,14 @@ VOID CMDV00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * C
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 
-VOID BYECMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID BYECMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	CLOSECURRENTSESSION(Session);		// Kills any crosslink, plus local link
 	ReleaseBuffer((UINT *)REPLYBUFFER);
 	return;
 }
 
-VOID CMDPAC(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID CMDPAC(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	//	SET PACLEN FOR THIS SESSION
 
@@ -865,7 +869,7 @@ VOID CMDPAC(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * C
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 
-VOID CMDIDLE(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID CMDIDLE(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	//	SET IDLETIME FOR THIS SESSION
 
@@ -887,7 +891,7 @@ VOID CMDIDLE(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 
 }
-VOID CMDT00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID CMDT00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	//	SET L4 TIMEOUT FOR CONNECTS ON THIS SESSION
 
@@ -912,7 +916,7 @@ VOID CMDT00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * C
 UCHAR PWLen;
 char PWTEXT[80];
 
-VOID PWDCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID PWDCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	char * ptr, *Context;
 	USHORT pwsum = 0;
@@ -980,7 +984,7 @@ VOID PWDCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * C
 	return;
 }
 
-VOID CMDSTATS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID CMDSTATS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	char * ptr, *Context;
 	int Port = 0, cols = NUMBEROFPORTS, i;
@@ -1214,7 +1218,7 @@ VOID CMDSTATS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX *
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 
-VOID CMDL00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID CMDL00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	//	PROCESS 'LINKS' MESSAGE
 
@@ -1250,7 +1254,7 @@ VOID CMDL00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * C
 }
 
 
-VOID CMDS00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID CMDS00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	//	PROCESS 'USERS'
 
@@ -1322,7 +1326,7 @@ CMDS60:
 
 extern int MasterPort[MAXBPQPORTS+1];	// Pointer to first BPQ port for a specific MPSK or UZ7HO host
 
-VOID CMDP00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID CMDP00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	// Process PORTS Message
 
@@ -1577,7 +1581,7 @@ char *  DisplayRoute(TRANSPORTENTRY * Session, char * Bufferptr, struct ROUTE * 
 }
 
 
-VOID CMDR00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID CMDR00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	struct ROUTE * Routes = NEIGHBOURS;
 	int MaxRoutes = MAXNEIGHBOURS;
@@ -1867,7 +1871,7 @@ SendReply:
 }
 
 
-VOID LISTENCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID LISTENCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	// PROCESS LISTEN COMMAND
 
@@ -1950,7 +1954,7 @@ VOID LISTENCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 }
 
 
-VOID UNPROTOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID UNPROTOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	// PROCESS UNPROTO COMMAND
 
@@ -2019,7 +2023,7 @@ VOID UNPROTOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX
 	return;
 }
 
-VOID CALCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID CALCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	// PROCESS CAL COMMAND
 
@@ -2072,7 +2076,7 @@ VOID CALCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * C
 
 
 
-VOID CQCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID CQCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	// Send a CQ Beacon on a radio port. Must be in LISTEN state
 
@@ -2278,9 +2282,9 @@ BOOL FindLink(UCHAR * LinkCall, UCHAR * OurCall, int Port, struct _LINKTABLE ** 
 	return FALSE;
 }
 
-VOID ATTACHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * UserCMD);
+VOID ATTACHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * UserCMD);
 
-VOID CMDC00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID CMDC00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	//	PROCESS CONNECT COMMAND
 	
@@ -2302,7 +2306,7 @@ VOID CMDC00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * C
 	char PortString[10];
 	char cmdCopy[256];
 	struct _EXTPORTDATA * EXTPORT = (struct _EXTPORTDATA *)PORT;
-	char toCall[12], fromCall[12];
+
 
 #ifdef EXCLUDEBITS
 
@@ -2920,7 +2924,7 @@ BOOL DecodeCallString(char * Calls, BOOL * Stay, BOOL * Spy, UCHAR * AXCalls)
 }
 
 
-VOID LINKCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID LINKCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	// PROCESS *** LINKED to CALLSIGN
 
@@ -3112,7 +3116,7 @@ int WildCmp(char * pattern, char * string)
 	return 0;
 }
 
-VOID CMDN00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID CMDN00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	struct DEST_LIST * Dest = DESTS;
 	int count = MAXDESTS, i;
@@ -3633,7 +3637,7 @@ SendReply:
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 
-VOID CMDQUERY(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * UserCMD)
+VOID CMDQUERY(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * UserCMD)
 {
 	//	DISPLAY AVAILABLE COMMANDS
 
@@ -3642,7 +3646,7 @@ VOID CMDQUERY(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX *
 	char ApplList[2048];
 	char * out = ApplList;
 
-	CMDX * CMD = &COMMANDS[APPL1];
+	struct CMDX * CMD = &COMMANDS[APPL1];
 
 	for (n = 0; n < NumberofAppls; n++)
 	{
@@ -3672,7 +3676,7 @@ VOID CMDQUERY(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX *
 
 char * FormatMH(MHSTRUC * MH, char Format);
 
-VOID MHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID MHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	//	DISPLAY HEARD LIST
 	
@@ -3854,7 +3858,7 @@ VOID MHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CM
 
 int Rig_Command(TRANSPORTENTRY * Session, char * Command);
 
-VOID RADIOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * UserCMD)
+VOID RADIOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * UserCMD)
 {
 	char * ptr;
 	
@@ -3883,7 +3887,7 @@ VOID RADIOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX *
 VOID SendNRRecordRoute(struct DEST_LIST * DEST, TRANSPORTENTRY * Session);
 
 
-VOID NRRCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * UserCMD)
+VOID NRRCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * UserCMD)
 {
 	//	PROCESS 'NRR - Netrom Record Route' COMMAND
 
@@ -3953,7 +3957,7 @@ int CHECKINTERLOCK(struct PORTCONTROL * OURPORT)
 	return 0;
 }
 
-VOID ATTACHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * UserCMD)
+VOID ATTACHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * UserCMD)
 {
 	//	ATTACH to a PACTOR or similar port
 
@@ -4318,16 +4322,17 @@ checkattachandcall:
 
 //	SYSOP COMMANDS
 
-CMDX COMMANDS[] =
+struct CMDX COMMANDS[] =
 {
-	"SAVENODES   ",8, SAVENODES, 0,
-	"TELRECONFIG ",4, RECONFIGTELNET, 0,
-	"SAVEMH      ",6, SAVEMHCMD, 0,
-	"REBOOT      ",6, REBOOT, 0,
-	"RIGRECONFIG ",8 , RIGRECONFIG, 0,
-	"RESTART     ",7,RESTART,0,
-	"RESTARTTNC  ",10,RESTARTTNC,0,
-	"SENDNODES   ",8,SENDNODES,0,
+//	"SAVENODES   ",8, SAVENODES(struct _TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD), 0,
+	"SAVENODES   ",8, &SAVENODES, 0,
+	"TELRECONFIG ",4, &RECONFIGTELNET, 0,
+	"SAVEMH      ",6, &SAVEMHCMD, 0,
+	"REBOOT      ",6, &REBOOT, 0,
+	"RIGRECONFIG ",8, &RIGRECONFIG, 0,
+	"RESTART     ",7, &RESTART,0,
+	"RESTARTTNC  ",10,&RESTARTTNC,0,
+	"SENDNODES   ",8, &SENDNODES,0,
 	"EXTRESTART  ",10, EXTPORTVAL, offsetof(EXTPORTDATA, EXTRESTART),
 	"TXDELAY     ",3, PORTVAL, offsetof(PORTCONTROLX, PORTTXDELAY),
 	"MAXFRAME    ",3, PORTVAL, offsetof(PORTCONTROLX, PORTWINDOW),
@@ -4457,9 +4462,9 @@ CMDX COMMANDS[] =
 	"..FLMSG     ",7,FLMSG,0
 };
 
-CMDX * CMD = NULL;
+struct CMDX * CMD = NULL;
 
-int NUMBEROFCOMMANDS = sizeof(COMMANDS)/sizeof(CMDX);
+int NUMBEROFCOMMANDS = sizeof(COMMANDS)/sizeof(struct CMDX);
 
 char * ReplyPointer;			// Pointer into reply buffer
 
@@ -4952,7 +4957,7 @@ VOID StatsTimer()
 				int x = 17;
 			}
 			
-			if (PORT->PORTTXROUTINE == KISSTX && (KISS->QtSMStats || KISS->FIRSTPORT->PORT.QtSMPort))			// KISS Port QtSM Stats
+			if ((void *)PORT->PORTTXROUTINE == (void *)KISSTX && (KISS->QtSMStats || KISS->FIRSTPORT->PORT.QtSMPort))			// KISS Port QtSM Stats
 			{
 			}
 			else
@@ -4990,7 +4995,7 @@ extern struct AXIPPORTINFO * Portlist[];
 #define TCPConnected 4
 
 
-VOID AXRESOLVER(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID AXRESOLVER(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	//	DISPLAY AXIP Resolver info
 	
@@ -5080,7 +5085,7 @@ VOID AXRESOLVER(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 
-VOID AXMHEARD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID AXMHEARD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	//	DISPLAY AXIP Mheard info
 	
@@ -5150,7 +5155,7 @@ extern char WL2KLoc[7];
 BOOL GetWL2KSYSOPInfo(char * Call, char * _REPLYBUFFER);
 BOOL UpdateWL2KSYSOPInfo(char * Call, char * SQL);
 
-VOID WL2KSYSOP(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID WL2KSYSOP(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	char _REPLYBUFFER[1000] = "";
 
@@ -5302,7 +5307,7 @@ VOID WL2KSYSOP(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 
 VOID CloseKISSPort(struct PORTCONTROL * PortVector);
 
-VOID STOPCMS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID STOPCMS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	char _REPLYBUFFER[1000] = "";
 	char * ptr, * Context;
@@ -5363,7 +5368,7 @@ VOID STOPCMS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 }
 
 
-VOID STARTCMS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID STARTCMS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	char _REPLYBUFFER[1000] = "";
 	char * ptr, * Context;
@@ -5423,7 +5428,7 @@ VOID STARTCMS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX *
 }
 
 
-VOID STOPPORT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID STOPPORT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	char _REPLYBUFFER[1000] = "";
 	char * ptr, * Context;
@@ -5507,7 +5512,7 @@ VOID STOPPORT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX *
 }
 
 
-VOID STARTPORT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID STARTPORT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	char _REPLYBUFFER[1000] = "";
 	char * ptr, * Context;
@@ -5599,7 +5604,7 @@ VOID STARTPORT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 int ASYSEND(struct PORTCONTROL * PortVector, char * buffer, int count);
 int	KissEncode(UCHAR * inbuff, UCHAR * outbuff, int len);
 
-VOID KISSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID KISSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	char _REPLYBUFFER[1000] = "";
 	char * ptr, * Context;
@@ -5690,7 +5695,7 @@ VOID KISSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 }
 
 
-VOID FINDBUFFS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID FINDBUFFS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	FindLostBuffers();
 
@@ -5702,7 +5707,7 @@ VOID FINDBUFFS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX 
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 
-VOID FLMSG(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * UserCMD)
+VOID FLMSG(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * UserCMD)
 {
 	// Telnet Connection from FLMSG
 	CLOSECURRENTSESSION(Session);		// Kills any crosslink, plus local link
@@ -5725,7 +5730,7 @@ BOOL CheckExcludeList(UCHAR * Call)
 }
 
 
-void ListExcludedCalls(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+void ListExcludedCalls(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 
 	UCHAR * ptr = ExcludeList;
@@ -5774,7 +5779,7 @@ BOOL isSYSOP(TRANSPORTENTRY * Session, char * Bufferptr)
 	return TRUE;
 }
 
-VOID HELPCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID HELPCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	int FileSize;
 	char MsgFile[MAX_PATH];
@@ -5863,7 +5868,7 @@ int UZ7HOSetModem(int port, struct TNCINFO * TNC, struct AGWINFO * AGW, PDATAMES
 int UZ7HOSetFlags(int port, struct TNCINFO * TNC, struct AGWINFO * AGW, PDATAMESSAGE buff, PMSGWITHLEN buffptr);
 
 
-VOID UZ7HOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID UZ7HOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	char * Cmd;
 	int port;
@@ -5934,7 +5939,7 @@ VOID UZ7HOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX *
 	return;
 }
 
-VOID QTSMCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID QTSMCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	int port;
 	struct PORTCONTROL * PORT;
@@ -5946,7 +5951,7 @@ VOID QTSMCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * 
 
 	PORT = GetPortTableEntryFromPortNum(port);
 
-	if (PORT == NULL || PORT->PORTTXROUTINE != KISSTX)			// Must be a kiss like port
+	if (PORT == NULL || (void *)PORT->PORTTXROUTINE != (void *)KISSTX)			// Must be a kiss like port
 	{
 		Bufferptr = Cmdprintf(Session, Bufferptr, "Error - Port %d is not a KISS port\r", port);
 		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));

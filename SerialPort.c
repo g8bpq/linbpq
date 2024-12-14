@@ -142,7 +142,7 @@ loop:
 	return 1;
 }
 
-BOOL SerialReadConfigFile(int Port, int ProcLine())
+BOOL SerialReadConfigFile(int Port, int ProcLine(char * buf, int Port))
 {
 	char buf[256],errbuf[256];
 

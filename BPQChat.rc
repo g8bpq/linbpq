@@ -162,7 +162,7 @@ BEGIN
                     WS_VSCROLL
     DEFPUSHBUTTON   "Save Welcome Message",SAVEWELCOME,140,296,91,14,
                     BS_CENTER | BS_VCENTER
-    LTEXT           " If the node is not directly  connectable (ie is not in your NODES table)  you can add a connect script. This consists of a series of commands seperared by |, eg NOTCHT:G8BPQ-4|C 3 GM8BPQ-9|CHAT",
+    LTEXT           " If the node is not directly  connectable (ie is not in your NODES table)  you can add a connect script. This consists of a series of commands separared by |, eg NOTCHT:G8BPQ-4|C 3 GM8BPQ-9|CHAT",
                     IDC_STATIC,9,52,355,24
 END
 

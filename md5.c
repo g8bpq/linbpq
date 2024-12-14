@@ -74,17 +74,14 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
    surprised if they were a performance bottleneck for MD5.  */
 
 static cvs_uint32
-getu32 (addr)
-     const unsigned char *addr;
+getu32(const unsigned char *addr)
 {
 	return (((((uint32_t)addr[3] << 8) | addr[2]) << 8)
 		| addr[1]) << 8 | addr[0];
 }
 
 static void
-putu32 (data, addr)
-     cvs_uint32 data;
-     unsigned char *addr;
+putu32 (cvs_uint32 data, unsigned char *addr)
 {
 	addr[0] = (unsigned char)data;
 	addr[1] = (unsigned char)(data >> 8);
@@ -97,8 +94,7 @@ putu32 (data, addr)
  * initialization constants.
  */
 void
-cvs_MD5Init (ctx)
-     struct cvs_MD5Context *ctx;
+cvs_MD5Init (struct cvs_MD5Context *ctx)
 {
 	ctx->buf[0] = 0x67452301;
 	ctx->buf[1] = 0xefcdab89;
@@ -114,10 +110,8 @@ cvs_MD5Init (ctx)
  * of bytes.
  */
 void
-cvs_MD5Update (ctx, buf, len)
-     struct cvs_MD5Context *ctx;
-     unsigned char const *buf;
-     unsigned len;
+cvs_MD5Update (
+     struct cvs_MD5Context *ctx, unsigned char const *buf, unsigned len)
 {
 	cvs_uint32 t;
 
@@ -164,10 +158,7 @@ cvs_MD5Update (ctx, buf, len)
  * Final wrapup - pad to 64-byte boundary with the bit pattern 
  * 1 0* (64-bit count of bits processed, MSB-first)
  */
-void
-cvs_MD5Final (digest, ctx)
-     unsigned char digest[16];
-     struct cvs_MD5Context *ctx;
+void cvs_MD5Final (unsigned char digest[16], struct cvs_MD5Context *ctx)
 {
 	unsigned count;
 	unsigned char *p;
@@ -227,10 +218,7 @@ cvs_MD5Final (digest, ctx)
  * reflect the addition of 16 longwords of new data.  MD5Update blocks
  * the data and converts bytes into longwords for this routine.
  */
-void
-cvs_MD5Transform (buf, inraw)
-     cvs_uint32 buf[4];
-     const unsigned char inraw[64];
+void cvs_MD5Transform (cvs_uint32 buf[4], const unsigned char inraw[64])
 {
 	register cvs_uint32 a, b, c, d;
 	cvs_uint32 in[16];

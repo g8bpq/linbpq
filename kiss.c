@@ -1485,7 +1485,7 @@ SeeifMore:
 				}	
 			}
 			else
-				Debugprintf("Polled KISS - response from wrong address - Polled %d Reponse %d",  
+				Debugprintf("Polled KISS - response from wrong address - Polled %d Response %d",  
 					KISS->POLLPOINTER->OURCTRL, (Port->RXMSG[0] & 0xf0));
 
 			goto SeeifMore;				// SEE IF ANYTHING ELSE

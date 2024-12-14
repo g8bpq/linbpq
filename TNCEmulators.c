@@ -27,6 +27,16 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #include "CHeaders.h"
 
+typedef struct _TCMDX
+{
+	char String[12];			// COMMAND STRING
+	UCHAR CMDLEN;				// SIGNIFICANT LENGTH
+	VOID (* CMDPROC)(struct TNCDATA * TNC, char * Tail, struct _TCMDX * CMD);// COMMAND PROCESSOR
+	size_t CMDFLAG;				// FLAG/VALUE Offset
+
+} TCMDX;
+
+
 #define LF 10
 #define CR 13
 
@@ -848,7 +858,7 @@ int LocalSessionState(int stream, int * state, int * change, BOOL ACK)
 
 
 
-VOID ONOFF(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
+VOID ONOFF(struct TNCDATA * TNC, char * Tail, TCMDX * CMD)
 {
 	//	PROCESS COMMANDS WITH ON/OFF PARAM
 
@@ -897,7 +907,7 @@ VOID ONOFF(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
 
 
 
-VOID ONOFF_CONOK(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
+VOID ONOFF_CONOK(struct TNCDATA * TNC, char * Tail, TCMDX * CMD)
 {
 	struct TNC2StreamInfo * TNCStream = TNC->TNC2Stream[TNC->TXStream];
 
@@ -911,7 +921,7 @@ VOID ONOFF_CONOK(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
 		SetAppl(TNCStream->BPQPort, TNC->APPLFLAGS, 0);
 }
 
-VOID SETMYCALL(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
+VOID SETMYCALL(struct TNCDATA * TNC, char * Tail, TCMDX * CMD)
 {
 	char Response[80];
 	int len;
@@ -935,7 +945,7 @@ VOID SETMYCALL(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
 
 	SENDREPLY(TNC, Response, len);
 }
-VOID CTEXTCMD(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
+VOID CTEXTCMD(struct TNCDATA * TNC, char * Tail, TCMDX * CMD)
 {
 	char Response[256];
 	int len, n;
@@ -963,10 +973,10 @@ VOID CTEXTCMD(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
 	SENDREPLY(TNC, Response, len);
 }
 
-VOID BTEXT(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
+VOID BTEXT(struct TNCDATA * TNC, char * Tail, TCMDX * CMD)
 {
 }
-VOID VALUE(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
+VOID VALUE(struct TNCDATA * TNC, char * Tail, TCMDX * CMD)
 {
 	//	PROCESS COMMANDS WITH decimal value
 
@@ -995,7 +1005,7 @@ VOID VALUE(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
 	SENDREPLY(TNC, Response, len);
 }
 
-VOID VALHEX(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
+VOID VALHEX(struct TNCDATA * TNC, char * Tail, TCMDX * CMD)
 {
 	//	PROCESS COMMANDS WITH decimal value
 
@@ -1032,7 +1042,7 @@ VOID VALHEX(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
 	SENDREPLY(TNC, Response, len);
 }
 
-VOID APPL_VALHEX(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
+VOID APPL_VALHEX(struct TNCDATA * TNC, char * Tail, TCMDX * CMD)
 {
 	int ApplNum = 1;
 	UINT APPLMASK;
@@ -1061,7 +1071,7 @@ VOID APPL_VALHEX(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
 		memcpy(TNC->MYCALL, GetApplCall(ApplNum), 10);
 
 }
-VOID CSWITCH(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
+VOID CSWITCH(struct TNCDATA * TNC, char * Tail, TCMDX * CMD)
 {
 	char Response[80];
 	int len;
@@ -1072,12 +1082,12 @@ VOID CSWITCH(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
 	CONNECTTONODE(TNC);
 
 }
-VOID CONMODE(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
+VOID CONMODE(struct TNCDATA * TNC, char * Tail, TCMDX * CMD)
 {
 	SENDREPLY(TNC, CMDMSG, 4);
 }
 
-VOID TNCCONV(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
+VOID TNCCONV(struct TNCDATA * TNC, char * Tail, TCMDX * CMD)
 {
 	struct TNC2StreamInfo * TNCStream = TNC->TNC2Stream[TNC->TXStream];
 
@@ -1085,7 +1095,7 @@ VOID TNCCONV(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
 	TNCStream->MODEFLAG &= ~(COMMAND+TRANS);
 }
 
-VOID TNCNODE(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
+VOID TNCNODE(struct TNCDATA * TNC, char * Tail, TCMDX * CMD)
 {
 	//	CONNECT TO NODE
 
@@ -1099,7 +1109,7 @@ VOID TNCNODE(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
 	CONNECTTONODE(TNC);
 }
 
-VOID CStatus(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
+VOID CStatus(struct TNCDATA * TNC, char * Tail, TCMDX * CMD)
 {
 	struct TNC2StreamInfo * TNCStream = TNC->TNC2Stream[TNC->TXStream];
 
@@ -1136,7 +1146,7 @@ VOID CStatus(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
 }
 	
 
-VOID TNCCONNECT(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
+VOID TNCCONNECT(struct TNCDATA * TNC, char * Tail, TCMDX * CMD)
 {
 	struct TNC2StreamInfo * TNCStream = TNC->TNC2Stream[TNC->TXStream];
 
@@ -1179,7 +1189,7 @@ VOID TNCCONNECT(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
 	SENDPACKET(TNC);		// Will now go to node
 
 }
-VOID TNCDISC(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
+VOID TNCDISC(struct TNCDATA * TNC, char * Tail, TCMDX * CMD)
 {
 	struct TNC2StreamInfo * TNCStream = TNC->TNC2Stream[TNC->TXStream];
 
@@ -1194,7 +1204,7 @@ VOID READCHANGE(int Stream)
 	LocalSessionState(Stream, &dummy, &dummy, TRUE);
 }
 
-VOID TNCRELEASE(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
+VOID TNCRELEASE(struct TNCDATA * TNC, char * Tail, TCMDX * CMD)
 {
 	ReturntoNode(TNC->BPQPort);
 
@@ -1203,7 +1213,7 @@ VOID TNCRELEASE(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
 
 	SENDREPLY(TNC, CMDMSG, 4);
 }
-VOID TNCTRANS(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
+VOID TNCTRANS(struct TNCDATA * TNC, char * Tail, TCMDX * CMD)
 {
 	struct TNC2StreamInfo * TNCStream = TNC->TNC2Stream[TNC->TXStream];
 
@@ -1215,7 +1225,7 @@ VOID TNCTRANS(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
 	TNCStream->MODEFLAG |= TRANS;
 	TNCStream->MODEFLAG &= ~(COMMAND+CONV);
 }
-static VOID TNCRESTART(struct TNCDATA * TNC)
+static VOID TNCRESTART(struct TNCDATA * TNC, char * Tail, TCMDX * CMD)
 {
 	//	REINITIALISE CHANNEL
 
@@ -1243,12 +1253,12 @@ static VOID TNCRESTART(struct TNCDATA * TNC)
 }
 
 
-static VOID TNCUNPROTOCMD(struct TNCDATA * TNC, char * Tail, CMDX * CMD)
+static VOID TNCUNPROTOCMD(struct TNCDATA * TNC, char * Tail, TCMDX * CMD)
 {
 }
 
 
-CMDX TNCCOMMANDLIST[] =
+TCMDX TNCCOMMANDLIST[] =
 {
 	"AUTOLF  ",2, ONOFF, offsetof(struct TNCDATA, AUTOLF),
 	"BBSMON  ",6, ONOFF, offsetof(struct TNCDATA, BBSMON),
@@ -1301,7 +1311,7 @@ CMDX TNCCOMMANDLIST[] =
 
 
 
-int NUMBEROFTNCCOMMANDS = sizeof(TNCCOMMANDLIST)/sizeof(CMDX);
+int NUMBEROFTNCCOMMANDS = sizeof(TNCCOMMANDLIST)/sizeof(TCMDX);
 
 /*NEWVALUE	DW	0
 HEXFLAG		DB	0
@@ -2575,7 +2585,7 @@ VOID TNCCOMMAND(struct TNCDATA * TNC)
 	
 	char * ptr, * ptr1, * ptr2;
 	int n;
-	CMDX * CMD;
+	TCMDX * CMD;
 
 	*(--TNC->CURSOR) = 0;
 
@@ -2653,11 +2663,8 @@ VOID TNCCOMMAND(struct TNCDATA * TNC)
 		}
 		
 		CMD++;
-	
 	}
-
 	SENDREPLY(TNC, WHATMSG, 8);
-
 }
 
 /*
@@ -4926,6 +4933,7 @@ int STATUSPOLL(struct TNCDATA * TNC, struct StreamInfo * Channel)
 
 	int State, Change, i;
 	char WorkString[256];
+	char ConMsg[64];
 	
 	 if (TNC->MSGCHANNEL == 0)		// Monitor Chan
 		return 0;
@@ -4941,7 +4949,7 @@ int STATUSPOLL(struct TNCDATA * TNC, struct StreamInfo * Channel)
 	{
 		//	DISCONNECTED
 
-		i = sprintf(CONMSG, "\x3(%d) DISCONNECTED fm 0:SWITCH\r", TNC->MSGCHANNEL);
+		i = sprintf(ConMsg, "\x3(%d) DISCONNECTED fm 0:SWITCH\r", TNC->MSGCHANNEL);
 		i++;
 	}
 	else
@@ -4950,11 +4958,11 @@ int STATUSPOLL(struct TNCDATA * TNC, struct StreamInfo * Channel)
 	
 		GetCallsign(Channel->BPQStream, WorkString);
 		strlop(WorkString, ' ');
-		i = sprintf(CONMSG, "\x3(%d) CONNECTED to %s\r", TNC->MSGCHANNEL, WorkString);
+		i = sprintf(ConMsg, "\x3(%d) CONNECTED to %s\r", TNC->MSGCHANNEL, WorkString);
 		i++;
 	}
 
-	SENDCMDREPLY(TNC, CONMSG, i);
+	SENDCMDREPLY(TNC, ConMsg, i);
 	return 1;
 }
 

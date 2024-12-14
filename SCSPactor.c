@@ -2893,7 +2893,7 @@ VOID ProcessIncomingCall(struct TNCINFO * TNC, struct STREAMINFO * STREAM, int S
 		{
 			char AppName[13];
 			
-			memcpy(AppName, &ApplPtr[App * sizeof(CMDX)], 12);
+			memcpy(AppName, &ApplPtr[App * sizeof(struct CMDX)], 12);
 			AppName[12] = 0;
 
 			// Make sure app is available
@@ -3034,7 +3034,7 @@ VOID ProcessIncomingCall(struct TNCINFO * TNC, struct STREAMINFO * STREAM, int S
 		{
 			char AppName[13];
 
-			memcpy(AppName, &ApplPtr[App * sizeof(CMDX)], 12);
+			memcpy(AppName, &ApplPtr[App * sizeof(struct CMDX)], 12);
 			AppName[12] = 0;
 
 			// if SendTandRtoRelay set and Appl is RMS change to RELAY

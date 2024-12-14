@@ -603,7 +603,7 @@ VOID __cdecl nprintf(ChatCIRCUIT * conn, const char * format, ...);
 VOID nputs(ChatCIRCUIT * conn, char * buf);
 #endif
 BOOL matchi(char * p1, char * p2);
-char * strlop(char * buf, char delim);
+char * strlop(const char * buf, char delim);
 int rt_cmd(ChatCIRCUIT *circuit, char * Buffer);
 ChatCIRCUIT *circuit_new(ChatCIRCUIT *circuit, int flags);
 void makelinks(void);

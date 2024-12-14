@@ -24,7 +24,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include "bpqmail.h"
 
 int32_t Encode(char * in, char * out, int32_t inlen, BOOL B1Protocol, int Compress);
-
+void MQTTMessageEvent(void* message);
 
 int MaxRXSize = 99999;
 int MaxTXSize = 99999;
@@ -806,6 +806,11 @@ VOID FlagSentMessages(CIRCUIT * conn, struct UserInfo * user)
 				FBBHeader->FwdMsg->status = 'F';			// Mark as forwarded
 				FBBHeader->FwdMsg->datechanged=time(NULL);
 			}
+
+#ifndef NOMQTT
+		if (MQTT)
+			MQTTMessageEvent(FBBHeader->FwdMsg);
+#endif
 
 			FBBHeader->FwdMsg->Locked = 0;	// Unlock
 			conn->UserPointer->ForwardingInfo->MsgCount--;

@@ -61,7 +61,6 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #define	NODES_SIG	0xFF
 
-char * strlop(char * buf, char delim);
 UCHAR * DisplayINP3RIF(UCHAR * ptr1, UCHAR * ptr2, int msglen);
 
 static UCHAR * DISPLAY_NETROM(MESSAGE * ADJBUFFER, UCHAR * Output, int MsgLen, int DoNodes);

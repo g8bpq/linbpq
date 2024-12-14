@@ -22,6 +22,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 // First Version, November 2011
 
 #pragma data_seg("_BPQDATA")
+
 #define _CRT_SECURE_NO_DEPRECATE 
 
 #include <stdio.h>
@@ -347,7 +348,7 @@ APRSHEARDRECORD MHTABLE[MAXHEARD] = {0};
 
 APRSHEARDRECORD * MHDATA = &MHTABLE[0];
 
-static SOCKET sock = 0;
+static SOCKET sock = (SOCKET)0;
 
 //Duplicate suppression Code
 
@@ -3112,7 +3113,7 @@ VOID APRSISThread(void * Report)
 	BOOL bcopt=TRUE;
 	char Buffer[1000];
 	int InputLen = 1;		// Non-zero
-	char errmsg[300];
+	char errmsg[100];
 	char * ptr;
 	size_t inptr = 0;
 	char APRSinMsg[1000];
@@ -3673,7 +3674,7 @@ BOOL CheckforDups(char * Call, char * Msg, int Len)
 			if (ptr1)
 				*ptr1 = 0;
 
-//			Debugprintf("Duplicate Message suppressed %s", Msg);
+//			Debugprintf("Duplicate Message supressed %s", Msg);
 			return TRUE;					// Duplicate
 		}
 	}
@@ -7665,7 +7666,7 @@ VOID APRSProcessHTTPMessage(SOCKET sock, char * MsgPtr,	BOOL LOCAL, BOOL COOKIE)
 
 			}
 
-			OutputLen += sprintf(&OutBuffer[OutputLen], "%s", WebTrailer);
+			OutputLen += sprintf(&OutBuffer[OutputLen], WebTrailer);
 
 			HeaderLen = sprintf(Header, "HTTP/1.0 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", OutputLen);
 			sendandcheck(sock, Header, HeaderLen);
@@ -7710,7 +7711,7 @@ VOID APRSProcessHTTPMessage(SOCKET sock, char * MsgPtr,	BOOL LOCAL, BOOL COOKIE)
 
 			}
 
-			OutputLen += sprintf(&OutBuffer[OutputLen], "%s", WebTrailer);
+			OutputLen += sprintf(&OutBuffer[OutputLen], WebTrailer);
 
 			HeaderLen = sprintf(Header, "HTTP/1.0 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", OutputLen);
 			sendandcheck(sock, Header, HeaderLen);
@@ -8112,7 +8113,7 @@ extern char OrigCmdBuffer[81];
 
 BOOL isSYSOP(TRANSPORTENTRY * Session, char * Bufferptr);
 
-VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
+VOID APRSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
 {
 	// APRS Subcommands. Default for compatibility is APRSMH
 
@@ -9177,7 +9178,7 @@ void GetSavedAPRSMessages()
 	if ((file = fopen(FN, "r")) == NULL)
 		return ;
 
-	while (fgets(Line, sizeof(Line), file))
+	while (fgets(Line, 512, file))
 	{
 		Stamp = Line;
 		From = strlop(Stamp, ' ');

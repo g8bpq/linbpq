@@ -24,6 +24,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include "bpqmail.h"
 
 void SendMessageReadEvent(char * call, struct MsgInfo * Msg);
+void MQTTMessageEvent(void* message);
 
 
 VOID ProcessMBLLine(CIRCUIT * conn, struct UserInfo * user, UCHAR* Buffer, int len)
@@ -199,6 +200,12 @@ VOID ProcessMBLLine(CIRCUIT * conn, struct UserInfo * user, UCHAR* Buffer, int l
 			}
 
 			conn->FwdMsg->Locked = 0;	// Unlock
+
+#ifndef NOMQTT
+			if (MQTT)
+			MQTTMessageEvent(conn->FwdMsg);
+#endif
+
 		}
 
 		return;
@@ -282,7 +289,7 @@ VOID ProcessMBLLine(CIRCUIT * conn, struct UserInfo * user, UCHAR* Buffer, int l
 	{
 		// Reverse forward request
 
-		// If we have just sent a nessage, Flag it as sent
+		// If we have just sent a message, Flag it as sent
 
 		if (conn->FBBMsgsSent)
 		{
@@ -299,6 +306,11 @@ VOID ProcessMBLLine(CIRCUIT * conn, struct UserInfo * user, UCHAR* Buffer, int l
 			}
 
 			conn->FwdMsg->Locked = 0;	// Unlock
+
+#ifndef NOMQTT
+			if (MQTT)
+				MQTTMessageEvent(conn->FwdMsg);
+#endif
 
 			conn->UserPointer->ForwardingInfo->MsgCount--;
 		}
@@ -353,6 +365,11 @@ VOID ProcessMBLLine(CIRCUIT * conn, struct UserInfo * user, UCHAR* Buffer, int l
 				conn->FwdMsg->status = 'F';			// Mark as forwarded
 				conn->FwdMsg->datechanged=time(NULL);
 			}
+
+#ifndef NOMQTT
+			if (MQTT)
+				MQTTMessageEvent(conn->FwdMsg);
+#endif
 
 			conn->UserPointer->ForwardingInfo->MsgCount--;
 		}

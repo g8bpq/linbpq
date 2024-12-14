@@ -508,7 +508,7 @@ static int ProcessLine(char * buf, int Port)
 
 void WINMORThread(void * portptr);
 VOID ProcessDataSocketData(int port);
-int ConnecttoWINMOR();
+int ConnecttoWINMOR(int port);
 static int ProcessReceivedData(struct TNCINFO * TNC);
 int V4ProcessReceivedData(struct TNCINFO * TNC);
 VOID ReleaseTNC(struct TNCINFO * TNC);
@@ -2231,7 +2231,7 @@ VOID ProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 			{
 				char AppName[13];
 
-				memcpy(AppName, &ApplPtr[App * sizeof(CMDX)], 12);
+				memcpy(AppName, &ApplPtr[App * sizeof(struct CMDX)], 12);
 				AppName[12] = 0;
 
 				// Make sure app is available

@@ -1165,7 +1165,7 @@ char * Housekeepingtxt()
 		"Send Non-delivery Notifications<br>\r\n"
 		"for P and T messages <input %sname=\"SendND\" value=\"SendND\" type=\"checkbox\" /><br>\r\n"
 		"  <br />\r\n"
-		"Supress Mailing of<br>\r\n"
+		"Suppress Mailing of<br>\r\n"
 		"Housekeeping Result <input %sname=\"NoMail\" value=\"Yes\" type=\"checkbox\"><br><br>\r\n"
 		"Generate Traffic Report<input %sname=\"GenTraffic\" value=\"Yes\" type=\"checkbox\"><br><br>\r\n"
 		"<div style=\"text-align: center;\"><input class='btn'  name=RunNow value=\"Run Housekeeping\" type=submit class='btn'></div>\r\n"
@@ -1454,7 +1454,7 @@ char * ChatConfigtxt()
 		"<div style=\"text-align: left; width: 680px; margin: auto;\">The Nodes to link to box defines which other Chat Nodes should be connected to, or from which "
 		"connections may be accepted. The format is ALIAS:CALL, eg BPQCHT:G8BPQ-4. If the node is not directly "
 		"connectable (ie is not in your NODES table) you can add a connect script. This consists of a series of commands "
-		"seperared by |, eg NOTCHT:G8BPQ-4|C 3 GM8BPQ-9|CHAT"
+		"separared by |, eg NOTCHT:G8BPQ-4|C 3 GM8BPQ-9|CHAT"
 
 		"<br><br>The Callsign of the Chat Node is not defined here - it is obtained from the bpq32.cfg APPLICATION line corresponding to the Chat Appl Number.<br>\r\n"
 		"<br></div>\n"

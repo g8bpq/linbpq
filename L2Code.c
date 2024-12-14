@@ -47,8 +47,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #define	THREESECS 3*3
 
 
-VOID L2SENDCOMMAND();
-VOID L2ROUTINE();
+VOID L2Routine(struct PORTCONTROL * PORT, PMESSAGE Buffer);
 MESSAGE * SETUPL2MESSAGE(struct _LINKTABLE * LINK, UCHAR CMD);
 VOID SendSupervisCmd(struct _LINKTABLE * LINK);
 void SEND_RR_RESP(struct _LINKTABLE * LINK, UCHAR PF);
@@ -3098,7 +3097,7 @@ VOID ACKMSG(struct _LINKTABLE * LINK)
 	}
 }
 
-VOID CONNECTFAILED();
+VOID CONNECTFAILED(struct _LINKTABLE * LINK);
 	
 VOID L2TIMEOUT(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT)
 {
@@ -3599,7 +3598,7 @@ VOID CONNECTREFUSED(struct _LINKTABLE * LINK)
 	ConnectFailedOrRefused(LINK, "Busy from");
 }
 
-VOID L3CONNECTFAILED();
+VOID L3CONNECTFAILED(struct _LINKTABLE * LINK);
 
 VOID ConnectFailedOrRefused(struct _LINKTABLE * LINK, char * Msg)
 {
@@ -4135,7 +4134,7 @@ int seeifUnlockneeded(struct _LINKTABLE * LINK)
 		if (TNC)
 			if (Interlock == TNC->RXRadio || Interlock == TNC->TXRadio)	// Same Group	
 				if (TNC->ReleasePortProc &&	TNC->PortRecord->PORTCONTROL.PortSuspended == TRUE)
-					TNC->ReleasePortProc(TNC, TNC);
+					TNC->ReleasePortProc(TNC);
 	}
 
 	return 0;

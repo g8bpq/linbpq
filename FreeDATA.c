@@ -347,41 +347,6 @@ loop:
 	return 1;
 }
 
-BOOL FreeDataReadConfigFile(int Port, int ProcLine())
-{
-	char buf[256],errbuf[256];
-
-	Config = PortConfig[Port];
-
-	if (Config)
-	{
-		// Using config from bpq32.cfg
-
-		if (strlen(Config) == 0)
-		{
-			return TRUE;
-		}
-
-		ptr1 = Config;
-		ptr2 = strchr(ptr1, 13);
-
-		if (!ProcLine(buf, Port))
-		{
-			WritetoConsoleLocal("\n");
-			WritetoConsoleLocal("Bad config record ");
-			WritetoConsoleLocal(errbuf);
-		}
-	}
-	else
-	{
-		sprintf(buf," ** Error - No Configuration info in bpq32.cfg");
-		WritetoConsoleLocal(buf);
-	}
-
-	return (TRUE);
-}
-
-
 
 VOID SuspendOtherPorts(struct TNCINFO * ThisTNC);
 VOID ReleaseOtherPorts(struct TNCINFO * ThisTNC);
@@ -867,7 +832,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			char Message[256];
 			int Len, ret;
 
-			Len = sprintf(Message, TXF);
+			Len = sprintf(Message, "%s", TXF);
 			ret = send(TNC->TCPDataSock, (char *)&Message, Len, 0);
 			
 			if (buffptr)
@@ -1881,7 +1846,7 @@ VOID FreeDataProcessTNCMessage(struct TNCINFO * TNC, char * Call, unsigned char 
 		if (App < 32)
 		{
 
-			memcpy(AppName, &ApplPtr[App * sizeof(CMDX)], 12);
+			memcpy(AppName, &ApplPtr[App * sizeof(struct CMDX)], 12);
 			AppName[12] = 0;
 
 			// if SendTandRtoRelay set and Appl is RMS change to RELAY
@@ -2242,7 +2207,7 @@ VOID FreeDataProcessNewConnect(struct TNCINFO * TNC, char * fromCall, char * toC
 	if (App < 32)
 	{
 
-		memcpy(AppName, &ApplPtr[App * sizeof(CMDX)], 12);
+		memcpy(AppName, &ApplPtr[App * sizeof(struct CMDX)], 12);
 		AppName[12] = 0;
 
 		// if SendTandRtoRelay set and Appl is RMS change to RELAY
@@ -2476,7 +2441,7 @@ static void SendCQ(struct TNCINFO * TNC)
 	char Message[256];
 	int Len, ret;
 
-	Len = sprintf(Message, CQ);
+	Len = sprintf(Message, "%s", CQ);
 	ret = send(TNC->TCPDataSock, (char *)&Message, Len, 0);
 }
 
@@ -2491,7 +2456,7 @@ static void SendBeacon(struct TNCINFO * TNC, int Interval)
 	if (Interval > 0)
 		Len = sprintf(Message, Template1, Interval);
 	else
-		Len = sprintf(Message, Template2);
+		Len = sprintf(Message, "%s", Template2);
 
 	ret = send(TNC->TCPDataSock, (char *)&Message, Len, 0);
 }
@@ -3682,7 +3647,7 @@ int FreeDataDisconnect(struct TNCINFO * TNC)
 
 //	return FreeDataSendCommand(TNC, "D");
 
-	Len = sprintf(Msg, Disconnect);
+	Len = sprintf(Msg, "%s", Disconnect);
 
 	return send(TNC->TCPDataSock, Msg, Len, 0);
 }
@@ -3694,7 +3659,7 @@ int FreeGetData(struct TNCINFO * TNC)
 	char Msg[128];
 	int Len;
 
-	Len = sprintf(Msg, GetData);
+	Len = sprintf(Msg, "%s", GetData);
 
 	return send(TNC->TCPDataSock, Msg, Len, 0);
 }

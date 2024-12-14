@@ -214,7 +214,7 @@ LRESULT APIENTRY InputProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) ;
 LRESULT APIENTRY MonProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) ;
 
 
-extern CMDX COMMANDS[];
+extern struct CMDX COMMANDS[];
 extern int APPL1;
 
 static HMENU trayMenu;

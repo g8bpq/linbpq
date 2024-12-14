@@ -309,46 +309,9 @@ loop:
 	return 1;
 }
 
-BOOL HSMODEMReadConfigFile(int Port, int ProcLine())
-{
-	char buf[256],errbuf[256];
-
-	Config = PortConfig[Port];
-
-	if (Config)
-	{
-		// Using config from bpq32.cfg
-
-		if (strlen(Config) == 0)
-		{
-			return TRUE;
-		}
-
-		ptr1 = Config;
-		ptr2 = strchr(ptr1, 13);
-
-		if (!ProcLine(buf, Port))
-		{
-			WritetoConsoleLocal("\n");
-			WritetoConsoleLocal("Bad config record ");
-			WritetoConsoleLocal(errbuf);
-		}
-	}
-	else
-	{
-		sprintf(buf," ** Error - No Configuration info in bpq32.cfg");
-		WritetoConsoleLocal(buf);
-	}
-
-	return (TRUE);
-}
-
-
-
 VOID SuspendOtherPorts(struct TNCINFO * ThisTNC);
 VOID ReleaseOtherPorts(struct TNCINFO * ThisTNC);
 VOID WritetoTrace(struct TNCINFO * TNC, char * Msg, int Len);
-
 
 static time_t ltime;
 

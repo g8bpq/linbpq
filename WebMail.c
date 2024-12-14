@@ -78,6 +78,7 @@ char * doXMLTransparency(char * string);
 Dll BOOL APIENTRY APISendAPRSMessage(char * Text, char * ToCall);
 void SendMessageReadEvent(char * Call, struct MsgInfo * Msg);
 void SendNewMessageEvent(char * call, struct MsgInfo * Msg);
+void MQTTMessageEvent(void* message);
 
 extern char NodeTail[];
 extern char BBSName[10];
@@ -2020,7 +2021,7 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 			"document.getElementById('myform').action = '/WebMail/QuoteOriginal' + '?%s';"
 			" document.getElementById('myform').submit();}</script>"
 			"<input type=button class='btn' onclick='myfunc()' "
-			"value='Include Orignal Msg'>";
+			"value='Include Original Msg'>";
 		
 		char Temp[1024];
 		char ReplyAddr[128];
@@ -2839,6 +2840,11 @@ VOID SaveNewMessage(struct HTTPConnectionInfo * Session, char * MsgPtr, char * R
 		// If Event Notifications enabled report a new message event
 
 		SendNewMessageEvent(user->Call, Msg);
+
+#ifndef NOMQTT
+		if (MQTT)
+			MQTTMessageEvent(Msg);
+#endif
 
 		if (user && (user->flags & F_APRSMFOR))
 		{
@@ -3784,6 +3790,12 @@ VOID WriteOneRecipient(struct MsgInfo * Msg, WebMailInfo * WebMail, int MsgLen, 
 		Msg->status = '$';				// Has forwarding
 
 	BuildNNTPList(Msg);				// Build NNTP Groups list
+
+#ifndef NOMQTT
+	if (MQTT)
+		MQTTMessageEvent(Msg);
+#endif
+
 }
 
 
@@ -4367,6 +4379,12 @@ VOID BuildMessageFromHTMLInput(struct HTTPConnectionInfo * Session, char * Reply
 		Msg->status = '$';				// Has forwarding
 
 	BuildNNTPList(Msg);				// Build NNTP Groups list
+
+#ifndef NOMQTT
+	if (MQTT)
+		MQTTMessageEvent(Msg);
+#endif
+
 
 	SaveMessageDatabase();
 	SaveBIDDatabase();

@@ -93,7 +93,7 @@ VOID DoTheCommand(TRANSPORTENTRY * Session);
 char * MOVEANDCHECK(TRANSPORTENTRY * Session, char * Bufferptr, char * Source, int Len);
 VOID DISPLAYCIRCUIT(TRANSPORTENTRY * L4, char * Buffer);
 char * FormatUptime(int Uptime);
-char * strlop(char * buf, char delim);
+char * strlop(const char * buf, char delim);
 BOOL CompareCalls(UCHAR * c1, UCHAR * c2);
 
 VOID PostDataAvailable(TRANSPORTENTRY * Session);
@@ -109,7 +109,7 @@ int cCOUNT_AT_L2(struct _LINKTABLE * LINK);
 VOID SENDL4CONNECT(TRANSPORTENTRY * Session);
 
 VOID CloseSessionPartner(TRANSPORTENTRY * Session);
-int COUNTNODES();
+int COUNTNODES(struct ROUTE * ROUTE);
 int DecodeNodeName(char * NodeName, char * ptr);;
 VOID DISPLAYCIRCUIT(TRANSPORTENTRY * L4, char * Buffer);
 int cCOUNT_AT_L2(struct _LINKTABLE * LINK);
@@ -359,7 +359,7 @@ extern char * ConfigBuffer;
 
 extern char * WL2KReportLine[];
 
-extern CMDX COMMANDS[];
+extern struct CMDX COMMANDS[];
 
 extern int QCOUNT, MAXBUFFS, MAXCIRCUITS, L4DEFAULTWINDOW, L4T1, CMDXLEN;
 extern char CMDALIAS[ALIASLEN][NumberofAppls];

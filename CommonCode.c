@@ -571,7 +571,7 @@ void * zalloc(int len)
 	return ptr;
 }
 
-char * strlop(char * buf, char delim)
+char * strlop(const char * buf, char delim)
 {
 	// Terminate buf at delim, and return rest of string
 
@@ -692,7 +692,7 @@ VOID DISPLAYCIRCUIT(TRANSPORTENTRY * L4, char * Buffer)
 }
 
 VOID CheckForDetach(struct TNCINFO * TNC, int Stream, struct STREAMINFO * STREAM,
-			VOID TidyCloseProc(), VOID ForcedCloseProc(), VOID CloseComplete())
+			VOID TidyCloseProc(struct TNCINFO * TNC, int Stream), VOID ForcedCloseProc(struct TNCINFO * TNC, int Stream), VOID CloseComplete(struct TNCINFO * TNC, int Stream))
 {
 	void ** buffptr;
 
@@ -1020,7 +1020,7 @@ BOOL ProcessIncommingConnectEx(struct TNCINFO * TNC, char * Call, int Stream, BO
 char * Config;
 static char * ptr1, * ptr2;
 
-BOOL ReadConfigFile(int Port, int ProcLine())
+BOOL ReadConfigFile(int Port, int ProcLine(char * buf, int Port))
 {
 	char buf[256],errbuf[256];
 
@@ -2437,7 +2437,7 @@ static struct speed_struct
 HANDLE OpenCOMPort(VOID * pPort, int speed, BOOL SetDTR, BOOL SetRTS, BOOL Quiet, int Stopbits)
 {
 	char Port[256];
-	char buf[100];
+	char buf[512];
 
 	//	Linux Version.
 
@@ -4759,7 +4759,7 @@ LRESULT CALLBACK UIWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 extern struct DATAMESSAGE * REPLYBUFFER;
 char * __cdecl Cmdprintf(TRANSPORTENTRY * Session, char * Bufferptr, const char * format, ...);
 
-void GetPortCTEXT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+void GetPortCTEXT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	char FN[250];
 	FILE *hFile;

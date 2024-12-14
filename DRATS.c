@@ -563,7 +563,7 @@ void DRATSConnectionLost(struct ConnectionInfo * sockptr)
 #define ZEXPORT __stdcall
 #endif
 
-#include "zlib.h"
+#include <zlib.h>
 
 
 int doinflate(unsigned char * source, unsigned char * dest, int Len, int destlen, int * outLen)

@@ -87,7 +87,7 @@ void CreateMHWindow();
 int Update_MH_List(struct in_addr ipad, char * call, char proto);
 
 static BOOL ReadConfigFile(int Port);
-int ConnecttoAGW();
+int ConnecttoAGW(int port);
 int ProcessReceivedData(int bpqport);
 static int ProcessLine(char * buf, int Port, BOOL CheckPort);
 

@@ -26,7 +26,7 @@ typedef struct API
 {
 	char *URL;
 	int URLLen;
-	int (* APIRoutine)();
+	int (* APIRoutine)(char * response, char * token, char * param);
 	int Auth;
 } API;
 

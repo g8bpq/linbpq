@@ -649,7 +649,7 @@ BOOL ProcessConfig()
 	if (LOCATOR[0] == 0 && LocSpecified == 0 && RFOnly == 0)
 	{
 		Consoleprintf("");
-		Consoleprintf("Please enter a LOCATOR statment in your BPQ32.cfg");
+		Consoleprintf("Please enter a LOCATOR statement in your BPQ32.cfg");
 		Consoleprintf("If you really don't want to be on the Node Map you can enter LOCATOR=NONE");
 		Consoleprintf("");
 
@@ -1755,8 +1755,7 @@ int tncports(int i)
 /*   FIND OCCURENCE OF ONE STRING WITHIN ANOTHER			*/
 /************************************************************************/
 
-int xindex(s, t)
-char s[], t[];
+int xindex(char s[], char t[])
 {
 	int i, j ,k;
 
@@ -1775,8 +1774,7 @@ char s[], t[];
 /*   FIND FIRST OCCURENCE OF A CHARACTER THAT IS NOT c			*/
 /************************************************************************/
 
-int verify(s, c)
-char s[], c;
+int verify(char s[], char c)
 {
 	int i;
 
@@ -2297,10 +2295,7 @@ int decode_port_rec(char * rec)
 }
 
 
-int doid(i, value, rec)
-int i;
-char value[];
-char rec[];
+int doid(int i, char value[], char rec[])
 {
 	unsigned int j;
 	for (j = 3;( j < (unsigned int)strlen(rec)+1); j++)
@@ -2334,10 +2329,7 @@ char rec[];
 	return(1);
 }
 
-int dodll(i, value, rec)
-int i;
-char value[];
-char rec[];
+int dodll(int i, char value[], char rec[])
 {
 	unsigned int j;
 
@@ -2424,7 +2416,7 @@ int doSerialPortName(int i, char * value, char * rec)
 	if (IsNumeric(rec))
 		xxp.IOADDR = atoi(rec);
 	else
-		xxp.SerialPortName = strdup(rec);
+		xxp.SerialPortName = _strdup(rec);
 
 	return 1;
 }
@@ -2457,10 +2449,7 @@ int doKissCommand(int i, char * value, char * rec)
 }
 
 
-int hwtypes(i, value, rec)
-int i;
-char value[];
-char rec[];
+int hwtypes(int i, char value[], char rec[])
 {
 	hw = 255;
 	if (_stricmp(value,"ASYNC") == 0)
@@ -2543,10 +2532,7 @@ char rec[];
 
 	return(1);
 }
-int protocols(i, value, rec)
-int i;
-char value[];
-char rec[];
+int protocols(int i, char value[], char rec[])
 {
 	int hw;
 
@@ -2580,10 +2566,7 @@ char rec[];
 }
 
 
-int bbsflag(i, value, rec)
-int i;
-char value[];
-char rec[];
+int bbsflag(int i, char value[],char rec[])
 {
 	int hw=255;
 
@@ -2634,10 +2617,7 @@ int validcalls(int i, char * value, char * rec)
 }
 
 
-int kissoptions(i, value, rec)
-int i;
-char value[];
-char rec[];
+int kissoptions(int i, char value[], char rec[])
 {
 	int err=255;
 
@@ -2689,7 +2669,19 @@ static int troutine[] =
 
 #define TPARAMLIM 6
 
-extern CMDX TNCCOMMANDLIST[];
+
+typedef struct _TCMDX
+{
+	char String[12];			// COMMAND STRING
+	UCHAR CMDLEN;				// SIGNIFICANT LENGTH
+	VOID (* CMDPROC)(struct TNCDATA * TNC, char * Tail, struct _TCMDX * CMD);// COMMAND PROCESSOR
+	size_t CMDFLAG;				// FLAG/VALUE Offset
+
+} TCMDX;
+
+
+
+extern TCMDX TNCCOMMANDLIST[];
 extern int NUMBEROFTNCCOMMANDS;
 
 int decode_tnc_rec(char * rec)
@@ -2766,7 +2758,7 @@ int decode_tnc_rec(char * rec)
 			// Try process as TNC2 Command
 
 			int n = 0;
-			CMDX * CMD = &TNCCOMMANDLIST[0];
+			TCMDX * CMD = &TNCCOMMANDLIST[0];
 			char * ptr1 = key_word;
 			UCHAR * valueptr;
 

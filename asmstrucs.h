@@ -62,15 +62,15 @@ extern int ENDOFDATA;
 extern int L3LIVES;
 extern int NUMBEROFNODES;
 
-typedef struct _CMDX
+struct CMDX
 {
 	char String[12];			// COMMAND STRING
 	UCHAR CMDLEN;				// SIGNIFICANT LENGTH
-	VOID (* CMDPROC)();			// COMMAND PROCESSOR
+//	VOID (*CMDPROC)(struct _TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail,  struct CMDX * CMD);// COMMAND PROCESSOR
+	VOID (*CMDPROC)();// COMMAND PROCESSOR
 	size_t CMDFLAG;				// FLAG/VALUE Offset
 
-} CMDX;
-
+};
 
 struct APPLCONFIG
 {
@@ -547,14 +547,14 @@ typedef struct PORTCONTROL
 	PMESSAGE PORTRX_Q;			// FRAMES RECEIVED ON THIS PORT
 	PMESSAGE PORTTX_Q;			// FRAMES TO BE SENT ON THIS PORT
 	
-	void (FAR * PORTTXROUTINE)();	// POINTER TO TRANSMIT ROUTINE FOR THIS PORT
-	void (FAR * PORTRXROUTINE)();	// POINTER TO RECEIVE ROUTINE FOR THIS PORT
-	void (FAR * PORTINITCODE)();		// INITIALISATION ROUTINE
-	void (FAR * PORTTIMERCODE)();	//
-	void (FAR * PORTCLOSECODE)();	// CLOSE ROUTINE
-	int (FAR * PORTTXCHECKCODE)();	// OK to TX Check
-	BOOL (FAR * PORTSTOPCODE)();	// Temporarily Stop Port
-	BOOL (FAR * PORTSTARTCODE)();	// Restart Port
+	void (FAR * PORTTXROUTINE)(struct _EXTPORTDATA * PORTVEC, MESSAGE * Buffer);	// POINTER TO TRANSMIT ROUTINE FOR THIS PORT
+	void (FAR * PORTRXROUTINE)(struct _EXTPORTDATA * PORTVEC);	// POINTER TO RECEIVE ROUTINE FOR THIS PORT
+	void (FAR * PORTINITCODE)(struct PORTCONTROL * PortVector);		// INITIALISATION ROUTINE
+	void (FAR * PORTTIMERCODE)(struct PORTCONTROL * PortVector);	//
+	void (FAR * PORTCLOSECODE)(struct PORTCONTROL * PortVector);	// CLOSE ROUTINE
+	int (FAR * PORTTXCHECKCODE)(struct PORTCONTROL * PORTVEC, int Chan);	// OK to TX Check
+	BOOL (FAR * PORTSTOPCODE)(struct PORTCONTROL * PORT);	// Temporarily Stop Port
+	BOOL (FAR * PORTSTARTCODE)(struct PORTCONTROL * PORT);	// Restart Port
 	BOOL PortStopped;				// STOPPORT command used
 	BOOL PortSuspended;				// Suspended by interlock
 
@@ -678,7 +678,7 @@ typedef struct PORTCONTROL
 	BOOL IgnoreUnlocked;		// Ignore Unlocked routes
 	BOOL INP3ONLY;				// Default to INP3 and disallow NODES
 
-	FARPROCY UIHook;			// Used for KISSARQ
+	void (* UIHook)(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffer, MESSAGE * ADJBUFFER, UCHAR CTL, UCHAR MSGFLAG);			// Used for KISSARQ
 	struct PORTCONTROL * HookPort;
 	int PortSlot;				// Index in Port Table
 	struct TNCINFO * TNC;		// Associated TNC record
@@ -766,7 +766,7 @@ typedef struct _EXTPORTDATA
 {
 	struct PORTCONTROL PORTCONTROL	;	// REMAP HARDWARE INFO
 
-	void * (* PORT_EXT_ADDR) ();		// ADDR OF RESIDENT ROUTINE
+	void * (* PORT_EXT_ADDR) (int fn, int port, PDATAMESSAGE buff);		// ADDR OF RESIDENT ROUTINE
 	char PORT_DLL_NAME[16];	
 	UCHAR EXTRESTART;					// FLAG FOR DRIVER REINIT
 	HINSTANCE DLLhandle;

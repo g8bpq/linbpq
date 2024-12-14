@@ -141,7 +141,7 @@ struct Country Countries[] =
 	"HKG", "ASIA", "AS", 		// Hong Kong Special Administrative Region of China
 	"MAC", "ASIA", "AS", 		// Macao Special Administrative Region of China
 	"COL", "ASIA", "SA", 		// Colombia
-	"COM", "SAFR", "AF", 		// Comoros
+//	"COM", "SAFR", "AF", 		// Comoros
 	"COG", "CAFR", "AF", 		// Congo
 	"COK", "SPAC", "OC", 		// Cook Islands
 	"CRI", "CEAM", "NA", 		// Costa Rica

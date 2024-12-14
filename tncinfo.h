@@ -814,9 +814,9 @@ typedef struct TNCINFO
 	HMENU hMenu;
 	HMENU hWndMenu;
 
-	VOID (* SuspendPortProc) ();
-	VOID (* ReleasePortProc) ();
-	VOID (* ForcedCloseProc) ();
+	VOID (* SuspendPortProc) (struct TNCINFO * TNC, struct TNCINFO * ThisTNC);
+	VOID (* ReleasePortProc) (struct TNCINFO * TNC);
+	VOID (* ForcedCloseProc) (struct TNCINFO * TNC, int Stream);
 
 	time_t WinmorRestartCodecTimer;
 	int WinmorCurrentMode;

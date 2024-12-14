@@ -52,7 +52,6 @@ extern char LOC[];
 static RECT Rect;
 
 VOID __cdecl Debugprintf(const char * format, ...);
-char * strlop(char * buf, char delim);
 
 char NodeCall[11];		// Nodecall, Null Terminated
 
@@ -2175,7 +2174,7 @@ VOID TrkProcessDEDFrame(struct TNCINFO * TNC)
 							{
 								char AppName[13];
 
-								memcpy(AppName, &ApplPtr[App * sizeof(CMDX)], 12);
+								memcpy(AppName, &ApplPtr[App * sizeof(struct CMDX)], 12);
 								AppName[12] = 0;
 
 								// Make sure app is available

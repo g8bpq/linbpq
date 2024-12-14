@@ -62,7 +62,7 @@ void ConnecttoUZ7HOThread(void * portptr);
 void CreateMHWindow();
 int Update_MH_List(struct in_addr ipad, char * call, char proto);
 
-int ConnecttoUZ7HO();
+int ConnecttoUZ7HO(int port);
 static int ProcessReceivedData(int bpqport);
 static int ProcessLine(char * buf, int Port);
 int KillTNC(struct TNCINFO * TNC);
@@ -374,7 +374,7 @@ int UZ7HOSetFreq(int port, struct TNCINFO * TNC, struct AGWINFO * AGW, PDATAMESS
 	{
 		// Read Freq
 
-		buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Modem Freqency %d\r", AGW->CenterFreq);
+		buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Modem Frequency %d\r", AGW->CenterFreq);
 		return 1;
 	}
 
@@ -2479,7 +2479,7 @@ GotStream:
 				{
 					char AppName[13];
 
-					memcpy(AppName, &ApplPtr[App * sizeof(CMDX)], 12);
+					memcpy(AppName, &ApplPtr[App * sizeof(struct CMDX)], 12);
 					AppName[12] = 0;
 
 					// Make sure app is available

@@ -25,6 +25,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 VOID __cdecl Debugprintf(const char * format, ...);
 VOID ReleaseSock(SOCKET sock);
+void MQTTMessageEvent(void* message);
 
 struct NNTPRec * FirstNNTPRec = NULL;
 
@@ -351,6 +352,12 @@ int CreateNNTPMessage(char * From, char * To, char * MsgTitle, time_t Date, char
 		Msg->status = '$';				// Has forwarding
 
 	BuildNNTPList(Msg);				// Build NNTP Groups list
+
+#ifndef NOMQTT
+	if (MQTT)
+		MQTTMessageEvent(Msg);
+#endif
+
 
 	return CreateSMTPMessageFile(MsgBody, Msg);
 		

@@ -194,7 +194,7 @@ extern int OffsetH, OffsetW;
 
 static void ResolveNames(struct AXIPPORTINFO * PORT);
 void OpenSockets(struct AXIPPORTINFO * PORT);
-void CloseSockets();
+void CloseSockets(struct AXIPPORTINFO * PORT);
 
 
 static int CONVFROMAX25(char * incall, char * outcall);

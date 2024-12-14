@@ -211,7 +211,7 @@ png_default_error(png_structp png_ptr, png_const_charp error_message)
 #endif
 #ifdef PNG_NO_CONSOLE_IO
    /* make compiler happy */ ;
-   if (&error_message != NULL)
+ //  if (&error_message != NULL)
       return;
 #endif
 }

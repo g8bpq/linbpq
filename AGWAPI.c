@@ -128,7 +128,7 @@ int DataSocket_Write(struct AGWSocketConnectionInfo * sockptr, SOCKET sock);
 int AGWGetSessionKey(char * key, struct AGWSocketConnectionInfo * sockptr);
 int ProcessAGWCommand(struct AGWSocketConnectionInfo * sockptr);
 int SendDataToAppl(int Stream, byte * Buffer, int Length);
-int InternalAGWDecodeFrame(char * msg, char * buffer, int Stamp, int * FrameType, int useLocalTime, int doNodes);
+int InternalAGWDecodeFrame(char * msg, char * buffer, time_t Stamp, int * FrameType, int useLocalTime, int doNodes);
 int AGWDataSocket_Disconnect( struct AGWSocketConnectionInfo * sockptr);
 int SendRawPacket(struct AGWSocketConnectionInfo * sockptr, char *txmsg, int Length);
 int ShowApps();
@@ -402,7 +402,7 @@ int SetUpHostSessions()
 extern struct DATAMESSAGE * REPLYBUFFER;
 extern BOOL AGWActive;
 
-VOID SHOWAGW(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID SHOWAGW(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	//	DISPLAY AGW Session Status
 	

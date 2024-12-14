@@ -869,7 +869,7 @@ static VOID ProcessFLDigiData(struct TNCINFO * TNC, UCHAR * Input, int Len, int 
 		{
 			char AppName[13];
 
-			memcpy(AppName, &ApplPtr[App * sizeof(CMDX)], 12);
+			memcpy(AppName, &ApplPtr[App * sizeof(struct CMDX)], 12);
 			AppName[12] = 0;
 
 			// Make sure app is available

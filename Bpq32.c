@@ -1237,7 +1237,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Save MH and NODES every hour (51)
 //	Fix handling long unix device names (now max 250 bytes) (52)
 //	Fix error reporting in api update (53)
-//	Coding changes to remove some compiler warnings (53)
+//	Coding changes to remove some compiler warnings (53, 54)
+//	Add MQTT reporting o
 
 #define CKernel
 

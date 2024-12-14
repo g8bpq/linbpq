@@ -667,7 +667,7 @@ void ConTermPoll()
 
 		// Replace CR with CRLF
 
-			printf(ptr);
+			printf("%s", ptr);
 
 			if (ptr2)
 				printf("\r\n");
@@ -717,7 +717,7 @@ void ConTermPoll()
 
 }
 
-#include "getopt.h"
+#include <getopt.h>
 
 static struct option long_options[] =
 {
@@ -816,7 +816,7 @@ int main(int argc, char * argv[])
 			 {
 			 case 'h':
 
-				 printf(HelpScreen);
+				 printf("%s", HelpScreen);
 				 exit (0);
 
 			 case 'l':

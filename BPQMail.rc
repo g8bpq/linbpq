@@ -1045,7 +1045,7 @@ BEGIN
     CONTROL         "Delete Log and Message Files to Recycle Bin",
                     IDC_DELETETORECYCLE,"Button",BS_AUTOCHECKBOX | 
                     BS_LEFTTEXT | BS_MULTILINE | WS_TABSTOP,5,142,115,20
-    CONTROL         "Supress Mailing of Housekeeping Results",
+    CONTROL         "Suppress Mailing of Housekeeping Results",
                     IDC_MAINTNOMAIL,"Button",BS_AUTOCHECKBOX | BS_LEFTTEXT | 
                     BS_MULTILINE | WS_TABSTOP,5,182,115,20
     CONTROL         "Generate Traffic Report",IDC_MAINTTRAFFIC,"Button",

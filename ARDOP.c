@@ -562,7 +562,7 @@ static int ProcessLine(char * buf, int Port)
 
 void ARDOPThread(struct TNCINFO * TNC);
 VOID ARDOPProcessDataSocketData(int port);
-int ConnecttoARDOP();
+int ConnecttoARDOP(struct TNCINFO * TNC);
 static VOID ARDOPProcessReceivedData(struct TNCINFO * TNC);
 static VOID ARDOPProcessReceivedControl(struct TNCINFO * TNC);
 int V4ProcessReceivedData(struct TNCINFO * TNC);
@@ -3212,7 +3212,7 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 			{
 				char AppName[13];
 
-				memcpy(AppName, &ApplPtr[App * sizeof(CMDX)], 12);
+				memcpy(AppName, &ApplPtr[App * sizeof(struct CMDX)], 12);
 				AppName[12] = 0;
 
 				if (TNC->SendTandRtoRelay && memcmp(AppName, "RMS ", 4) == 0
@@ -5063,7 +5063,7 @@ tcpHostFrame:
 				{
 					char AppName[13];
 
-					memcpy(AppName, &ApplPtr[App * sizeof(CMDX)], 12);
+					memcpy(AppName, &ApplPtr[App * sizeof(struct CMDX)], 12);
 					AppName[12] = 0;
 
 				// Make sure app is available

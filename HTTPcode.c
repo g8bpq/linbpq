@@ -38,7 +38,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #define ZEXPORT __stdcall
 #endif
 
-#include "zlib.h"
+#include <zlib.h>
 
 #define CKernel
 #include "httpconnectioninfo.h"
@@ -102,7 +102,6 @@ extern int NumberofPorts;
 
 extern UCHAR ConfigDirectory[260];
 
-char * strlop(char * buf, char delim);
 VOID sendandcheck(SOCKET sock, const char * Buffer, int Len);
 int CompareNode(const void *a, const void *b);
 int CompareAlias(const void *a, const void *b);

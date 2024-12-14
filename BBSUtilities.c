@@ -51,6 +51,8 @@ extern struct ConsoleInfo BBSConsole;
 
 extern char LOC[7];
 
+extern BOOL MQTT;
+
 //#define BBSIDLETIME 120
 //#define USERIDLETIME 300
 
@@ -126,6 +128,7 @@ int32_t Encode(char * in, char * out, int32_t inlen, BOOL B1Protocol, int Compre
 int APIENTRY ChangeSessionCallsign(int Stream, unsigned char * AXCall);
 void SendMessageReadEvent(char * call, struct MsgInfo * Msg);
 void SendNewMessageEvent(char * call, struct MsgInfo * Msg);
+void MQTTMessageEvent(struct MsgInfo * message);
 
 config_t cfg;
 config_setting_t * group;
@@ -3452,6 +3455,11 @@ VOID FlagAsKilled(struct MsgInfo * Msg, BOOL SaveDB)
 	if (SaveDB)
 		SaveMessageDatabase();
 	RebuildNNTPList();
+#ifndef NOMQTT
+	if (MQTT)
+		MQTTMessageEvent(Msg);
+#endif
+
 }
 
 void DoDeliveredCommand(CIRCUIT * conn, struct UserInfo * user, char * Cmd, char * Arg1, char * Context)
@@ -4896,6 +4904,10 @@ sendEOM:
 					Msg->datechanged=time(NULL);
 					SaveMessageDatabase();
 					SendMessageReadEvent(user->Call, Msg);
+#ifndef NOMQTT
+					if (MQTT)
+						MQTTMessageEvent(Msg);
+#endif
 				}
 			}
 		}
@@ -6457,6 +6469,10 @@ nextline:
 	user = LookupCall(Msg->to);
 
 	SendNewMessageEvent(user->Call, Msg);
+#ifndef NOMQTT
+	if (MQTT)
+		MQTTMessageEvent(Msg);
+#endif
 
 	if (EnableUI)
 #ifdef LINBPQ
@@ -10141,7 +10157,6 @@ BOOL GetConfig(char * ConfigName)
 	int i;
 	char Size[80];
 	config_setting_t *setting;
-	const char * ptr;
 	char * ptr1;
 	char FBBString[8192]= "";
 	FBBFilter f;
@@ -10264,8 +10279,7 @@ BOOL GetConfig(char * ConfigName)
 
 	if (setting && setting->value.sval[0])
 	{
-		ptr =  config_setting_get_string (setting);
-		WelcomeMsg = _strdup(ptr);
+		WelcomeMsg = _strdup(config_setting_get_string (setting));
 	}
 	else
 		WelcomeMsg = _strdup("Hello $I. Latest Message is $L, Last listed is $Z\r\n");
@@ -10274,10 +10288,7 @@ BOOL GetConfig(char * ConfigName)
 	setting = config_setting_get_member (group, "NewUserWelcomeMsg");
 	
 	if (setting && setting->value.sval[0])
-	{
-		ptr =  config_setting_get_string (setting);
-		NewWelcomeMsg = _strdup(ptr);
-	}
+		NewWelcomeMsg = _strdup(config_setting_get_string (setting));
 	else
 		NewWelcomeMsg = _strdup("Hello $I. Latest Message is $L, Last listed is $Z\r\n");
 
@@ -10285,10 +10296,7 @@ BOOL GetConfig(char * ConfigName)
 	setting = config_setting_get_member (group, "ExpertWelcomeMsg");
 	
 	if (setting && setting->value.sval[0])
-	{
-		ptr =  config_setting_get_string (setting);
-		ExpertWelcomeMsg = _strdup(ptr);
-	}
+		ExpertWelcomeMsg = _strdup(config_setting_get_string (setting));
 	else
 		ExpertWelcomeMsg = _strdup("");
 
@@ -10297,10 +10305,7 @@ BOOL GetConfig(char * ConfigName)
 	setting = config_setting_get_member (group, "Prompt");
 	
 	if (setting && setting->value.sval[0])
-	{
-		ptr =  config_setting_get_string (setting);
-		Prompt = _strdup(ptr);
-	}
+		Prompt = _strdup(config_setting_get_string (setting));
 	else
 	{
 		Prompt = malloc(20);
@@ -10310,10 +10315,7 @@ BOOL GetConfig(char * ConfigName)
 	setting = config_setting_get_member (group, "NewUserPrompt");
 	
 	if (setting && setting->value.sval[0])
-	{
-		ptr =  config_setting_get_string (setting);
-		NewPrompt = _strdup(ptr);
-	}
+		NewPrompt = _strdup(config_setting_get_string (setting));
 	else
 	{
 		NewPrompt = malloc(20);
@@ -10323,10 +10325,7 @@ BOOL GetConfig(char * ConfigName)
 	setting = config_setting_get_member (group, "ExpertPrompt");
 	
 	if (setting && setting->value.sval[0])
-	{
-		ptr =  config_setting_get_string (setting);
-		ExpertPrompt = _strdup(ptr);
-	}
+		ExpertPrompt = _strdup(config_setting_get_string (setting));
 	else
 	{
 		ExpertPrompt = malloc(20);
@@ -10547,7 +10546,7 @@ int Connected(int Stream)
 	char ConnectedMsg[] = "*** CONNECTED    ";
 	char Msg[100];
 	char Title[100];
-	int Freq = 0;
+	int64_t Freq = 0;
 	int Mode = 0;
 	BPQVECSTRUC * SESS;
 	TRANSPORTENTRY * Sess1 = NULL, * Sess2;	
@@ -11781,6 +11780,11 @@ VOID ProcessTextFwdLine(ConnectionInfo * conn, struct UserInfo * user, char * Bu
 
 		SaveMessageDatabase();
 
+#ifndef NOMQTT
+		if (MQTT)
+			MQTTMessageEvent(conn->FwdMsg);
+#endif
+	
 		conn->UserPointer->ForwardingInfo->MsgCount--;
 
 		// See if any more to forward

@@ -725,7 +725,7 @@ VOID KISSHFReleaseTNC(struct TNCINFO * TNC)
 	ReleaseOtherPorts(TNC);
 }
 
-VOID KISSHFSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
+VOID KISSHFSuspendPort(struct TNCINFO * TNC, struct TNCINFO * THISTNC)
 {
 	TNC->PortRecord->PORTCONTROL.PortSuspended = 1;
 	strcpy(TNC->WEB_TNCSTATE, "Interlocked");

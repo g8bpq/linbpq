@@ -65,12 +65,12 @@ extern int (WINAPI FAR *GetModuleFileNameExPtr)();
 ;
 int SemHeldByAPI;
 
-static void ConnecttoFLDigiThread(void * portptr);
+void ConnecttoFLDigiThread(void * portptr);
 
 void CreateMHWindow();
 int Update_MH_List(struct in_addr ipad, char * call, char proto);
 
-static int ConnecttoFLDigi();
+int ConnecttoFLDigi(int port);
 static int ProcessReceivedData(int bpqport);
 static int ProcessLine(char * buf, int Port);
 int KillTNC(struct TNCINFO * TNC);
@@ -101,8 +101,6 @@ int DoScanLine(struct TNCINFO * TNC, char * Buff, int Len);
 VOID SuspendOtherPorts(struct TNCINFO * ThisTNC);
 VOID ReleaseOtherPorts(struct TNCINFO * ThisTNC);
 VOID WritetoTrace(struct TNCINFO * TNC, char * Msg, int Len);
-
-char * strlop(char * buf, char delim);
 
 extern UCHAR BPQDirectory[];
 
@@ -1483,14 +1481,14 @@ static int ProcessLine(char * buf, int Port)
 	return (TRUE);	
 }
 
-static int ConnecttoFLDigi(int port)
+int ConnecttoFLDigi(int port)
 {
 	_beginthread(ConnecttoFLDigiThread, 0, (void *)(size_t)port);
 
 	return 0;
 }
 
-static VOID ConnecttoFLDigiThread(void * portptr)
+VOID ConnecttoFLDigiThread(void * portptr)
 {	
 	int port = (int)(size_t)portptr;
 	char Msg[255];
@@ -2581,7 +2579,7 @@ VOID ProcessFLDigiData(struct TNCINFO * TNC, UCHAR * Input, int Len, char Channe
 		{
 			char AppName[13];
 
-			memcpy(AppName, &ApplPtr[App * sizeof(CMDX)], 12);
+			memcpy(AppName, &ApplPtr[App * sizeof(struct CMDX)], 12);
 			AppName[12] = 0;
 
 			// Make sure app is available

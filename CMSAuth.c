@@ -23,6 +23,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #ifdef LINBPQ
 
 #include "compatbits.h"
+char * strlop(const char * buf, char delim);
 
 #define APIENTRY
 #define VOID void
@@ -31,7 +32,6 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include <windows.h>
 #endif
 
-char * strlop(char * buf, char delim);
 
 VOID APIENTRY md5 (char *arg, unsigned char * checksum);
 

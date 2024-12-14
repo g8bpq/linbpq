@@ -34,6 +34,7 @@ VOID Do_Save_WPRec(HWND hDlg);
 VOID SaveInt64Value(config_setting_t * group, char * name, long long value);
 VOID SaveIntValue(config_setting_t * group, char * name, int value);
 VOID SaveStringValue(config_setting_t * group, char * name, char * value);
+void MQTTMessageEvent(void* message);
 
 WPRec * AllocateWPRecord()
 {
@@ -1495,6 +1496,10 @@ int CreateWPMessage()
 
 		BuildNNTPList(Msg);				// Build NNTP Groups list
 
+#ifndef NOMQTT
+		if (MQTT)
+			MQTTMessageEvent(Msg);
+#endif
 		To++;
 	}
 

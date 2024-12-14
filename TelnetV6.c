@@ -127,7 +127,6 @@ static	HMENU hMenu, hPopMenu, hPopMenu2, hPopMenu3;		// handle of menu
 
 static int ProcessLine(char * buf, int Port);
 VOID __cdecl Debugprintf(const char * format, ...);
-char * strlop(char * buf, char delim);
 
 
 int DisplaySessions(struct TNCINFO * TNC);
@@ -6757,7 +6756,7 @@ extern struct DATAMESSAGE * REPLYBUFFER;
 char * __cdecl Cmdprintf(TRANSPORTENTRY * Session, char * Bufferptr, const char * format, ...);
 
 
-VOID RECONFIGTELNET (TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID RECONFIGTELNET (TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	int Port = 0, index =0;
 	char * ptr, *Context;
@@ -6942,7 +6941,7 @@ VOID RECONFIGTELNET (TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail,
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 
-VOID SHOWTELNET(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, CMDX * CMD)
+VOID SHOWTELNET(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	//	DISPLAY Telnet Server Status Mheard
 	

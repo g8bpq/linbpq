@@ -38,7 +38,7 @@ typedef struct MailAPI
 {
 	char *URL;
 	int URLLen;
-	int (* APIRoutine)();
+	int (* APIRoutine)(struct HTTPConnectionInfo * Session, char * response, char * Rest, int Auth);
 	int Auth;
 } MailAPI;
 
@@ -1100,8 +1100,13 @@ int unroutableCount = 0;
 	ptr += sprintf(ptr, "\"location\": \"%s\",\r\n", ourBBSRec->Address);
 	ptr += sprintf(ptr, "\"unroutable\": %s\r\n}\r\n", Unroutables);
 
+#ifdef LINBPQ
 	SendWebRequest("packetnodes.spots.radio", Request, Params, 0);
+#else
+	pSendWebRequest("packetnodes.spots.radio", Request, Params, 0);
+#endif
 	free(Messages);
 	free(Unroutables);
 	free(Params);
 }
+

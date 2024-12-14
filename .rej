@@ -1,0 +1,139 @@
+--- APRSCode.c
++++ APRSCode.c
+@@ -3674,7 +3674,7 @@
+ 			if (ptr1)
+ 				*ptr1 = 0;
+ 
+-//			Debugprintf("Duplicate Message supressed %s", Msg);
++//			Debugprintf("Duplicate Message suppressed %s", Msg);
+ 			return TRUE;					// Duplicate
+ 		}
+ 	}
+--- BPQChat.rc
++++ BPQChat.rc
+@@ -162,7 +162,7 @@
+                     WS_VSCROLL
+     DEFPUSHBUTTON   "Save Welcome Message",SAVEWELCOME,140,296,91,14,
+                     BS_CENTER | BS_VCENTER
+-    LTEXT           " If the node is not directly  connectable (ie is not in your NODES table)  you can add a connect script. This consists of a series of commands seperared by |, eg NOTCHT:G8BPQ-4|C 3 GM8BPQ-9|CHAT",
++    LTEXT           " If the node is not directly  connectable (ie is not in your NODES table)  you can add a connect script. This consists of a series of commands separated by |, eg NOTCHT:G8BPQ-4|C 3 GM8BPQ-9|CHAT",
+                     IDC_STATIC,9,52,355,24
+ END
+ 
+--- BPQMail.rc
++++ BPQMail.rc
+@@ -1045,7 +1045,7 @@
+     CONTROL         "Delete Log and Message Files to Recycle Bin",
+                     IDC_DELETETORECYCLE,"Button",BS_AUTOCHECKBOX | 
+                     BS_LEFTTEXT | BS_MULTILINE | WS_TABSTOP,5,142,115,20
+-    CONTROL         "Supress Mailing of Housekeeping Results",
++    CONTROL         "Suppress Mailing of Housekeeping Results",
+                     IDC_MAINTNOMAIL,"Button",BS_AUTOCHECKBOX | BS_LEFTTEXT | 
+                     BS_MULTILINE | WS_TABSTOP,5,182,115,20
+     CONTROL         "Generate Traffic Report",IDC_MAINTTRAFFIC,"Button",
+--- HanksRT.c
++++ HanksRT.c
+@@ -1186,7 +1186,7 @@
+ 			// Duplicate, so discard, but save time
+ 
+ 			DupInfo[i].DupTime = Now;
+-			Logprintf(LOG_CHAT, circuit, '?', "Duplicate Message From %s %s supressed", Call, Msg);
++			Logprintf(LOG_CHAT, circuit, '?', "Duplicate Message From %s %s suppressed", Call, Msg);
+ 
+ 			return TRUE;					// Duplicate
+ 		}
+--- RigControl.c
++++ RigControl.c
+@@ -8385,7 +8385,7 @@
+ 
+ 	switch (Msg[0])
+ 	{
+-	case 'f':			// Get Freqency
++	case 'f':			// Get Frequency
+ 
+ 		HLGetFreq(Sock, RIG, sep);
+ 		return 0;
+--- UZ7HODrv.c
++++ UZ7HODrv.c
+@@ -374,7 +374,7 @@
+ 	{
+ 		// Read Freq
+ 
+-		buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Modem Freqency %d\r", AGW->CenterFreq);
++		buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Modem Frequency %d\r", AGW->CenterFreq);
+ 		return 1;
+ 	}
+ 
+@@ -382,7 +382,7 @@
+ 
+ 	if (AGW->CenterFreq == 0)
+ 	{
+-		buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Invalid Modem Freqency\r");
++		buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0], "UZ7HO} Invalid Modem Frequency\r");
+ 		return 1;
+ 	}
+ 
+--- WinRPRHelper.c
++++ WinRPRHelper.c
+@@ -111,7 +111,7 @@
+ 
+ 	if (argc < 3)
+ 	{
+-		printf ("Missing paramters - you need COM port and IP Address and rigctl port of BPQ, eg \r\n"
++		printf ("Missing parameters - you need COM port and IP Address and rigctl port of BPQ, eg \r\n"
+ 			"  WinRPRHelper com10 192.168.1.64:4532\r\n\r\n"
+ 			"Press any key to exit\r\n");
+ 
+--- config.c
++++ config.c
+@@ -649,7 +649,7 @@
+ 	if (LOCATOR[0] == 0 && LocSpecified == 0 && RFOnly == 0)
+ 	{
+ 		Consoleprintf("");
+-		Consoleprintf("Please enter a LOCATOR statment in your BPQ32.cfg");
++		Consoleprintf("Please enter a LOCATOR statement in your BPQ32.cfg");
+ 		Consoleprintf("If you really don't want to be on the Node Map you can enter LOCATOR=NONE");
+ 		Consoleprintf("");
+ 
+--- kiss.c
++++ kiss.c
+@@ -1485,7 +1485,7 @@
+ 				}	
+ 			}
+ 			else
+-				Debugprintf("Polled KISS - response from wrong address - Polled %d Reponse %d",  
++				Debugprintf("Polled KISS - response from wrong address - Polled %d Response %d",  
+ 					KISS->POLLPOINTER->OURCTRL, (Port->RXMSG[0] & 0xf0));
+ 
+ 			goto SeeifMore;				// SEE IF ANYTHING ELSE
+--- templatedefs.c
++++ templatedefs.c
+@@ -1165,7 +1165,7 @@
+ 		"Send Non-delivery Notifications<br>\r\n"
+ 		"for P and T messages <input %sname=\"SendND\" value=\"SendND\" type=\"checkbox\" /><br>\r\n"
+ 		"  <br />\r\n"
+-		"Supress Mailing of<br>\r\n"
++		"Suppress Mailing of<br>\r\n"
+ 		"Housekeeping Result <input %sname=\"NoMail\" value=\"Yes\" type=\"checkbox\"><br><br>\r\n"
+ 		"Generate Traffic Report<input %sname=\"GenTraffic\" value=\"Yes\" type=\"checkbox\"><br><br>\r\n"
+ 		"<div style=\"text-align: center;\"><input class='btn'  name=RunNow value=\"Run Housekeeping\" type=submit class='btn'></div>\r\n"
+@@ -1454,7 +1454,7 @@
+ 		"<div style=\"text-align: left; width: 680px; margin: auto;\">The Nodes to link to box defines which other Chat Nodes should be connected to, or from which "
+ 		"connections may be accepted. The format is ALIAS:CALL, eg BPQCHT:G8BPQ-4. If the node is not directly "
+ 		"connectable (ie is not in your NODES table) you can add a connect script. This consists of a series of commands "
+-		"seperared by |, eg NOTCHT:G8BPQ-4|C 3 GM8BPQ-9|CHAT"
++		"separated by |, eg NOTCHT:G8BPQ-4|C 3 GM8BPQ-9|CHAT"
+ 
+ 		"<br><br>The Callsign of the Chat Node is not defined here - it is obtained from the bpq32.cfg APPLICATION line corresponding to the Chat Appl Number.<br>\r\n"
+ 		"<br></div>\n"
+--- WebMail.c
++++ WebMail.c
+@@ -2020,7 +2020,7 @@
+ 			"document.getElementById('myform').action = '/WebMail/QuoteOriginal' + '?%s';"
+ 			" document.getElementById('myform').submit();}</script>"
+ 			"<input type=button class='btn' onclick='myfunc()' "
+-			"value='Include Orignal Msg'>";
++			"value='Include Original Msg'>";
+ 		
+ 		char Temp[1024];
+ 		char ReplyAddr[128];

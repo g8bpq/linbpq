@@ -64,7 +64,7 @@ typedef struct _RTTMSG
 
 } RTTMSG;
 
-extern int COUNTNODES();
+int COUNTNODES(struct ROUTE * ROUTE);
 
 VOID __cdecl Debugprintf(const char * format, ...);
 
