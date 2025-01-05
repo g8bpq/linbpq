@@ -1238,7 +1238,10 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix handling long unix device names (now max 250 bytes) (52)
 //	Fix error reporting in api update (53)
 //	Coding changes to remove some compiler warnings (53, 54)
-//	Add MQTT reporting o
+//	Add MQTT reporting of Mail Events (54)
+//	Fix beaconong on KISSHF ports (55)
+//	Fix MailAPI msgs endpoint
+
 
 #define CKernel
 

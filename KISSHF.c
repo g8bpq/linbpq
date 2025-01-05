@@ -350,6 +350,7 @@ ok:
 
 			// See if any frames for this port
 
+
 			STREAM = &TNC->Streams[0];
 
 			if (STREAM->BPQtoPACTOR_Q)

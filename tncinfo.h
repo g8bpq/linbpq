@@ -893,7 +893,9 @@ static VOID ForcedClose(struct TNCINFO * TNC, int Stream);
 static VOID CloseComplete(struct TNCINFO * TNC, int Stream);
 
 VOID CheckForDetach(struct TNCINFO * TNC, int Stream, struct STREAMINFO * STREAM,
-				VOID TidyClose(), VOID ForcedClose(), VOID CloseComplete());
+	VOID TidyCloseProc(struct TNCINFO * TNC, int Stream), VOID ForcedCloseProc(struct TNCINFO * TNC, int Stream),
+	VOID CloseComplete(struct TNCINFO * TNC, int Stream));
+
 
 BOOL InterlockedCheckBusy(struct TNCINFO * ThisTNC);
 

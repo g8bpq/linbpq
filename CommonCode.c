@@ -722,8 +722,6 @@ VOID CheckForDetach(struct TNCINFO * TNC, int Stream, struct STREAMINFO * STREAM
 
 		if (STREAM->Connected || STREAM->Connecting)
 		{
-			char logmsg[120];
-			time_t Duration;
 
 			// Need to do a tidy close
 
@@ -1603,9 +1601,9 @@ DllExport int APIENTRY SendRaw(int port, char * msg, int len)
 
 	MSG->LENGTH = len + MSGHDDRLEN;
 
-	if (PORT->PROTOCOL == 10)		 // PACTOR/WINMOR Style
+	if (PORT->PROTOCOL == 10 && PORT->TNC && PORT->TNC->Hardware != H_KISSHF)		 // PACTOR/WINMOR Style
 	{
-		//	Pactor Style. Probably will only be used for Tracker uneless we do APRS over V4 or WINMOR
+		//	Pactor Style. Probably will only be used for Tracker unless we do APRS over V4 or WINMOR
 
 		EXTPORTDATA * EXTPORT = (EXTPORTDATA *) PORT;
 
@@ -3009,19 +3007,7 @@ DllExport int APIENTRY ClearNodes ()
 
 	return (0);
 }
-char * FormatUptime(int Uptime)
- {
-	struct tm * TM;
-	static char UPTime[50];
-	time_t szClock = Uptime * 60;
 
-	TM = gmtime(&szClock);
-
-	sprintf(UPTime, "Uptime (Days Hours Mins)     %.2d:%.2d:%.2d\r",
-		TM->tm_yday, TM->tm_hour, TM->tm_min);
-
-	return UPTime;
- }
 
 static char *month[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
@@ -4992,7 +4978,7 @@ DllExport VOID WINAPI SendWebRequest(char * Host, char * Request, char * Params,
 
 	while (InputLen != -1)
 	{
-		InputLen = recv(sock, &Buffer[inptr], 4096 - inptr, 0);
+		InputLen = recv(sock, &Buffer[inptr], 4095 - inptr, 0);
 
 		if (InputLen == -1 || InputLen == 0)
 		{
@@ -5053,7 +5039,7 @@ DllExport VOID WINAPI SendWebRequest(char * Host, char * Request, char * Params,
 				if (ptr1)
 				{
 					// Just accept anything until I've sorted things with Lee
-					Debugprintf("%s", ptr1);
+
 					closesocket(sock);
 					Debugprintf("Web Database update ok");
 					return;
@@ -5148,7 +5134,6 @@ skipit:
 
 void SendDataToPktMap(char *Msg)
 {
-	SOCKET sock;
 	char Return[256];
 	char Request[64];
 	char Params[50000];

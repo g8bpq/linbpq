@@ -476,7 +476,7 @@ UINT UIARQExtInit(EXTPORTDATA * PortEntry)
 	while (TNC->ARQPorts[i])
 	{
 		PORT = GetPortTableEntryFromPortNum(TNC->ARQPorts[i]);
-		PORT->UIHook = (FARPROCY)UIHook;
+		PORT->UIHook = UIHook;
 		PORT->HookPort = (struct PORTCONTROL *)PortEntry;
 		i++;
 	}

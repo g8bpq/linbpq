@@ -1005,8 +1005,16 @@ VOID CMDSTATS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct
 
 	if (Port == 0)
 	{
-		uptime = FormatUptime(STATSTIME);
-		Bufferptr = Cmdprintf(Session, Bufferptr, "%s", uptime);
+		struct tm * TM;
+		char UPTime[50];
+		time_t szClock = STATSTIME * 60;
+
+		TM = gmtime(&szClock);
+
+		sprintf(UPTime, "Uptime (Days Hours Mins)     %.2d:%.2d:%.2d\r",
+			TM->tm_yday, TM->tm_hour, TM->tm_min);
+
+		Bufferptr = Cmdprintf(Session, Bufferptr, "%s", UPTime);
 
 		Bufferptr = Cmdprintf(Session, Bufferptr, "Semaphore Get-Rel/Clashes   %9d%9d\r", 
 					Semaphore.Gets - Semaphore.Rels, Semaphore.Clashes);

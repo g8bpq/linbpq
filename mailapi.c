@@ -406,8 +406,8 @@ int WebMailAPIProcessHTTPMessage(char * response, char * Method, char * URL, cha
 	return 0;
 }
 
-//	Unauthorised users can only get bulls.
-//	Autothorised may read only users message or all messages depending on sysop status
+//	Unauthenticated users can only get bulls.
+//	Authenticated users may read only that users messages or all messages depending on sysop status
 
 int sendMsgList(struct HTTPConnectionInfo * Session, char * response, char * Rest, int Auth)
 {
@@ -442,14 +442,9 @@ int sendMsgList(struct HTTPConnectionInfo * Session, char * response, char * Res
 			char UTF8Title[4096];
 			char  * EncodedTitle;
 			
-			// List if it is the right type and in the page range we want
-
-	
-			if (Count++ < Session->WebMailSkip)
-				continue;
+			// List if it is the right type
 
 			ptr += sprintf(ptr, "{\r\n");
-
 
 			strcpy(Via, Msg->via);
 			strlop(Via, '.');
@@ -473,18 +468,8 @@ int sendMsgList(struct HTTPConnectionInfo * Session, char * response, char * Res
 
 			free(EncodedTitle);
 			
-	//		ptr += sprintf(ptr, "<a href=/WebMail/WM?%s&%d>%6d</a> %s %c%c %5d %-8s%-8s%-8s%s\r\n",
-	//			Session->Key, Msg->number, Msg->number,
-	//			FormatDateAndTime((time_t)Msg->datecreated, TRUE), Msg->type,
-	//			Msg->status, Msg->length, Msg->to, Via,
-	//			Msg->from, UTF8Title);
-
 			ptr += sprintf(ptr, "},\r\n"); 
 
-			n--;
-
-			if (n == 0)
-				break;
 		}
 	}
 

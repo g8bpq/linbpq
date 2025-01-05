@@ -92,7 +92,6 @@ VOID InnerCommandHandler(TRANSPORTENTRY * Session, struct DATAMESSAGE * Buffer);
 VOID DoTheCommand(TRANSPORTENTRY * Session);
 char * MOVEANDCHECK(TRANSPORTENTRY * Session, char * Bufferptr, char * Source, int Len);
 VOID DISPLAYCIRCUIT(TRANSPORTENTRY * L4, char * Buffer);
-char * FormatUptime(int Uptime);
 char * strlop(const char * buf, char delim);
 BOOL CompareCalls(UCHAR * c1, UCHAR * c2);
 
