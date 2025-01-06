@@ -371,7 +371,27 @@ BOOL CtrlHandler(DWORD fdwCtrlType)
 
 #else
 
+#include <execinfo.h>
+#include <signal.h>
+
+
 // Linux Signal Handlers
+
+
+static void segvhandler(int sig)
+{
+  void *array[10];
+  size_t size;
+
+  // get void*'s for all entries on the stack
+  size = backtrace(array, 10);
+
+  // print out all the frames to stderr
+  fprintf(stderr, "Error: signal %d:\n", sig);
+  backtrace_symbols_fd(array, size, STDERR_FILENO);
+  exit(1);
+}
+
 
 static void sigterm_handler(int sig)
 {
@@ -553,6 +573,8 @@ extern int POP3Timer;
 // Console Terminal Stuff
 
 #ifndef WIN32
+
+
 
 #define _getch getchar
 
@@ -738,6 +760,8 @@ char HelpScreen[] =
 	
 int Redirected = 0;
 
+static void segvhandler(int sig);
+
 int main(int argc, char * argv[])
 {
 	int i;
@@ -767,6 +791,9 @@ int main(int argc, char * argv[])
 	}
 
 #else
+
+//	signal(SIGSEGV, segvhandler);
+
 	setlinebuf(stdout);
 	struct sigaction act;
  	openlog("LINBPQ", LOG_PID, LOG_DAEMON);

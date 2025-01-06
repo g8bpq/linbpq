@@ -1145,6 +1145,7 @@
 //	Attempt to detect line draw characters in Webmail (50)
 //	Fix sending ampr.org mail when RMS is not enabled (51)
 //	Send forwarding info to packetnodes.spots.radio database (51)
+//	Fix bug in WP Message processing (56)
 
 #include "bpqmail.h"
 #include "winstdint.h"

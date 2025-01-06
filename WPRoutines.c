@@ -946,6 +946,9 @@ VOID ProcessWPMsg(char * MailBuffer, int Size, char * FirstRLine)
 
 		WPLen =	ptr2 - ptr1;
 
+		if (WPLen > 128)
+			return;
+
 		if ((memcmp(ptr1, "On ", 3)  == 0) && (WPLen < 200))
 		{
 			char * Date;
@@ -1030,7 +1033,7 @@ it will not be replaced. This flag will be used in case the WP update messages a
 					WPDate -= (time_t)_MYTIMEZONE;
 					TypeString = strlop(Call, '/');
 					
-					if (strlen(Call) < 3 || strlen(Call) > 9)
+					if (strlen(Call) < 3 || strlen(Call) > 6)
 						return;
 
 					if (TypeString)
