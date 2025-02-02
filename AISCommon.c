@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "time.h"
-#include "CHeaders.h"
+#include "cheaders.h"
 //#include "tncinfo.h"
 //#include "adif.h"
 //#include "telnetserver.h"

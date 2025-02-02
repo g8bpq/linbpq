@@ -603,7 +603,7 @@ VOID __cdecl nprintf(ChatCIRCUIT * conn, const char * format, ...);
 VOID nputs(ChatCIRCUIT * conn, char * buf);
 #endif
 BOOL matchi(char * p1, char * p2);
-char * strlop(const char * buf, char delim);
+char * strlop(char * buf, char delim);
 int rt_cmd(ChatCIRCUIT *circuit, char * Buffer);
 ChatCIRCUIT *circuit_new(ChatCIRCUIT *circuit, int flags);
 void makelinks(void);
@@ -687,7 +687,11 @@ int RemoveLF(char * Message, int len);
 struct SEM;
 
 BOOL isdigits(char * string);
-void GetSemaphore(struct SEM * Semaphore, int ID);
+
+
+#define GetSemaphore(Semaphore,ID) _GetSemaphore(Semaphore, ID, __FILE__, __LINE__)
+
+void _GetSemaphore(struct SEM * Semaphore, int ID, char * File, int Line);
 void FreeSemaphore(struct SEM * Semaphore);
 
 VOID __cdecl Debugprintf(const char * format, ...);

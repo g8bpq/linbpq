@@ -27,6 +27,9 @@ VOID __cdecl Debugprintf(const char * format, ...);
 VOID ReleaseSock(SOCKET sock);
 void MQTTMessageEvent(void* message);
 
+#define GetSemaphore(Semaphore,ID) _GetSemaphore(Semaphore, ID, __FILE__, __LINE__)
+void _GetSemaphore(struct SEM * Semaphore, int ID, char * File, int Line);
+
 struct NNTPRec * FirstNNTPRec = NULL;
 
 //int NumberofNNTPRecs=0;

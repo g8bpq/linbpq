@@ -30,7 +30,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include "time.h"
 #include "stdio.h"
 				 
-#include "CHeaders.h"
+#include "cheaders.h"
 #include "tncinfo.h"
 
 #define	PFBIT 0x10		// POLL/FINAL BIT IN CONTROL BYTE
@@ -130,7 +130,7 @@ extern int REALTIMETICKS;
 
 UCHAR NO_CTEXT = 0;
 UCHAR ALIASMSG = 0;
-extern UINT APPLMASK;
+
 static UCHAR ISNETROMMSG = 0;
 UCHAR MSGFLAG = 0;
 extern char * ALIASPTR;
@@ -141,6 +141,30 @@ UCHAR NODECALL[7] = {0x9C, 0x9E, 0x88, 0x8A, 0xA6, 0x40, 0xE0};		// 'NODES' IN A
 extern BOOL LogAllConnects;
 
 APPLCALLS * APPL;
+
+
+void SendL2ToMonMap(struct PORTCONTROL * PORT, char * ReportCall, char Mode, char Direction)
+{
+	// if Port Freq < 30Mhz send to Node Map
+
+	if (PORT->PortFreq && PORT->PortFreq < 30000000)
+	{
+		char ReportMode[16];
+		char ReportFreq[350] = "";
+
+		ReportMode[0] = '@';
+		ReportMode[1] = Mode;
+		ReportMode[2] = '?';
+		ReportMode[3] = Direction;
+		ReportMode[4] = 0;
+
+		// If no position see if we have an APRS posn
+
+		_gcvt(PORT->PortFreq, 9, ReportFreq);
+
+ 		SendMH(0, ReportCall, ReportFreq, 0, ReportMode);
+	}
+}
 
 VOID L2Routine(struct PORTCONTROL * PORT, PMESSAGE Buffer)
 {
@@ -153,6 +177,7 @@ VOID L2Routine(struct PORTCONTROL * PORT, PMESSAGE Buffer)
 	UCHAR CTL;
 	uintptr_t Work;
 	UCHAR c;
+	unsigned int APPLMASK = 0;
 
 	//	Check for invalid length (< 22 7Header + 7Addr + 7Addr + CTL
 
@@ -166,7 +191,6 @@ VOID L2Routine(struct PORTCONTROL * PORT, PMESSAGE Buffer)
  	PORT->L2FRAMES++;
 
 	ALIASMSG = 0;
-	APPLMASK = 0;
 	ISNETROMMSG = 0;
 
 	MSGFLAG = 0;					// CMD/RESP UNDEFINED
@@ -237,6 +261,7 @@ VOID L2Routine(struct PORTCONTROL * PORT, PMESSAGE Buffer)
 
 	if (PORT->PORTMHEARD)
 		MHPROC(PORT, Buffer);
+
 
 	/// TAJ added 07/12/2020 for 'all RX traffic as IfinOctects
 
@@ -465,6 +490,8 @@ FORUS:
 
 	if (PORT->UIHook && CTL == 3)
 		PORT->UIHook(LINK, PORT, Buffer, ADJBUFFER, CTL, MSGFLAG);
+
+	LINK->APPLMASK = APPLMASK;
 
 	L2FORUS(LINK, PORT, Buffer, ADJBUFFER, CTL, MSGFLAG);
 }
@@ -935,7 +962,7 @@ VOID ProcessXIDCommand(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESS
 
 		// We need to save APPLMASK and ALIASPTR so following SABM connects to application
 
-		LINK->APPLMASK = APPLMASK;
+		// LINK->APPLMASK now set in L2FORUS
 		LINK->ALIASPTR = ALIASPTR;
 
 		PUT_ON_PORT_Q(PORT, Buffer);
@@ -1062,7 +1089,7 @@ VOID L2LINKACTIVE(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE *
 
 		if (LINK->L2STATE == 1)			// Sent XID?
 		{
-			APPLMASK = LINK->APPLMASK;
+			LINK->APPLMASK;
 			ALIASPTR = LINK->ALIASPTR;
 
 			L2SABM(LINK, PORT, Buffer, ADJBUFFER, MSGFLAG);			// Process the SABM
@@ -1147,7 +1174,7 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 
 	//	IF CONNECT TO APPL ADDRESS, SET UP APPL SESSION
 
-	if (APPLMASK == 0)
+	if (LINK->APPLMASK == 0)
 	{
 		//	Not ATTACH TO APPL
 	
@@ -1163,7 +1190,9 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 			WriteConnectLog(fromCall, toCall, "AX.25");
 
 		hookL2SessionAccepted(PORT->PORTNUMBER, fromCall, toCall, LINK);
-		
+
+		SendL2ToMonMap(PORT, fromCall, '+', 'I');		
+	
 		L2SENDUA(PORT, Buffer, ADJBUFFER);
 
 		if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
@@ -1280,6 +1309,8 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 
 		hookL2SessionAccepted(PORT->PORTNUMBER, fromCall, toCall, LINK);
 
+		SendL2ToMonMap(PORT, fromCall, '+', 'I');		
+	
 		if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
 		{
 			struct DATAMESSAGE * Msg;
@@ -1353,7 +1384,7 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 		return;
 	}
 
-	if (cATTACHTOBBS(Session, APPLMASK, PORT->PORTPACLEN, &CONERROR) == 0)
+	if (cATTACHTOBBS(Session, LINK->APPLMASK, PORT->PORTPACLEN, &CONERROR) == 0)
 	{
 		//	NO BBS AVAILABLE
 	
@@ -1380,7 +1411,8 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 
 	hookL2SessionAccepted(PORT->PORTNUMBER, fromCall, toCall, LINK);
 
-
+	SendL2ToMonMap(PORT, fromCall, '+', 'I');		
+	
 	if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
 	{
 		struct DATAMESSAGE * Msg;
@@ -1848,8 +1880,14 @@ VOID L2_PROCESS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * B
 		{
 			//	RESPONSE TO SABM - SET LINK  UP
 
+			char fromCall[12];
+
+			fromCall[ConvFromAX25(Buffer->ORIGIN, fromCall)] = 0;
+
 			RESET2X(LINK);			// LEAVE QUEUED STUFF
 
+			SendL2ToMonMap(PORT, fromCall, '+', 'O');		
+	
 			LINK->L2STATE = 5;
 			LINK->L2TIMER = 0;		// CANCEL TIMER
 			LINK->L2RETRIES = 0;

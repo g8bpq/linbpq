@@ -133,7 +133,7 @@ char HRoute[100];
 char AMPRDomain[100];
 BOOL SendAMPRDirect = 0;
 
-char SignoffMsg[100];
+char SignoffMsg[120];
 
 char AbortedMsg[100]="\rOutput aborted\r";
 

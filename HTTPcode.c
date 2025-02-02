@@ -24,7 +24,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #define DllImport
 
-#include "CHeaders.h"
+#include "cheaders.h"
 #include <stdlib.h>
 
 #include "tncinfo.h"
@@ -70,6 +70,7 @@ char * GetStandardPage(char * FN, int * Len);
 BOOL SHA1PasswordHash(char * String, char * Hash);
 char * byte_base64_encode(char *str, int len);
 int APIProcessHTTPMessage(char * response, char * Method, char * URL, char * request,	BOOL LOCAL, BOOL COOKIE);
+int RHPProcessHTTPMessage(struct ConnectionInfo * conn, char * response, char * Method, char * URL, char * request, BOOL LOCAL, BOOL COOKIE);
 
 extern struct ROUTE * NEIGHBOURS;
 extern int  ROUTE_LEN;
@@ -1851,6 +1852,43 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 				return 0;
 			}
 		}
+
+		if (_memicmp(Context, "/rhp/", 5) == 0 || _stricmp(Context, "/rhp") == 0)
+		{
+			{
+				ReplyLen = RHPProcessHTTPMessage(conn, _REPLYBUFFER, Method, Context, MsgPtr, LOCAL, COOKIE);
+				
+				if (memcmp(_REPLYBUFFER, "HTTP", 4) == 0)
+				{
+					// Full Message - just send it
+
+					sendandcheck(sock, _REPLYBUFFER, ReplyLen);
+
+					return 0;
+				}
+
+				if (allowDeflate)
+					Compressed = Compressit(_REPLYBUFFER, ReplyLen, &ReplyLen);
+				else
+					Compressed = _REPLYBUFFER;
+
+				HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\n"
+					"Content-Length: %d\r\n"
+					"Content-Type: application/json\r\n"
+					"Connection: close\r\n"
+					"Access-Control-Allow-Origin: *\r\n"
+					"%s\r\n", ReplyLen, Encoding);
+
+				sendandcheck(sock, Header, HeaderLen);
+				sendandcheck(sock, Compressed, ReplyLen);
+
+				if (allowDeflate)
+					free (Compressed);
+
+				return 0;
+			}
+		}
+
 
 		// APRS process internally
 
@@ -5133,8 +5171,5 @@ void SHA1PadMessage(SHA1Context *context)
 
     SHA1ProcessMessageBlock(context);
 }
-
-
-
 
 

@@ -23,7 +23,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #ifdef LINBPQ
 
 #include "compatbits.h"
-char * strlop(const char * buf, char delim);
+char * strlop(char * buf, char delim);
 
 #define APIENTRY
 #define VOID void

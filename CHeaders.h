@@ -30,6 +30,9 @@ int IntDecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp, uint64_t Mask, BO
 int IntSetTraceOptionsEx(uint64_t mask, int mtxparam, int mcomparam, int monUIOnly);
 int CountBits64(uint64_t in);
 
+
+#define GetSemaphore(Semaphore,ID) _GetSemaphore(Semaphore, ID, __FILE__, __LINE__)
+
 #define GetBuff() _GetBuff(__FILE__, __LINE__)
 #define ReleaseBuffer(s) _ReleaseBuffer(s, __FILE__, __LINE__)
 #define CheckGuardZone() _CheckGuardZone(__FILE__, __LINE__)
@@ -64,13 +67,13 @@ DllExport int APIENTRY GetConnectionInfo(int stream, char * callsign,
 										 int * port, int * sesstype, int * paclen,
 										 int * maxframe, int * l4window);
 
+#define LIBCONFIG_STATIC
+#include "libconfig.h"
 
-struct config_setting_t;
-
-int GetIntValue(struct config_setting_t * group, char * name);
-BOOL GetStringValue(struct config_setting_t * group, char * name, char * value);
-VOID SaveIntValue(struct config_setting_t * group, char * name, int value);
-VOID SaveStringValue(struct config_setting_t * group, char * name, char * value);
+int GetIntValue(config_setting_t * group, char * name);
+BOOL GetStringValue(config_setting_t * group, char * name, char * value, int maxlen);
+VOID SaveIntValue(config_setting_t * group, char * name, int value);
+VOID SaveStringValue(config_setting_t * group, char * name, char * value);
 
 int EncryptPass(char * Pass, char * Encrypt);
 VOID DecryptPass(char * Encrypt, unsigned char * Pass, unsigned int len);
@@ -92,7 +95,7 @@ VOID InnerCommandHandler(TRANSPORTENTRY * Session, struct DATAMESSAGE * Buffer);
 VOID DoTheCommand(TRANSPORTENTRY * Session);
 char * MOVEANDCHECK(TRANSPORTENTRY * Session, char * Bufferptr, char * Source, int Len);
 VOID DISPLAYCIRCUIT(TRANSPORTENTRY * L4, char * Buffer);
-char * strlop(const char * buf, char delim);
+char * strlop(char * buf, char delim);
 BOOL CompareCalls(UCHAR * c1, UCHAR * c2);
 
 VOID PostDataAvailable(TRANSPORTENTRY * Session);
@@ -155,7 +158,7 @@ Dll int APIENTRY SaveNodes ();
 
 struct SEM;
 
-void GetSemaphore(struct SEM * Semaphore, int ID);
+void _GetSemaphore(struct SEM * Semaphore, int ID, char * File, int Line);
 void FreeSemaphore(struct SEM * Semaphore);
 
 void MySetWindowText(HWND hWnd, char * Msg);

@@ -34,7 +34,7 @@
 
 typedef unsigned char byte;
 
-#include "CHeaders.h"
+#include "cheaders.h"
 #include "bpqvkiss.h"
 
 #include <stdlib.h>

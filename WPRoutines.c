@@ -23,6 +23,9 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #include "bpqmail.h"
 
+#define GetSemaphore(Semaphore,ID) _GetSemaphore(Semaphore, ID, __FILE__, __LINE__)
+void _GetSemaphore(struct SEM * Semaphore, int ID, char * File, int Line);
+
 int CurrentWPIndex;
 char CurrentWPCall[10];
 
@@ -121,7 +124,7 @@ VOID GetWPDatabase()
 
 			sprintf(Key, "R%d", i++);
 
-			GetStringValue(group, Key, Record);
+			GetStringValue(group, Key, Record, 1024);
 
 			if (Record[0] == 0)			// End of List
 				return;
@@ -269,23 +272,23 @@ WPOK:;
 
 		memset(&WPRec, 0, sizeof(WPRec));
 
-		GetStringValue(wpgroup, "c", WPRec.callsign);
-		GetStringValue(wpgroup, "n", WPRec.name);
+		GetStringValue(wpgroup, "c", WPRec.callsign, 6);
+		GetStringValue(wpgroup, "n", WPRec.name, 12);
 
 		WPRec.Type = GetIntValue(wpgroup, "T");
 		WPRec.changed = GetIntValue(wpgroup, "ch");
 		WPRec.seen = GetIntValue(wpgroup, "s");
 
-		GetStringValue(wpgroup, "h", WPRec.first_homebbs);
-		GetStringValue(wpgroup, "sh", WPRec.secnd_homebbs);
-		GetStringValue(wpgroup, "z", WPRec.first_zip);
-		GetStringValue(wpgroup, "sz", WPRec.secnd_zip);
+		GetStringValue(wpgroup, "h", WPRec.first_homebbs, 40);
+		GetStringValue(wpgroup, "sh", WPRec.secnd_homebbs, 40);
+		GetStringValue(wpgroup, "z", WPRec.first_zip, 8);
+		GetStringValue(wpgroup, "sz", WPRec.secnd_zip, 8);
 
-		GetStringValue(wpgroup, "q", Temp);
+		GetStringValue(wpgroup, "q", Temp, 30);
 		Temp[30] = 0;
 		strcpy(WPRec.first_qth, Temp);
 	
-		GetStringValue(wpgroup, "sq", Temp);
+		GetStringValue(wpgroup, "sq", Temp, 30);
 		Temp[30] = 0;
 		strcpy(WPRec.secnd_qth, Temp);
 

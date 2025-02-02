@@ -30,7 +30,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 
 #include "kernelresource.h"
-#include "CHeaders.h"
+#include "cheaders.h"
 #include "tncinfo.h"
 #ifndef LINBPQ
 #include <commctrl.h>

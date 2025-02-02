@@ -3,7 +3,7 @@ Copyright 2001-2022 John Wiseman G8BPQ
 
 This file is part of LinBPQ/BPQ32.
 
-LinBPQ/BPQ32 is free software: you can redistribute it and/or modify
+LinBPQ/BPQ32 is free software: you can redistribute it and/or modifyextern int HTTP
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
@@ -1241,6 +1241,13 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add MQTT reporting of Mail Events (54)
 //	Fix beaconong on KISSHF ports (55)
 //	Fix MailAPI msgs endpoint
+//	Attempt to fix NC going to wrong application. (57)
+//	Improve ARDOP end of session code (58)
+//	Run M0LTE Map repoorting in a separate thread (59)
+//	Add support fro WhatsPac (59)
+// Add timestamps to LIS monitor
+
+
 
 
 #define CKernel
@@ -1503,6 +1510,7 @@ VOID APRSClose();
 VOID CloseTNCEmulator();
 
 VOID Poll_AGW();
+void RHPPoll();
 BOOL AGWAPIInit();
 int AGWAPITerminate();
 
@@ -1521,7 +1529,9 @@ UINT Sem_edx = 0;
 UINT Sem_esi = 0;
 UINT Sem_edi = 0;
 
-void GetSemaphore(struct SEM * Semaphore, int ID);
+
+#define GetSemaphore(Semaphore,ID) _GetSemaphore(Semaphore, ID, __FILE__, __LINE__)
+void _GetSemaphore(struct SEM * Semaphore, int ID, char * File, int Line);
 void FreeSemaphore(struct SEM * Semaphore);
 
 DllExport void * BPQHOSTAPIPTR = &BPQHOSTAPI;
@@ -1869,8 +1879,8 @@ VOID MonitorThread(int x)
 		{
 			// It is stuck - try to release
 
-				Debugprintf ("Semaphore locked - Process ID = %d, Held By %d",
-					Semaphore.SemProcessID, SemHeldByAPI);
+				Debugprintf ("Semaphore locked - Process ID = %d, Held By %d from %s Line %d",
+					Semaphore.SemProcessID, SemHeldByAPI, Semaphore.File, Semaphore.Line);
 			
 			// Write a minidump
 
@@ -2291,6 +2301,7 @@ VOID TimerProcX()
 			Poll_AGW();
 
 		DRATSPoll();
+		RHPPoll();
 
 		CheckGuardZone();
 

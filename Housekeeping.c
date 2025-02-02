@@ -21,6 +21,11 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //
 //	Housekeeping Module
 
+
+
+#define GetSemaphore(Semaphore,ID) _GetSemaphore(Semaphore, ID, __FILE__, __LINE__)
+
+
 #include "bpqmail.h"
 
 char * APIENTRY GetBPQDirectory();

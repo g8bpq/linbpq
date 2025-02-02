@@ -31,7 +31,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include <stdlib.h>
 #include <time.h>
 
-#include "CHeaders.h"
+#include "cheaders.h"
 #include "bpq32.h"
 
 

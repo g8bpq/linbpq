@@ -31,7 +31,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #define MaxStreams 1	
 
-#include "CHeaders.h"
+#include "cheaders.h"
 
 
 extern int (WINAPI FAR *GetModuleFileNameExPtr)();

@@ -35,7 +35,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //#include "vmm.h"
 //#include "SHELLAPI.H"
 
-#include "CHeaders.h"
+#include "cheaders.h"
 #include "bpqaprs.h"
 #include "kiss.h"
 
@@ -988,7 +988,6 @@ VOID CMDSTATS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct
 {
 	char * ptr, *Context;
 	int Port = 0, cols = NUMBEROFPORTS, i;
-	char * uptime;
 	struct PORTCONTROL * PORT = PORTTABLE;
 	struct PORTCONTROL * STARTPORT;
 

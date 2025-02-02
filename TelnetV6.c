@@ -37,7 +37,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #define IDM_DISCONNECT			2000
 #define IDM_LOGGING				2100
 
-#include "CHeaders.h"
+#include "cheaders.h"
 #include "tncinfo.h"
 
 #ifdef WIN32
@@ -85,7 +85,11 @@ void processDRATSFrame(unsigned char * Message, int Len, struct ConnectionInfo *
 void DRATSConnectionLost(struct ConnectionInfo * sockptr);
 int BuildRigCtlPage(char * _REPLYBUFFER);
 void ProcessWebmailWebSockThread(void * conn);
+void RHPThread(void * Params);
+void ProcessRHPWebSockClosed(SOCKET socket);
 int ProcessSNMPPayload(UCHAR * Msg, int Len, UCHAR * Reply, int * OffPtr);
+int RHPProcessHTTPMessage(struct ConnectionInfo * conn, char * response, char * Method, char * URL, char * request, BOOL LOCAL, BOOL COOKIE);
+
 
 #ifndef LINBPQ
 extern HKEY REGTREE;
@@ -122,6 +126,8 @@ static char BlankCall[]="         ";
 BOOL LogEnabled = FALSE;
 BOOL CMSLogEnabled = TRUE;
 extern BOOL IncludesMail;
+
+extern int HTTPPort;
 
 static	HMENU hMenu, hPopMenu, hPopMenu2, hPopMenu3;		// handle of menu 
 
@@ -533,7 +539,7 @@ int ProcessLine(char * buf, int Port)
 		TCP->TriModePort = atoi(value);
 	
 	else if (_stricmp(param,"HTTPPORT") == 0)
-		TCP->HTTPPort = atoi(value);
+		HTTPPort = TCP->HTTPPort = atoi(value);
 
 	else if (_stricmp(param,"APIPORT") == 0)
 		TCP->APIPort = atoi(value);
@@ -4967,6 +4973,15 @@ MsgLoop:
 
 extern char * RigWebPage;
 
+struct RHPParamBlock
+{
+	unsigned char * Msg;
+	int Len;
+	SOCKET Socket;
+};
+
+
+
 int DataSocket_ReadHTTP(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, SOCKET sock, int Stream)
 {
 	int w =1, x= 1, len=0, y = 2, maxlen, InputLen, ret;
@@ -4989,9 +5004,23 @@ int DataSocket_ReadHTTP(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, S
 	{
 		// Failed or closed - clear connection
 
-		TNC->Streams[sockptr->Number].ReportDISC = TRUE;		//Tell Node
-		DataSocket_Disconnect(TNC, sockptr);
-		return 0;
+		// if Websock connection till app
+
+		if (sockptr->WebSocks)
+		{
+			if (memcmp(sockptr->WebURL, "rhp", 3) == 0)
+			{
+				ProcessRHPWebSockClosed(sockptr->socket);	
+				DataSocket_Disconnect(TNC, sockptr);
+				return 0;
+			}
+		}
+		else
+		{
+			TNC->Streams[sockptr->Number].ReportDISC = TRUE;		//Tell Node
+			DataSocket_Disconnect(TNC, sockptr);
+			return 0;
+		}
 	}
 
 	MsgPtr = &sockptr->InputBuffer[0];
@@ -5008,6 +5037,7 @@ int DataSocket_ReadHTTP(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, S
 		int Fin, Opcode, Len, Mask;
 		char MaskingKey[4];
 		char * ptr;
+		char * Payload;
 
 		/*
 		 +-+-+-+-+-------+-+-------------+-------------------------------+
@@ -5035,8 +5065,20 @@ int DataSocket_ReadHTTP(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, S
 		Opcode = MsgPtr[0] & 15;
 		Mask = MsgPtr[1] >> 7;
 		Len = MsgPtr[1] & 127;
-		memcpy(MaskingKey, &MsgPtr[2], 4);
-		ptr = &MsgPtr[6];
+
+		if (Len == 126)		// Two Byte Len
+		{
+			Len = (MsgPtr[2] << 8) + MsgPtr[3];
+			memcpy(MaskingKey, &MsgPtr[4], 4);
+			ptr = &MsgPtr[8];
+		}
+		else
+		{
+			memcpy(MaskingKey, &MsgPtr[2], 4);
+			ptr = &MsgPtr[6];
+		}
+
+		Payload = ptr;
 
 		for (i = 0; i < Len; i++)
 		{
@@ -5058,7 +5100,7 @@ int DataSocket_ReadHTTP(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, S
 
 				char RigCMD[64];
 				
-				sprintf(RigCMD, "%s PTT", &MsgPtr[6]);
+				sprintf(RigCMD, "%s PTT", Payload);
 				Rig_Command( (TRANSPORTENTRY *) -1, RigCMD);
 			}
 			else if (memcmp(sockptr->WebURL, "WMRefresh", 9) == 0)
@@ -5070,6 +5112,21 @@ int DataSocket_ReadHTTP(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, S
 				memcpy(sockcopy, sockptr, sizeof(struct ConnectionInfo));
 
 				_beginthread(ProcessWebmailWebSockThread, 2048000, (VOID *)sockcopy);				// Needs big stack
+				return 0;
+			}
+			else if (memcmp(sockptr->WebURL, "rhp", 3) == 0)
+			{
+				// Run in thread as it may block;
+
+				struct RHPParamBlock * ParamBlock = malloc(sizeof(struct RHPParamBlock));
+
+				ParamBlock->Socket = sockptr->socket;
+				ParamBlock->Len = Len;
+				ParamBlock->Msg = malloc(Len + 10);
+				memcpy(ParamBlock->Msg, Payload, Len);
+				_beginthread(RHPThread, 0, (VOID *)ParamBlock);	
+	
+				sockptr->InputLen = 0;
 				return 0;
 			}
 		}

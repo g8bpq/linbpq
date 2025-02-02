@@ -32,7 +32,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #include "compatbits.h"
 
-#include "CHeaders.h"
+#include "cheaders.h"
 
 extern QCOUNT; 
 extern BPQVECSTRUC BPQHOSTVECTOR[];

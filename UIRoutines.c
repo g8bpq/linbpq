@@ -22,6 +22,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 // UI Handling Routines
 
 #include "bpqmail.h"
+#define GetSemaphore(Semaphore,ID) _GetSemaphore(Semaphore, ID, __FILE__, __LINE__)
+void _GetSemaphore(struct SEM * Semaphore, int ID, char * File, int Line);
 
 
 char UIDEST[10] = "FBB";

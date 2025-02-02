@@ -25,7 +25,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #define _CRT_SECURE_NO_DEPRECATE
 
-#include "CHeaders.h"
+#include "cheaders.h"
 
 typedef struct _TCMDX
 {

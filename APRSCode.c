@@ -25,7 +25,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #define _CRT_SECURE_NO_DEPRECATE 
 
 #include <stdio.h>
-#include "CHeaders.h"
+#include "cheaders.h"
 #include "bpq32.h"
 #include <time.h>
 #include "kernelresource.h"

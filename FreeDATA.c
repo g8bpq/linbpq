@@ -32,7 +32,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #endif
 #endif
 
-#include "CHeaders.h"
+#include "cheaders.h"
 #include "bpq32.h"
 #include "tncinfo.h"
 

@@ -39,7 +39,8 @@ VOID __cdecl Logprintf(int LogMode, ChatCIRCUIT * conn, int InOut, const char * 
 	return;
 }
 
-void GetSemaphore(struct SEM * Semaphore, int ID)
+
+void _GetSemaphore(struct SEM * Semaphore, int ID, char * File, int Line)
 {
 	//
 	//	Wait for it to be free
@@ -73,6 +74,9 @@ loop1:
 ;	ok, we've got the semaphore
 ;
 	}
+
+	Semaphore->Line = Line;
+	strcpy(Semaphore->File, File);
 
 	return;
 }

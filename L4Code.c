@@ -31,7 +31,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include "stdio.h"
 #include <fcntl.h>					 
 
-#include "CHeaders.h"
+#include "cheaders.h"
 #include "tncinfo.h"
 
 extern BPQVECSTRUC BPQHOSTVECTOR[];
@@ -68,7 +68,7 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 void WriteConnectLog(char * fromCall, char * toCall, UCHAR * Mode);
 void SendVARANetromMsg(struct TNCINFO * TNC, PL3MESSAGEBUFFER MSG);
 
-extern UINT APPLMASK;
+static UINT APPLMASK;
 
 extern BOOL LogL4Connects;
 extern BOOL LogAllConnects;

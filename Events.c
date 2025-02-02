@@ -125,7 +125,6 @@ void hookL2SessionAccepted(int Port, char * remotecall, char * ourcall, struct _
 	strcpy(LINK->callingCall, remotecall);
 	strcpy(LINK->receivingCall, ourcall);
 	strcpy(LINK->Direction, "In");
-
 }
 
 void hookL2SessionDeleted(struct _LINKTABLE * LINK)

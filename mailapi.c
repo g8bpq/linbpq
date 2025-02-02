@@ -7,7 +7,7 @@
 #define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
 
 //#include <windows.h>
-#include "CHeaders.h"
+#include "cheaders.h"
 #include <stdlib.h>
 #include "bpqmail.h"
 #include "httpconnectioninfo.h"

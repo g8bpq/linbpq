@@ -72,7 +72,7 @@ Using code from 6pack Linux Kernel driver with the following licence and credits
 
 #include "compatbits.h"
 #include <string.h>
-#include "CHeaders.h"
+#include "cheaders.h"
 
 #include "bpq32.h"
 

@@ -141,7 +141,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #define _CRT_SECURE_NO_DEPRECATE
 
-#include "CHeaders.h"
+#include "cheaders.h"
 #ifndef WIN32
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -3246,15 +3246,21 @@ VOID SaveAXIPCache(struct AXIPPORTINFO * PORT)
 
 #ifndef LINBPQ
 
-static BOOL GetStringValue(config_setting_t * group, char * name, char * value)
+static BOOL GetStringValue(config_setting_t * group, char * name, char * value, int maxlen)
 {
-	const char * str;
+	char * str;
 	config_setting_t *setting;
 
 	setting = config_setting_get_member (group, name);
 	if (setting)
 	{
-		str =  config_setting_get_string (setting);
+		str =  (char *)config_setting_get_string (setting);
+
+		if (strlen(str) > maxlen)
+		{
+			Debugprintf("Suspect config record %s", str);
+			str[maxlen] = 0;
+		}
 		strcpy(value, str);
 		return TRUE;
 	}
@@ -3321,7 +3327,7 @@ VOID GetAXIPCache(struct AXIPPORTINFO * PORT)
 			ptr++;
 		}
 
-		if (GetStringValue(group, Key, hostaddr))
+		if (GetStringValue(group, Key, hostaddr, 64))
 		{
 			arp->destaddr.sin_addr.s_addr = inet_addr(hostaddr);
 		}

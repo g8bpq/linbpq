@@ -71,7 +71,7 @@ _BPQHOSTAPI:
 ;
 ;	SPECIAL INTERFACE, MAINLY FOR EXTERNAL HOST MODE SUPPORT PROGS
 ;
-	extrn	_GetSemaphore:near
+	extrn	__GetSemaphore:near
 	extrn	_FreeSemaphore:near
 	extrn	_Check_Timer:near
 
@@ -79,7 +79,7 @@ _BPQHOSTAPI:
 	pushad
 	call	_Check_Timer
 	push	offset _APISemaphore
-	call	_GetSemaphore
+	call	__GetSemaphore
 	add		esp, 4
 	popad
 	

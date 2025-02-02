@@ -1044,6 +1044,8 @@ struct SEM
 	int Rels;
 	DWORD SemProcessID;
 	DWORD SemThreadID;
+	int Line;		// caller file and line
+	char File[MAX_PATH];
 };
 
 

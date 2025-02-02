@@ -5,7 +5,7 @@
 
 #define _CRT_SECURE_NO_DEPRECATE
 
-#include "CHeaders.h"
+#include "cheaders.h"
 #include <stdlib.h>
 #include "tncinfo.h"
 #include "asmstrucs.h"
@@ -56,6 +56,8 @@ int sendUserList(char * response, char * token, char * Rest);
 int sendInfo(char * response, char * token, char * Rest);
 int sendLinks(char * response, char * token, char * Rest);
 int sendPortMHList(char * response, char * token, char * Rest);
+int sendWhatsPacState(char * response, char * token, char * param);
+int sendWhatsPacConfig(char * response, char * token, char * param);
 
 void BuildPortMH(char * MHJSON, struct PORTCONTROL * PORT);
 DllExport struct PORTCONTROL * APIENTRY GetPortTableEntryFromSlot(int portslot);
@@ -71,11 +73,14 @@ struct API APIList[] =
 	"/api/info", 9, sendInfo, 0,
 	"/api/links", 10, sendLinks, 0,
 	"/api/users", 10, sendUserList, 0,
-	"/api/mheard", 11, sendPortMHList, 0
+	"/api/mheard", 11, sendPortMHList, 0,
+	"/api/v1/config", 14, sendWhatsPacConfig, 0,
+	"/api/v1/state", 13, sendWhatsPacState, 0
 };
 
 int APICount = sizeof(APIList) / sizeof(struct API);
 
+extern int HTTPPort;
 
 
 int xx()
@@ -815,6 +820,37 @@ int sendPortMHList(char * response, char * token, char * param)
 //      printf("MH for port %d:\r\n%s\r\n", PORTVEC->PORTNUMBER, response);
 		}
 		return strlen(response);
+}
+
+// WhatsPac configuration interface
+// WhatsPac also uses Paula's Remote Host Protocol (RHP). This is in a separate module
+
+extern int WhatsPacConfigured;
+
+
+int sendWhatsPacState(char * response, char * token, char * param)
+{
+	if (WhatsPacConfigured)
+		sprintf(response, "{\"configured\": true}\r\n");
+	else
+		sprintf(response, "{\"configured\": false}\r\n");
+
+	return strlen(response);
+}
+
+
+int sendWhatsPacConfig(char * response, char * token, char * param)
+{
+	char Template[] =
+	"{\"MODE\": 0,"
+	"\"RHPPORT\": \"%d\","
+	"\"AGWPORT\": \"7000\","
+	"\"INTERFACES\": [{\"INTERFACE\": 1,\"PROTOCOL\": \"KISS\",\"TYPE\": \"TCP\",\"IOADDR\": \"127.0.0.1\",\"INTNUM\": 8100}],"
+	"\"PORTS\": [{\"PORT\": 1,\"ID\": \"RHPPORT\", \"INTERFACENUM\": 1}]}";
+
+	sprintf(response, Template, HTTPPort);
+
+	return strlen(response);
 }
 
 

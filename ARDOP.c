@@ -45,7 +45,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #endif
 #endif
 
-#include "CHeaders.h"
+#include "cheaders.h"
 
 
 int (WINAPI FAR *GetModuleFileNameExPtr)();
@@ -136,6 +136,9 @@ BOOL ARDOPStopPort(struct PORTCONTROL * PORT)
 	if (TNC->Streams[0].Attached)
 		TNC->Streams[0].ReportDISC = TRUE;
 
+	TNC->Streams[0].Connected = 0;
+	TNC->Streams[0].Attached = 0;
+
 	if (TNC->TCPSock)
 	{
 		shutdown(TNC->TCPSock, SD_BOTH);
@@ -161,6 +164,9 @@ BOOL ARDOPStopPort(struct PORTCONTROL * PORT)
 
 	sprintf(PORT->TNC->WEB_COMMSSTATE, "%s", "Port Stopped");
 	MySetWindowText(PORT->TNC->xIDC_COMMSSTATE, PORT->TNC->WEB_COMMSSTATE);
+
+	strcpy(TNC->WEB_TNCSTATE, "Free");
+	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
 
 	return TRUE;
 }
@@ -642,6 +648,12 @@ VOID ARDOPSendCommand(struct TNCINFO * TNC, char * Buff, BOOL Queue)
 
 	if (Buff[0] == 0)		// Terminal Keepalive?
 		return;
+
+	if (memcmp(Buff, "LISTEN ", 7) == 0)
+	{
+		strcpy(TNC->WEB_MODE, &Buff[7]);
+		MySetWindowText(TNC->xIDC_MODE, &Buff[7]);
+	}
 
 	EncLen = sprintf(Encoded, "%s\r", Buff);
 
@@ -1918,7 +1930,7 @@ static int WebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
 
 	Len += sprintf(&Buff[Len], "<tr><td width=110px>Comms State</td><td>%s</td></tr>", TNC->WEB_COMMSSTATE);
 	Len += sprintf(&Buff[Len], "<tr><td>TNC State</td><td>%s</td></tr>", TNC->WEB_TNCSTATE);
-	Len += sprintf(&Buff[Len], "<tr><td>Mode</td><td>%s</td></tr>", TNC->WEB_MODE);
+	Len += sprintf(&Buff[Len], "<tr><td>Listen</td><td>%s</td></tr>", TNC->WEB_MODE);
 	Len += sprintf(&Buff[Len], "<tr><td>Channel State</td><td>%s &nbsp; %s</td></tr>", TNC->WEB_CHANSTATE, TNC->WEB_LEVELS);
 	Len += sprintf(&Buff[Len], "<tr><td>Proto State</td><td>%s</td></tr>", TNC->WEB_PROTOSTATE);
 	Len += sprintf(&Buff[Len], "<tr><td>Traffic</td><td>%s</td></tr>", TNC->WEB_TRAFFIC);
@@ -2134,7 +2146,7 @@ VOID * ARDOPExtInit(EXTPORTDATA * PortEntry)
 	CreateWindowEx(0, "STATIC", "TNC State", WS_CHILD | WS_VISIBLE, 10,28,106,20, TNC->hDlg, NULL, hInstance, NULL);
 	TNC->xIDC_TNCSTATE = CreateWindowEx(0, "STATIC", "", WS_CHILD | WS_VISIBLE, 120,28,520,20, TNC->hDlg, NULL, hInstance, NULL);
 
-	CreateWindowEx(0, "STATIC", "Mode", WS_CHILD | WS_VISIBLE, 10,50,80,20, TNC->hDlg, NULL, hInstance, NULL);
+	CreateWindowEx(0, "STATIC", "Listen", WS_CHILD | WS_VISIBLE, 10,50,80,20, TNC->hDlg, NULL, hInstance, NULL);
 	TNC->xIDC_MODE = CreateWindowEx(0, "STATIC", "", WS_CHILD | WS_VISIBLE, 120,50,200,20, TNC->hDlg, NULL, hInstance, NULL);
  
 	CreateWindowEx(0, "STATIC", "Channel State", WS_CHILD | WS_VISIBLE, 10,72,110,20, TNC->hDlg, NULL, hInstance, NULL);
@@ -2600,6 +2612,8 @@ VOID ARDOPThread(struct TNCINFO * TNC)
 	
 	TNC->Alerted = TRUE;
 
+	ARDOPSendCommand(TNC, "LISTEN TRUE", TRUE);
+	
 	sprintf(TNC->WEB_COMMSSTATE, "Connected to ARDOP TNC");		
 	MySetWindowText(TNC->xIDC_COMMSSTATE, TNC->WEB_COMMSSTATE);
 
@@ -2678,6 +2692,10 @@ VOID ARDOPThread(struct TNCINFO * TNC)
 
 					sprintf(TNC->WEB_COMMSSTATE, "Connection to TNC lost");
 					MySetWindowText(TNC->xIDC_COMMSSTATE, TNC->WEB_COMMSSTATE);
+
+					strcpy(TNC->WEB_TNCSTATE, "Free");
+					MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
+
 
 					TNC->CONNECTED = FALSE;
 					TNC->Alerted = FALSE;
@@ -3343,6 +3361,9 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 					
 				RestartTNC(TNC);
 			}
+
+			sprintf(TNC->WEB_TNCSTATE, "In Use by %s", TNC->Streams[0].MyCall);
+			MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
 
 			return;
 		}

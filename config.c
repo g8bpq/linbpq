@@ -119,7 +119,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #define _CRT_SECURE_NO_DEPRECATE
 
-#include "CHeaders.h"
+#include "cheaders.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -512,7 +512,6 @@ BOOL ProcessConfig()
 	if ((fp1 = fopen(inputname,"r")) == NULL)
 	{
 		Consoleprintf("Could not open file %s Error code %d", inputname, errno);
-
 		return FALSE;
 	}
 
@@ -1532,7 +1531,7 @@ int dotext(char * val, char * key_word, int max)
 
 	if (len > max)
 	{
-		Consoleprintf("Text too long: %s\r\n",key_word);
+		Consoleprintf("Text too long: %s (max %d\r\n",key_word, max);
 		return(0);
 	}
 

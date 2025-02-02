@@ -23,6 +23,10 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #include "bpqmail.h"
 
+#define GetSemaphore(Semaphore,ID) _GetSemaphore(Semaphore, ID, __FILE__, __LINE__)
+void _GetSemaphore(struct SEM * Semaphore, int ID, char * File, int Line);
+
+
 int32_t Encode(char * in, char * out, int32_t inlen, BOOL B1Protocol, int Compress);
 void MQTTMessageEvent(void* message);
 

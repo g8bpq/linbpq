@@ -1146,6 +1146,7 @@
 //	Fix sending ampr.org mail when RMS is not enabled (51)
 //	Send forwarding info to packetnodes.spots.radio database (51)
 //	Fix bug in WP Message processing (56)
+//	Fix treating addresses ending in WW as Internet (57)
 
 #include "bpqmail.h"
 #include "winstdint.h"
@@ -1537,7 +1538,11 @@ VOID WriteMiniDump()
 }
 
 
-void GetSemaphore(struct SEM * Semaphore, int ID)
+
+#define GetSemaphore(Semaphore,ID) _GetSemaphore(Semaphore, ID, __FILE__, __LINE__)
+
+
+void _GetSemaphore(struct SEM * Semaphore, int ID, char * File, int Line)
 {
 	//
 	//	Wait for it to be free

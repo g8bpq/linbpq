@@ -31,7 +31,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #define MaxStreams 10	
 
-#include "CHeaders.h"
+#include "cheaders.h"
 #include "tncinfo.h"
 
 #include "bpq32.h"

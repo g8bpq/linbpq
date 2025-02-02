@@ -523,6 +523,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\RHP.c"
+				>
+			</File>
+			<File
 				RelativePath="..\CommonSource\RigControl.c"
 				>
 			</File>
@@ -601,7 +605,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\CHeaders.h"
+				RelativePath=".\cheaders.h"
 				>
 			</File>
 			<File

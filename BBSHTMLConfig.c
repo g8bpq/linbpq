@@ -19,7 +19,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #define _CRT_SECURE_NO_DEPRECATE
 
-#include "CHeaders.h"
+#include "cheaders.h"
 #include "bpqmail.h"
 
 #ifdef WIN32
@@ -2219,21 +2219,21 @@ VOID ProcessUserUpdate(struct HTTPConnectionInfo * Session, char * MsgPtr, char 
 		ptr1 = GetNextParam(&ptr2);		// Last Listed
 		USER->lastmsg = atoi(ptr1);
 		ptr1 = GetNextParam(&ptr2);		// Name
-		strcpy(USER->Name, ptr1);
+		memcpy(USER->Name, ptr1, 17);
 		ptr1 = GetNextParam(&ptr2);		// Pass
-		strcpy(USER->pass, ptr1);		
+		memcpy(USER->pass, ptr1, 12);		
 		ptr1 = GetNextParam(&ptr2);		// CMS Pass
 		if (memcmp("****************", ptr1, strlen(ptr1) != 0))
 		{
-			strcpy(USER->CMSPass, ptr1);
+			memcpy(USER->CMSPass, ptr1, 15);
 		}
 		
 		ptr1 = GetNextParam(&ptr2);		// QTH
-		strcpy(USER->Address, ptr1);
+		memcpy(USER->Address, ptr1, 60);
 		ptr1 = GetNextParam(&ptr2);		// ZIP
-		strcpy(USER->ZIP, ptr1);
+		memcpy(USER->ZIP, ptr1, 8);
 		ptr1 = GetNextParam(&ptr2);		// HomeBBS
-		strcpy(USER->HomeBBS, ptr1);
+		memcpy(USER->HomeBBS, ptr1, 40);
 		_strupr(USER->HomeBBS);
 
 		SaveUserDatabase();
@@ -3038,12 +3038,9 @@ static DWORD WINAPI InstanceThread(LPVOID lpvParam)
 		
 		const char * auth_header = "Authorization: Bearer ";
 		char * token_begin = strstr(MsgPtr, auth_header);
-		int Flags = 0, n;
+		int Flags = 0;
 
 		// Node Flags isn't currently used
-
-		char * Tok;
-		char * param;
 
 		if (token_begin)
 		{

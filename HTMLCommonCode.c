@@ -27,7 +27,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #pragma data_seg("_BPQDATA")
 
-#include "CHeaders.h"
+#include "cheaders.h"
 
 #include "templatedefs.c"				// Inline definitions from HTLMPages
 

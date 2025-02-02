@@ -28,6 +28,10 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include <sys/time.h>
 #endif
 
+#define GetSemaphore(Semaphore,ID) _GetSemaphore(Semaphore, ID, __FILE__, __LINE__)
+void _GetSemaphore(struct SEM * Semaphore, int ID, char * File, int Line);
+
+BOOL GetStringValue(config_setting_t * group, char * name, char * value, int maxlen);
 
 BOOL Bells;
 BOOL FlashOnBell;		// Flash instead of Beep
@@ -77,7 +81,7 @@ FARPROCX pRefreshWebMailIndex;
 Dll BOOL APIENTRY APISendAPRSMessage(char * Text, char * ToCall);
 VOID APIENTRY md5 (char *arg, unsigned char * checksum);
 int APIENTRY GetRaw(int stream, char * msg, int * len, int * count);
-void GetSemaphore(struct SEM * Semaphore, int ID);
+void _GetSemaphore(struct SEM * Semaphore, int ID, char * File, int Line);
 void FreeSemaphore(struct SEM * Semaphore);
 int EncryptPass(char * Pass, char * Encrypt);
 VOID DecryptPass(char * Encrypt, unsigned char * Pass, unsigned int len);
@@ -6574,8 +6578,6 @@ VOID CreateMessageFile(ConnectionInfo * conn, struct MsgInfo * Msg)
 }
 
 
-
-
 VOID SendUnbuffered(int stream, char * msg, int len)
 {
 #ifndef LINBPQ
@@ -7302,7 +7304,7 @@ VOID SetupForwardingStruct(struct UserInfo * user)
 			if (ForwardingInfo->ConTimeout == 0)
 				ForwardingInfo->ConTimeout = 120;
 
-			GetStringValue(group, "BBSHA", Temp);
+			GetStringValue(group, "BBSHA", Temp, 100);
 		
 			if (Temp[0])
 				ForwardingInfo->BBSHA = _strdup(Temp);
@@ -10136,15 +10138,20 @@ int GetIntValueWithDefault(config_setting_t * group, char * name, int Default)
 }
 
 
-BOOL GetStringValue(config_setting_t * group, char * name, char * value)
+BOOL GetStringValue(config_setting_t * group, char * name, char * value, int maxlen)
 {
-	const char * str;
+	char * str;
 	config_setting_t *setting;
 
 	setting = config_setting_get_member (group, name);
 	if (setting)
 	{
-		str =  config_setting_get_string (setting);
+		str =  (char *)config_setting_get_string (setting);
+		if (strlen(str) > maxlen)
+		{
+			Debugprintf("Suspect config record %s", str);
+			str[maxlen] = 0;
+		}
 		strcpy(value, str);
 		return TRUE;
 	}
@@ -10221,25 +10228,24 @@ BOOL GetConfig(char * ConfigName)
 
 	Localtime =  GetIntValue(group, "Localtime");
 	AliasText = GetMultiStringValue(group, "FWDAliases");
-	GetStringValue(group, "BBSName", BBSName);
-	GetStringValue(group, "MailForText", MailForText);
-	GetStringValue(group, "SYSOPCall", SYSOPCall);
-	GetStringValue(group, "H-Route", HRoute);
-	GetStringValue(group, "AMPRDomain", AMPRDomain);
+	GetStringValue(group, "BBSName", BBSName, 100);
+	GetStringValue(group, "MailForText", MailForText, 100);
+	GetStringValue(group, "SYSOPCall", SYSOPCall, 100);
+	GetStringValue(group, "H-Route", HRoute, 100);
+	GetStringValue(group, "AMPRDomain", AMPRDomain, 100);
 	SendAMPRDirect = GetIntValue(group, "SendAMPRDirect");
 	ISP_Gateway_Enabled =  GetIntValue(group, "SMTPGatewayEnabled");
 	ISPPOP3Interval =  GetIntValue(group, "POP3PollingInterval");
-	GetStringValue(group, "MyDomain", MyDomain);
-	GetStringValue(group, "ISPSMTPName", ISPSMTPName);
-	GetStringValue(group, "ISPPOP3Name", ISPPOP3Name);
+	GetStringValue(group, "MyDomain", MyDomain, 50);
+	GetStringValue(group, "ISPSMTPName", ISPSMTPName, 50);
+	GetStringValue(group, "ISPPOP3Name", ISPPOP3Name, 50);
 	ISPSMTPPort = GetIntValue(group, "ISPSMTPPort");
 	ISPPOP3Port = GetIntValue(group, "ISPPOP3Port");
-	GetStringValue(group, "ISPAccountName", ISPAccountName);
-	GetStringValue(group, "ISPAccountPass", EncryptedISPAccountPass);
-	GetStringValue(group, "ISPAccountName", ISPAccountName);
+	GetStringValue(group, "ISPAccountName", ISPAccountName, 50);
+	GetStringValue(group, "ISPAccountPass", EncryptedISPAccountPass, 100);
 
 	sprintf(SignoffMsg, "73 de %s\r", BBSName);					// Default
-	GetStringValue(group, "SignoffMsg", SignoffMsg);
+	GetStringValue(group, "SignoffMsg", ISPAccountName, 50);
 
 	DecryptPass(EncryptedISPAccountPass, ISPAccountPass, (int)strlen(EncryptedISPAccountPass));
 
@@ -10251,10 +10257,10 @@ BOOL GetConfig(char * ConfigName)
 
 #ifndef LINBPQ
 
-	GetStringValue(group, "MonitorSize", Size);
+	GetStringValue(group, "MonitorSize", Size, sizeof(Size));
 	sscanf(Size,"%d,%d,%d,%d,%d",&MonitorRect.left,&MonitorRect.right,&MonitorRect.top,&MonitorRect.bottom,&OpenMon);
 	
-	GetStringValue(group, "WindowSize", Size);
+	GetStringValue(group, "WindowSize", Size, sizeof(Size));
 	sscanf(Size,"%d,%d,%d,%d",&MainRect.left,&MainRect.right,&MainRect.top,&MainRect.bottom);
 
 	Bells = GetIntValue(group, "Bells");
@@ -10267,7 +10273,7 @@ BOOL GetConfig(char * ConfigName)
 	WrapInput = GetIntValue(group, "WrapInput");			
 	FlashOnConnect = GetIntValue(group, "FlashOnConnect");			
 	
-	GetStringValue(group, "ConsoleSize", Size);
+	GetStringValue(group, "ConsoleSize", Size, 80);
 	sscanf(Size,"%d,%d,%d,%d,%d", &ConsoleRect.left, &ConsoleRect.right,
 			&ConsoleRect.top, &ConsoleRect.bottom,&OpenConsole);
 
@@ -10346,7 +10352,7 @@ BOOL GetConfig(char * ConfigName)
 
 		// Get FBB Filters
 
-	GetStringValue(group, "FBBFilters", FBBString);
+	GetStringValue(group, "FBBFilters", FBBString, sizeof(FBBString));
 
 	ptr1 = FBBString;
 
@@ -10432,8 +10438,8 @@ BOOL GetConfig(char * ConfigName)
 	SendWP = GetIntValue(group, "SendWP");
 	SendWPType = GetIntValue(group, "SendWPType");
 
-	GetStringValue(group, "SendWPTO", SendWPTO);
-	GetStringValue(group, "SendWPVIA", SendWPVIA);
+	GetStringValue(group, "SendWPTO", SendWPTO, sizeof(SendWPTO));
+	GetStringValue(group, "SendWPVIA", SendWPVIA, sizeof(SendWPVIA));
 
 	SendWPAddrs = GetMultiStringValue(group,  "SendWPAddrs"); 
 
@@ -10463,7 +10469,7 @@ BOOL GetConfig(char * ConfigName)
 		SendWPVIA[0] = 0;
 	}
 
-	GetStringValue(group, "Version", Size);
+	GetStringValue(group, "Version", Size, sizeof(Size));
 	sscanf(Size,"%d,%d,%d,%d", &LastVer[0], &LastVer[1], &LastVer[2], &LastVer[3]);
 
 	for (i =1 ; i <= GetNumberofPorts(); i++)
@@ -10481,7 +10487,7 @@ BOOL GetConfig(char * ConfigName)
 			UIHDDR[i] = GetIntValueWithDefault(group, "SendHDDR", UIEnabled[i]);
 			UINull[i] = GetIntValue(group, "SendNull");
 			Size[0] = 0;
-			GetStringValue(group, "Digis", Size);
+			GetStringValue(group, "Digis", Size, sizeof(Size));
 			if (Size[0])
 				UIDigi[i] = _strdup(Size);
 		}

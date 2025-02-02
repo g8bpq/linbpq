@@ -30,7 +30,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include "stdio.h"
 #include <fcntl.h>
 
-#include "CHeaders.h"
+#include "cheaders.h"
 #include "tncinfo.h"
 
 int C_Q_COUNT(VOID *PQ);

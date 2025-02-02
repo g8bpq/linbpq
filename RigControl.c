@@ -48,7 +48,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include <stdlib.h>
 #include "time.h"
 
-#include "CHeaders.h"
+#include "cheaders.h"
 #include "tncinfo.h"
 #ifdef WIN32
 #include <commctrl.h>
@@ -324,7 +324,7 @@ VOID Rig_PTTEx(struct RIGINFO * RIG, BOOL PTTState, struct TNCINFO * TNC)
 
 						// Convert to CAT string
 
-						sprintf(FreqString, "%012d", txfreq);
+						sprintf(FreqString, "%012lld", txfreq);
 
 						switch (PORT->PortType)
 						{
@@ -455,7 +455,7 @@ VOID Rig_PTTEx(struct RIGINFO * RIG, BOOL PTTState, struct TNCINFO * TNC)
 
 					// Convert to CAT string
 
-					sprintf(FreqString, "%012d", txfreq);
+					sprintf(FreqString, "%012lld", txfreq);
 
 					switch (PORT->PortType)
 					{
@@ -896,7 +896,7 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 	// if Port starts with 'R' then select Radio (was Interlock) number, not BPQ Port
 
 	if (Command[0] == 'R')
-		n = sscanf(Command,"%s %s %s %s %s", &Dummy, &FreqString[0], &Mode[0], &FilterString[0], &Data[0]);
+		n = sscanf(Command,"%s %s %s %s %s", &Dummy[0], &FreqString[0], &Mode[0], &FilterString[0], &Data[0]);
 	else
 		n = sscanf(Command,"%d %s %s %s %s", &Port, &FreqString[0], &Mode[0], &FilterString[0], &Data[0]);
 
@@ -1117,7 +1117,7 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 
 	if (_stricmp(FreqString, "POWER") == 0)
 	{
-		char PowerString[8] = "";
+		char PowerString[16] = "";
 		int Power = atoi(Mode);
 		int len;
 		char cmd[80];
@@ -1291,7 +1291,7 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 
 			// use text command
 
-			Len = sprintf(CmdPtr, "%S", ptr1);
+			Len = sprintf(CmdPtr, "%s", ptr1);
 			break;
 
 		case YAESU:
@@ -2072,7 +2072,7 @@ int Rig_CommandEx(struct RIGPORTINFO * PORT, struct RIGINFO * RIG, TRANSPORTENTR
 
 	case HAMLIB:
 	{
-		char cmd[80];
+		char cmd[200];
 
 		int len = sprintf(cmd, "F %s\n+f\nM %s %d\n+m\n",
 			FreqString, Mode, atoi(Data));
@@ -7252,7 +7252,7 @@ CheckScan:
 		}
 		else if	(PORT->PortType == FT991A || PORT->PortType == FTDX10)
 		{	
-			FreqPtr[0]->Cmd1Len = sprintf(CmdPtr, "FA%s;MD0%X;FA;MD0;", &FreqString, ModeNo);
+			FreqPtr[0]->Cmd1Len = sprintf(CmdPtr, "FA%s;MD0%X;FA;MD0;", &FreqString[0], ModeNo);
 		}
 		else if	(PORT->PortType == FT100 || PORT->PortType == FT990
 			|| PORT->PortType == FT1000)
@@ -8139,7 +8139,7 @@ void ProcessFLRIGFrame(struct RIGPORTINFO * PORT)
 
 void HLSetMode(SOCKET Sock, struct RIGINFO * RIG, unsigned char * Msg, char sep)
 {
-	char Resp[80];
+	char Resp[120];
 	int Len;
 	char mode[80] = "";
 	int filter = 0;
@@ -10164,7 +10164,7 @@ VOID ConnecttoSDRANGEL(struct RIGPORTINFO * PORT)
 VOID SDRANGELThread(struct RIGPORTINFO * PORT)
 {
 	// Opens sockets and looks for data
-	char Msg[255];
+	char Msg[512];
 	int err, i, ret;
 	u_long param=1;
 	BOOL bcopt=TRUE;

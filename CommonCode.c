@@ -32,7 +32,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #pragma data_seg("_BPQDATA")
 
-#include "CHeaders.h"
+#include "cheaders.h"
 #include "tncinfo.h"
 #include "configstructs.h"
 
@@ -69,7 +69,7 @@ VOID WriteMiniDump();
 void printStack(void);
 char * FormatMH(PMHSTRUC MH, char Format);
 void WriteConnectLog(char * fromCall, char * toCall, UCHAR * Mode);
-void SendDataToPktMap(char *Msg);
+void SendDataToPktMap();
 
 extern BOOL LogAllConnects;
 extern BOOL M0LTEMap;
@@ -571,7 +571,7 @@ void * zalloc(int len)
 	return ptr;
 }
 
-char * strlop(const char * buf, char delim)
+char * strlop(char * buf, char delim)
 {
 	// Terminate buf at delim, and return rest of string
 
@@ -1456,7 +1456,21 @@ DllExport int APIENTRY SessionStateNoAck(int stream, int * state)
 	return 0;
 }
 
+
+int SendMsgEx(int stream, char * msg, int len, int GetSem);
+
+int SendMsgNoSem(int stream, char * msg, int len)
+{
+	return SendMsgEx(stream, msg, len, 0);
+}
+
 DllExport int APIENTRY SendMsg(int stream, char * msg, int len)
+{
+	return SendMsgEx(stream, msg, len, 1);
+}
+
+
+int SendMsgEx(int stream, char * msg, int len, int GetSem)
 {
 	//	Send message to stream (BPQHOST Function 2)
 
@@ -1479,11 +1493,13 @@ DllExport int APIENTRY SendMsg(int stream, char * msg, int len)
 		if (QCOUNT < 50)
 			return 0;					// Dont want to run out
 
-		GetSemaphore(&Semaphore, 10);
+			if (GetSem)
+				GetSemaphore(&Semaphore, 10);
 
 		if ((MSG = GetBuff()) == 0)
 		{
-			FreeSemaphore(&Semaphore);
+			if (GetSem)
+				FreeSemaphore(&Semaphore);
 			return 0;
 		}
 
@@ -1494,7 +1510,8 @@ DllExport int APIENTRY SendMsg(int stream, char * msg, int len)
 
 		SENDUIMESSAGE(MSG);
 		ReleaseBuffer(MSG);
-		FreeSemaphore(&Semaphore);
+		if (GetSem)
+			FreeSemaphore(&Semaphore);
 		return 0;
 	}
 
@@ -1509,13 +1526,15 @@ DllExport int APIENTRY SendMsg(int stream, char * msg, int len)
 	if (L4 == 0)
 		return 0;
 
-	GetSemaphore(&Semaphore, 22);
+	if (GetSem)
+		GetSemaphore(&Semaphore, 22);
 
 	SESS->HOSTFLAGS |= 0x80;		// SET ALLOCATED BIT
 
 	if (QCOUNT < 40)				// PLENTY FREE?
 	{
-		FreeSemaphore(&Semaphore);
+		if (GetSem)
+			FreeSemaphore(&Semaphore);
 		return 1;
 	}
 
@@ -1528,14 +1547,16 @@ DllExport int APIENTRY SendMsg(int stream, char * msg, int len)
 		if (n > 100)
 		{
 			Debugprintf("Stream %d QCOUNT %d Q Len %d - discarding", stream, QCOUNT, n);
-			FreeSemaphore(&Semaphore);
+			if (GetSem)
+				FreeSemaphore(&Semaphore);
 			return 1;
 		}
 	}
 
 	if ((MSG = GetBuff()) == 0)
 	{
-		FreeSemaphore(&Semaphore);
+		if (GetSem)
+			FreeSemaphore(&Semaphore);
 		return 1;
 	}
 
@@ -1562,7 +1583,8 @@ DllExport int APIENTRY SendMsg(int stream, char * msg, int len)
 	else
 		C_Q_ADD(&L4->L4RX_Q, MSG);
 
-	FreeSemaphore(&Semaphore);
+	if (GetSem)
+		FreeSemaphore(&Semaphore);
 	return 0;
 }
 DllExport int APIENTRY SendRaw(int port, char * msg, int len)
@@ -3318,12 +3340,11 @@ VOID SendLocation()
 	SendReportMsg((char *)&AXMSG.DEST, Len + 16);
 
 	if (M0LTEMap)
-		SendDataToPktMap("");
+		SendDataToPktMap();
 
 	return;
 
 }
-
 
 
 
@@ -3342,7 +3363,8 @@ VOID SendMH(struct TNCINFO * TNC, char * call, char * freq, char * LOC, char * M
 	// Block includes the Msg Header (7 bytes), Len Does not!
 
 	memcpy(AXPTR->DEST, ReportDest, 7);
-	if (TNC->PortRecord->PORTCONTROL.PORTCALL[0])
+
+	if (TNC && TNC->PortRecord->PORTCONTROL.PORTCALL[0])
 		memcpy(AXPTR->ORIGIN, TNC->PortRecord->PORTCONTROL.PORTCALL, 7);
 	else
 		memcpy(AXPTR->ORIGIN, MYCALL, 7);
@@ -3502,8 +3524,10 @@ int __sync_lock_test_and_set(int * ptr, int val)
 #endif // MACBPQ
 
 
+#define GetSemaphore(Semaphore,ID) _GetSemaphore(Semaphore, ID, __FILE__, __LINE__)
 
-void GetSemaphore(struct SEM * Semaphore, int ID)
+
+void _GetSemaphore(struct SEM * Semaphore, int ID, char * File, int Line)
 {
 	//
 	//	Wait for it to be free
@@ -3547,6 +3571,8 @@ loop1:
 	Semaphore->SemProcessID = GetCurrentProcessId();
 	Semaphore->SemThreadID = GetCurrentThreadId();
 	SemHeldByAPI = ID;
+	Semaphore->Line = Line;
+	strcpy(Semaphore->File, File);
 
 	return;
 }
@@ -4171,10 +4197,10 @@ VOID GetUIConfig()
 
 			if (group)
 			{
-				GetStringValue(group, "UIDEST", &UIUIDEST[Port][0]);
-				GetStringValue(group, "FileName", &FN[Port][0]);
-				GetStringValue(group, "Message", &Message[Port][0]);
-				GetStringValue(group, "Digis", Digis);
+				GetStringValue(group, "UIDEST", &UIUIDEST[Port][0], 11);
+				GetStringValue(group, "FileName", &FN[Port][0], 256);
+				GetStringValue(group, "Message", &Message[Port][0], 1000);
+				GetStringValue(group, "Digis", Digis, 100);
 				UIUIDigi[Port] = _strdup(Digis);
 	
 				Interval[Port] = GetIntValue(group, "Interval");
@@ -4205,15 +4231,21 @@ int GetIntValue(config_setting_t * group, char * name)
 	return 0;
 }
 
-BOOL GetStringValue(config_setting_t * group, char * name, char * value)
+BOOL GetStringValue(config_setting_t * group, char * name, char * value, int maxlen)
 {
-	const char * str;
+	char * str;
 	config_setting_t *setting;
 
 	setting = config_setting_get_member (group, name);
 	if (setting)
 	{
-		str =  config_setting_get_string (setting);
+		str = (char *)config_setting_get_string(setting);
+
+		if (strlen(str) > maxlen)
+		{
+			Debugprintf("Suspect config record %s", str);
+			str[maxlen] = 0;
+		}
 		strcpy(value, str);
 		return TRUE;
 	}
@@ -5131,10 +5163,16 @@ skipit:
 	}
 }
 
+void SendDataToPktMapThread();
 
-void SendDataToPktMap(char *Msg)
+void SendDataToPktMap()
 {
-	char Return[256];
+	_beginthread(SendDataToPktMapThread,2048000,0);
+}
+
+void SendDataToPktMapThread()
+{
+	char Return[256] = "";
 	char Request[64];
 	char Params[50000];
 
@@ -5582,7 +5620,7 @@ void SendDataToPktMap(char *Msg)
 	//  "contact": "string",
 	//  "neighbours": [{"node": "G7TAJ","port": "30"}]
 
-	SendWebRequest("packetnodes.spots.radio", Request, Params, Return);
+	SendWebRequest("packetnodes.spots.radio", Request, Params, 0);
 }
 
 //	="{\"neighbours\": [{\"node\": \"G7TAJ\",\"port\": \"30\"}]}";

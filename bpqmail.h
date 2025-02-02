@@ -33,7 +33,7 @@
 #include "BPQMailrc.h"
 #include "dbghelp.h"
 #else
-#include "CHeaders.h"
+#include "cheaders.h"
 #endif
 
 #include "asmstrucs.h"
@@ -879,7 +879,7 @@ struct MSESSION
 };
 
 VOID __cdecl nprintf(CIRCUIT * conn, const char * format, ...);
-char * strlop(const char * buf, char delim);
+char * strlop(char * buf, char delim);
 int rt_cmd(CIRCUIT *circuit, char * Buffer);
 CIRCUIT *circuit_new(CIRCUIT *circuit, int flags);
 VOID BBSputs(CIRCUIT * conn, char * buf);
@@ -1173,7 +1173,7 @@ int ProcessConnecting(CIRCUIT * circuit, char * Buffer, int Len);
 VOID SaveConfig(char * ConfigName);
 BOOL GetConfig(char * ConfigName);
 int GetIntValue(config_setting_t * group, char * name);
-BOOL GetStringValue(config_setting_t * group, char * name, char * value);
+//BOOL GetStringValue(config_setting_t * group, char * name, char * value, int maxlen);
 BOOL GetConfigFromRegistry();
 VOID Parse_SID(CIRCUIT * conn, char * SID, int len);
 VOID ProcessMBLLine(CIRCUIT * conn, struct UserInfo * user, UCHAR* Buffer, int len);
@@ -1289,7 +1289,9 @@ int RemoveLF(char * Message, int len);
 // Utilities
 
 BOOL isdigits(char * string);
-void GetSemaphore(struct SEM * Semaphore, int ID);
+
+
+void _GetSemaphore(struct SEM * Semaphore, int ID, char * File, int Line);
 void FreeSemaphore(struct SEM * Semaphore);
 
 VOID __cdecl Debugprintf(const char * format, ...);

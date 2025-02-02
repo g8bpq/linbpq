@@ -34,7 +34,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include <fcntl.h>					 
 
 #include "kernelresource.h"
-#include "CHeaders.h"
+#include "cheaders.h"
 #include "tncinfo.h"
 #include "mqtt.h"
 
@@ -2468,7 +2468,7 @@ VOID DoListenMonitor(TRANSPORTENTRY * L4, MESSAGE * Msg)
 	PDATAMESSAGE Buffer;
 	char MonBuffer[1024];
 	int len;
-
+	struct tm * TM;
 	UCHAR * monchars = (UCHAR *)Msg;
 
 	if (CountFramesQueuedOnSession(L4) > 10)
@@ -2478,13 +2478,18 @@ VOID DoListenMonitor(TRANSPORTENTRY * L4, MESSAGE * Msg)
 		return;
 
 	IntSetTraceOptionsEx(L4->LISTEN, 1, 0, 0);
-	
-	len = IntDecodeFrame(Msg, MonBuffer, Msg->Timestamp, L4->LISTEN, FALSE, TRUE);
+
+	TM = gmtime(&Msg->Timestamp);
+	sprintf(MonBuffer, "%02d:%02d:%02d ", TM->tm_hour, TM->tm_min, TM->tm_sec);
+
+	len = IntDecodeFrame(Msg, &MonBuffer[9], Msg->Timestamp, L4->LISTEN, FALSE, TRUE);
 	
 	IntSetTraceOptionsEx(SaveMMASK, SaveMTX, SaveMCOM, SaveMUI);
 
 	if (len == 0)
 		return;
+
+	len += 9;
 
 	if (len > 256)
 		len = 256;

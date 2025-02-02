@@ -764,14 +764,14 @@ BOOL CheckifPacket(char * Via)
 		return TRUE;			// Packet
 
 	// ptr1 is last element. If a valid continent, it is a packet message
-	
+	// should really accept .WW on end as it is valid 
 	if (FindContinent(ptr1))
 		return TRUE;			// Packet
 
 	if (FindCountry(ptr1))
 		return TRUE;			// Packet
 
-	if ((_stricmp(ptr1, "MARS") == 0) || (_stricmp(ptr1, "USA") == 0))		// MARS used both
+	if ((_stricmp(ptr1, "MARS") == 0) || (_stricmp(ptr1, "USA") == 0) || (_stricmp(ptr1, "WW") == 0))		// MARS used both MARS and USA
 		return TRUE;			// Packet
 
 	return FALSE;

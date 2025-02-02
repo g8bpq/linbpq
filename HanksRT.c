@@ -27,7 +27,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 
 #ifdef LINBPQ
-#include "CHeaders.h"
+#include "cheaders.h"
 #endif
 
 #include "bpqchat.h"
@@ -4178,10 +4178,10 @@ BOOL GetChatConfig(char * ConfigName)
 	MaxChatStreams = GetIntValue(group, "MaxStreams");
 	reportChatEvents = GetIntValue(group, "reportChatEvents");
 	chatPaclen = GetIntValue(group, "chatPaclen");
-	GetStringValue(group, "OtherChatNodes", OtherNodesList);
-	GetStringValue(group, "ChatWelcomeMsg", ChatWelcomeMsg);
-	GetStringValue(group, "MapPosition", Position);
-	GetStringValue(group, "MapPopup", PopupText);
+	GetStringValue(group, "OtherChatNodes", OtherNodesList, 1000);
+	GetStringValue(group, "ChatWelcomeMsg", ChatWelcomeMsg, 1000);
+	GetStringValue(group, "MapPosition", Position, 81);
+	GetStringValue(group, "MapPopup", PopupText, 260);
 	PopupMode = GetIntValue(group, "PopupMode");
 
 	if (chatPaclen == 0)

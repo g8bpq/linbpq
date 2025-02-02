@@ -36,7 +36,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #endif
 
 
-#include "CHeaders.h"
+#include "cheaders.h"
 
 
 extern int (WINAPI FAR *GetModuleFileNameExPtr)();
