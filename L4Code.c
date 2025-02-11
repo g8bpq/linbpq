@@ -67,11 +67,15 @@ VOID ProcessRTTMsg(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Buff, int Len
 VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask, UCHAR * ApplCall);
 void WriteConnectLog(char * fromCall, char * toCall, UCHAR * Mode);
 void SendVARANetromMsg(struct TNCINFO * TNC, PL3MESSAGEBUFFER MSG);
+unsigned char * Compressit(unsigned char * In, int Len, int * OutLen);
+int doinflate(unsigned char * source, unsigned char * dest, int Len, int destlen, int * outLen);
 
 static UINT APPLMASK;
 
 extern BOOL LogL4Connects;
 extern BOOL LogAllConnects;
+
+extern int L4Compress;
 
 // L4 Flags Values
 
@@ -341,6 +345,12 @@ VOID SENDL4MESSAGE(TRANSPORTENTRY * L4, struct DATAMESSAGE * Msg)
 
 	L3MSG->L4FLAGS = L4INFO | L4->NAKBITS;
 
+	if (Msg->PID == 0xF1)		// Compressed Message
+	{
+		L3MSG->L4FLAGS |= L4COMP;
+		Msg->PID = 0xF0;
+	}
+
 	L4->L4TIMER = L4->SESSIONT1;			// SET TIMER
 	L4->L4ACKREQ = 0;						// CANCEL ACK NEEDED
 
@@ -470,6 +480,9 @@ VOID SENDL4CONNECT(TRANSPORTENTRY * Session)
 
 	MSG->LENGTH = (int)(&MSG->L4DATA[17] - (UCHAR *)MSG);
 
+	if (L4Compress)
+		MSG->L4DATA[16] |= 0x40;			// Set Compression Supported
+
 	if (Session->SPYFLAG)
 	{
 		MSG->L4DATA[17] = 'Z';							// ADD SPY ON BBS FLAG
@@ -593,6 +606,46 @@ VOID L4BG()
 
 			if (L4->L4CIRCUITTYPE & SESSION)
 			{
+				//	Now support compressing NetRom Sessions.
+				//	We collect as much data as possible before compressing and re-packetizing
+
+				if (L4->AllowCompress)
+				{
+					int complen = 0;
+					unsigned char * Compressed;
+
+	//				if (L4->L4TX_Q)
+					{
+						// Collect the data from L4TX_Q
+
+						int dataLen;
+
+	//					L4->toCompress = malloc(8192);
+	//					L4->toCompressLen = 0;
+
+						dataLen = Msg->LENGTH - MSGHDDRLEN - 1;		// No header or pid
+
+		//				memcpy(&L4->toCompress[L4->toCompressLen], Msg->L2DATA, dataLen);
+		//				L4->toCompressLen += dataLen;
+
+						Msg->L2DATA[dataLen] = 0;
+	
+						Compressed = Compressit(Msg->L2DATA, dataLen, &complen);
+						Debugprintf("%d %d %d%% %s", dataLen, complen, ((dataLen - complen) * 100) / dataLen, Msg->L2DATA);
+
+						if (complen < dataLen)
+						{
+							// Send compressed
+
+							memcpy(Msg->L2DATA, Compressed, complen);
+							Msg->LENGTH = complen + MSGHDDRLEN + 1;			// 1 for pid field
+							Msg->PID = 0xF1;								// Not sent so use as a flag for compressed msg
+						}
+
+						free(Compressed);
+					}
+				}
+					
 				SENDL4MESSAGE(L4, Msg);
 				ReleaseBuffer(Msg);
 				continue;
@@ -1458,6 +1511,9 @@ VOID SendConACK(struct _LINKTABLE * LINK, TRANSPORTENTRY * L4, L3MESSAGEBUFFER *
 	if (BPQNODE)
 	{
 		L3MSG->L4DATA[1] = L3LIVES;		// Our TTL
+		if (L4->AllowCompress)
+			L3MSG->L4DATA[1] |= 0x80;
+
 		L3MSG->LENGTH++;
 	}
 
@@ -1573,8 +1629,9 @@ VOID SETUPNEWCIRCUIT(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG,
 	L4->CIRCUITID = NEXTID;
 
 	NEXTID++;
-		if (NEXTID == 0)
-			NEXTID++;								// kEEP nON-ZERO
+		
+	if (NEXTID == 0)
+		NEXTID++;								// kEEP nON-ZERO
 
 	L4->SESSIONT1 = L4T1;
 	
@@ -1597,10 +1654,19 @@ VOID SETUPNEWCIRCUIT(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG,
 
 	//	GET BPQ EXTENDED CONNECT PARAMS IF PRESENT
 
-	if (L3MSG->LENGTH  == MSGHDDRLEN + 38 || L3MSG->LENGTH  == MSGHDDRLEN + 39)
+	if (L3MSG->LENGTH  == MSGHDDRLEN + 38 || L3MSG->LENGTH == MSGHDDRLEN + 39)
 	{
 		*BPQNODE = 1;
+
 		memcpy(BPQPARAMS, &L3MSG->L4DATA[15],L3MSG->LENGTH - (MSGHDDRLEN + 36));
+	
+		// 40 bit of 2nd byte is Compress Flag
+
+		if (BPQPARAMS[1] & 0x40)
+		{
+			L4->AllowCompress = 1;
+			BPQPARAMS[1] &= 0xf;		// Only bottom bit is significant in Timeeout field
+		}
 	}
 
 	L4->L4CIRCUITTYPE = SESSION | UPLINK;	
@@ -1658,7 +1724,7 @@ TryAgain:
 	{	
 		SHORT T1;
 		
-		DEST->DEST_STATE |= 0x40;			// SET BPQ _NODE BIT
+		DEST->DEST_STATE |= 0x40;			// SET BPQ NODE BIT
 		memcpy((char *)&T1, BPQPARAMS, 2);
 
 		if (T1 > 300)
@@ -1774,7 +1840,13 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 
 		if (L3MSG->LENGTH > MSGHDDRLEN + 22)		// Standard Msg
 		{
-			DEST->DEST_STATE &= 0x80;
+			if (L3MSG->L4DATA[1] & 0x80)		// Compress Flag
+			{
+				L4->AllowCompress = 1;
+				L3MSG->L4DATA[1] &= 0x7f;
+			}
+
+ 			DEST->DEST_STATE &= 0x80;
 			DEST->DEST_STATE |= (L3MSG->L4DATA[1] - L3MSG->L3TTL) + 0x41; // Hops to dest + x40
 		}
 
@@ -1874,6 +1946,19 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 			return;	
 		}
 
+		// Randomly drop packets
+
+/*
+		Debugprintf("L4 Test Received packet %d ", L3MSG->L4TXNO);
+
+		if ((rand() % 7) > 5)
+		{
+			Debugprintf("L4 Test Drop packet %d ", L3MSG->L4TXNO);
+			ReleaseBuffer(L3MSG);
+			return;
+		}
+*/
+
 		ACKFRAMES(L3MSG, L4, L3MSG->L4RXNO);
 
 		//	If DISCPENDING or STATE IS 4, THEN SESSION IS CLOSING - IGNORE ANY I FRAMES
@@ -1898,7 +1983,7 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 			// FRAME IS A REPEAT
 
 			Call[ConvFromAX25(L3MSG->L3SRCE, Call)] = 0;
-			Debugprintf("Discarding repeated frame seq %d from %s", L3MSG->L4TXNO, Call);
+			Debugprintf("L4 Discarding repeated frame seq %d from %s", L3MSG->L4TXNO, Call);
 
 			L4->L4ACKREQ = 1;
 			ReleaseBuffer(L3MSG);
@@ -1911,15 +1996,14 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 			//	AND KEEP THIS FRAME UNTIL MISSING ONE ARRIVES
 
 			L4->NAKBITS |= L4NAK;			// SET NAK REQUIRED
-	
 			SENDL4IACK(L4);			// SEND DATA ACK COMMAND TO ACK OUTSTANDING FRAMES
 	
 			//	SEE IF WE ALREADY HAVE A COPY OF THIS ONE
-/*
+
 			Saved = L4->L4RESEQ_Q;
 
 			Call[ConvFromAX25(L3MSG->L3SRCE, Call)] = 0;
-			Debugprintf("saving seq %d from %s", L3MSG->L4TXNO, Call);
+			Debugprintf("L4 Out Of Seq saving seq %d from %s", L3MSG->L4TXNO, Call);
 
 			while (Saved)
 			{
@@ -1927,7 +2011,7 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 				{
 					//	ALREADY HAVE A COPY - DISCARD IT
 			
-					Debugprintf("Already have seq %d - discarding", L3MSG->L4TXNO);
+					Debugprintf("L4 Already have seq %d - discarding", L3MSG->L4TXNO);
 					ReleaseBuffer(L3MSG);
 					return;
 				}
@@ -1937,7 +2021,6 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 
 			C_Q_ADD(&L4->L4RESEQ_Q, L3MSG);		// ADD TO CHAIN
 			return;
-*/
 		}
 
 		// Frame is OK
@@ -1966,6 +2049,20 @@ L4INFO_OK:
 
 		L3MSG->L3PID = 0xF0;				// Normal Data PID
 
+		// if compressed, expand
+
+		if (L3MSG->L4FLAGS & L4COMP)
+		{
+			char Buffer[512];
+			int Len;
+			int outLen;
+			
+			Len = doinflate(L3MSG->L4DATA, Buffer, L3MSG->LENGTH - MSGHDDRLEN - 1, 512, &outLen);
+
+			memcpy(L3MSG->L4DATA, Buffer, outLen);
+			L3MSG->LENGTH =  outLen + MSGHDDRLEN + 1;
+		}
+
 		memmove(L3MSG->L3SRCE, L3MSG->L4DATA, L3MSG->LENGTH - (4 + sizeof(void *)));
 
 		REFRESHROUTE(L4);
@@ -1993,11 +2090,11 @@ L4INFO_OK:
 				OLDFRAMES++;			// COUNT FOR STATS
 	
 				L3MSG = Saved;
-				Debugprintf("Processing Saved Message %d Address %x", L4->RXSEQNO, L3MSG);
+				Debugprintf("L4 Processing Saved Message %d Address %x", L4->RXSEQNO, L3MSG);
 				goto L4INFO_OK;
 			}
 
-			Debugprintf("Message %d %x still on Reseq Queue", Saved->L4TXNO, Saved);
+			Debugprintf("L4 Message %d %x still on Reseq Queue", Saved->L4TXNO, Saved);
 
 			Prev = &Saved;
 			Saved = Saved->Next;
@@ -2106,7 +2203,7 @@ VOID ACKFRAMES(L3MESSAGEBUFFER * L3MSG, TRANSPORTENTRY * L4, int NR)
 		L4->FLAGS |= L3MSG->L4FLAGS & L4BUSY;		// Get Busy flag from message
 
 		if ((L3MSG->L4FLAGS & L4NAK) == 0)
-			return;						// Dont send while biust unless NAC received
+			return;						// Dont send while busy unless NAK received
 	}
 
 	if (L3MSG->L4FLAGS & L4NAK)
@@ -2134,17 +2231,6 @@ VOID ACKFRAMES(L3MESSAGEBUFFER * L3MSG, TRANSPORTENTRY * L4, int NR)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 VOID SENDL4IACK(TRANSPORTENTRY * Session)
 {
 	//	SEND INFO ACK
@@ -2167,6 +2253,7 @@ VOID SENDL4IACK(TRANSPORTENTRY * Session)
 
 	MSG->L4TXNO = 0;
 
+
 	
 	MSG->L4RXNO = Session->RXSEQNO;
 	Session->L4LASTACKED = Session->RXSEQNO;	// SAVE LAST NUMBER ACKED
@@ -2175,7 +2262,10 @@ VOID SENDL4IACK(TRANSPORTENTRY * Session)
 
 	MSG->LENGTH = MSGHDDRLEN + 22;
 
+//	Debugprintf("Sending L4 IACK %d %x", MSG->L4RXNO, MSG->L4FLAGS);
+
 	C_Q_ADD(&DEST->DEST_Q, (UINT *)MSG);
+
 }
 
 

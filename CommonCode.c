@@ -1493,8 +1493,8 @@ int SendMsgEx(int stream, char * msg, int len, int GetSem)
 		if (QCOUNT < 50)
 			return 0;					// Dont want to run out
 
-			if (GetSem)
-				GetSemaphore(&Semaphore, 10);
+		if (GetSem)
+			GetSemaphore(&Semaphore, 10);
 
 		if ((MSG = GetBuff()) == 0)
 		{

@@ -49,6 +49,7 @@ struct RHPSessionInfo
     BOOL Connecting;		// Set while waiting for connection to complete
     BOOL Listening; 
 	BOOL Connected;
+	int Busy;
 };
 
 struct RHPConnectionInfo
@@ -76,19 +77,24 @@ struct RHPSessionInfo ** RHPSessions;
 int NumberofRHPSessions;
 
 char ErrCodes[18][24] = 
-{"Ok",   "Unspecified",  "Bad or missing type",   "Invalid handle",   "No memory",  "Bad or missing mode",
-
- "Invalid local address",
- "Invalid remote address" ,
- "Bad or missing family" ,
- "Duplicate socket"   ,
- "No such port"    ,
- "Invalid protocol"      , 
- "Bad parameter" ,
- "No buffers"  ,
-  "Unauthorised"  ,
-  "No Route"  ,
-  "Operation not supported"};
+{
+	"Ok",
+	"Unspecified",
+	"Bad or missing type",
+	"Invalid handle",
+	"No memory",
+	"Bad or missing mode",
+	"Invalid local address",
+	"Invalid remote address" ,
+	"Bad or missing family" ,
+	"Duplicate socket"   ,
+	"No such port"    ,
+	"Invalid protocol"      , 
+	"Bad parameter" ,
+	"No buffers"  ,
+	"Unauthorised"  ,
+	"No Route"  ,
+	"Operation not supported"};
 
 
 
@@ -110,6 +116,7 @@ int RHPPaclen = 236;
 int processRHCPOpen(SOCKET Socket, char * Msg, char * ReplyBuffer);
 int processRHCPSend(SOCKET Socket, char * Msg, char * ReplyBuffer);
 int processRHCPClose(SOCKET Socket, char * Msg, char * ReplyBuffer);
+int processRHCPStatus(SOCKET Socket, char * Msg, char * ReplyBuffer);
 
 
 
@@ -264,6 +271,9 @@ void ProcessRHPWebSock(SOCKET Socket, char * Msg, int MsgLen)
 //	{"seqno": 0, "type": "status", "handle": 1, "flags": 2}.~.
 //	{"seqno": 1, "type": "recv", "handle": 1, "data": "Welcome to G8BPQ's Test Switch in Nottingham \rType ? for list of available commands.\r"}.
 
+//	{"type": "status", "handle": 0}. XRouter will reply with {"type": "statusReply", "handle": 0, "errcode": 12, "errtext": "invalid handle"}. It
+//	{type: 'keepalive'} if there has been no other activity for nearly 3 minutes. Replies with {"type": "keepaliveReply"}
+
 	GetJSONValue(Msg, "\"type\":", Value, 15);
 
 	if (_stricmp(Value, "open") == 0)
@@ -287,6 +297,21 @@ void ProcessRHPWebSock(SOCKET Socket, char * Msg, int MsgLen)
 		SendWebSockMessage(Socket, OutBuffer, Len);
 		return;
 	}
+
+	if (_stricmp(Value, "status") == 0)
+	{
+		Len = processRHCPStatus(Socket, Msg, &OutBuffer[10]);		// Space at front for WebSock Header
+		SendWebSockMessage(Socket, OutBuffer, Len);
+		return;
+	}
+	
+	if (_stricmp(Value, "keepalive") == 0)
+	{
+		Len = sprintf(&OutBuffer[10], "{\"type\": \"keepaliveReply\"}"); // Space at front for WebSock Header
+		SendWebSockMessage(Socket, OutBuffer, Len);
+		return;
+	}
+
 	Debugprintf(Msg);
 }
 
@@ -344,7 +369,7 @@ int processRHCPOpen(SOCKET Socket, char * Msg, char * ReplyBuffer)
 	int Handle = 1;
 	int Stream;
 	unsigned char AXCall[10];
-	int Len;
+
 	int n;
 
 	// ID seems to be used for control commands like open. SeqNo for data within a session (i Think!
@@ -389,7 +414,7 @@ int processRHCPOpen(SOCKET Socket, char * Msg, char * ReplyBuffer)
 			}
 
 			strcpy(pgm, "RHP");
-			Stream = FindFreeStreamNoSem();
+			Stream = FindFreeStream();
 			strcpy(pgm, "bpq32.exe");
 
 			if (Stream == 255)
@@ -437,7 +462,7 @@ int processRHCPSend(SOCKET Socket, char * Msg, char * ReplyBuffer)
 	if (Handle < 1 || Handle > NumberofRHPSessions)
 	{
 		free(Data);
-		return sprintf(ReplyBuffer, "{\"type\": \"sendReply\", \"id\": %d, \"handle\": %d, \"errCode\": 12, \"errtext\": \"Invalid handle\"}", ID, Handle);
+		return sprintf(ReplyBuffer, "{\"type\": \"sendReply\", \"id\": %d, \"handle\": %d, \"errCode\": 3, \"errtext\": \"Invalid handle\"}", ID, Handle);
 	}
 
 	RHPSession = RHPSessions[Handle - 1];
@@ -479,12 +504,12 @@ int processRHCPSend(SOCKET Socket, char * Msg, char * ReplyBuffer)
 
 	while (Len > RHPPaclen)
 	{
-		SendMsgNoSem(RHPSession->BPQStream, ptr, RHPPaclen);
+		SendMsg(RHPSession->BPQStream, ptr, RHPPaclen);
 		Len -= RHPPaclen;
 		ptr += RHPPaclen;
 	}
 
-	SendMsgNoSem(RHPSession->BPQStream, ptr, Len);
+	SendMsg(RHPSession->BPQStream, ptr, Len);
 
 	free(Data);
 	return sprintf(ReplyBuffer, "{\"type\": \"sendReply\", \"id\": %d, \"handle\": %d, \"errCode\": 0, \"errText\": \"Ok\", \"status\": %d}", ID, Handle, 2);
@@ -508,7 +533,7 @@ int processRHCPClose(SOCKET Socket, char * Msg, char * ReplyBuffer)
 	Handle = GetJSONInt(Msg, "\"handle\":");
 
 	if (Handle < 1 || Handle > NumberofRHPSessions)
-		return sprintf(ReplyBuffer, "{\"id\": %d, \"type\": \"closeReply\", \"handle\": %d, \"errcode\": 12, \"errtext\": \"Invalid handle\"}", ID, Handle);
+		return sprintf(ReplyBuffer, "{\"id\": %d, \"type\": \"closeReply\", \"handle\": %d, \"errcode\": 3, \"errtext\": \"Invalid handle\"}", ID, Handle);
 
 
 	RHPSession = RHPSessions[Handle - 1];
@@ -520,6 +545,24 @@ int processRHCPClose(SOCKET Socket, char * Msg, char * ReplyBuffer)
 	RHPSession->BPQStream = 0;
 
 	return sprintf(ReplyBuffer, "{\"id\": %d, \"type\": \"closeReply\", \"handle\": %d, \"errcode\": 0, \"errtext\": \"Ok\"}", ID, Handle);
+}
+
+int processRHCPStatus(SOCKET Socket, char * Msg, char * ReplyBuffer)
+{
+	// {"type": "status", "handle": 0}. XRouter will reply with {"type": "statusReply", "handle": 0, "errcode": 3, "errtext": "invalid handle"}. It
+
+	struct RHPSessionInfo * RHPSession;
+	int Handle = 0;
+
+	Handle = GetJSONInt(Msg, "\"handle\":");
+
+	if (Handle < 1 || Handle > NumberofRHPSessions)
+		return sprintf(ReplyBuffer, "{\"type\": \"statusReply\", \"handle\": %d, \"errcode\": 3, \"errtext\": \"Invalid handle\"}", Handle);
+
+	RHPSession = RHPSessions[Handle - 1];
+
+	return sprintf(ReplyBuffer, "{\"type\": \"status\", \"handle\": %d, \"flags\": 2}", RHPSession->Handle);
+
 }
 
 char toHex[] = "0123456789abcdef";
@@ -649,7 +692,6 @@ void RHPPoll()
     
 		}
 		while (count > 0);
-
 	}
 }
 

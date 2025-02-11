@@ -852,7 +852,14 @@ double LatFromLOC = 0;
 double LonFromLOC = 0;
 #endif
 
+void SendBBSDataToPktMapThread();
+
 void SendBBSDataToPktMap()
+{
+	_beginthread(SendBBSDataToPktMapThread, 0, 0);
+}
+
+void SendBBSDataToPktMapThread()
 {
 	char Request[64];
 	char * Params;

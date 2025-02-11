@@ -170,6 +170,7 @@ struct CONFIGTABLE
 	int C_MQTT_PORT;
 	char C_MQTT_USER[80];
 	char C_MQTT_PASS[80];
+	int C_L4Compress;
  
 //#define ApplOffset 80000			// Applications offset in config buffer
 //#define InfoOffset 85000			// Infomsg offset in  buffer

@@ -71,6 +71,8 @@ BOOL SHA1PasswordHash(char * String, char * Hash);
 char * byte_base64_encode(char *str, int len);
 int APIProcessHTTPMessage(char * response, char * Method, char * URL, char * request,	BOOL LOCAL, BOOL COOKIE);
 int RHPProcessHTTPMessage(struct ConnectionInfo * conn, char * response, char * Method, char * URL, char * request, BOOL LOCAL, BOOL COOKIE);
+unsigned char * Compressit(unsigned char * In, int Len, int * OutLen);
+int doinflate(unsigned char * source, unsigned char * dest, int Len, int destlen, int * outLen);
 
 extern struct ROUTE * NEIGHBOURS;
 extern int  ROUTE_LEN;

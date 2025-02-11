@@ -746,6 +746,9 @@ char * DISPLAY_NETROM(MESSAGE * ADJBUFFER, UCHAR * Output, int MsgLen)
 			if (Flags & L4MORE)
 				*(Output++) = 'M';
 	
+			if (Flags & L4COMP)
+				*(Output++) = 'C';
+
 			MsgLen = MsgLen - (19 + sizeof(void *));
 
 			if (MsgLen < 0 || MsgLen > 257)

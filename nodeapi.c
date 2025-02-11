@@ -26,7 +26,7 @@ typedef struct API
 {
 	char *URL;
 	int URLLen;
-	int (* APIRoutine)(char * response, char * token, char * param);
+	int (* APIRoutine)(char * response, char * token, char * param, int Local);
 	int Auth;
 } API;
 
@@ -34,7 +34,7 @@ typedef struct API
 
 #define AuthNone 0
 #define AuthUser 1
-#define Auth BBSUser 2
+#define AuthBBSUser 2
 #define AuthSysop 4
 
 // Function prototypes
@@ -50,14 +50,14 @@ void add_token_to_list(Token* token);
 Token* find_token(const char* token);
 Token* generate_token();
 
-int sendPortList(char * response, char * token, char * Rest);
-int sendNodeList(char * response, char * token, char * Rest);
-int sendUserList(char * response, char * token, char * Rest);
-int sendInfo(char * response, char * token, char * Rest);
-int sendLinks(char * response, char * token, char * Rest);
-int sendPortMHList(char * response, char * token, char * Rest);
-int sendWhatsPacState(char * response, char * token, char * param);
-int sendWhatsPacConfig(char * response, char * token, char * param);
+int sendPortList(char * response, char * token, char * Rest, int Local);
+int sendNodeList(char * response, char * token, char * Rest, int Local);
+int sendUserList(char * response, char * token, char * Rest, int Local);
+int sendInfo(char * response, char * token, char * Rest, int Local);
+int sendLinks(char * response, char * token, char * Rest, int Local);
+int sendPortMHList(char * response, char * token, char * Rest, int Local);
+int sendWhatsPacState(char * response, char * token, char * param, int Local);
+int sendWhatsPacConfig(char * response, char * token, char * param, int Local);
 
 void BuildPortMH(char * MHJSON, struct PORTCONTROL * PORT);
 DllExport struct PORTCONTROL * APIENTRY GetPortTableEntryFromSlot(int portslot);
@@ -74,8 +74,8 @@ struct API APIList[] =
 	"/api/links", 10, sendLinks, 0,
 	"/api/users", 10, sendUserList, 0,
 	"/api/mheard", 11, sendPortMHList, 0,
-	"/api/v1/config", 14, sendWhatsPacConfig, 0,
-	"/api/v1/state", 13, sendWhatsPacState, 0
+	"/api/v1/config", 14, sendWhatsPacConfig, AuthSysop,
+	"/api/v1/state", 13, sendWhatsPacState, AuthSysop
 };
 
 int APICount = sizeof(APIList) / sizeof(struct API);
@@ -159,6 +159,14 @@ int APIProcessHTTPMessage(char * response, char * Method, char * URL, char * req
 		return send_http_response(response, Resp);
 	}
 
+	if (strcmp(Method, "POST") == 0)
+	{
+		if (_stricmp(URL, "/api/v1/config") == 0)
+		{
+			return send_http_response(response, "200 (OK)");
+		}
+	}
+
 	if (strcmp(Method, "GET") != 0)
 		return send_http_response(response, "403 (Bad Method)");
 
@@ -202,7 +210,7 @@ if (token[0] == 0)
 			rest = &request[4 + APIEntry->URLLen];	// Anything following?
 
 			if (rest[0] == ' ' || rest[0] == '/' || rest[0] == '?')
-				return APIEntry->APIRoutine(response, token, rest);
+				return APIEntry->APIRoutine(response, token, rest, LOCAL);
 		}
 
 	}
@@ -349,7 +357,7 @@ int send_http_response(char * response, const char* msg)
 
 extern int MasterPort[MAXBPQPORTS+1];	// Pointer to first BPQ port for a specific MPSK or UZ7HO host
 
-int sendPortList(char * response, char * token, char * param)
+int sendPortList(char * response, char * token, char * param, int Local)
 {
 	char * Array = 0;
 	int ArrayLen = 0;
@@ -561,7 +569,7 @@ extern struct DEST_LIST * DESTS;		// NODE LIST
 extern int DEST_LIST_LEN;
 
 
-int sendNodeList(char * response, char * token, char * param)
+int sendNodeList(char * response, char * token, char * param, int Local)
 {
 	int ArrayPtr = 0;
 	
@@ -665,7 +673,7 @@ int sendNodeList(char * response, char * token, char * param)
 }
 
 
-int sendUserList(char * response, char * token, char * param)
+int sendUserList(char * response, char * token, char * param, int Local)
 {
 	int ArrayPtr = 0;
 	int n = MAXCIRCUITS;
@@ -711,7 +719,7 @@ extern char MYALIASLOPPED[];
 extern char TextVerstring[];
 extern char LOCATOR[];
 
-int sendInfo(char * response, char * token, char * param)
+int sendInfo(char * response, char * token, char * param, int Local)
 {
 	char call[10];
 
@@ -724,7 +732,7 @@ int sendInfo(char * response, char * token, char * param)
 	return strlen(response);
 }
 
-int sendLinks(char * response, char * token, char * param)
+int sendLinks(char * response, char * token, char * param, int Local)
 {
 	struct _LINKTABLE * Links = LINKS;
 	int MaxLinks = MAXLINKS;
@@ -789,7 +797,7 @@ int sendLinks(char * response, char * token, char * param)
 	return ReplyLen;
 }
 
-int sendPortMHList(char * response, char * token, char * param)
+int sendPortMHList(char * response, char * token, char * param, int Local)
 {
         struct PORTCONTROL * PORTVEC ;
 		int n;
@@ -828,8 +836,11 @@ int sendPortMHList(char * response, char * token, char * param)
 extern int WhatsPacConfigured;
 
 
-int sendWhatsPacState(char * response, char * token, char * param)
+int sendWhatsPacState(char * response, char * token, char * param, int Local)
 {
+	if (Local == 0)
+		return send_http_response(response, "401 Not Authorised");
+
 	if (WhatsPacConfigured)
 		sprintf(response, "{\"configured\": true}\r\n");
 	else
@@ -839,7 +850,7 @@ int sendWhatsPacState(char * response, char * token, char * param)
 }
 
 
-int sendWhatsPacConfig(char * response, char * token, char * param)
+int sendWhatsPacConfig(char * response, char * token, char * param, int Local)
 {
 	char Template[] =
 	"{\"MODE\": 0,"
@@ -847,6 +858,9 @@ int sendWhatsPacConfig(char * response, char * token, char * param)
 	"\"AGWPORT\": \"7000\","
 	"\"INTERFACES\": [{\"INTERFACE\": 1,\"PROTOCOL\": \"KISS\",\"TYPE\": \"TCP\",\"IOADDR\": \"127.0.0.1\",\"INTNUM\": 8100}],"
 	"\"PORTS\": [{\"PORT\": 1,\"ID\": \"RHPPORT\", \"INTERFACENUM\": 1}]}";
+
+	if (Local == 0)
+		return send_http_response(response, "401 Not Authorised");
 
 	sprintf(response, Template, HTTPPort);
 

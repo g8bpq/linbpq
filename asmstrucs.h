@@ -33,6 +33,7 @@ typedef int (FAR *FARPROCY)();
 #define L4BUSY	0x80		// BNA - DONT SEND ANY MORE
 #define L4NAK	0x40		// NEGATIVE RESPONSE FLAG
 #define L4MORE	0x20		// MORE DATA FOLLOWS - FRAGMENTATION FLAG
+#define L4COMP	0x10		// BPQ Specific use of spare it - data is compressed
 
 #define L4CREQ	1		// CONNECT REQUEST
 #define L4CACK	2		// CONNECT ACK
@@ -169,6 +170,13 @@ typedef struct _TRANSPORTENTRY
 	
 	char APPL[16];				// Set if session initiated by an APPL
 	int L4LIMIT;				// Idle time for this Session
+
+	//	Now support compressing NetRom Sessions.
+	//	We collect as much data as possible before compressing and re-packetizing
+
+	int AllowCompress;	
+	unsigned char * toCompress;	// Data being saved to compress
+	int toCompressLen;
 
 } TRANSPORTENTRY;
 

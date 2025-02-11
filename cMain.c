@@ -139,6 +139,7 @@ int NODE = 1;					// INCLUDE SWITCH SUPPORT
 
 int FULL_CTEXT = 1;				// CTEXT ON ALL CONNECTS IF NZ
 
+int L4Compress = 0;
 BOOL LogL4Connects = FALSE;
 BOOL LogAllConnects = FALSE;
 BOOL AUTOSAVEMH = TRUE;
@@ -822,6 +823,7 @@ BOOL Start()
 	MQTT_PORT = cfg->C_MQTT_PORT;
 	strcpy(MQTT_USER, cfg->C_MQTT_USER);
 	strcpy(MQTT_PASS, cfg->C_MQTT_PASS);
+	L4Compress = cfg->C_L4Compress;
  
 	// Get pointers to PASSWORD and APPL1 commands
 
