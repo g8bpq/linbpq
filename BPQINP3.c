@@ -932,7 +932,7 @@ int SendRIPTimer()
 
 				// Delay more if Locked - they could be retrying for a long time
 
-				if ((Route->NEIGHBOUR_FLAG & 1))	 // LOCKED ROUTE
+				if ((Route->NEIGHBOUR_FLAG))	 // LOCKED ROUTE
 					INP3Delay = 1200;
 				else
 					INP3Delay = 600;

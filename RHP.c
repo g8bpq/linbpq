@@ -312,7 +312,7 @@ void ProcessRHPWebSock(SOCKET Socket, char * Msg, int MsgLen)
 		return;
 	}
 
-	Debugprintf(Msg);
+	Debugprintf("Unrecognised RHP Message - %s", Msg);
 }
 
 void ProcessRHPWebSockClosed(SOCKET socket)
@@ -496,11 +496,8 @@ int processRHCPSend(SOCKET Socket, char * Msg, char * ReplyBuffer)
 		ptr++;
 	}
 
-	Debugprintf(Data);
-
 	Len = strlen(Data);
 	ptr = Data;
-
 
 	while (Len > RHPPaclen)
 	{

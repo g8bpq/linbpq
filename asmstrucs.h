@@ -178,6 +178,16 @@ typedef struct _TRANSPORTENTRY
 	unsigned char * toCompress;	// Data being saved to compress
 	int toCompressLen;
 
+	unsigned char * unCompress;	// Data being saved to uncompress
+	int unCompressLen;
+
+	int Sent;
+	int SentAfterCompression;
+
+	int Received;
+	int ReceivedAfterExpansion;
+
+
 } TRANSPORTENTRY;
 
 //
@@ -202,6 +212,9 @@ typedef struct ROUTE
 	UCHAR NEIGHBOUR_PORT;
 	UCHAR NEIGHBOUR_QUAL;
 	UCHAR NEIGHBOUR_FLAG;		// SET IF 'LOCKED' ROUTE
+
+#define LOCKEDBYCONFIG 1
+#define	LOCKEDBYSYSOP 2
 
 	struct _LINKTABLE * NEIGHBOUR_LINK;		// POINTER TO LINK FOR THIS NEIGHBOUR
 
@@ -453,7 +466,8 @@ typedef struct NR_DEST_ROUTE_ENTRY
 	struct ROUTE * ROUT_NEIGHBOUR;	// POINTER TO NEXT NODE IN PATH
 	UCHAR ROUT_QUALITY;		// QUALITY
 	UCHAR ROUT_OBSCOUNT;
-	UCHAR Padding[5];		// SO Entries are the same length
+	UCHAR ROUT_LOCKED;
+	UCHAR Padding[4];		// SO Entries are the same length
 } *PNR_DEST_ROUTE_ENTRY;
 
 typedef struct DEST_ROUTE_ENTRY
@@ -475,12 +489,12 @@ typedef struct DEST_LIST
 	UCHAR DEST_ALIAS[6];	
 
 	UCHAR DEST_STATE;			// CONTROL BITS - SETTING UP, ACTIVE ETC	
+	UCHAR DEST_LOCKED;
 
 	UCHAR DEST_ROUTE;			// CURRENTY ACTIVE DESTINATION
 	UCHAR INP3FLAGS;
 
 	struct NR_DEST_ROUTE_ENTRY NRROUTE[3];// Best 3 NR neighbours for this dest
-
 	struct DEST_ROUTE_ENTRY ROUTE[3];	// Best 3 INP neighbours for this dest
 
 	void * DEST_Q;				// QUEUE OF FRAMES FOR THIS DESTINATION

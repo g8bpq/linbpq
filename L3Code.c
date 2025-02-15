@@ -319,13 +319,13 @@ VOID PROCESSNODEMESSAGE(MESSAGE * Msg, struct PORTCONTROL * PORT)
 
 	// if locked route with quality zero ignore
 
-	if ((ROUTE->NEIGHBOUR_FLAG & 1))	 // LOCKED ROUTE
+	if ((ROUTE->NEIGHBOUR_FLAG))	 // LOCKED ROUTE
 		if (ROUTE->NEIGHBOUR_QUAL == 0)
 			return;
 
 	//	If Ignoreunlocked set, ignore it not locked
 
-	if ((ROUTE->NEIGHBOUR_FLAG & 1) == 0)	 // LOCKED ROUTE
+	if ((ROUTE->NEIGHBOUR_FLAG) == 0)	 // LOCKED ROUTE
 		if (PORT->IgnoreUnlocked)
 			return;
 	
@@ -333,7 +333,7 @@ VOID PROCESSNODEMESSAGE(MESSAGE * Msg, struct PORTCONTROL * PORT)
 
 	// if not locked, update route quality from port quality (may have changed config and not cleared SAVENODES
 
-	if ((ROUTE->NEIGHBOUR_FLAG & 1) == 0)	 // Not LOCKED ROUTE
+	if (ROUTE->NEIGHBOUR_FLAG == 0)	 // Not LOCKED ROUTE
 		ROUTE->NEIGHBOUR_QUAL = PORT->PORTQUALITY;
 
 	//	GET TIME FROM BIOS DATA AREA OR RTC
@@ -1038,7 +1038,7 @@ VOID L3TimerProc()
 	{
 		ROUTE++;
 
-		if (ROUTE->NEIGHBOUR_FLAG & 1)			// Locked?
+		if (ROUTE->NEIGHBOUR_FLAG)				// Locked?
 			continue;
 
 		if (ROUTE->NEIGHBOUR_LINK)				// Has an active Session

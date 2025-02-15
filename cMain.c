@@ -140,6 +140,9 @@ int NODE = 1;					// INCLUDE SWITCH SUPPORT
 int FULL_CTEXT = 1;				// CTEXT ON ALL CONNECTS IF NZ
 
 int L4Compress = 0;
+int L4CompMaxframe = 3;
+int L4CompPaclen = 236;
+
 BOOL LogL4Connects = FALSE;
 BOOL LogAllConnects = FALSE;
 BOOL AUTOSAVEMH = TRUE;
@@ -824,6 +827,14 @@ BOOL Start()
 	strcpy(MQTT_USER, cfg->C_MQTT_USER);
 	strcpy(MQTT_PASS, cfg->C_MQTT_PASS);
 	L4Compress = cfg->C_L4Compress;
+	L4CompMaxframe = cfg->C_L4CompMaxframe;
+	L4CompPaclen = cfg->C_L4CompPaclen;
+
+	if (L4CompMaxframe < 1 || L4CompMaxframe > 16)
+		L4CompMaxframe = 3;
+
+	if (L4CompPaclen < 64 || L4CompPaclen > 236)
+		L4CompPaclen = 236;
  
 	// Get pointers to PASSWORD and APPL1 commands
 
@@ -1340,7 +1351,7 @@ BOOL Start()
 		ROUTE->NBOUR_PACLEN = Rcfg->ppacl;
 		ROUTE->OtherendsRouteQual = ROUTE->OtherendLocked = Rcfg->farQual;
 
-		ROUTE->NEIGHBOUR_FLAG = 1;			// Locked
+		ROUTE->NEIGHBOUR_FLAG = LOCKEDBYCONFIG;			// Locked
 		
 		Rcfg++;
 		ROUTE++;
@@ -1845,12 +1856,11 @@ VOID ReadNodes()
 			if (ptr == NULL) continue;
 
 			// I don't thinlk we should load locked flag from save file - only from config
-
-			// But need to parse it until I stop saving it
+			// Now (2025) have two locked flags, from config or by sysop. Latter is saved and restored
 
 			if (ptr[0] == '!')
 			{
-//				ROUTE->NEIGHBOUR_FLAG = 1;			// LOCKED ROUTE
+				ROUTE->NEIGHBOUR_FLAG = LOCKEDBYSYSOP;			// LOCKED ROUTE
 				ptr = strtok_s(NULL, seps, &Context);
 				if (ptr == NULL) continue;
 			}
@@ -1867,7 +1877,7 @@ VOID ReadNodes()
 
 				memcpy(ROUTE->NEIGHBOUR_DIGI1, axcall, 7);
 
-				ROUTE->NEIGHBOUR_FLAG = 1;			// LOCKED ROUTE - Digi'ed routes must be locked
+				ROUTE->NEIGHBOUR_FLAG = LOCKEDBYSYSOP;			// LOCKED ROUTE - Digi'ed routes must be locked
 
 				ptr = strtok_s(NULL, seps, &Context);
 				if (ptr == NULL) continue;
@@ -1923,6 +1933,14 @@ VOID ReadNodes()
 			if (ROUTE->NEIGHBOUR_FLAG == 0 || ROUTE->OtherendLocked == 0);		// Not LOCKED ROUTE
 				ROUTE->OtherendsRouteQual = atoi(ptr);
 
+			ptr = strtok_s(NULL, seps, &Context);	// INP3
+			if (ptr == NULL) continue;
+
+			if (ptr[0] == '!')
+			{
+				ROUTE->NEIGHBOUR_FLAG = LOCKEDBYSYSOP;			// LOCKED ROUTE
+				ptr = strtok_s(NULL, seps, &Context);
+			}
 			continue;
 		}
 

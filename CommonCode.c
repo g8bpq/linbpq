@@ -2687,6 +2687,14 @@ int DoRoutes()
 	{
 		if (Routes->NEIGHBOUR_CALL[0] != 0)
 		{
+			// Dont save routes from config file here or they are diccicult to get rid of
+
+			if (Routes->NEIGHBOUR_FLAG & LOCKEDBYCONFIG)
+			{
+				Routes++;
+				continue;
+			}
+
 			len=ConvFromAX25(Routes->NEIGHBOUR_CALL,Normcall);
 			Normcall[len]=0;
 
@@ -2710,7 +2718,7 @@ int DoRoutes()
 				digis[0] = 0;
 
 			len=sprintf(line,
-					"ROUTE ADD %s %d %d %s %d %d %d %d %d\n",
+					"ROUTE ADD %s %d %d %s %d %d %d %d %d %c\n",
 					Normcall,
 					Routes->NEIGHBOUR_PORT,
 					Routes->NEIGHBOUR_QUAL, digis,
@@ -2718,7 +2726,8 @@ int DoRoutes()
 					Routes->NBOUR_FRACK,
 					Routes->NBOUR_PACLEN,
 					Routes->INP3Node | (Routes->NoKeepAlive << 2),
-					Routes->OtherendsRouteQual);
+					Routes->OtherendsRouteQual,
+					(Routes->NEIGHBOUR_FLAG & LOCKEDBYSYSOP)?'!':' ');
 
 					fputs(line, file);
 		}

@@ -145,7 +145,7 @@ char Tail[] = "</body></html>";
 char RouteHddr[] = "<h2 align=center>Routes</h2><table align=center border=2 style=font-family:monospace bgcolor=white>"
 "<tr><th>Port</th><th>Call</th><th>Quality</th><th>Node Count</th><th>Frame Count</th><th>Retries</th><th>Percent</th><th>Maxframe</th><th>Frack</th><th>Last Heard</th><th>Queued</th><th>Rem Qual</th></tr>";
 
-char RouteLine[] = "<tr><td>%s%d</td><td>%s%c</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d%</td><td>%d</td><td>%d</td><td>%02d:%02d</td><td>%d</td><td>%d</td></tr>";
+char RouteLine[] = "<tr><td>%s%d</td><td>%s%s</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d%</td><td>%d</td><td>%d</td><td>%02d:%02d</td><td>%d</td><td>%d</td></tr>";
 char xNodeHddr[] = "<align=center><form align=center method=get action=/Node/Nodes.html>"
 "<table align=center  bgcolor=white>"
 "<tr><td><input type=submit class='btn' name=a value=\"Nodes Sorted by Alias\"></td><td>"
@@ -3798,7 +3798,7 @@ doHeader:
 				int MaxRoutes = MAXNEIGHBOURS;
 				int count;
 				char Normcall[10];
-				char locked;
+				char locked[4] = " ";
 				int NodeCount;
 				int Percent = 0;
 				int Iframes, Retries;
@@ -3814,10 +3814,14 @@ doHeader:
 						int len = ConvFromAX25(Routes->NEIGHBOUR_CALL, Normcall);
 						Normcall[len]=0;
 
-						if ((Routes->NEIGHBOUR_FLAG & 1) == 1)
-							locked = '!';
+						if (Routes->NEIGHBOUR_FLAG == LOCKEDBYCONFIG)
+							strcpy(locked, "!");
+						else if (Routes->NEIGHBOUR_FLAG == LOCKEDBYSYSOP)
+							strcpy(locked, "!!");
+						else if (Routes->NEIGHBOUR_FLAG == LOCKEDBYSYSOP + LOCKEDBYCONFIG)
+							strcpy(locked, "!!!");
 						else
-							locked = ' ';
+							strcpy(locked, " ");
 
 						NodeCount = COUNTNODES(Routes);
 

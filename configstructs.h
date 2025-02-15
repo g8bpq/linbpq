@@ -171,7 +171,10 @@ struct CONFIGTABLE
 	char C_MQTT_USER[80];
 	char C_MQTT_PASS[80];
 	int C_L4Compress;
- 
+	int C_L4CompMaxframe;
+	int C_L4CompPaclen;
+
+
 //#define ApplOffset 80000			// Applications offset in config buffer
 //#define InfoOffset 85000			// Infomsg offset in  buffer
 //#define InfoMax	2000				// Max Info

@@ -1147,6 +1147,7 @@
 //	Send forwarding info to packetnodes.spots.radio database (51)
 //	Fix bug in WP Message processing (56)
 //	Fix treating addresses ending in WW as Internet (57)
+//	Run sending to packetnodes.spots.radio in a separate thread (61)
 
 #include "bpqmail.h"
 #include "winstdint.h"

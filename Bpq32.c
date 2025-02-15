@@ -1243,12 +1243,12 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix MailAPI msgs endpoint
 //	Attempt to fix NC going to wrong application. (57)
 //	Improve ARDOP end of session code (58)
-//	Run M0LTE Map repoorting in a separate thread (59)
-//	Add support fro WhatsPac (59)
-// Add timestamps to LIS monitor
-
-
-
+//	Run M0LTE Map reporting in a separate thread (59/60)
+//	Add support for WhatsPac (59)
+//  Add timestamps to LIS monitor (60)
+//	Fix problem with L4 frames being delivered out of sequence (60)
+//	Add Compression of Netrom connections (62)
+//	Improve handling of Locked Routes (62)
 
 #define CKernel
 

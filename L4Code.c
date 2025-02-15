@@ -76,6 +76,8 @@ extern BOOL LogL4Connects;
 extern BOOL LogAllConnects;
 
 extern int L4Compress;
+extern int L4CompMaxframe;
+extern int L4CompPaclen;
 
 // L4 Flags Values
 
@@ -350,6 +352,11 @@ VOID SENDL4MESSAGE(TRANSPORTENTRY * L4, struct DATAMESSAGE * Msg)
 		L3MSG->L4FLAGS |= L4COMP;
 		Msg->PID = 0xF0;
 	}
+	else if (Msg->PID == 0xF2)		// Compressed Message - More to come
+	{
+		L3MSG->L4FLAGS |= (L4COMP | L4MORE);
+		Msg->PID = 0xF0;
+	}
 
 	L4->L4TIMER = L4->SESSIONT1;			// SET TIMER
 	L4->L4ACKREQ = 0;						// CANCEL ACK NEEDED
@@ -513,6 +520,53 @@ void RETURNEDTONODE(TRANSPORTENTRY * Session)
 
 extern void * BUFFER;
 
+void sendChunk(TRANSPORTENTRY * L4, unsigned char * Compressed, int complen, int savePort)
+{
+	unsigned char * compdata;
+	struct DATAMESSAGE * Msg;
+	int sendLen = complen;
+	int fragments;
+
+	L4->SentAfterCompression += complen;
+	
+	if (complen > L4CompPaclen)
+	{
+		fragments = (complen / L4CompPaclen);			// Split to roughly equal sized fraagments
+
+		if (fragments * L4CompPaclen != complen)
+			fragments++;
+
+		sendLen = (complen / fragments) + 1;
+	}
+
+	compdata = Compressed;
+
+	while (complen > 0)
+	{
+		int PID = 0xF1;
+
+		if (complen > sendLen)
+			PID = 0xF2;				// More to come
+
+		Msg = GetBuff();
+
+		if (!Msg)
+			return;
+
+		Msg->PORT = savePort;
+
+		memcpy(Msg->L2DATA, compdata, sendLen);
+		Msg->LENGTH = sendLen + MSGHDDRLEN + 1;			// 1 for pid field
+		Msg->PID = PID;	// Not sent so use as a flag for compressed msg
+
+		compdata += sendLen;
+		complen -= sendLen;
+
+		SENDL4MESSAGE(L4, Msg);
+		ReleaseBuffer(Msg);
+	}
+}
+
 VOID L4BG()
 {
 	// PROCESS DATA QUEUED ON SESSIONS
@@ -613,41 +667,144 @@ VOID L4BG()
 				{
 					int complen = 0;
 					unsigned char * Compressed;
+					int dataLen;
+					int savePort = Msg->PORT;
+					int maxCompSendLen;
 
-	//				if (L4->L4TX_Q)
+					// Save first packet, then see if more on TX_Q
+
+					L4->toCompress = malloc(8192);
+					L4->toCompressLen = 0;
+
+					dataLen = Msg->LENGTH - MSGHDDRLEN - 1;		// No header or pid
+
+					L4->Sent += dataLen;
+
+					memcpy(&L4->toCompress[L4->toCompressLen], Msg->L2DATA, dataLen);
+					L4->toCompressLen += dataLen;
+
+					// See if first will compress. If not assume too short or already compressed data and just send
+
+					Compressed = Compressit(L4->toCompress, L4->toCompressLen, &complen);
+				
+					if (complen >= dataLen)
+					{
+						free(Compressed);
+						L4->SentAfterCompression += dataLen;
+						SENDL4MESSAGE(L4, Msg);
+						ReleaseBuffer(Msg);
+						free(L4->toCompress);
+						L4->toCompress = 0;
+						L4->toCompressLen = 0;
+						continue;
+					}
+
+					// Worth compressing. Try to collect several packets
+
+					if (L4->L4TX_Q == 0)
+					{
+						// no more, so just send the stuff we've just compressed. Compressed data will fit in input packet
+
+//						Debugprintf("%d %d %d%%", L4->toCompressLen, complen, ((L4->toCompressLen - complen) * 100) / L4->toCompressLen);
+
+						memcpy(Msg->L2DATA, Compressed, complen);
+						
+						Msg->PID = 0xF1;			// Compressed
+						Msg->LENGTH = complen + MSGHDDRLEN + 1;			// 1 for pid field
+
+						L4->SentAfterCompression += complen;
+						SENDL4MESSAGE(L4, Msg);
+						ReleaseBuffer(Msg);
+		
+						free(L4->toCompress);
+						L4->toCompressLen = 0;
+						L4->toCompress = 0;
+						free(Compressed);
+						continue;
+					}
+
+					free(Compressed);
+					ReleaseBuffer(Msg);					// Not going to use it
+
+					while (L4->L4TX_Q && L4->toCompressLen < (8192 - 256))		// Make sure can't overrin buffer
 					{
 						// Collect the data from L4TX_Q
-
-						int dataLen;
-
-	//					L4->toCompress = malloc(8192);
-	//					L4->toCompressLen = 0;
-
+					
+						Msg = Q_REM((void *)&L4->L4TX_Q);
 						dataLen = Msg->LENGTH - MSGHDDRLEN - 1;		// No header or pid
+						L4->Sent += dataLen;
 
-		//				memcpy(&L4->toCompress[L4->toCompressLen], Msg->L2DATA, dataLen);
-		//				L4->toCompressLen += dataLen;
+						memcpy(&L4->toCompress[L4->toCompressLen], Msg->L2DATA, dataLen);
+						L4->toCompressLen += dataLen;
 
-						Msg->L2DATA[dataLen] = 0;
+						ReleaseBuffer(Msg);
+					}
+
+					L4->toCompress[L4->toCompressLen] = 0;
 	
-						Compressed = Compressit(Msg->L2DATA, dataLen, &complen);
-						Debugprintf("%d %d %d%% %s", dataLen, complen, ((dataLen - complen) * 100) / dataLen, Msg->L2DATA);
+					Compressed = Compressit(L4->toCompress, L4->toCompressLen, &complen);
+//					Debugprintf("%d %d %d%%", L4->toCompressLen, complen, ((L4->toCompressLen - complen) * 100) / L4->toCompressLen);
 
-						if (complen < dataLen)
+					// Send compressed
+
+					// Fragment if more than L4CompPaclen
+
+					// Entered with  original first fragment in saveMsg;
+
+					// Check for too big a compressed frame size. Bigger compresses better but adds latency to link
+
+					maxCompSendLen = L4CompPaclen * L4CompMaxframe;
+
+					if (complen > maxCompSendLen)
+					{
+						// Too Much Data. Needs to recompress less. To avoid too many recompresses be a bit conservative in calulating max size 
+						// to allow for a bit less compression of part of data. Getting it wrong isn't fatal as sending more than optimum isn't fatal
+
+						int Fragments;
+						int ChunkSize;
+						unsigned char * CompressPtr = L4->toCompress;
+						int bytesleft = L4->toCompressLen;
+
+						// Assume 10% worse compression on smaller input
+
+						int j = (complen * 11) / 10;		// New Comp size
+
+						Fragments = j / maxCompSendLen;
+						Fragments++;
+						ChunkSize = (L4->toCompressLen / Fragments) + 1;	// 1 for rounding
+
+						while (bytesleft > 0)
 						{
-							// Send compressed
+							int Len = bytesleft;
+							if (Len > ChunkSize)
+								Len = ChunkSize;
 
-							memcpy(Msg->L2DATA, Compressed, complen);
-							Msg->LENGTH = complen + MSGHDDRLEN + 1;			// 1 for pid field
-							Msg->PID = 0xF1;								// Not sent so use as a flag for compressed msg
+							free (Compressed);
+							Compressed = Compressit(CompressPtr, Len, &complen);
+//							Debugprintf("Chunked %d %d %d%%", Len, complen, ((Len - complen) * 100) / Len);
+
+							sendChunk(L4, Compressed, complen, savePort);
+
+							CompressPtr += Len;
+							bytesleft -= Len;
 						}
 
-						free(Compressed);
 					}
+					else
+						sendChunk(L4, Compressed, complen,savePort);
+
+					free(L4->toCompress);
+					L4->toCompressLen = 0;
+					L4->toCompress = 0;
+					free(Compressed);
 				}
-					
-				SENDL4MESSAGE(L4, Msg);
-				ReleaseBuffer(Msg);
+				else
+				{
+					// Compression Disabled
+
+					SENDL4MESSAGE(L4, Msg);
+					ReleaseBuffer(Msg);
+				}
 				continue;
 			}
 
@@ -756,11 +913,34 @@ VOID CLEARSESSIONENTRY(TRANSPORTENTRY * Session)
 		Session->L4RESEQ_Q = 0;
 	}
 
+	// if compressed session display stats
+
+	if (Session->Sent && Session->Received)
+	{
+		char SRCE[10];
+		char TO[10];
+
+		struct DEST_LIST * DEST = Session->L4TARGET.DEST;
+
+		SRCE[ConvFromAX25(Session->L4MYCALL, SRCE)] = 0;
+		TO[ConvFromAX25(DEST->DEST_CALL, TO)] = 0;
+
+		Debugprintf("L4 Compression Stats %s %s TX %d %d %d%% RX %d %d %d%%", SRCE, TO,
+			Session->Sent, Session->SentAfterCompression, ((Session->Sent - Session->SentAfterCompression) * 100) / Session->Sent,
+			Session->Received, Session->ReceivedAfterExpansion, ((Session->ReceivedAfterExpansion - Session->Received) * 100) / Session->Received);
+	}
+
 	while (Session->L4RESEQ_Q)
 		ReleaseBuffer(Q_REM((void *)&Session->L4RESEQ_Q));
 
 	if (Session->PARTCMDBUFFER)
 		ReleaseBuffer(Session->PARTCMDBUFFER);
+
+	if (Session->toCompress)
+		free(Session->toCompress);
+
+	if (Session->unCompress)
+		free(Session->unCompress);
 
 	memset(Session, 0, sizeof(TRANSPORTENTRY));
 }
@@ -953,10 +1133,14 @@ VOID L4TimerProc()
 				L4->STAYFLAG = 0;
 
 				Partner = L4->L4CROSSLINK;
+
 				CLOSECURRENTSESSION(L4);
 				
 				if (Partner)
 				{
+					// if compressed session display stats
+
+
 					Partner->L4KILLTIMER = 0;		//ITS TIMES IS ALSO ABOUT TO EXPIRE
 					CLOSECURRENTSESSION(Partner);	// CLOSE THIS ONE
 				}
@@ -1030,6 +1214,8 @@ VOID L4TIMEOUT(TRANSPORTENTRY * L4)
 	if (L4->L4RETRIES > L4N2)
 	{
 		//	RETRIED N2 TIMES - FAIL LINK
+
+		// if compressed session display stats
 
 		CloseSessionPartner(L4);	// SEND CLOSE TO PARTNER (IF PRESENT)
 		return;
@@ -1303,6 +1489,7 @@ VOID SENDL4DISC(TRANSPORTENTRY * Session)
 	MSG->LENGTH = (int)(&MSG->L4DATA[0] - (UCHAR *)MSG);
 
 	C_Q_ADD(&DEST->DEST_Q, (UINT *)MSG);
+
 }
 
 
@@ -1662,11 +1849,10 @@ VOID SETUPNEWCIRCUIT(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG,
 	
 		// 40 bit of 2nd byte is Compress Flag
 
-		if (BPQPARAMS[1] & 0x40)
-		{
+		if (BPQPARAMS[1] & 0x40 && L4Compress)
 			L4->AllowCompress = 1;
-			BPQPARAMS[1] &= 0xf;		// Only bottom bit is significant in Timeeout field
-		}
+
+		BPQPARAMS[1] &= 0xf;		// Only bottom bit is significant in Timeeout field
 	}
 
 	L4->L4CIRCUITTYPE = SESSION | UPLINK;	
@@ -2051,27 +2237,120 @@ L4INFO_OK:
 
 		// if compressed, expand
 
-		if (L3MSG->L4FLAGS & L4COMP)
+		if ((L3MSG->L4FLAGS & L4COMP) == 0)
 		{
-			char Buffer[512];
+			// Not Compressed
+
+			L4->Received += L3MSG->LENGTH - MSGHDDRLEN - 1;
+			L4->ReceivedAfterExpansion += L3MSG->LENGTH - MSGHDDRLEN - 1;
+
+			memmove(L3MSG->L3SRCE, L3MSG->L4DATA, L3MSG->LENGTH - (4 + sizeof(void *)));
+			IFRM150(L4, (PDATAMESSAGE)L3MSG);	// CHECK IF SETTING UP AND PASS ON
+		}
+		else
+		{
+			char Buffer[8192];
 			int Len;
 			int outLen;
-			
-			Len = doinflate(L3MSG->L4DATA, Buffer, L3MSG->LENGTH - MSGHDDRLEN - 1, 512, &outLen);
+			int sendLen;
+			char * sendptr;
+			int savePort = L3MSG->Port;
 
-			memcpy(L3MSG->L4DATA, Buffer, outLen);
-			L3MSG->LENGTH =  outLen + MSGHDDRLEN + 1;
+			// May be more thsn one packet
+
+			Len = L3MSG->LENGTH - MSGHDDRLEN - 1;
+
+			L4->Received += Len;
+
+			if (L3MSG->L4FLAGS & L4MORE)
+			{
+				if (L4->unCompressLen == 0)
+				{
+					// New packet
+
+					L4->unCompress = malloc(8192);
+				}
+
+				// Save data
+
+				memcpy(&L4->unCompress[L4->unCompressLen], L3MSG->L4DATA, Len);
+				L4->unCompressLen += Len;
+
+				ReleaseBuffer(L3MSG);
+				goto checkReseq;
+			}
+
+			if (L4->unCompressLen)
+			{
+				// Already have some data - add this to it
+
+				memcpy(&L4->unCompress[L4->unCompressLen], L3MSG->L4DATA, Len);
+				L4->unCompressLen += Len;
+
+				Len = doinflate(L4->unCompress, Buffer, L4->unCompressLen, 8192, &outLen);
+			}
+
+			else
+			{
+				// Just inflate this bit
+				
+				Len = doinflate(L3MSG->L4DATA, Buffer, L3MSG->LENGTH - MSGHDDRLEN - 1, 8192, &outLen);
+			}
+
+			free(L4->unCompress);
+			L4->unCompress = 0;
+			L4->unCompressLen = 0;
+		
+			sendLen = outLen;
+			sendptr = Buffer;
+
+			L4->ReceivedAfterExpansion += outLen;
+
+			// Send first bit in input buffer. If still some left get new buffers for it
+
+			if (sendLen > 236)
+				sendLen = 236;
+
+			memcpy(L3MSG->L3SRCE, sendptr, sendLen);			// Converting to DATAMESSAGE format
+			L3MSG->LENGTH =  sendLen + MSGHDDRLEN + 1;
+
+			IFRM150(L4, (PDATAMESSAGE)L3MSG);	// CHECK IF SETTING UP AND PASS ON
+
+			outLen -= sendLen;
+			sendptr += sendLen;
+
+			while (outLen > 0)
+			{
+				sendLen = outLen;
+				
+				if (sendLen > 236)
+				sendLen = 236;
+
+				Msg = GetBuff();
+
+				if (Msg)
+				{
+					// Just ignore if no buffers - shouldn't happen
+
+					Msg->PID = 240;
+					Msg->PORT = savePort;
+					memcpy(Msg->L2DATA, sendptr, sendLen);
+					Msg->LENGTH = sendLen + MSGHDDRLEN + 1;
+
+					IFRM150(L4, Msg);	// CHECK IF SETTING UP AND PASS ON
+				}
+				
+				outLen -= sendLen;
+				sendptr += sendLen;
+			}
 		}
 
-		memmove(L3MSG->L3SRCE, L3MSG->L4DATA, L3MSG->LENGTH - (4 + sizeof(void *)));
-
+		L4->L4ACKREQ = L4DELAY;				// SEND INFO ACK AFTER L4DELAY (UNLESS I FRAME SENT) 
 		REFRESHROUTE(L4);
 
-		L4->L4ACKREQ = L4DELAY;				// SEND INFO ACK AFTER L4DELAY (UNLESS I FRAME SENT) 
-
-		IFRM150(L4, (PDATAMESSAGE)L3MSG);	// CHECK IF SETTING UP AND PASS ON
 
 		// See if anything on reseq Q to process
+checkReseq:
 
 		if (L4->L4RESEQ_Q == 0)
 			return;
@@ -2163,10 +2442,13 @@ VOID ACKFRAMES(L3MESSAGEBUFFER * L3MSG, TRANSPORTENTRY * L4, int NR)
 				
 				RTT = GetTickCount() - L4->RTT_TIMER;
 
-				if (DEST->DEST_RTT == 0)
-					DEST->DEST_RTT = RTT;
-				else
-					DEST->DEST_RTT = ((DEST->DEST_RTT * 9) + RTT) /10;	// 90% Old + New
+				if (RTT < 180)				// Sanity Check
+				{
+					if (DEST->DEST_RTT == 0)
+						DEST->DEST_RTT = RTT;
+					else
+						DEST->DEST_RTT = ((DEST->DEST_RTT * 9) + RTT) /10;	// 90% Old + New
+				}
 			}
 		}
 

@@ -759,7 +759,7 @@ VOID L2FORUS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buff
 
 		NO_CTEXT = 1;
 		
-		if (ROUTE->NEIGHBOUR_FLAG == 1 && ROUTE->NEIGHBOUR_QUAL == 0)		// Locked, qual 0
+		if (ROUTE->NEIGHBOUR_FLAG && ROUTE->NEIGHBOUR_QUAL == 0)		// Locked, qual 0
 		{
 			ReleaseBuffer(Buffer);
 			return;
