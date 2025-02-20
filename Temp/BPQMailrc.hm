@@ -1,0 +1,6 @@
+// Microsoft Developer Studio generated Help ID include file.
+// Used by BPQMail.rc
+//
+#define HFILTER_BID                     0x80ca177a
+#define HFILTER_VIA                     0x80ca1778
+#define HIDC_POLLRMS                    0x80c81394

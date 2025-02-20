@@ -1393,14 +1393,14 @@ VOID * FreeDataExtInit(EXTPORTDATA * PortEntry)
 	Consoleprintf("FreeData Host %s %d", TNC->HostName, TNC->TCPPort);
 
 	TNC->Port = port;
-	TNC->Hardware = H_FREEDATA;
+	TNC->PortRecord = PortEntry;
+	TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_FREEDATA;
 
 	TNC->WeStartedTNC = 1;
 
 	TNC->ARDOPDataBuffer = malloc(MAXRXSIZE);
 	TNC->ARDOPBuffer = malloc(FREEDATABUFLEN);
 
-	TNC->PortRecord = PortEntry;
 
 	if (PortEntry->PORTCONTROL.PORTCALL[0] == 0)
 		memcpy(TNC->NodeCall, MYNODECALL, 10);

@@ -2,7 +2,6 @@
 
 // Authentication is via Telnet USER records.
 
-
 #define _CRT_SECURE_NO_DEPRECATE
 
 #include "cheaders.h"

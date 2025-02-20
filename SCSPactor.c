@@ -854,7 +854,8 @@ void * SCSExtInit(EXTPORTDATA *  PortEntry)
 	}
 	
 	TNC->Port = port;
-	TNC->Hardware = H_SCS;
+	TNC->PortRecord = PortEntry;
+	TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_SCS;
 
 	OpenLogFile(TNC->Port);
 	CloseLogFile(TNC->Port);
@@ -884,8 +885,6 @@ void * SCSExtInit(EXTPORTDATA *  PortEntry)
 	PortEntry->MAXHOSTMODESESSIONS = TNC->PacketChannels + 1;
 	PortEntry->PERMITGATEWAY = TRUE;					// Can change ax.25 call on each stream
 	PortEntry->SCANCAPABILITIES = CONLOCK;				// Scan Control 3 stage/conlock 
-
-	TNC->PortRecord = PortEntry;
 
 	if (PortEntry->PORTCONTROL.PORTINTERLOCK && TNC->RXRadio == 0 && TNC->TXRadio == 0)
 		TNC->RXRadio = TNC->TXRadio = PortEntry->PORTCONTROL.PORTINTERLOCK;

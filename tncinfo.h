@@ -871,9 +871,10 @@ typedef struct TNCINFO
 
 VOID * zalloc(int len);
 
-BOOL ReadConfigFile(int Port, int ProcLine());
+BOOL ReadConfigFile(int Port, int ProcLine(char * buf, int Port));
 int GetLine(char * buf);
-BOOL CreatePactorWindow(struct TNCINFO * TNC, char * ClassName, char * WindowTitle, int RigControlRow, WNDPROC WndProc, int Width, int Height, VOID ForcedCloseProc());
+BOOL CreatePactorWindow(struct TNCINFO * TNC, char * ClassName, char * WindowTitle, int RigControlRow, WNDPROC WndProc,
+						int Width, int Height, VOID ForcedCloseProc(struct TNCINFO * TNC, int Stream));
 char * CheckAppl(struct TNCINFO * TNC, char * Appl);
 BOOL SendReporttoWL2K(struct TNCINFO * TNC);
 struct WL2KInfo * DecodeWL2KReportLine(char *  buf);

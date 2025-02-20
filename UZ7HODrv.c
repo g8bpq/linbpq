@@ -1400,7 +1400,7 @@ void * UZ7HOExtInit(EXTPORTDATA * PortEntry)
 	ptr=strchr(TNC->NodeCall, ' ');
 	if (ptr) *(ptr) = 0;					// Null Terminate
 
-	TNC->Hardware = H_UZ7HO;
+	TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_UZ7HO;
 
 	UZ7HOChannel[port] = PortEntry->PORTCONTROL.CHANNELNUM-65;
 	

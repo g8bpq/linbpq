@@ -336,7 +336,8 @@ LRESULT CALLBACK PacWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 }
 #endif
 
-BOOL CreatePactorWindow(struct TNCINFO * TNC, char * ClassName, char * WindowTitle, int RigControlRow, WNDPROC WndProc, int Width, int Height, VOID ForcedCloseProc())
+BOOL CreatePactorWindow(struct TNCINFO * TNC, char * ClassName, char * WindowTitle, int RigControlRow, WNDPROC WndProc, int Width, int Height,
+						VOID ForcedCloseProc(struct TNCINFO * TNC, int Stream))
 {
 #ifdef LINBPQ
 	return FALSE;

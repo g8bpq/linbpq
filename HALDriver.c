@@ -499,15 +499,15 @@ VOID * HALExtInit(EXTPORTDATA *  PortEntry)
 	}
 	
 	TNC->Port = port;
+	TNC->PortRecord = PortEntry;
 
-	TNC->Hardware = H_HAL;
+	TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_HAL;
 
 	if (PortEntry->PORTCONTROL.PORTINTERLOCK && TNC->RXRadio == 0 && TNC->TXRadio == 0)
 		TNC->RXRadio = TNC->TXRadio = PortEntry->PORTCONTROL.PORTINTERLOCK;
 
 	PortEntry->MAXHOSTMODESESSIONS = 1;		// Default
 
-	TNC->PortRecord = PortEntry;
 
 	if (PortEntry->PORTCONTROL.PORTCALL[0] == 0)
 	{

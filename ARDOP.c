@@ -136,6 +136,7 @@ BOOL ARDOPStopPort(struct PORTCONTROL * PORT)
 	if (TNC->Streams[0].Attached)
 		TNC->Streams[0].ReportDISC = TRUE;
 
+	TNC->Streams[0].Connecting = 0;
 	TNC->Streams[0].Connected = 0;
 	TNC->Streams[0].Attached = 0;
 
@@ -888,7 +889,8 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			if (TNC->SessionTimeLimit && STREAM->ConnectTime && time(NULL) > (TNC->SessionTimeLimit + STREAM->ConnectTime))
 			{
 				ARDOPSendCommand(TNC, "DISCONNECT", TRUE);
-				STREAM->Disconnecting = TRUE;
+				STREAM->ReportDISC = 1;
+				STREAM->AttachTime = 0;
 			}
 		}
 
@@ -1731,7 +1733,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			return TNC->CONNECTED << 8 | 1;
 
 		return (TNC->CONNECTED << 8 | TNC->Streams[Stream].Disconnecting << 15);		// OK
-		
+
 
 	case 4:				// reinit7
 
@@ -1979,6 +1981,7 @@ VOID * ARDOPExtInit(EXTPORTDATA * PortEntry)
 	}
 
 	TNC->Port = port;
+	TNC->PortRecord = PortEntry;
 
 	if (TNC->LogPath)
 		ARDOPOpenLogFiles(TNC); 
@@ -1991,7 +1994,7 @@ VOID * ARDOPExtInit(EXTPORTDATA * PortEntry)
 	if (TNC->ProgramPath)
 		TNC->WeStartedTNC = RestartTNC(TNC);
 
-	TNC->Hardware = H_ARDOP;
+	TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_ARDOP;
 
 	if (TNC->BusyWait == 0)
 		TNC->BusyWait = 10;
@@ -1999,7 +2002,6 @@ VOID * ARDOPExtInit(EXTPORTDATA * PortEntry)
 	if (TNC->BusyHold == 0)
 		TNC->BusyHold = 1;
 
-	TNC->PortRecord = PortEntry;
 
 	if (PortEntry->PORTCONTROL.PORTCALL[0] == 0)
 		memcpy(TNC->NodeCall, MYNODECALL, 10);
@@ -2282,11 +2284,11 @@ VOID TNCLost(struct TNCINFO * TNC)
 		}
 
 		if (STREAM->Attached)
-		{
-			STREAM->Connected = FALSE;
-			STREAM->Connecting = FALSE;
 			STREAM->ReportDISC = TRUE;
-		}
+
+		STREAM->Connected = FALSE;
+		STREAM->Connecting = FALSE;
+
 	}
 }
 
@@ -3318,9 +3320,9 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 		}
 	}
 
-
 	if (_memicmp(Buffer, "DISCONNECTED", 12) == 0
 		|| _memicmp(Buffer, "STATUS CONNECT TO", 17) == 0  
+		|| _memicmp(Buffer, "STATUS END ARQ CALL", 19) == 0  
 		|| _memicmp(Buffer, "STATUS ARQ TIMEOUT FROM PROTOCOL STATE", 24) == 0
 //		|| _memicmp(Buffer, "NEWSTATE DISC", 13) == 0
 		|| _memicmp(Buffer, "ABORT", 5) == 0)

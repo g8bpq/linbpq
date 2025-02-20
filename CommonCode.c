@@ -17,8 +17,6 @@ You should have received a copy of the GNU General Public License
 along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 */	
 
-
-
 // General C Routines common to bpq32 and linbpq. Mainly moved from BPQ32.c
 
 #pragma data_seg("_BPQDATA")
@@ -914,7 +912,7 @@ BOOL ProcessIncommingConnectEx(struct TNCINFO * TNC, char * Call, int Stream, BO
 
 		sprintf(Msg, "%d SCANSTOP", TNC->Port);
 
-		Rig_Command( (TRANSPORTENTRY *) -1, Msg);
+		Rig_Command((TRANSPORTENTRY *) -1, Msg);
 
 		UpdateMH(TNC, Call, '+', 'I');
 	}
@@ -1623,7 +1621,7 @@ DllExport int APIENTRY SendRaw(int port, char * msg, int len)
 
 	MSG->LENGTH = len + MSGHDDRLEN;
 
-	if (PORT->PROTOCOL == 10 && PORT->TNC && PORT->TNC->Hardware != H_KISSHF)		 // PACTOR/WINMOR Style
+	if (PORT->PROTOCOL == 10 && PORT->HWType != H_KISSHF)		 // PACTOR/WINMOR Style
 	{
 		//	Pactor Style. Probably will only be used for Tracker unless we do APRS over V4 or WINMOR
 
@@ -2687,7 +2685,7 @@ int DoRoutes()
 	{
 		if (Routes->NEIGHBOUR_CALL[0] != 0)
 		{
-			// Dont save routes from config file here or they are diccicult to get rid of
+			// Dont save routes from config file here or they are difficult to get rid of
 
 			if (Routes->NEIGHBOUR_FLAG & LOCKEDBYCONFIG)
 			{

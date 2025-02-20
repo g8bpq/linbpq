@@ -770,9 +770,9 @@ VOID * SerialExtInit(EXTPORTDATA * PortEntry)
 	}
 	
 	TNC->Port = port;
-	TNC->Hardware = H_SERIAL;
-
 	TNC->PortRecord = PortEntry;
+	TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_SERIAL;
+
 
 	if (PortEntry->PORTCONTROL.PORTCALL[0] == 0)
 		memcpy(TNC->NodeCall, MYNODECALL, 10);

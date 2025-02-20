@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 */	
 
+
 //
 //	Telnet Driver for BPQ Switch 
 //
@@ -113,7 +114,7 @@ extern int REALTIMETICKS;
 #define MaxSockets 26
 
 struct UserRec RelayUser;
-struct UserRec SyncUser = {"","Sync"};;
+struct UserRec SyncUser = {"","Sync"};
 struct UserRec CMSUser;
 struct UserRec HostUser = {"","Host"};
 struct UserRec TriModeUser;
@@ -953,8 +954,22 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				{
 					if (sockptr->WebSocks == 0)
 					{
-						if (sockptr->LastSendTime && (REALTIMETICKS - sockptr->LastSendTime) > 1500)	// ~ 2.5 mins
+						if (sockptr->LastSendTime && (time(NULL) - sockptr->LastSendTime) > 150)	// ~ 2.5 mins
 						{
+							closesocket(sockptr->socket);
+							sockptr->SocketActive = FALSE;
+							ShowConnections(TNC);
+						}
+					}
+					else if (memcmp(sockptr->WebURL, "rhp", 3) == 0)
+					{
+						// RHP Sockets (Used for WhatsPack) Need a timeout
+						// Normally keepalives are sent each way around every 9 mins
+						// Keepalives aren't sent when connecting so may need a bit longer
+						
+						if (sockptr->LastSendTime && (time(NULL) - sockptr->LastSendTime) > 20 * 60)	// 20mins
+						{
+							ProcessRHPWebSockClosed(sockptr->socket);
 							closesocket(sockptr->socket);
 							sockptr->SocketActive = FALSE;
 							ShowConnections(TNC);
@@ -1174,7 +1189,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 		TNC = TNCInfo[n];
 		TNC->Port = n;
-		TNC->Hardware = H_TELNET;
+		TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_TELNET;
 		TNC->RIG = &TNC->DummyRig;			// Not using Rig control, so use Dummy
 
 		// Get Menu Handles
@@ -1449,12 +1464,11 @@ void * TelnetExtInit(EXTPORTDATA * PortEntry)
 	TCP = TNC->TCPInfo;
 
 	TNC->Port = port;
+	TNC->PortRecord = PortEntry;
 
-	TNC->Hardware = H_TELNET;
+	TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_TELNET;
 
 	PortEntry->MAXHOSTMODESESSIONS = TNC->TCPInfo->MaxSessions + 1;		// Default
-
-	TNC->PortRecord = PortEntry;
 
 	if (PortEntry->PORTCONTROL.PORTCALL[0] != 0)
 		ConvFromAX25(&PortEntry->PORTCONTROL.PORTCALL[0], TNC->NodeCall);
@@ -2473,15 +2487,11 @@ nosocks:
 
 		if (sockptr->SocketActive && sockptr->Keepalive && L4LIMIT)
 		{
-#ifdef WIN32
-			if ((REALTIMETICKS - sockptr->LastSendTime) > (L4LIMIT - 60) * 9)	// PC Ticks are about 10% slow
-#else
-			if ((REALTIMETICKS - sockptr->LastSendTime) > (L4LIMIT - 60) * 10)
-#endif
+			if ((time(NULL) - sockptr->LastSendTime) > (L4LIMIT - 60))	// PC Ticks are about 10% slow
 			{
 				// Send Keepalive
 
-				sockptr->LastSendTime = REALTIMETICKS;
+				sockptr->LastSendTime = time(NULL);
 				BuffertoNode(sockptr, "Keepalive\r", 10);
 			}
 		}
@@ -2611,7 +2621,7 @@ nosocks:
 						if (P3[0] == 'K' || P4[0] == 'K' || P5[0] == 'K' || P6[0] == 'K')
 						{
 							sockptr->Keepalive = TRUE;
-							sockptr->LastSendTime = REALTIMETICKS;
+							sockptr->LastSendTime = time(NULL);
 						}
 
 						if (P3[0] == 'S' || P4[0] == 'S' || P5[0] == 'S' || P6[0] == 'S')
@@ -2843,7 +2853,7 @@ nosocks:
 
 			SendtoNode(TNC, Stream, &sockptr->FromHostBuffer[sockptr->FromHostBuffGetptr], Msglen);
 			sockptr->FromHostBuffGetptr += Msglen;
-			sockptr->LastSendTime = REALTIMETICKS;
+			sockptr->LastSendTime = time(NULL);
 		}
 	}
 }
@@ -3100,7 +3110,10 @@ LRESULT CALLBACK TelWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
 			TNC = TNCInfo[n];
 			TNC->Port = n;
-			TNC->Hardware = H_TELNET;
+			TNC->PortRecord = PortRecord;
+
+			TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_TELNET;
+
 			TNC->hDlg = SavehDlg;
 			TNC->RIG = &TNC->DummyRig;			// Not using Rig control, so use Dummy
 
@@ -3130,8 +3143,6 @@ LRESULT CALLBACK TelWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 				if (i > 0)
 					ModifyMenu(TCP->hDisMenu,i - 1 ,MF_BYPOSITION | MF_STRING,IDM_DISCONNECT + 1, ".");
 			}
-
-			TNC->PortRecord = PortRecord;
 
 			Sleep(500);
 			OpenSockets(TNC);
@@ -3755,7 +3766,7 @@ MsgLoop:
 			BuffertoNode(sockptr, NodeLine, len);
 
 		sockptr->InputLen = 0;
-		ShowConnections(TNC);;
+		ShowConnections(TNC);
 
 		return 0;
 	}
@@ -3929,7 +3940,7 @@ MsgLoop:
 #ifndef LINBPQ
 			ModifyMenu(TCP->hDisMenu, n - 1, MF_BYPOSITION | MF_STRING, IDM_DISCONNECT + n, MsgPtr);
 #endif
-			ShowConnections(TNC);;
+			ShowConnections(TNC);
 			return 0;
 		}
         
@@ -4185,7 +4196,7 @@ int DataSocket_ReadRelay(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, 
 #ifndef LINBPQ
 		ModifyMenu(TCP->hDisMenu, n - 1, MF_BYPOSITION | MF_STRING, IDM_DISCONNECT + n, MsgPtr);
 #endif
-		ShowConnections(TNC);;
+		ShowConnections(TNC);
 
         return 0;
 	
@@ -4305,7 +4316,7 @@ int DataSocket_ReadRelay(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, 
 
 		SendtoNode(TNC, sockptr->Number, TCP->RelayAPPL, (int)strlen(TCP->RelayAPPL));
 
-		ShowConnections(TNC);;
+		ShowConnections(TNC);
 	
 		return 0;
 	
@@ -4490,7 +4501,7 @@ MsgLoop:
 			WritetoTrace(Stream, MsgPtr, InputLen, sockptr->ADIF, 'R');
 		}
 
-		if (InputLen == 8 && memcmp(MsgPtr, ";;;;;;\r\n", 8) == 0)
+		if (InputLen == 8 && memcmp(MsgPtr, ";;;\r\n", 8) == 0)
 		{
 			//	CMS Keepalive
 
@@ -4804,7 +4815,7 @@ MsgLoop:
 			ModifyMenu(TCP->hDisMenu, n - 1, MF_BYPOSITION | MF_STRING, IDM_DISCONNECT + n, MsgPtr);
 #endif
 
-			ShowConnections(TNC);;
+			ShowConnections(TNC);
 
 			InputLen=InputLen-(MsgLen+1);
 
@@ -4880,7 +4891,7 @@ MsgLoop:
 				WriteLog (logmsg);
 			}
 
-			ShowConnections(TNC);;
+			ShowConnections(TNC);
 			InputLen=InputLen-(MsgLen+1);
 
 			sockptr->InputLen=InputLen;
@@ -5107,7 +5118,7 @@ int DataSocket_ReadHTTP(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, S
 			{
 				sockcopy = malloc(sizeof(struct ConnectionInfo));
 				sockptr->TNC = TNC;
-				sockptr->LastSendTime = REALTIMETICKS;
+				sockptr->LastSendTime = time(NULL);
 
 				memcpy(sockcopy, sockptr, sizeof(struct ConnectionInfo));
 
@@ -5158,7 +5169,7 @@ int DataSocket_ReadHTTP(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, S
 
 	sockcopy = malloc(sizeof(struct ConnectionInfo));
 	sockptr->TNC = TNC;
-	sockptr->LastSendTime = REALTIMETICKS;
+	sockptr->LastSendTime = time(NULL);
 
 	memcpy(sockcopy, sockptr, sizeof(struct ConnectionInfo));
 
@@ -5265,7 +5276,7 @@ int DataSocket_Disconnect(struct TNCINFO * TNC,  struct ConnectionInfo * sockptr
 		ModifyMenu(TNC->TCPInfo->hDisMenu, n - 1, MF_BYPOSITION | MF_STRING, IDM_DISCONNECT + n, ".");
 #endif
 		sockptr->SocketActive = FALSE;
-		ShowConnections(TNC);;
+		ShowConnections(TNC);
 	}
 	return 0;
 }
@@ -7154,7 +7165,7 @@ int DoRefreshWebMailIndex()
 						{
 							sockcopy = malloc(sizeof(struct ConnectionInfo));
 							sockptr->TNC = TNC;
-							sockptr->LastSendTime = REALTIMETICKS;
+							sockptr->LastSendTime = time(NULL);
 
 							memcpy(sockcopy, sockptr, sizeof(struct ConnectionInfo));
 

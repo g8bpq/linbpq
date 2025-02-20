@@ -1412,10 +1412,11 @@ VOID * SIXPACKExtInit(EXTPORTDATA * PortEntry)
 	TNC->sixPack = zalloc(sizeof(struct sixPackTNCInfo));
 
 	TNC->Port = port;
-	TNC->Hardware = H_SIXPACK;
+	TNC->PortRecord = PortEntry;
+	TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_SIXPACK;
+
 	TNC->ARDOPBuffer = malloc(8192);
 
-	TNC->PortRecord = PortEntry;
 
 	if (PortEntry->PORTCONTROL.PORTCALL[0] == 0)
 		memcpy(TNC->NodeCall, MYNODECALL, 10);

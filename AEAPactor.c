@@ -382,15 +382,14 @@ VOID * AEAExtInit(EXTPORTDATA *  PortEntry)
 
 	TNC->Port = port;
 
-	TNC->Hardware = H_AEA;
+	TNC->PortRecord = PortEntry;
+	TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_AEA;
 
 	TNC->TEXTMODE = FALSE;
 
 	PortEntry->MAXHOSTMODESESSIONS = 11;		// Default
 
 	TNC->InitScript = _strupr(TNC->InitScript);
-
-	TNC->PortRecord = PortEntry;
 
 	if (PortEntry->PORTCONTROL.PORTCALL[0] == 0)
 	{

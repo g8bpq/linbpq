@@ -17,7 +17,6 @@ You should have received a copy of the GNU General Public License
 along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 */	
 
-
 //#define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
 
 #define _CRT_SECURE_NO_DEPRECATE
@@ -2414,7 +2413,10 @@ doHeader:
 				if (Session == 0)
 					Session = &Dummy;
 
-				Session->TNC = LOCAL;		// TNC is only used on Web Terminal Sessions so can reuse as LOCAL flag
+				if (LOCAL)
+					Session->TNC = (struct TNCINFO *)(uintptr_t)1;		// TNC is only used on Web Terminal Sessions so can reuse as LOCAL flag
+				else
+					Session->TNC = 0;
 
 				WriteFile(hPipe, Session, sizeof (struct HTTPConnectionInfo), &InputLen, NULL);
 				WriteFile(hPipe, MsgPtr, MsgLen, &InputLen, NULL);
@@ -4328,7 +4330,7 @@ int ProcessMailAPISignon(struct TCPINFO * TCP, char * MsgPtr, char * Appl, char 
 {
 	int ReplyLen = 0;
 	char * input = strstr(MsgPtr, "\r\n\r\n");	// End of headers
-	char * user, * password, * Key;
+	char * user, * password;
 	struct HTTPConnectionInfo * NewSession;
 	int i;
 	struct UserRec * USER;

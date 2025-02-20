@@ -1177,9 +1177,9 @@ VOID * HSMODEMExtInit(EXTPORTDATA * PortEntry)
 	Consoleprintf("HSMODEM Host %s %d", TNC->HostName, TNC->TCPPort);
 
 	TNC->Port = port;
-	TNC->Hardware = H_HSMODEM;
-
 	TNC->PortRecord = PortEntry;
+
+	TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_HSMODEM;
 
 	if (PortEntry->PORTCONTROL.PORTCALL[0] == 0)
 		memcpy(TNC->NodeCall, MYNODECALL, 10);

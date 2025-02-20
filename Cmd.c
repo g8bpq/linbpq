@@ -3988,7 +3988,7 @@ VOID ATTACHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struc
 
 	if (ret & 0x8000)			// Disconnecting
 	{
-		Bufferptr = Cmdprintf(Session, Bufferptr, "Error - Port in use\r");
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Error - Port in use (Disconnecting)\r");
 		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 		return;
 	}
@@ -4039,14 +4039,25 @@ VOID ATTACHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struc
 
 
 
-	if (EXTPORT->ATTACHEDSESSIONS[sess] || 	PORT->PortSuspended)
+	if (EXTPORT->ATTACHEDSESSIONS[sess])
 	{
 		// In use
 
-		Bufferptr = Cmdprintf(Session, Bufferptr, "Error - Port in use\r");
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Error - Port in use (Session Attached\r");
 		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 		return;
 	}
+
+	if (PORT->PortSuspended)
+	{
+		// In use
+
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Error - Port Suspended\r");
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
+
 	//	GET CIRCUIT TABLE ENTRY FOR OTHER END OF LINK
 	
 	NewSess = SetupNewSession(Session, Bufferptr);

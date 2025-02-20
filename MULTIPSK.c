@@ -710,7 +710,7 @@ void * MPSKExtInit(EXTPORTDATA * PortEntry)
 	ptr=strchr(TNC->NodeCall, ' ');
 	if (ptr) *(ptr) = 0;					// Null Terminate
 
-	TNC->Hardware = H_MPSK;
+	TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_MPSK;
 
 	MPSKChannel[port] = PortEntry->PORTCONTROL.CHANNELNUM-65;
 	

@@ -1180,7 +1180,6 @@ VOID * FLDigiExtInit(EXTPORTDATA * PortEntry)
 	}
 
 	TNC->Port = port;
-
 	TNC->PortRecord = PortEntry;
 
 	if (PortEntry->PORTCONTROL.PORTCALL[0] == 0)
@@ -1211,7 +1210,7 @@ VOID * FLDigiExtInit(EXTPORTDATA * PortEntry)
 	ptr=strchr(TNC->NodeCall, ' ');
 	if (ptr) *(ptr) = 0;					// Null Terminate
 
-	TNC->Hardware = H_FLDIGI;
+	TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_FLDIGI;
 
 	if (TNC->BusyWait == 0)
 		TNC->BusyWait = 10;

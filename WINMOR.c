@@ -1462,11 +1462,12 @@ void * WinmorExtInit(EXTPORTDATA * PortEntry)
 	}
 
 	TNC->Port = port;
+	TNC->PortRecord = PortEntry;
 
 	if (TNC->ProgramPath)
 		TNC->WeStartedTNC = RestartTNC(TNC);
 
-	TNC->Hardware = H_WINMOR;
+	TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_WINMOR;
 
 	if (TNC->BusyWait == 0)
 		TNC->BusyWait = 10;
@@ -1474,7 +1475,6 @@ void * WinmorExtInit(EXTPORTDATA * PortEntry)
 	if (TNC->BusyHold == 0)
 		TNC->BusyHold = 1;
 
-	TNC->PortRecord = PortEntry;
 
 	if (PortEntry->PORTCONTROL.PORTCALL[0] == 0)
 		memcpy(TNC->NodeCall, MYNODECALL, 10);

@@ -567,15 +567,15 @@ void * KAMExtInit(EXTPORTDATA * PortEntry)
 		return ExtProc;
 	}
 	TNC->Port = port;
+	TNC->PortRecord = PortEntry;
 
-	TNC->Hardware = H_KAM;
+	TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_KAM;
 
 	if (TNC->BusyWait == 0)
 		TNC->BusyWait = 10;
 
 	PortEntry->MAXHOSTMODESESSIONS = 11;		// Default
 
-	TNC->PortRecord = PortEntry;
 
 	if (PortEntry->PORTCONTROL.PORTCALL[0] == 0)
 		memcpy(TNC->NodeCall, MYNODECALL, 10);

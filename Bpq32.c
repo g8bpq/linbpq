@@ -1249,7 +1249,9 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix problem with L4 frames being delivered out of sequence (60)
 //	Add Compression of Netrom connections (62)
 //	Improve handling of Locked Routes (62)
-
+//	Add L4 RESET (Paula G8PZT's extension to NETROM)
+//	Fix problem using SENDRAW from BPQMail (63)
+//	Fix compatibility with latest ardopcf (64)
 #define CKernel
 
 #include "Versions.h"

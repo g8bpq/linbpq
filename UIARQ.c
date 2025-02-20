@@ -464,7 +464,7 @@ UINT UIARQExtInit(EXTPORTDATA * PortEntry)
 	ptr=strchr(TNC->NodeCall, ' ');
 	if (ptr) *(ptr) = 0;					// Null Terminate
 
-	TNC->Hardware = H_UIARQ;
+	TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_UIARQ;
 
 	if (TNC->BusyWait == 0)
 		TNC->BusyWait = 10;

@@ -376,7 +376,8 @@ void * TrackerMExtInit(EXTPORTDATA *  PortEntry)
 	}
 	
 	TNC->Port = port;
-	TNC->Hardware = H_TRKM;
+	TNC->PortRecord = PortEntry;
+	TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_TRKM;
 
 	// Set up DED addresses for streams
 	
@@ -391,8 +392,6 @@ void * TrackerMExtInit(EXTPORTDATA *  PortEntry)
 	PortEntry->MAXHOSTMODESESSIONS = TNC->PacketChannels + 1; //TNC->PacketChannels + 1;
 	PortEntry->PERMITGATEWAY = TRUE;					// Can change ax.25 call on each stream
 	PortEntry->SCANCAPABILITIES = NONE;				// Scan Control 3 stage/conlock 
-
-	TNC->PortRecord = PortEntry;
 
 	if (PortEntry->PORTCONTROL.PORTCALL[0] == 0)
 		memcpy(TNC->NodeCall, MYNODECALL, 10);

@@ -41,6 +41,7 @@ typedef int (FAR *FARPROCY)();
 #define L4DACK	4		// DISCONNECT ACK
 #define L4INFO	5		// INFORMATION
 #define L4IACK	6		// INFORMATION ACK
+#define L4RESET 7		// Paula's extension
 
 
 extern char MYCALL[];	// 7 chars, ax.25 format
@@ -704,6 +705,7 @@ typedef struct PORTCONTROL
 	struct PORTCONTROL * HookPort;
 	int PortSlot;				// Index in Port Table
 	struct TNCINFO * TNC;		// Associated TNC record
+	int HWType;					// Hardware type of Driver. In here as external apps don't have access to TNC record
 	int RIGPort;				// Linked port for freq resporting
 	unsigned int PERMITTEDAPPLS;	// Appls allowed on this port (generalisation of BBSBANNED)
 	char * CTEXT;				// Port Specific CText

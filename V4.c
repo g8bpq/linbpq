@@ -971,13 +971,13 @@ void * V4ExtInit(EXTPORTDATA * PortEntry)
 	}
 
 	TNC->Port = port;
+	TNC->PortRecord = PortEntry;
 
 	if (TNC->ProgramPath)
 		TNC->WeStartedTNC = RestartTNC(TNC);
 
-	TNC->Hardware = H_V4;
+	TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_V4;
 
-	TNC->PortRecord = PortEntry;
 
 	if (PortEntry->PORTCONTROL.PORTCALL[0] == 0)
 		memcpy(TNC->NodeCall, MYNODECALL, 10);

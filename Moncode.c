@@ -728,6 +728,10 @@ char * DISPLAY_NETROM(MESSAGE * ADJBUFFER, UCHAR * Output, int MsgLen)
 
 		return Output + sprintf((char *)Output, " <DISC ACK>");
 
+	case L4RESET:
+
+		return Output + sprintf((char *)Output, " <RESET>");
+
 	case L4INFO:
 		{
 			char Infofield[257];

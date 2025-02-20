@@ -2,7 +2,6 @@
 // Prototypes for BPQ32 Node Functions
 //
 
-
 #define DllImport
 
 #define EXCLUDEBITS

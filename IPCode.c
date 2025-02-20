@@ -5413,11 +5413,8 @@ VOID ProcessSNMPMessage(PIPMSG IPptr)
 	int Len;
 	PUDPMSG UDPptr = (PUDPMSG)&IPptr->Data;
 	UCHAR * Msg;
-	int Type;
-	int Length, ComLen;
-	int  IntVal;
 	UCHAR Reply[256];
-	int PDULen, SendLen;
+	int SendLen;
 	int Offset = 0;
 
 	Len = ntohs(IPptr->IPLENGTH);

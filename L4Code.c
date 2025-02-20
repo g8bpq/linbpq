@@ -1802,6 +1802,25 @@ VOID SendConNAK(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG)
 	C_Q_ADD(&LINK->TX_Q, L3MSG);
 }
 
+VOID SendL4RESET(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG)
+{
+	// Paula's extension
+
+	L3MSG->L4FLAGS = L4RESET;
+
+	L3SWAPADDRESSES(L3MSG);	
+	L3MSG->L3TTL = L3LIVES;
+
+	L3MSG->LENGTH = (int)(&L3MSG->L4DATA[0] - (UCHAR *)L3MSG);
+	C_Q_ADD(&LINK->TX_Q, L3MSG);
+}
+
+
+
+
+
+
+
 VOID SETUPNEWCIRCUIT(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, 
 					 TRANSPORTENTRY * L4, char * BPQPARAMS, int ApplMask, int * BPQNODE)
 {
@@ -1946,7 +1965,7 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 {
 	//	INTERNODE LINK
 
-	TRANSPORTENTRY * L4;
+	TRANSPORTENTRY * L4 = 0;
 	struct DEST_LIST * DEST;
 	int Opcode;
 	char Nodename[20];
@@ -1993,22 +2012,48 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 		CONNECTREQUEST(LINK, L3MSG, ApplMask, ApplCall);
 		return;
 	}
-		
+
 	//	OTHERS NEED A SESSION
 
-	L4 = &L4TABLE[L3MSG->L4INDEX];
-
-	if (L4->CIRCUITID!= L3MSG->L4ID)
+	if (Opcode == L4RESET)
 	{
+		// Paula's extension - other end dosn't know about session so disconnect 
+
+		// A reset has our far index and id, not our index and id so have to search table for L4 entry
+
+		int n = MAXCIRCUITS;
+		L4 = L4TABLE;
+
+		while (n--)
+		{
+			if (L4->L4USER[0] && L4->FARID == L3MSG->L4ID && L4->FARINDEX == L3MSG->L4INDEX)
+			{
+				//  Check L3 source call to be sure (should that be L4 source call??
+
+				L3MSG->L3SRCE[6] &= 0xfe;		// mask end of call
+
+				if (memcmp(L3MSG->L3SRCE, L4->L4TARGET.DEST->DEST_CALL, 7) == 0)
+				{
+					CloseSessionPartner(L4);				// SEND CLOSE TO PARTNER (IF PRESENT)
+				}
+				ReleaseBuffer(L3MSG);
+				return;
+			}
+			L4++;
+		}
+
 		ReleaseBuffer(L3MSG);
 		return;
 	}
 
-	if ((L4->L4CIRCUITTYPE & SESSION) == 0)
-	{
-		// Not an L4 Session - must be an old connection
+	if (L3MSG->L4INDEX < MAXCIRCUITS)
+		L4 = &L4TABLE[L3MSG->L4INDEX];
 
-		ReleaseBuffer(L3MSG);
+	// If wrong ID or not an L4 session we must have restarted or cleared session
+
+	if (L4 == 0 || L4->CIRCUITID != L3MSG->L4ID || (L4->L4CIRCUITTYPE & SESSION) == 0)
+	{
+		SendL4RESET(LINK, L3MSG);			// Paula's extension
 		return;
 	}
 
@@ -2019,9 +2064,9 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 	case L4CACK:
 
 		//	CONNECT ACK
-	
+
 		DEST = L4->L4TARGET.DEST;
-	
+
 		//	EXTRACT EXTENDED PARAMS IF PRESENT
 
 		if (L3MSG->LENGTH > MSGHDDRLEN + 22)		// Standard Msg
@@ -2032,7 +2077,7 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 				L3MSG->L4DATA[1] &= 0x7f;
 			}
 
- 			DEST->DEST_STATE &= 0x80;
+			DEST->DEST_STATE &= 0x80;
 			DEST->DEST_STATE |= (L3MSG->L4DATA[1] - L3MSG->L3TTL) + 0x41; // Hops to dest + x40
 		}
 
@@ -2098,13 +2143,13 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 
 		// DISCONNECT REQUEST
 
-		 L3MSG->L4INDEX = L4->FARINDEX;
-		 L3MSG->L4ID = L4->FARID;
-		 
-		 L3MSG->L4FLAGS = L4DACK;
+		L3MSG->L4INDEX = L4->FARINDEX;
+		L3MSG->L4ID = L4->FARID;
 
-		 L3SWAPADDRESSES(L3MSG);				// EXCHANGE SOURCE AND DEST
-		 L3MSG->L3TTL = L3LIVES;
+		L3MSG->L4FLAGS = L4DACK;
+
+		L3SWAPADDRESSES(L3MSG);				// EXCHANGE SOURCE AND DEST
+		L3MSG->L3TTL = L3LIVES;
 
 		TNC = LINK->LINKPORT->TNC;
 
@@ -2113,11 +2158,11 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 		else
 			C_Q_ADD(&LINK->TX_Q, L3MSG);
 
-		 CloseSessionPartner(L4);				// SEND CLOSE TO PARTNER (IF PRESENT)
-		 return;
-	
+		CloseSessionPartner(L4);				// SEND CLOSE TO PARTNER (IF PRESENT)
+		return;
+
 	case L4DACK:
-	
+
 		CLEARSESSIONENTRY(L4);
 		ReleaseBuffer(L3MSG);
 		return;
@@ -2134,16 +2179,16 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 
 		// Randomly drop packets
 
-/*
+		/*
 		Debugprintf("L4 Test Received packet %d ", L3MSG->L4TXNO);
 
 		if ((rand() % 7) > 5)
 		{
-			Debugprintf("L4 Test Drop packet %d ", L3MSG->L4TXNO);
-			ReleaseBuffer(L3MSG);
-			return;
+		Debugprintf("L4 Test Drop packet %d ", L3MSG->L4TXNO);
+		ReleaseBuffer(L3MSG);
+		return;
 		}
-*/
+		*/
 
 		ACKFRAMES(L3MSG, L4, L3MSG->L4RXNO);
 
@@ -2175,7 +2220,7 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 			ReleaseBuffer(L3MSG);
 			return;
 		}
-		
+
 		if (FramesMissing > 0)
 		{
 			//	EXPECTED FRAME HAS BEEN MISSED - ASK FOR IT AGAIN,
@@ -2183,7 +2228,7 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 
 			L4->NAKBITS |= L4NAK;			// SET NAK REQUIRED
 			SENDL4IACK(L4);			// SEND DATA ACK COMMAND TO ACK OUTSTANDING FRAMES
-	
+
 			//	SEE IF WE ALREADY HAVE A COPY OF THIS ONE
 
 			Saved = L4->L4RESEQ_Q;
@@ -2196,7 +2241,7 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 				if (Saved->L4TXNO == L3MSG->L4TXNO)
 				{
 					//	ALREADY HAVE A COPY - DISCARD IT
-			
+
 					Debugprintf("L4 Already have seq %d - discarding", L3MSG->L4TXNO);
 					ReleaseBuffer(L3MSG);
 					return;
@@ -2222,7 +2267,7 @@ L4INFO_OK:
 		L4->NAKBITS &= ~L4NAK;				// CLEAR MESSAGE LOST STATE
 
 		L4->RXSEQNO++;
-	
+
 		//	REMOVE HEADERS, AND QUEUE INFO 
 
 		L3MSG->LENGTH -= 20;				// L3/L4 Header
@@ -2293,14 +2338,14 @@ L4INFO_OK:
 			else
 			{
 				// Just inflate this bit
-				
+
 				Len = doinflate(L3MSG->L4DATA, Buffer, L3MSG->LENGTH - MSGHDDRLEN - 1, 8192, &outLen);
 			}
 
 			free(L4->unCompress);
 			L4->unCompress = 0;
 			L4->unCompressLen = 0;
-		
+
 			sendLen = outLen;
 			sendptr = Buffer;
 
@@ -2322,9 +2367,9 @@ L4INFO_OK:
 			while (outLen > 0)
 			{
 				sendLen = outLen;
-				
+
 				if (sendLen > 236)
-				sendLen = 236;
+					sendLen = 236;
 
 				Msg = GetBuff();
 
@@ -2339,7 +2384,7 @@ L4INFO_OK:
 
 					IFRM150(L4, Msg);	// CHECK IF SETTING UP AND PASS ON
 				}
-				
+
 				outLen -= sendLen;
 				sendptr += sendLen;
 			}
@@ -2367,7 +2412,7 @@ checkReseq:
 				*Prev = Saved->Next;		// CHAIN  NEXT IN CHAIN TO PREVIOUS
 
 				OLDFRAMES++;			// COUNT FOR STATS
-	
+
 				L3MSG = Saved;
 				Debugprintf("L4 Processing Saved Message %d Address %x", L4->RXSEQNO, L3MSG);
 				goto L4INFO_OK;
@@ -2386,7 +2431,9 @@ checkReseq:
 		ACKFRAMES(L3MSG, L4, L3MSG->L4RXNO);
 		REFRESHROUTE(L4);
 
-		// Drop Through
+		ReleaseBuffer(L3MSG);
+		return;
+
 	}
 
 	// Unrecognised - Ignore
@@ -2437,9 +2484,9 @@ VOID ACKFRAMES(L3MESSAGEBUFFER * L3MSG, TRANSPORTENTRY * L4, int NR)
 			if (L4->RTT_TIMER)
 			{
 				//	FRAME BEING TIMED HAS BEEN ACKED - UPDATE DEST RTT TIMER
-				
+
 				DEST = L4->L4TARGET.DEST;
-				
+
 				RTT = GetTickCount() - L4->RTT_TIMER;
 
 				if (RTT < 180)				// Sanity Check
@@ -2470,7 +2517,7 @@ VOID ACKFRAMES(L3MESSAGEBUFFER * L3MSG, TRANSPORTENTRY * L4, int NR)
 		if ((L4->FLAGS & DISCPENDING) && L4->L4TX_Q == 0)
 		{
 			// All Acked and DISC Pending, so send it
-		
+
 			SENDL4DISC(L4);
 			return;
 		}
@@ -2479,7 +2526,7 @@ VOID ACKFRAMES(L3MESSAGEBUFFER * L3MSG, TRANSPORTENTRY * L4, int NR)
 	//	SEE IF CHOKE SET
 
 	L4->FLAGS &= ~L4BUSY;
-		
+
 	if (L3MSG->L4FLAGS & L4BUSY)
 	{
 		L4->FLAGS |= L3MSG->L4FLAGS & L4BUSY;		// Get Busy flag from message
@@ -2493,10 +2540,10 @@ VOID ACKFRAMES(L3MESSAGEBUFFER * L3MSG, TRANSPORTENTRY * L4, int NR)
 		//	RETRANSMIT REQUESTED MESSAGE - WILL BE FIRST ON HOLD QUEUE
 
 		Msg = L4->L4HOLD_Q;
-		
+
 		if (Msg == 0)
 			return;
- 
+
 		Copy = GetBuff();
 
 		if (Copy == 0)
@@ -2536,7 +2583,7 @@ VOID SENDL4IACK(TRANSPORTENTRY * Session)
 	MSG->L4TXNO = 0;
 
 
-	
+
 	MSG->L4RXNO = Session->RXSEQNO;
 	Session->L4LASTACKED = Session->RXSEQNO;	// SAVE LAST NUMBER ACKED
 
@@ -2544,7 +2591,7 @@ VOID SENDL4IACK(TRANSPORTENTRY * Session)
 
 	MSG->LENGTH = MSGHDDRLEN + 22;
 
-//	Debugprintf("Sending L4 IACK %d %x", MSG->L4RXNO, MSG->L4FLAGS);
+	//	Debugprintf("Sending L4 IACK %d %x", MSG->L4RXNO, MSG->L4FLAGS);
 
 	C_Q_ADD(&DEST->DEST_Q, (UINT *)MSG);
 
