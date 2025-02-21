@@ -1244,7 +1244,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Attempt to fix NC going to wrong application. (57)
 //	Improve ARDOP end of session code (58)
 //	Run M0LTE Map reporting in a separate thread (59/60)
-//	Add support for WhatsPac (59)
+//	Add RHP support for WhatsPac (59)
 //  Add timestamps to LIS monitor (60)
 //	Fix problem with L4 frames being delivered out of sequence (60)
 //	Add Compression of Netrom connections (62)
@@ -1252,6 +1252,9 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add L4 RESET (Paula G8PZT's extension to NETROM)
 //	Fix problem using SENDRAW from BPQMail (63)
 //	Fix compatibility with latest ardopcf (64)
+//	Fix bug in RHP socket timeout code (65)
+
+
 #define CKernel
 
 #include "Versions.h"

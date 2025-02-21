@@ -28,6 +28,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #include "cheaders.h"
 #include "bpq32.h"
+#include "telnetserver.h"
 
 int FindFreeStreamNoSem();
 DllExport int APIENTRY DeallocateStream(int stream);
@@ -40,6 +41,7 @@ static int GetJSONInt(char * _REPLYBUFFER, char * Name);
 
 struct RHPSessionInfo
 {  
+	struct ConnectionInfo * sockptr;
 	SOCKET Socket;				// Websocks Socket
     int BPQStream;
 	int Handle;				// RHP session ID
@@ -66,6 +68,7 @@ struct RHPParamBlock
 	unsigned char * Msg;
 	int Len;
 	SOCKET Socket;
+	struct ConnectionInfo * sockptr;
 };
 
 
@@ -113,7 +116,7 @@ int WhatsPacConfigured = 1;
 int RHPPaclen = 236;
 
 
-int processRHCPOpen(SOCKET Socket, char * Msg, char * ReplyBuffer);
+int processRHCPOpen(struct ConnectionInfo * sockptr, SOCKET Socket, char * Msg, char * ReplyBuffer);
 int processRHCPSend(SOCKET Socket, char * Msg, char * ReplyBuffer);
 int processRHCPClose(SOCKET Socket, char * Msg, char * ReplyBuffer);
 int processRHCPStatus(SOCKET Socket, char * Msg, char * ReplyBuffer);
@@ -128,7 +131,6 @@ void SendWebSockMessage(SOCKET socket, char * Msg, int Len)
 	char * OutBuffer = Msg;
 
 	// WebSock Encode. Buffer has 10 bytes on front for header but header len depends on Msg len
-
 
 	if (Len < 126)
 	{
@@ -189,7 +191,7 @@ void SendWebSockMessage(SOCKET socket, char * Msg, int Len)
 	return;
 }
 
-void ProcessRHPWebSock(SOCKET Socket, char * Msg, int MsgLen);
+void ProcessRHPWebSock(struct ConnectionInfo * sockptr, SOCKET Socket, char * Msg, int MsgLen);
 
 void RHPThread(void * Params)
 {
@@ -197,7 +199,7 @@ void RHPThread(void * Params)
 
 	struct RHPParamBlock * Block = (struct RHPParamBlock *)Params;
 
-	ProcessRHPWebSock(Block->Socket, Block->Msg, Block->Len);
+	ProcessRHPWebSock(Block->sockptr, Block->Socket, Block->Msg, Block->Len);
 
 	free(Block->Msg);
 	free(Params);
@@ -209,7 +211,7 @@ int RHPProcessHTTPMessage(void * conn, char * response, char * Method, char * UR
 	return 0;
 }
 
-void ProcessRHPWebSock(SOCKET Socket, char * Msg, int MsgLen)
+void ProcessRHPWebSock(struct ConnectionInfo * sockptr, SOCKET Socket, char * Msg, int MsgLen)
 {
 	int Loops = 0;
 	int InputLen = 0;
@@ -278,7 +280,7 @@ void ProcessRHPWebSock(SOCKET Socket, char * Msg, int MsgLen)
 
 	if (_stricmp(Value, "open") == 0)
 	{
-		Len = processRHCPOpen(Socket, Msg, &OutBuffer[10]);		// Space at front for WebSock Header
+		Len = processRHCPOpen(sockptr, Socket, Msg, &OutBuffer[10]);		// Space at front for WebSock Header
 		if (Len)
 			SendWebSockMessage(Socket, OutBuffer, Len);
 		return;
@@ -351,7 +353,7 @@ void ProcessRHPWebSockClosed(SOCKET socket)
 
 
 
-int processRHCPOpen(SOCKET Socket, char * Msg, char * ReplyBuffer)
+int processRHCPOpen(struct ConnectionInfo * sockptr, SOCKET Socket, char * Msg, char * ReplyBuffer)
 {
 	//{"type":"open","id":5,"pfam":"ax25","mode":"stream","port":"1","local":"G8BPQ","remote":"G8BPQ-2","flags":128}
 
@@ -424,6 +426,7 @@ int processRHCPOpen(SOCKET Socket, char * Msg, char * ReplyBuffer)
 			RHPSession->Handle = Handle;
 			RHPSession->Connecting = TRUE;
 			RHPSession->Socket = Socket;
+			RHPSession->sockptr = sockptr;
 
 			strcpy(RHPSession->Local, Local);
 			strcpy(RHPSession->Remote, Remote);
@@ -631,6 +634,9 @@ void RHPPoll()
 				unsigned char c;
 
 				Buffer[pktlen] = 0;
+
+				RHPSession->sockptr->LastSendTime = time(NULL);
+
 
 				// Message is JSON so Convert CR to \r, \ to \\ " to \"
 

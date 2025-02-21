@@ -4989,6 +4989,7 @@ struct RHPParamBlock
 	unsigned char * Msg;
 	int Len;
 	SOCKET Socket;
+	struct ConnectionInfo * sockptr;
 };
 
 
@@ -5131,10 +5132,13 @@ int DataSocket_ReadHTTP(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, S
 
 				struct RHPParamBlock * ParamBlock = malloc(sizeof(struct RHPParamBlock));
 
+				ParamBlock->sockptr = sockptr;
 				ParamBlock->Socket = sockptr->socket;
 				ParamBlock->Len = Len;
 				ParamBlock->Msg = malloc(Len + 10);
 				memcpy(ParamBlock->Msg, Payload, Len);
+				sockptr->LastSendTime = time(NULL);
+
 				_beginthread(RHPThread, 0, (VOID *)ParamBlock);	
 	
 				sockptr->InputLen = 0;
