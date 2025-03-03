@@ -1142,6 +1142,7 @@ int ProcessAGWCommand(struct AGWSocketConnectionInfo * sockptr)
 	int con,conport;
 	int AGWYReply = 0;
 	int state, change;
+	int n;
 
 	// if we have hidden some ports then the port in the AGW packet will be an index into the visible ports,
 	// not the real port number
@@ -1196,7 +1197,7 @@ int ProcessAGWCommand(struct AGWSocketConnectionInfo * sockptr)
 
 			conport=GetPortNumber(VisiblePortToRealPort[key[0]-48]);
 
-			sprintf(ConnectMsg,"C %d %s",conport,ToCall);
+			n = sprintf(ConnectMsg,"C %d %s",conport,ToCall);
 
 			// if 'v' command add digis
 
@@ -1211,7 +1212,7 @@ int ProcessAGWCommand(struct AGWSocketConnectionInfo * sockptr)
 
 				while(nDigis--)
 				{
-					sprintf(ConnectMsg, "%s, %s", ConnectMsg, Digis);
+					n += sprintf(&ConnectMsg[n], " %s", Digis);
 					Digis += 10;
 				}
 			}

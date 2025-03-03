@@ -553,6 +553,8 @@ int APRSWriteLog(char * msg)
 	UCHAR Value[MAX_PATH];
 	time_t T;
 	struct tm * tm;
+	int n;
+
 
 	if (LogAPRSIS == 0)
 		return 0;
@@ -574,8 +576,9 @@ int APRSWriteLog(char * msg)
 		strcat(Value, "logs/APRS_");
 	}
 
-	sprintf(Value, "%s%02d%02d%02d.log", Value,
-				tm->tm_year - 100, tm->tm_mon+1, tm->tm_mday);
+	n = strlen(Value);
+
+	sprintf(&Value[n], "%02d%02d%02d.log", tm->tm_year - 100, tm->tm_mon+1, tm->tm_mday);
 
 	if ((file = fopen(Value, "ab")) == NULL)
 		return FALSE;

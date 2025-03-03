@@ -1860,7 +1860,7 @@ static void cn_dec(ChatCIRCUIT *circuit, CHATNODE *node)
 					__try
 					{
 #endif
-						len = sprintf(line, "%s %p %s", line, cn->node, cn->node->alias);
+						len += sprintf(&line[len], " %p %s", cn->node, cn->node->alias);
 						if (len > 80)
 						{
 							Debugprintf("%s", line);
@@ -2821,7 +2821,7 @@ static void show_circuits(ChatCIRCUIT *conn, char Flag)
 	CHATNODE    *node;
 	LINK *link;
 	char line[1000];
-	int     len;
+	int len = 0;
 	CN	*cn;
 
 	int i = 0;
@@ -2836,16 +2836,16 @@ static void show_circuits(ChatCIRCUIT *conn, char Flag)
 	nprintf(conn, "%d Node(s)\r", i);
 
 	if (Flag == 'c')
-		sprintf(line, "Here %-6.6s <-", OurNode);
+		len = sprintf(line, "Here %-6.6s <-", OurNode);
 	else
-		sprintf(line, "Here %-6.6s <-", OurAlias);
+		len = sprintf(line, "Here %-6.6s <-", OurAlias);
 
 	for (node = node_hd; node; node = node->next) if (node->refcnt)
 	{
 		if (Flag == 'c')
-			len = sprintf(line, "%s %s", line, node->call);
+			len += sprintf(&line[len], " %s", node->call);
 		else
-			len = sprintf(line, "%s %s", line, node->alias);
+			len += sprintf(&line[len], " %s", node->alias);
 		if (len > 80)
 		{
 			nprintf(conn, "%s\r", line);
@@ -2873,9 +2873,9 @@ static void show_circuits(ChatCIRCUIT *conn, char Flag)
 						__try
 						{
 							if (Flag == 'c')
-								len = sprintf(line, "%s %s", line, cn->node->call);
+								len += sprintf(&line[len], " %s", cn->node->call);
 							else
-								len = sprintf(line, "%s %s", line, cn->node->alias);
+								len += sprintf(&line[len], " %s", cn->node->alias);
 							if (len > 80)
 							{
 								nprintf(conn, "%s\r", line);
@@ -2883,23 +2883,23 @@ static void show_circuits(ChatCIRCUIT *conn, char Flag)
 							}
 						}
 						__except(EXCEPTION_EXECUTE_HANDLER)
-							{len = sprintf(line, "%s *PE* Corrupt Rec %x %x", line, cn, cn->node);}
+							{len += sprintf(&line[len], " *PE* Corrupt Rec %x %x", cn, cn->node);}
 					}
 					else
-						len = sprintf(line, "%s Corrupt Rec %x %x ", line, cn, cn->node);
+						len = sprintf(&line[len], " Corrupt Rec %x %x ", cn, cn->node);
 				}
 			}
 			__except(EXCEPTION_EXECUTE_HANDLER)
-			{len = sprintf(line, "%s *PE* Corrupt Rec %x %x ", line, cn, cn->node);}
+			{len += sprintf(&line[len], " *PE* Corrupt Rec %x %x ", cn, cn->node);}
 #else
 			for (cn = circuit->hnode; cn; cn = cn->next)
 			{
 				if (cn->node && cn->node->alias)
 				{
 					if (Flag == 'c')
-						len = sprintf(line, "%s %s", line, cn->node->call);
+						len += sprintf(&line[len], " %s", cn->node->call);
 					else
-						len = sprintf(line, "%s %s", line, cn->node->alias);
+						len += sprintf(&line[len], " %s", cn->node->alias);
 					if (len > 80)
 					{
 						nprintf(conn, "%s\r", line);
@@ -2907,7 +2907,7 @@ static void show_circuits(ChatCIRCUIT *conn, char Flag)
 					}
 				}
 				else
-					len = sprintf(line, "%s Corrupt Rec %p %p ", line, cn, cn->node);
+					len += sprintf(&line[len], " Corrupt Rec %p %p ", cn, cn->node);
 			}
 #endif
 			nprintf(conn, "%s\r", line);
@@ -3682,7 +3682,7 @@ VOID SendChatLinkStatus()
 			}
 		}
 
-		len = sprintf(Msg, "%s%s %c ", Msg, link->call, '0' + link->flags);
+		len += sprintf(&Msg[len], "%s %c ", link->call, '0' + link->flags);
 
 		if (len > 240)
 			break;

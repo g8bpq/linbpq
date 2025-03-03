@@ -4792,6 +4792,7 @@ void GetPortCTEXT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, st
 	struct stat STAT;
 	struct PORTCONTROL * PORT = PORTTABLE;
 	char PortList[256] = "";
+	int len = 0;
 
 	while (PORT)
 	{
@@ -4833,7 +4834,7 @@ void GetPortCTEXT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, st
 				*ptr = '\r';
 
 
-			sprintf(PortList, "%s,%d", PortList, PORT->PORTNUMBER);
+			len += sprintf(&PortList[len], ",%d", PORT->PORTNUMBER);
 		}
 
 		PORT = PORT->PORTPOINTER;

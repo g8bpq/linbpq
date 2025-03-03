@@ -409,8 +409,7 @@ BOOL WriteADIFRecord(ADIF * ADIF)
 		strcat(Value, "logs/BPQ_CMS_ADIF");
 	}
 
-	sprintf(Value, "%s_%04d%02d.adi", Value,
-				tm->tm_year +1900, tm->tm_mon+1);
+	sprintf(&Value[strlen(Value)], "_%04d%02d.adi", tm->tm_year +1900, tm->tm_mon+1);
 
 	STAT.st_size = 0;
 	stat(Value, &STAT);

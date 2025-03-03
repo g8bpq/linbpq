@@ -508,9 +508,12 @@ ok:
 
 		if (_memicmp(&buff->L2DATA[0], "RADIO ", 6) == 0)
 		{
-			sprintf(&buff->L2DATA[0], "%d %s", TNC->Port, &buff->L2DATA[6]);
+			char cmd[56];
 
-			if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK, &buff->L2DATA[0]))
+			strcpy(cmd, &buff->L2DATA[6]);
+			sprintf(&buff->L2DATA[0], "%d %s", TNC->Port, cnd);
+
+				if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK, &buff->L2DATA[0]))
 			{
 			}
 			else

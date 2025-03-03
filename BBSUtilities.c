@@ -5810,12 +5810,12 @@ VOID ProcessMsgLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int ms
 						}
 						else
 						{
-							ToLen = sprintf(ToString, "%sTo: %s\r\n", ToString, Addr);
+							ToLen = sprintf(&ToString[strlen(ToString)], "To: %s\r\n", Addr);
 							continue;
 						}
 					}
 
-					ToLen = sprintf(ToString, "%sTo: %s@%s\r\n", ToString, Addr, Via);
+					ToLen = sprintf(&ToString[strlen(ToString)], "To: %s@%s\r\n", Addr, Via);
 					continue;
 				}
 
@@ -5833,7 +5833,7 @@ VOID ProcessMsgLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int ms
 					}
 					else
 					{
-						ToLen = sprintf(ToString, "%sTo: %s\r\n", ToString, Addr);
+						ToLen = sprintf(&ToString[strlen(ToString)], "To: %s\r\n", Addr);
 
 						// Add to B2 Message for RMS
 

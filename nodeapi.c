@@ -2,6 +2,7 @@
 
 // Authentication is via Telnet USER records.
 
+
 #define _CRT_SECURE_NO_DEPRECATE
 
 #include "cheaders.h"
@@ -335,7 +336,7 @@ Token * find_token(const char* token)
 
 int send_http_response(char * response, const char* msg)
 {
-	return sprintf(response, "HTTP/1.1 %s\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", msg);
+	return sprintf(response, "HTTP/1.1 %s\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", msg);
 }
 
 /*

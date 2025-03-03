@@ -4501,7 +4501,7 @@ MsgLoop:
 			WritetoTrace(Stream, MsgPtr, InputLen, sockptr->ADIF, 'R');
 		}
 
-		if (InputLen == 8 && memcmp(MsgPtr, ";;;\r\n", 8) == 0)
+		if (InputLen == 8 && memcmp(MsgPtr, ";;;;;;\r\n", 8) == 0)
 		{
 			//	CMS Keepalive
 
@@ -5146,7 +5146,13 @@ int DataSocket_ReadHTTP(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, S
 			}
 		}
 		else
+		{
 			Debugprintf("WebSock Opcode %d Msg %s", Opcode, &MsgPtr[6]);
+			closesocket(sockptr->socket);
+			sockptr->SocketActive = FALSE;
+			ShowConnections(TNC);
+		}
+
 
 		sockptr->InputLen = 0;
 		return 0;
@@ -5467,8 +5473,7 @@ int WriteLog(char * msg)
 		strcat(Value, "logs/Telnet_");
 	}
 
-	sprintf(Value, "%s%02d%02d%02d.log", Value,
-				tm->tm_year - 100, tm->tm_mon+1, tm->tm_mday);
+	sprintf(&Value[strlen(Value)], "%02d%02d%02d.log", tm->tm_year - 100, tm->tm_mon+1, tm->tm_mday);
 
 	if ((file = fopen(Value, "a")) == NULL)
 		return FALSE;
@@ -5523,8 +5528,7 @@ VOID WriteCMSLog(char * msg)
 		strcat(Value, "logs/CMSAccess");
 	}
 
-	sprintf(Value, "%s_%04d%02d%02d.log", Value,
-				tm->tm_year +1900, tm->tm_mon+1, tm->tm_mday);
+	sprintf(&Value[strlen(Value)], "_%04d%02d%02d.log", tm->tm_year +1900, tm->tm_mon+1, tm->tm_mday);
 
 	Handle = fopen(Value, "ab");
 

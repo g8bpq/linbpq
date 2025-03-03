@@ -2293,6 +2293,7 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 			
 		struct HtmlFormDir * Dir;
 		int i;
+		int len;
 
 		SubDir = strlop(&NodeURL[17], ':');
 		DirNo = atoi(&NodeURL[17]);
@@ -2313,9 +2314,9 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 		Dir = HtmlFormDirs[DirNo];
 
 		if (SubDir)
-			sprintf(popup, popuphddr, Key, Dir->Dirs[SubDirNo]->DirName);
+			len = sprintf(popup, popuphddr, Key, Dir->Dirs[SubDirNo]->DirName);
 		else
-			sprintf(popup, popuphddr, Key, Dir->DirName);
+			len = sprintf(popup, popuphddr, Key, Dir->DirName);
 
 		if (SubDir)
 		{
@@ -2326,7 +2327,7 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 				// We only send if there is a .txt file
 
 				if (_stricmp(&Name[strlen(Name) - 4], ".txt") == 0)
-					sprintf(popup, "%s <option value=%d:%d,%d>%s", popup, DirNo, SubDirNo, i, Name);
+					len += sprintf(&popup[len], " <option value=%d:%d,%d>%s", DirNo, SubDirNo, i, Name);
 			}
 		}
 		else
@@ -2338,10 +2339,10 @@ void ProcessWebMailMessage(struct HTTPConnectionInfo * Session, char * Key, BOOL
 				// We only send if there is a .txt file
 
 				if (_stricmp(&Name[strlen(Name) - 4], ".txt") == 0)
-					sprintf(popup, "%s <option value=%d,%d>%s", popup, DirNo, i, Name);
+					len += sprintf(&popup[len], " <option value=%d,%d>%s", DirNo, i, Name);
 			}
 		}
-		sprintf(popup, "%s</select></p>", popup);
+		len += sprintf(&popup[len], "</select></p>");
 
 		*RLen = sprintf(Reply, "%s", popup);
 		return;
@@ -2409,6 +2410,7 @@ VOID SendTemplateSelectScreen(struct HTTPConnectionInfo * Session, char *Params,
 	int i;
 	int MsgLen = 0;
 	char * Boundary;
+	int len;
 				
 	WebMailInfo * WebMail = Session->WebMail;
 
@@ -2455,7 +2457,7 @@ VOID SendTemplateSelectScreen(struct HTTPConnectionInfo * Session, char *Params,
 
 	// Also to active fields in case not changed by form
 
-	sprintf(popup, popuphddr, Session->Key);
+	len = sprintf(popup, popuphddr, Session->Key);
 
 	LastGroup = HtmlFormDirs[0]->FormSet;		// Save so we know when changes
 
@@ -2468,21 +2470,21 @@ VOID SendTemplateSelectScreen(struct HTTPConnectionInfo * Session, char *Params,
 		if (strcmp(LastGroup, Dir->FormSet) != 0)
 		{
 			LastGroup = Dir->FormSet;
-			sprintf(popup, "%s%s", popup, NewGroup);
+			len += sprintf(&popup[len], "%s", NewGroup);
 		}
 
-		sprintf(popup, "%s <option value=%d>%s", popup, i, Dir->DirName);
+		len += sprintf(&popup[len], " <option value=%d>%s", i, Dir->DirName);
 			
 		// Recurse any Subdirs
 			
 		n = 0;
 		while (n < Dir->DirCount)
 		{
-			sprintf(popup, "%s <option value=%d:%d>%s", popup, i, n, Dir->Dirs[n]->DirName);
+			len += sprintf(&popup[len], " <option value=%d:%d>%s", i, n, Dir->Dirs[n]->DirName);
 			n++;
 		}
 	}
-	sprintf(popup, "%s</select></td></tr></table></p>", popup);
+	len += sprintf(&popup[len], "%</select></td></tr></table></p>");
 
 	*WebMail->RLen = sprintf(WebMail->Reply, "%s", popup);
 
@@ -5495,6 +5497,7 @@ BOOL DoSelectPrompt(struct HTTPConnectionInfo * Session, char * Select)
 	char * ptr, * ptr1;
 	char * prompt;
 	char * var[100];
+	int len;
 
 	WebMailInfo * WebMail = Session->WebMail;
 		
@@ -5564,7 +5567,7 @@ BOOL DoSelectPrompt(struct HTTPConnectionInfo * Session, char * Select)
 		ptr = ptr1;
 	}
 
-	sprintf(popup, popuphddr, Session->Key, prompt, vars + 1);
+	len = sprintf(popup, popuphddr, Session->Key, prompt, vars + 1);
 
 	for (i = 0; i < vars; i++)
 	{
@@ -5573,9 +5576,9 @@ BOOL DoSelectPrompt(struct HTTPConnectionInfo * Session, char * Select)
 		if (key == NULL)
 			key = var[i];
 
-		sprintf(popup, "%s <option value='%s'>%s", popup, key, var[i]);
+		len += sprintf(&popup[len], " <option value='%s'>%s", key, var[i]);
 	}
-	sprintf(popup, "%s</select></td></tr></table><br><input onclick=window.history.back() value=Back type=button class='btn'></div>", popup);
+	len += sprintf(&popup[len], "%s</select></td></tr></table><br><input onclick=window.history.back() value=Back type=button class='btn'></div>");
 
 	*WebMail->RLen = sprintf(WebMail->Reply, "%s", popup);
 	free(SelCopy);
@@ -6134,16 +6137,17 @@ VOID getAttachmentList(struct HTTPConnectionInfo * Session, char * Reply, int * 
 	char popup[10000];
 	int i;
 	WebMailInfo * WebMail = Session->WebMail;
+	int len;
 
-	sprintf(popup, popuphddr, Session->Key, WebMail->Files);
+	len = sprintf(popup, popuphddr, Session->Key, WebMail->Files);
 
 	for (i = 0; i < WebMail->Files; i++)
 	{
 		if(WebMail->FileLen[i] < 100000)
-			sprintf(popup, "%s <option value=%d>%s (Len %d)", popup, i + 1, WebMail->FileName[i], WebMail->FileLen[i]);
+			len += sprintf(&popup[len], " <option value=%d>%s (Len %d)", i + 1, WebMail->FileName[i], WebMail->FileLen[i]);
 	}
 
-	sprintf(popup, "%s</select></td></tr></table><br><input onclick=window.history.back() value=Back type=button class='btn'></div>", popup);
+	len += sprintf(&popup[len], "%</select></td></tr></table><br><input onclick=window.history.back() value=Back type=button class='btn'></div>");
 
 	*RLen = sprintf(Reply, "%s", popup);
 	return;
@@ -6289,7 +6293,7 @@ int ProcessWebmailWebSock(char * MsgPtr, char * OutBuffer)
 		}
 	}
 
-	ptr += sprintf(ptr, "%s</pre> \r\n", ptr);
+	ptr += sprintf(&ptr[strlen(ptr)], "</pre> \r\n");
 
 	Len = ptr - &OutBuffer[10];
 

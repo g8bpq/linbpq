@@ -740,7 +740,10 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 		if (_memicmp(&buff->L2DATA[0], "RADIO ", 6) == 0)
 		{
-			sprintf(&buff->L2DATA[0], "%d %s", TNC->Port, &buff->L2DATA[6]);
+			char cmd[56];
+
+			strcpy(cmd, &buff->L2DATA[6]);
+			sprintf(&buff->L2DATA[0], "%d %s", TNC->Port, cmd);
 
 			if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK, &buff->L2DATA[0]))
 			{
@@ -4139,7 +4142,7 @@ void buildParamString(struct TNCINFO * TNC, char * line)
 		FDI->TuningRange * -1.0, FDI->TuningRange * 1.0, FDI->TXLevel);
 
 	if (FDI->hamlibHost)
-		sprintf(line, "%s --rigctld_ip %s --rigctld_port %d", line, FDI->hamlibHost, FDI->hamlibPort);
+		sprintf(&line[strlen(line)], " --rigctld_ip %s --rigctld_port %d", FDI->hamlibHost, FDI->hamlibPort);
 
 	if (FDI->LimitBandWidth)
 		strcat(line, " --500hz");

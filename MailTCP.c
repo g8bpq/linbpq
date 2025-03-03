@@ -1570,12 +1570,12 @@ VOID ProcessSMTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 						if (CheckifLocalRMSUser(Addr)) // if local RMS - Leave Here
 							continue;
 						
-						ToLen = sprintf(ToString, "%sTo: %s\r\n", ToString, &Addr[4]);
+						ToLen = sprintf(&ToString[strlen(ToString)], "To: %s\r\n", &Addr[4]);
 						*sockptr->RecpTo[i] = 0;		// So we dont create individual one later
 						continue;
 					}
 
-					ToLen = sprintf(ToString, "%sTo: %s@%s\r\n", ToString, &Addr[4], Via);
+					ToLen = sprintf(&ToString[strlen(ToString)], "To: %s@%s\r\n", &Addr[4], Via);
 					*sockptr->RecpTo[i] = 0;			// So we dont create individual one later
 					continue;
 				}
@@ -1591,7 +1591,7 @@ VOID ProcessSMTPServerMessage(SocketConn * sockptr, char * Buffer, int Len)
 					if (CheckifLocalRMSUser(Addr)) // if local RMS - Leave Here
 						continue;
 					
-					ToLen = sprintf(ToString, "%sTo: %s\r\n", ToString, Addr);
+					ToLen = sprintf(&ToString[strlen(ToString)], "To: %s\r\n", Addr);
 					*sockptr->RecpTo[i] = 0;		// So we dont create individual one later
 
 					continue;

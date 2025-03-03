@@ -407,7 +407,10 @@ static size_t ExtProc(int fn, int port,  PDATAMESSAGE buff)
 
 			if (_memicmp(buff->L2DATA, "RADIO ", 6) == 0)
 			{
-				sprintf(buff->L2DATA, "%d %s", TNC->Port, &buff->L2DATA[6]);
+				char cmd[56];
+
+				strcpy(cmd, &buff->L2DATA[6]);
+				sprintf(buff->L2DATA, "%d %s", TNC->Port, cmd);
 
 				if (Rig_Command(TNC->PortRecord->ATTACHEDSESSIONS[0]->L4CROSSLINK, buff->L2DATA))
 				{
@@ -1539,7 +1542,7 @@ VOID CloseComplete(struct TNCINFO * TNC, int Stream)
 		sprintf(Cmd, "%cDIGITAL MODE %s\x1b", '\x1a', TNC->MPSKInfo->DefaultMode);
 
 	if (TNC->MPSKInfo->Beacon)
-		sprintf(Cmd, "%s%cBEACON_ARQ_FAE\x1b", Cmd, '\x1a');
+		sprintf(&Cmd[strlen(Cmd)], "%cBEACON_ARQ_FAE\x1b", '\x1a');
 	
 	Len = strlen(Cmd);
 

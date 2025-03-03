@@ -1733,6 +1733,7 @@ VOID LISTENCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struc
 	char * ptr, *Context;
 	struct PORTCONTROL * PORT = NULL;
 	char ListenPortList[128] = "";
+	int len = 0;
 
 	ptr = strtok_s(CmdTail, " ,", &Context);
 
@@ -1785,7 +1786,7 @@ VOID LISTENCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struc
 			}
 		}
 
-		sprintf(ListenPortList, "%s %d", ListenPortList, Port);
+		len += sprintf(&ListenPortList[len], " %d", Port);
 
 		ListenMask |= ((uint64_t)1 << (Port - 1));
 	}

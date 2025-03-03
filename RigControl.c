@@ -5286,10 +5286,13 @@ BOOL DecodeModePtr(char * Param, double * Dwell, double * Freq, char * Mode,
 
 	ptr = strtok_s(NULL, ",", &Context);
 
-	if (ptr == NULL || strlen(ptr) >  8)
-		return FALSE;
+	if (ptr == NULL)
+		if (*MemoryNumber)		// If channel, dont need mode
+			return TRUE;
 
-	// If channel, dont need mode
+	if (ptr == NULL || strlen(ptr) >  8)
+		return FALSE;		// Mode Missing
+
 
 	if (*MemoryNumber == 0)
 	{
@@ -7393,6 +7396,8 @@ VOID SetupScanInterLockGroups(struct RIGINFO *RIG)
 	int Interlock = RIG->Interlock;
 	char PortString[128] = "";
 	char TxPortString[128] = "";
+	int n = 0;
+	int nn = 0;
 
 	// Find TNC ports in this Rig's scan group
 
@@ -7409,7 +7414,7 @@ VOID SetupScanInterLockGroups(struct RIGINFO *RIG)
 		{
 			int p = PortRecord->PORTNUMBER;
 			RIG->BPQPort |= ((uint64_t)1 << p);
-			sprintf(PortString, "%s,%d", PortString, p);
+			n += sprintf(&PortString[n], ",%d", p);
 			TNC->RIG = RIG;
 
 			if (RIG->PTTMode == 0 && TNC->PTTMode)
@@ -7419,7 +7424,7 @@ VOID SetupScanInterLockGroups(struct RIGINFO *RIG)
 		{
 			int p = PortRecord->PORTNUMBER;
 			RIG->BPQPort |= ((uint64_t)1 << p);
-			sprintf(TxPortString, "%s,%d", TxPortString, p);
+			nn += sprintf(&TxPortString[nn], ",%d", p);
 			TNC->TXRIG = RIG;
 
 			if (RIG->PTTMode == 0 && TNC->PTTMode)

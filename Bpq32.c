@@ -1253,6 +1253,9 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix problem using SENDRAW from BPQMail (63)
 //	Fix compatibility with latest ardopcf (64)
 //	Fix bug in RHP socket timeout code (65)
+//	Fix L4 RTT (66)
+//	Fix RigConrol with Chanxx but no other settings (66)
+
 
 
 #define CKernel
@@ -6117,13 +6120,14 @@ DllExport BOOL APIENTRY SaveReg(char * KeyIn, HANDLE hFile)
 						{
 							if (len > 76)
 							{
-								len = sprintf(RegLine, "%s\\\r\n", RegLine);
+								len += sprintf(&RegLine[len], "\\\r\n", RegLine);
+								strcat(RegLine, "\\\r\n");
 								WriteFile(hFile, RegLine, len, &written, NULL);
 								strcpy(RegLine, "  ");
 								len = 2;
 							}
 
-							len = sprintf(RegLine, "%s%02x,", RegLine, Value[k]);
+							len += sprintf(&RegLine[len], "%02x,", Value[k]);
 						}
 						RegLine[--len] = 0x0d;
 						RegLine[++len] = 0x0a;	
@@ -6149,19 +6153,20 @@ DllExport BOOL APIENTRY SaveReg(char * KeyIn, HANDLE hFile)
 						{
 							if (len > 76)
 							{
-								len = sprintf(RegLine, "%s\\\r\n", RegLine);
+								len += sprintf(RegLine[len], "\\\r\n");
 								WriteFile(hFile, RegLine, len, &written, NULL);
 								strcpy(RegLine, "  ");
 								len = 2;
 							}
-							len = sprintf(RegLine, "%s%02x,", RegLine, Value[k]);
+
+							len += sprintf(&RegLine[len], "%02x,", Value[k]);
 							if (len > 76)
 							{
-								len = sprintf(RegLine, "%s\\\r\n", RegLine);
+								len += sprintf(RegLine[len], "\\\r\n");
 								WriteFile(hFile, RegLine, len, &written, NULL);
 								strcpy(RegLine, "  ");
 							}
-							len = sprintf(RegLine, "%s00,", RegLine);
+							len += sprintf(&RegLine[len], "00,");
 						}
 
 						RegLine[--len] = 0x0d;

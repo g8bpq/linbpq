@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 */	
 
+
 //#define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
 
 #define _CRT_SECURE_NO_DEPRECATE
@@ -4379,7 +4380,7 @@ int ProcessMailAPISignon(struct TCPINFO * TCP, char * MsgPtr, char * Appl, char 
 
 		if (user && user[0] && password && password[0])
 		{
-			sprintf(MsgPtr, "%s?%s&%s", MsgPtr, user, password); 
+			sprintf(&MsgPtr[strlen(MsgPtr)], "?%s&%s", user, password); 
 		}
 	}
 
