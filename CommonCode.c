@@ -1124,6 +1124,11 @@ int CompareNode(struct DEST_LIST ** a, struct DEST_LIST ** b)
 	return memcmp(a[0]->DEST_CALL, b[0]->DEST_CALL, 7);
 }
 
+int CompareRoutes(struct ROUTE ** a, struct ROUTE ** b)
+{
+	return memcmp(a[0]->NEIGHBOUR_CALL, b[0]->NEIGHBOUR_CALL, 7);
+}
+
 DllExport int APIENTRY CountFramesQueuedOnStream(int Stream)
 {
 	BPQVECSTRUC * PORTVEC = &BPQHOSTVECTOR[Stream-1];		// API counts from 1

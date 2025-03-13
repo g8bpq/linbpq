@@ -144,6 +144,10 @@ int L4Compress = 0;
 int L4CompMaxframe = 3;
 int L4CompPaclen = 236;
 
+int L2Compress = 0;
+int L2CompMaxframe = 3;
+int L2CompPaclen = 236;
+
 BOOL LogL4Connects = FALSE;
 BOOL LogAllConnects = FALSE;
 BOOL AUTOSAVEMH = TRUE;
@@ -836,6 +840,17 @@ BOOL Start()
 
 	if (L4CompPaclen < 64 || L4CompPaclen > 236)
 		L4CompPaclen = 236;
+
+	L2Compress = cfg->C_L2Compress;
+	L2CompMaxframe = cfg->C_L2CompMaxframe;
+	L2CompPaclen = cfg->C_L2CompPaclen;
+
+	if (L2CompMaxframe < 1 || L2CompMaxframe > 16)
+		L2CompMaxframe = 3;
+
+	if (L2CompPaclen < 64 || L2CompPaclen > 236)
+		L2CompPaclen = 236;
+
  
 	// Get pointers to PASSWORD and APPL1 commands
 

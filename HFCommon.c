@@ -1917,7 +1917,7 @@ int standardParams(struct TNCINFO * TNC, char * buf)
 		TNC->ActiveTXFreq = atof(&buf[13]);
 	else if (_memicmp(buf, "ActiveRXFreq", 12) == 0)	// Set at start of session
 		TNC->ActiveRXFreq = atof(&buf[13]);
-	else if (_memicmp(buf, "DisconnectScript", 16) == 0)	// Set at start of session
+	else if (_memicmp(buf, "DisconnectScript", 16) == 0)	// Set at end of session
 		TNC->DisconnectScript = SeparateMultiString(&buf[17]);
 	else if (_memicmp(buf, "PTTONHEX", 8) == 0)
 	{

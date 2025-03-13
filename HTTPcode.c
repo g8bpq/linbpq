@@ -105,9 +105,13 @@ extern int NumberofPorts;
 
 extern UCHAR ConfigDirectory[260];
 
+extern struct AXIPPORTINFO * Portlist[];
+
 VOID sendandcheck(SOCKET sock, const char * Buffer, int Len);
 int CompareNode(const void *a, const void *b);
 int CompareAlias(const void *a, const void *b);
+int CompareRoutes(const void * a, const void * b);
+
 void ProcessMailHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, char * URL, char * input, char * Reply, int * RLen, int InputLen, char * Token);
 void ProcessChatHTTPMessage(struct HTTPConnectionInfo * Session, char * Method, char * URL, char * input, char * Reply, int * RLen);
 struct PORTCONTROL * APIENTRY GetPortTableEntryFromSlot(int portslot);
@@ -3794,12 +3798,88 @@ doHeader:
 
 			*/
 
+			// AXIP Partners
+
+			if (_stricmp(NodeURL, "/Node/AXIP.html") == 0)
+			{
+				int i;
+				char Normcall[10];
+				int Width = 5;
+				int x = 0, n = 0, nd = 0;
+				struct arp_table_entry * List[1000];
+				struct arp_table_entry * ListD[1000];
+				char AXIPList[10000] = "";
+				int ListLen = 0;
+
+				struct AXIPPORTINFO * AXPORT = Portlist[0];
+				struct PORTCONTROL * PORT = PORTTABLE;
+				struct arp_table_entry * arp;
+				time_t NOW = time(NULL);
+				
+				char AXIPHeader[] =
+					"<table align='center' bgcolor='ffffff' border=2 cellpadding=10 cellspacing=2 style=font-family:monospace>"
+					"<tr><td align='center'>AXIP Up</td><td align='center'>AXIP Down</td></tr><tr><td valign='top'>%s";
+				
+				char DownList[] = 
+					"</td><td valign='top'>%s";
+
+				char Tail[] = 
+					"</td></tr></table></body></html>";
+
+
+				while (PORT)
+				{
+					AXPORT = Portlist[PORT->PORTNUMBER];
+
+					if (AXPORT)
+					{
+						// Get ARP entries
+
+						for (i = 0; i < AXPORT->arp_table_len; i++)
+						{
+							arp = &AXPORT->arp_table[i];
+
+							if (arp->LastHeard == 0 || (NOW - arp->LastHeard) > 3600)			// Considered down
+								ListD[nd++] = arp;
+							else
+								List[n++] = arp;
+						}
+					}
+					PORT = PORT->PORTPOINTER;
+				}
+
+				if (n > 1)
+					qsort(List, n, sizeof(void *), CompareNode);
+				if (nd > 1)
+					qsort(ListD, nd, sizeof(void *), CompareNode);
+
+				for (i = 0; i < n; i++)
+				{
+					int len = ConvFromAX25(List[i]->callsign, Normcall);
+					Normcall[len]=0;
+
+					ListLen += sprintf(&AXIPList[ListLen], "%02d - %s %d<br>", i + 1, Normcall, (List[i]->LastHeard)?(NOW - List[i]->LastHeard):0);
+				}
+
+				ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], AXIPHeader, AXIPList);
+
+				ListLen = 0;
+	
+				for (i = 0; i < nd; i++)
+				{
+					int len = ConvFromAX25(ListD[i]->callsign, Normcall);
+					Normcall[len]=0;
+					ListLen += sprintf(&AXIPList[ListLen], "%02d - %s %d<br>", i + 1, Normcall, (ListD[i]->LastHeard)?(NOW - ListD[i]->LastHeard):0);
+				}
+				ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], DownList, AXIPList);
+				ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], Tail);
+			}
 
 			if (_stricmp(NodeURL, "/Node/Routes.html") == 0)
 			{
 				struct ROUTE * Routes = NEIGHBOURS;
 				int MaxRoutes = MAXNEIGHBOURS;
-				int count;
+				int count, i;
 				char Normcall[10];
 				char locked[4] = " ";
 				int NodeCount;
@@ -3807,12 +3887,34 @@ doHeader:
 				int Iframes, Retries;
 				char Active[10];
 				int Queued;
+				
+				int x = 0, n = 0;
+				struct ROUTE * List[1000];
 
+			
 				ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], "%s", RouteHddr);
 
-				for (count=0; count<MaxRoutes; count++)
+				// Build and sort list of routes
+				
+				for (count = 0; count < MaxRoutes; count++)
 				{
 					if (Routes->NEIGHBOUR_CALL[0] != 0)
+					{
+						List[n++] = Routes;
+
+						if (n > 999)
+							break;
+					}
+
+					Routes++;
+				}
+
+				if (n > 1)
+					qsort(List, n, sizeof(void *), CompareRoutes);
+
+				for (i = 0; i < n; i++)
+				{
+					Routes = List[i];
 					{
 						int len = ConvFromAX25(Routes->NEIGHBOUR_CALL, Normcall);
 						Normcall[len]=0;

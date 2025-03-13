@@ -2610,6 +2610,7 @@ BOOL CheckSourceisResolvable(struct AXIPPORTINFO * PORT, char * call, int Port, 
 
 				//arp->port = Port;
 			}
+			arp->LastHeard = time(NULL);
 			return 1;		// Ok to process
 		}
 		index++;

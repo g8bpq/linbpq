@@ -67,17 +67,22 @@ VOID ProcessRTTMsg(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Buff, int Len
 VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask, UCHAR * ApplCall);
 void WriteConnectLog(char * fromCall, char * toCall, UCHAR * Mode);
 void SendVARANetromMsg(struct TNCINFO * TNC, PL3MESSAGEBUFFER MSG);
-unsigned char * Compressit(unsigned char * In, int Len, int * OutLen);
 int doinflate(unsigned char * source, unsigned char * dest, int Len, int destlen, int * outLen);
-
+int L2Compressit(unsigned char * Out, int OutSize, unsigned char * In, int Len);
 static UINT APPLMASK;
 
 extern BOOL LogL4Connects;
 extern BOOL LogAllConnects;
 
+
 extern int L4Compress;
 extern int L4CompMaxframe;
 extern int L4CompPaclen;
+
+
+extern int L2Compress;
+extern int L2CompMaxframe;
+extern int L2CompPaclen;
 
 // L4 Flags Values
 
@@ -567,6 +572,55 @@ void sendChunk(TRANSPORTENTRY * L4, unsigned char * Compressed, int complen, int
 	}
 }
 
+void sendL2Chunk(struct _LINKTABLE * LINK, unsigned char * Compressed, int complen, int sendPacLen)
+{
+	unsigned char * compdata;
+	struct DATAMESSAGE * Msg;
+	int sendLen = complen;
+	int fragments;
+
+	LINK->SentAfterCompression += complen;
+	
+	if (complen > L2CompPaclen)
+	{
+		fragments = (complen / sendPacLen);			// Split to roughly equal sized fraagments
+
+		if (fragments * sendPacLen != complen)
+			fragments++;
+
+		sendLen = (complen / fragments) + 1;
+	}
+
+	Debugprintf("L2 Chunk %d Bytes %d PACLEN %d Fragments %d FragSize", complen, sendPacLen, fragments, sendLen);
+
+	compdata = Compressed;
+
+	while (complen > 0)
+	{
+		int PID = 0xF1;
+
+		if (complen > sendLen)
+			PID = 0xF2;				// More to come
+
+		Msg = GetBuff();
+
+		if (!Msg)
+			return;
+
+		Msg->PORT = LINK->LINKPORT->PORTNUMBER;
+
+		memcpy(Msg->L2DATA, compdata, sendLen);
+		Msg->LENGTH = sendLen + MSGHDDRLEN + 1;			// 1 for pid field
+		Msg->PID = PID;	// Not sent so use as a flag for compressed msg
+
+		compdata += sendLen;
+		complen -= sendLen;
+
+		C_Q_ADD(&LINK->TX_Q, Msg);
+	}
+}
+
+
 VOID L4BG()
 {
 	// PROCESS DATA QUEUED ON SESSIONS
@@ -628,7 +682,7 @@ VOID L4BG()
 
 				LINK = L4->L4TARGET.LINK;
 
-				if (COUNT_AT_L2(LINK) > 8)
+				if (COUNT_AT_L2(LINK) > 64)
 					break;
 			}
 
@@ -666,36 +720,32 @@ VOID L4BG()
 				if (L4->AllowCompress)
 				{
 					int complen = 0;
-					unsigned char * Compressed;
+					unsigned char Compressed[8192];
+					unsigned char toCompress[8192];
+					int toCompressLen = 0;
 					int dataLen;
 					int savePort = Msg->PORT;
 					int maxCompSendLen;
 
 					// Save first packet, then see if more on TX_Q
 
-					L4->toCompress = malloc(8192);
-					L4->toCompressLen = 0;
-
 					dataLen = Msg->LENGTH - MSGHDDRLEN - 1;		// No header or pid
 
 					L4->Sent += dataLen;
 
-					memcpy(&L4->toCompress[L4->toCompressLen], Msg->L2DATA, dataLen);
-					L4->toCompressLen += dataLen;
+					memcpy(&toCompress[toCompressLen], Msg->L2DATA, dataLen);
+					toCompressLen += dataLen;
 
 					// See if first will compress. If not assume too short or already compressed data and just send
 
-					Compressed = Compressit(L4->toCompress, L4->toCompressLen, &complen);
+					complen = L2Compressit(Compressed, 8192, toCompress, toCompressLen);
 				
 					if (complen >= dataLen)
 					{
-						free(Compressed);
 						L4->SentAfterCompression += dataLen;
 						SENDL4MESSAGE(L4, Msg);
 						ReleaseBuffer(Msg);
-						free(L4->toCompress);
-						L4->toCompress = 0;
-						L4->toCompressLen = 0;
+						toCompressLen = 0;
 						continue;
 					}
 
@@ -705,7 +755,7 @@ VOID L4BG()
 					{
 						// no more, so just send the stuff we've just compressed. Compressed data will fit in input packet
 
-//						Debugprintf("%d %d %d%%", L4->toCompressLen, complen, ((L4->toCompressLen - complen) * 100) / L4->toCompressLen);
+//						Debugprintf("%d %d %d%%", toCompressLen, complen, ((toCompressLen - complen) * 100) / toCompressLen);
 
 						memcpy(Msg->L2DATA, Compressed, complen);
 						
@@ -716,17 +766,13 @@ VOID L4BG()
 						SENDL4MESSAGE(L4, Msg);
 						ReleaseBuffer(Msg);
 		
-						free(L4->toCompress);
-						L4->toCompressLen = 0;
-						L4->toCompress = 0;
-						free(Compressed);
+						toCompressLen = 0;
 						continue;
 					}
 
-					free(Compressed);
 					ReleaseBuffer(Msg);					// Not going to use it
 
-					while (L4->L4TX_Q && L4->toCompressLen < (8192 - 256))		// Make sure can't overrin buffer
+					while (L4->L4TX_Q && toCompressLen < (8192 - 256))		// Make sure can't overrin buffer
 					{
 						// Collect the data from L4TX_Q
 					
@@ -734,16 +780,17 @@ VOID L4BG()
 						dataLen = Msg->LENGTH - MSGHDDRLEN - 1;		// No header or pid
 						L4->Sent += dataLen;
 
-						memcpy(&L4->toCompress[L4->toCompressLen], Msg->L2DATA, dataLen);
-						L4->toCompressLen += dataLen;
+						memcpy(&toCompress[toCompressLen], Msg->L2DATA, dataLen);
+						toCompressLen += dataLen;
 
 						ReleaseBuffer(Msg);
 					}
 
-					L4->toCompress[L4->toCompressLen] = 0;
+					toCompress[toCompressLen] = 0;
 	
-					Compressed = Compressit(L4->toCompress, L4->toCompressLen, &complen);
-//					Debugprintf("%d %d %d%%", L4->toCompressLen, complen, ((L4->toCompressLen - complen) * 100) / L4->toCompressLen);
+					complen = L2Compressit(Compressed, 8192, toCompress, toCompressLen);
+
+					Debugprintf("%d %d %d%%", toCompressLen, complen, ((toCompressLen - complen) * 100) / toCompressLen);
 
 					// Send compressed
 
@@ -762,8 +809,8 @@ VOID L4BG()
 
 						int Fragments;
 						int ChunkSize;
-						unsigned char * CompressPtr = L4->toCompress;
-						int bytesleft = L4->toCompressLen;
+						unsigned char * CompressPtr = toCompress;
+						int bytesleft = toCompressLen;
 
 						// Assume 10% worse compression on smaller input
 
@@ -771,7 +818,7 @@ VOID L4BG()
 
 						Fragments = j / maxCompSendLen;
 						Fragments++;
-						ChunkSize = (L4->toCompressLen / Fragments) + 1;	// 1 for rounding
+						ChunkSize = (toCompressLen / Fragments) + 1;	// 1 for rounding
 
 						while (bytesleft > 0)
 						{
@@ -779,9 +826,9 @@ VOID L4BG()
 							if (Len > ChunkSize)
 								Len = ChunkSize;
 
-							free (Compressed);
-							Compressed = Compressit(CompressPtr, Len, &complen);
-//							Debugprintf("Chunked %d %d %d%%", Len, complen, ((Len - complen) * 100) / Len);
+							complen = L2Compressit(Compressed, 8192, toCompress, toCompressLen);
+
+							Debugprintf("Chunked %d %d %d%%", Len, complen, ((Len - complen) * 100) / Len);
 
 							sendChunk(L4, Compressed, complen, savePort);
 
@@ -793,10 +840,7 @@ VOID L4BG()
 					else
 						sendChunk(L4, Compressed, complen,savePort);
 
-					free(L4->toCompress);
-					L4->toCompressLen = 0;
-					L4->toCompress = 0;
-					free(Compressed);
+					toCompressLen = 0;
 				}
 				else
 				{
@@ -807,6 +851,8 @@ VOID L4BG()
 				}
 				continue;
 			}
+
+			// L2 Link
 
 			LINK = L4->L4TARGET.LINK;
 
@@ -935,9 +981,6 @@ VOID CLEARSESSIONENTRY(TRANSPORTENTRY * Session)
 
 	if (Session->PARTCMDBUFFER)
 		ReleaseBuffer(Session->PARTCMDBUFFER);
-
-	if (Session->toCompress)
-		free(Session->toCompress);
 
 	if (Session->unCompress)
 		free(Session->unCompress);

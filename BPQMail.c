@@ -1148,6 +1148,7 @@
 //	Fix bug in WP Message processing (56)
 //	Fix treating addresses ending in WW as Internet (57)
 //	Run sending to packetnodes.spots.radio in a separate thread (61)
+//	Fix loading ISP Account Name from config file (67)
 
 #include "bpqmail.h"
 #include "winstdint.h"

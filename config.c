@@ -308,7 +308,7 @@ static char *keywords[] =
 "BTEXT:", "NETROMCALL", "C_IS_CHAT", "MAXRTT", "MAXHOPS",		// IPGATEWAY= no longer allowed
 "LogL4Connects", "LogAllConnects", "SAVEMH", "ENABLEADIFLOG", "ENABLEEVENTS", "SAVEAPRSMSGS", 
 "EnableM0LTEMap", "MQTT", "MQTT_HOST", "MQTT_PORT", "MQTT_USER", "MQTT_PASS",
-"L4Compress", "L4CompMaxframe", "L4CompPaclen"
+"L4Compress", "L4CompMaxframe", "L4CompPaclen", "L2Compress", "L2CompMaxframe", "L2CompPaclen"
 };           /* parameter keywords */
 
 static void * offset[] =
@@ -330,7 +330,7 @@ static void * offset[] =
 &xxcfg.C_BTEXT, &xxcfg.C_NETROMCALL, &xxcfg.C_C, &xxcfg.C_MAXRTT, &xxcfg.C_MAXHOPS,		// IPGATEWAY= no longer allowed
 &xxcfg.C_LogL4Connects, &xxcfg.C_LogAllConnects, &xxcfg.C_SaveMH, &xxcfg.C_ADIF, &xxcfg.C_EVENTS, &xxcfg.C_SaveAPRSMsgs,
 &xxcfg.C_M0LTEMap, &xxcfg.C_MQTT, &xxcfg.C_MQTT_HOST, &xxcfg.C_MQTT_PORT, &xxcfg.C_MQTT_USER, &xxcfg.C_MQTT_PASS,
-&xxcfg.C_L4Compress, &xxcfg.C_L4CompMaxframe, &xxcfg.C_L4CompPaclen};		/* offset for corresponding data in config file */
+&xxcfg.C_L4Compress, &xxcfg.C_L4CompMaxframe, &xxcfg.C_L4CompPaclen, &xxcfg.C_L2Compress, &xxcfg.C_L2CompMaxframe, &xxcfg.C_L2CompPaclen};		/* offset for corresponding data in config file */
 
 static int routine[] = 
 {
@@ -351,7 +351,7 @@ static int routine[] =
 15, 0, 2, 9, 9,
 2, 2, 1, 2, 2, 2,
 2, 2, 0, 1, 20, 20,
-1, 1, 1} ;			// Routine to process param
+1, 1, 1, 1, 1, 1} ;			// Routine to process param
 
 int PARAMLIM = sizeof(routine)/sizeof(int);
 //int NUMBEROFKEYWORDS = sizeof(routine)/sizeof(int);
@@ -621,6 +621,9 @@ BOOL ProcessConfig()
 	paramok[86]=1;			// L4Compress
 	paramok[87]=1;			// L4Compress Maxframe
 	paramok[88]=1;			// L4Compress Paclen
+	paramok[89]=1;			// L2Compress
+	paramok[90]=1;			// L2Compress Maxframe
+	paramok[91]=1;			// L2Compress Paclen
 
 
 	for (i=0; i < PARAMLIM; i++)

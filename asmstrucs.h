@@ -176,8 +176,6 @@ typedef struct _TRANSPORTENTRY
 	//	We collect as much data as possible before compressing and re-packetizing
 
 	int AllowCompress;	
-	unsigned char * toCompress;	// Data being saved to compress
-	int toCompressLen;
 
 	unsigned char * unCompress;	// Data being saved to uncompress
 	int unCompressLen;
@@ -959,6 +957,21 @@ typedef struct _LINKTABLE
 	int bytesRXed;			// Info bytes only
 	int bytesTXed;
 
+	//	Now support compressing L2 Sessions.
+	//	We collect as much data as possible before compressing and re-packetizing
+
+	int AllowCompress;	
+
+	unsigned char * unCompress;	// Data being saved to uncompress
+	int unCompressLen;
+
+	int Sent;
+	int SentAfterCompression;
+
+	int Received;
+	int ReceivedAfterExpansion;
+
+
 } LINKTABLE;
 
 #pragma pack(1)
@@ -1354,6 +1367,7 @@ struct arp_table_entry
 //	SOCKET SourceSocket;
 	struct AXIPPORTINFO * PORT;
 	BOOL noUpdate;				// Don't update dest address from incoming packet
+	time_t LastHeard;			// Last Packet received from this ststiom
 };
 
 

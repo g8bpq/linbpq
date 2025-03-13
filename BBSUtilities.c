@@ -10245,7 +10245,7 @@ BOOL GetConfig(char * ConfigName)
 	GetStringValue(group, "ISPAccountPass", EncryptedISPAccountPass, 100);
 
 	sprintf(SignoffMsg, "73 de %s\r", BBSName);					// Default
-	GetStringValue(group, "SignoffMsg", ISPAccountName, 50);
+	GetStringValue(group, "SignoffMsg", SignoffMsg, 50);
 
 	DecryptPass(EncryptedISPAccountPass, ISPAccountPass, (int)strlen(EncryptedISPAccountPass));
 

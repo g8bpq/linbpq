@@ -173,6 +173,9 @@ struct CONFIGTABLE
 	int C_L4Compress;
 	int C_L4CompMaxframe;
 	int C_L4CompPaclen;
+	int C_L2Compress;
+	int C_L2CompMaxframe;
+	int C_L2CompPaclen;
 
 
 //#define ApplOffset 80000			// Applications offset in config buffer

@@ -168,6 +168,12 @@ void hookL2SessionDeleted(struct _LINKTABLE * LINK)
 
 		LINK->ConnectTime = 0;
 	}
+
+	if (LINK->Sent && LINK->Received && (LINK->SentAfterCompression || LINK->ReceivedAfterExpansion))
+		Debugprintf("L2 Compression Stats %s %s TX %d %d %d%% RX %d %d %d%%", LINK->callingCall, LINK->receivingCall,
+			LINK->Sent, LINK->SentAfterCompression, ((LINK->Sent - LINK->SentAfterCompression) * 100) / LINK->Sent,
+			LINK->Received, LINK->ReceivedAfterExpansion, ((LINK->ReceivedAfterExpansion - LINK->Received) * 100) / LINK->Received);
+
 }
 
 void hookL2SessionAttempt(int Port, char * ourcall, char * remotecall, struct _LINKTABLE * LINK)

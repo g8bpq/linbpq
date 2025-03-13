@@ -70,6 +70,10 @@ void GetPortCTEXT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, st
 VOID WriteMiniDump();
 int CheckKissInterlock(struct PORTCONTROL * PORT, int Exclusive);
 int seeifInterlockneeded(struct PORTCONTROL * PORT);
+int CompareNode(const void *a, const void *b);
+int CompareAlias(const void *a, const void *b);
+int CompareRoutes(const void * a, const void * b);
+
 
 extern VOID KISSTX(struct KISSINFO * KISS, PMESSAGE Buffer);
 
@@ -1604,6 +1608,8 @@ VOID CMDR00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct C
 	int Port = 0;
 	char AXCALL[7];
 	BOOL Found;
+	int count, i, n = 0;
+	struct ROUTE * List[1000];
 
 	ptr = strtok_s(CmdTail, " ", &Context);
 
@@ -1623,14 +1629,31 @@ VOID CMDR00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct C
 	}
 
 	Bufferptr = Cmdprintf(Session, Bufferptr, "Routes\r");
-		
-	while (MaxRoutes--)
+
+	// Build and sort list of routes
+				
+	for (count = 0; count < MaxRoutes; count++)
 	{
 		if (Routes->NEIGHBOUR_CALL[0] != 0)
-			if (Port == 0 || Port == Routes->NEIGHBOUR_PORT)
-				Bufferptr = DisplayRoute(Session, Bufferptr, Routes, Verbose);
+		{
+			List[n++] = Routes;
+
+			if (n > 999)
+				break;
+		}
 
 		Routes++;
+	}
+
+	if (n > 1)
+		qsort(List, n, sizeof(void *), CompareRoutes);
+
+	for (i = 0; i < n; i++)
+	{
+		Routes = List[i];
+
+		if (Port == 0 || Port == Routes->NEIGHBOUR_PORT)
+			Bufferptr = DisplayRoute(Session, Bufferptr, Routes, Verbose);
 	}
 	goto SendReply;
 
@@ -2816,9 +2839,6 @@ VOID LINKCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct 
 	Bufferptr += LPASSMSG;
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
-
-int CompareNode(const void *a, const void *b);
-int CompareAlias(const void *a, const void *b);
 
 char * DoOneNode(TRANSPORTENTRY * Session, char * Bufferptr, struct DEST_LIST * Dest)
 {

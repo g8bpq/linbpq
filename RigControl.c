@@ -5293,6 +5293,7 @@ BOOL DecodeModePtr(char * Param, double * Dwell, double * Freq, char * Mode,
 	if (ptr == NULL || strlen(ptr) >  8)
 		return FALSE;		// Mode Missing
 
+	// If channel, dont need mode
 
 	if (*MemoryNumber == 0)
 	{

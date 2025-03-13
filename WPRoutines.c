@@ -37,6 +37,7 @@ VOID Do_Save_WPRec(HWND hDlg);
 VOID SaveInt64Value(config_setting_t * group, char * name, long long value);
 VOID SaveIntValue(config_setting_t * group, char * name, int value);
 VOID SaveStringValue(config_setting_t * group, char * name, char * value);
+BOOL GetStringValue(config_setting_t * group, char * name, char * value, int maxlen);
 void MQTTMessageEvent(void* message);
 
 WPRec * AllocateWPRecord()

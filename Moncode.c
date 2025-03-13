@@ -535,6 +535,16 @@ KC6OAR*>ID:
 
 					Output += sprintf((char *)Output, " RX Window=%d", value);
 					break;
+
+				case 16:
+
+					Output += sprintf((char *)Output, " Can Compress");
+					break;
+
+				case 17:
+
+					Output += sprintf((char *)Output, " Compress ok");
+					break;
 				}
 			}	
 		}
@@ -551,6 +561,15 @@ KC6OAR*>ID:
 
 		switch (ADJBUFFER->PID)
 		{
+		case 0xF1:
+		case 0xF2:
+
+			//	Compressed L2 Data
+
+		Output += sprintf((char *)Output, " <%d Bytes of Compressed L2 Data>", MsgLen - (19 + sizeof(void *)));
+
+		break;
+
 		case 0xF0:		// Normal Data
 		{
 			char Infofield[257];

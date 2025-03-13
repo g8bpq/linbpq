@@ -387,7 +387,7 @@ char * FormatIP(uint32_t Addr)
 	return FormatIPWork;
 }
 
-int CompareRoutes (const VOID * a, const VOID * b)
+int CompareIPRoutes (const VOID * a, const VOID * b)
 {
 	PROUTEENTRY x;
 	PROUTEENTRY y;
@@ -4972,7 +4972,7 @@ VOID SHOWIPROUTE(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, str
 	Bufferptr = Cmdprintf(Session, Bufferptr, "%d Entries\r", NumberofRoutes);
 
 	if (NumberofRoutes)
-		qsort(RouteRecords, NumberofRoutes, sizeof(void *), CompareRoutes);
+		qsort(RouteRecords, NumberofRoutes, sizeof(void *), CompareIPRoutes);
 
 	for (i=0; i < NumberofRoutes; i++)
 	{

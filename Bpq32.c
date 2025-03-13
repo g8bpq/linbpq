@@ -1255,6 +1255,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix bug in RHP socket timeout code (65)
 //	Fix L4 RTT (66)
 //	Fix RigConrol with Chanxx but no other settings (66)
+//	Add option to compress L2 frames (67)
+//	Sort Routes displays (67)
 
 
 
@@ -6153,7 +6155,7 @@ DllExport BOOL APIENTRY SaveReg(char * KeyIn, HANDLE hFile)
 						{
 							if (len > 76)
 							{
-								len += sprintf(RegLine[len], "\\\r\n");
+								len += sprintf(&RegLine[len], "\\\r\n");
 								WriteFile(hFile, RegLine, len, &written, NULL);
 								strcpy(RegLine, "  ");
 								len = 2;
@@ -6162,7 +6164,7 @@ DllExport BOOL APIENTRY SaveReg(char * KeyIn, HANDLE hFile)
 							len += sprintf(&RegLine[len], "%02x,", Value[k]);
 							if (len > 76)
 							{
-								len += sprintf(RegLine[len], "\\\r\n");
+								len += sprintf(&RegLine[len], "\\\r\n");
 								WriteFile(hFile, RegLine, len, &written, NULL);
 								strcpy(RegLine, "  ");
 							}
