@@ -3820,12 +3820,6 @@ doHeader:
 					"<table align='center' bgcolor='ffffff' border=2 cellpadding=10 cellspacing=2 style=font-family:monospace>"
 					"<tr><td align='center'>AXIP Up</td><td align='center'>AXIP Down</td></tr><tr><td valign='top'>%s";
 				
-				char DownList[] = 
-					"</td><td valign='top'>%s";
-
-				char Tail[] = 
-					"</td></tr></table></body></html>";
-
 
 				while (PORT)
 				{
@@ -3871,8 +3865,8 @@ doHeader:
 					Normcall[len]=0;
 					ListLen += sprintf(&AXIPList[ListLen], "%02d - %s %d<br>", i + 1, Normcall, (ListD[i]->LastHeard)?(NOW - ListD[i]->LastHeard):0);
 				}
-				ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], DownList, AXIPList);
-				ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], Tail);
+				ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], "</td><td valign='top'>%s", AXIPList);
+				ReplyLen += sprintf(&_REPLYBUFFER[ReplyLen], "</td></tr></table></body></html>");
 			}
 
 			if (_stricmp(NodeURL, "/Node/Routes.html") == 0)
