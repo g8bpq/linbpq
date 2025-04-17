@@ -93,7 +93,12 @@ int i;
 const char * rootdescurl = 0;
 const char * multicastif = 0;
 const char * minissdpdpath = 0;
+#ifdef UPNP_LOCAL_PORT_ANY
 int localport = UPNP_LOCAL_PORT_ANY;
+#else
+#pragma message "API 10"
+int localport = 0;
+#endif
 int retcode = 0;
 int error = 0;
 int ipv6 = 0;
@@ -119,8 +124,11 @@ int upnpInit()
 	{
 		if (devlist == NULL)
 		{
+#if MINIUPNPC_API_VERSION == 10
+			devlist = upnpDiscover(2000, multicastif, minissdpdpath, localport, ipv6, &error);
+#else
 			devlist = upnpDiscover(2000, multicastif, minissdpdpath, localport, ipv6, ttl, &error);
-
+#endif
 			if (devlist == NULL)
 			{
 				Consoleprintf("Failed to find a UPNP device");
@@ -150,8 +158,11 @@ int upnpClose()
 	{
 		if (devlist == NULL)
 		{
+#if MINIUPNPC_API_VERSION == 10
+			devlist = upnpDiscover(2000, multicastif, minissdpdpath, localport, ipv6, &error);
+#else
 			devlist = upnpDiscover(2000, multicastif, minissdpdpath, localport, ipv6, ttl, &error);
-
+#endif
 			if (devlist == NULL)
 			{
 				Consoleprintf("Failed to find a UPNP device");

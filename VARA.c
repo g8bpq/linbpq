@@ -1720,7 +1720,6 @@ VConnected:
 				GetSemaphore(&Semaphore, 52);
 				VARAProcessReceivedControl(TNC);
 				FreeSemaphore(&Semaphore);
-				Debugprintf("VARA Returned from processing control packet");
 			}
 								
 			if (FD_ISSET(TNC->TCPDataSock, &readfs))

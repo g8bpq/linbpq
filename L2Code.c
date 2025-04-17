@@ -2431,12 +2431,11 @@ CheckNSLoop:
 		{
 			// Already have a copy, so discard old and keep this
 			
-			Debugprintf ("Frame %d out of seq but already have copy - release it", NS);
 			ReleaseBuffer(Q_REM(&LINK->RXFRAMES[NS]));
 		}
 		else
 		{
-			Debugprintf ("Frame %d out of seq - save", NS);
+//			Debugprintf ("Frame %d out of seq - save", NS);
 		}
 
 		Buffer->CHAIN = 0;
@@ -3919,7 +3918,6 @@ CheckNSLoop2:
 			struct PORTCONTROL * PORT = LINK->LINKPORT;
 			MESSAGE * OldBuffer = Q_REM(&LINK->RXFRAMES[LINK->LINKNR]);
 		
-			Debugprintf("L2 about to send REJ - process saved Frame %d", LINK->LINKNR);
 			PROC_I_FRAME(LINK, PORT, OldBuffer); // Passes on  or releases Buffer
 
 			// NR has been updated.

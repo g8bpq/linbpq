@@ -1061,6 +1061,7 @@ BOOL ReadConfigFile(int Port, int ProcLine(char * buf, int Port))
 				WritetoConsoleLocal("\n");
 				WritetoConsoleLocal("Bad config record ");
 				WritetoConsoleLocal(errbuf);
+				WritetoConsoleLocal("\n");
 			}
 		}
 	}

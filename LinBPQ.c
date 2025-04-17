@@ -381,40 +381,47 @@ BOOL CtrlHandler(DWORD fdwCtrlType)
 #include <signal.h>
 
 // Linux Signal Handlers
-
 static void segvhandler(int sig)
 {
-	void *array[10];
-	size_t size;
-	char msg[] = "SIGSEGV Received\n";
+    void *array[10];
+    size_t size;
+    char msg[] = "\nSIGSEGV Received\n";
 
-	write(STDERR_FILENO, msg, strlen(msg));
+    write(STDERR_FILENO, msg, strlen(msg));
 
-	// get void*'s for all entries on the stack
-	size = backtrace(array, 10);
+    // get void*'s for all entries on the stack
+    size = backtrace(array, 10);
 
-	// print out all the frames to stderr
+    // print out all the frames to stderr
 
-	backtrace_symbols_fd(array, size, STDERR_FILENO);
+    backtrace_symbols_fd(array, size, STDERR_FILENO);
 
-  exit(1);
+    write(STDOUT_FILENO, msg, strlen(msg));
+    backtrace_symbols_fd(array, size, STDOUT_FILENO);
+
+    exit(1);
 }
 
 static void abrthandler(int sig)
 {
-	void *array[10];
-	size_t size;
-	char msg[] = "SIGABRT Received\n";
+    void *array[10];
+    size_t size;
+    char msg[] = "\nSIGABRT Received\n";
 
-	write(STDERR_FILENO, msg, strlen(msg));
+    write(STDERR_FILENO, msg, strlen(msg));
+    write(STDOUT_FILENO, msg, strlen(msg));
 
-	// get void*'s for all entries on the stack
+    // get void*'s for all entries on the stack
 
-	size = backtrace(array, 10);
-	backtrace_symbols_fd(array, size, STDERR_FILENO);
+    size = backtrace(array, 10);
+    backtrace_symbols_fd(array, size, STDERR_FILENO);
 
-	exit(1);
+    write(STDOUT_FILENO, msg, strlen(msg));
+    backtrace_symbols_fd(array, size, STDOUT_FILENO);
+
+    exit(1);
 }
+
 
 static void sigterm_handler(int sig)
 {

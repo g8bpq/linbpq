@@ -888,6 +888,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 		{
 			if (TNC->SessionTimeLimit && STREAM->ConnectTime && time(NULL) > (TNC->SessionTimeLimit + STREAM->ConnectTime))
 			{
+				Debugprintf("ARDOP closing session on SessionTimelimit");
 				ARDOPSendCommand(TNC, "DISCONNECT", TRUE);
 				STREAM->ReportDISC = 1;
 				STREAM->AttachTime = 0;
@@ -900,6 +901,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 		{
 			if (STREAM->AttachTime && TNC->AttachTimeLimit && time(NULL) > (TNC->AttachTimeLimit + STREAM->AttachTime))
 			{
+				Debugprintf("ARDOP closing session on AttachTimelimit");
 				STREAM->ReportDISC = 1;
 				STREAM->AttachTime = 0;
 			}
@@ -3141,6 +3143,7 @@ VOID ARDOPProcessResponse(struct TNCINFO * TNC, UCHAR * Buffer, int MsgLen)
 			// Incoming Connect
 
 			TNC->SessionTimeLimit = TNC->DefaultSessionTimeLimit;		// Reset Limit
+			STREAM->AttachTime = time(NULL);
 
 			// Stop other ports in same group
 

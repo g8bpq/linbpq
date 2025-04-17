@@ -1257,8 +1257,14 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix RigConrol with Chanxx but no other settings (66)
 //	Add option to compress L2 frames (67)
 //	Sort Routes displays (67)
-
-
+//	Fix Ardop session premature close (70)
+//	Add timestamps to log entries in Web Driver windows (70)
+//	Generate stack backtrace if SIGSEGV or SIGABRT occur (Linux) (70)
+//	Remove some debug logging from L2 code (70)
+//	Fix compiling LinBPQ with nomqtt option (70)
+//	Improve handling of binary data in RHP interface (70)
+//	Fix sending KISS commands to multiport or multidropped TNCs (70)
+//	Add MHUV and MHLV commands (Verbose listing with timestamps in clock time) (70)
 
 #define CKernel
 

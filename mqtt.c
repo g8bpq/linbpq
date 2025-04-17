@@ -429,6 +429,7 @@ void MQTTKISSRX(void *message) {};
 void MQTTKISSRX_RAW(char* buffer, int bufferLength, void* PORT) {};
 void MQTTTimer() {};
 void MQTTReportSession(char * Msg) {};
+void MQTTMessageEvent(void* message);
 
 #endif
 

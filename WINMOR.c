@@ -139,6 +139,10 @@ VOID WritetoTraceSupport(struct TNCINFO * TNC, char * Msg, int Len)
 	int LineLen, i;
 	UCHAR Save;
 	int SaveLen = Len;
+	char Time[16];
+	time_t T;
+	struct tm * tm;
+
 	if (Len < 0)
 		return;
 
@@ -206,10 +210,16 @@ lineloop:
 #endif
 			// Write to Web Buffer
 
+			T = time(NULL);
+			tm = gmtime(&T);
+	
+			sprintf_s(Time, sizeof(Time),"%02d:%02d ", tm->tm_hour, tm->tm_min);
+
+			strcat(TNC->WebBuffer, Time);
 			strcat(TNC->WebBuffer, Line);
 			strcat(TNC->WebBuffer, "\r\n");
 			if (strlen(TNC->WebBuffer) > 4500)
-				memmove(TNC->WebBuffer, &TNC->WebBuffer[500], 4490);	// Make sure null is moved
+				memmove(TNC->WebBuffer, &TNC->WebBuffer[500], strlen(&TNC->WebBuffer[500]) + 1);	// Make sure null is moved
 		Skip:
 			ptr1 = ptr2;
 
@@ -248,10 +258,16 @@ lineloop:
 #else
 			index=SendMessage(TNC->hMonitor, LB_ADDSTRING, 0, (LPARAM)(LPCTSTR) ptr1 );
 #endif
+			T = time(NULL);
+			tm = gmtime(&T);
+	
+			sprintf_s(Time, sizeof(Time),"%02d:%02d ", tm->tm_hour, tm->tm_min);
+			strcat(TNC->WebBuffer, Time);
+
 			strcat(TNC->WebBuffer, ptr1);
 			strcat(TNC->WebBuffer, "\r\n");
 			if (strlen(TNC->WebBuffer) > 4500)
-				memmove(TNC->WebBuffer, &TNC->WebBuffer[500], 4490);	// Make sure null is moved
+				memmove(TNC->WebBuffer, &TNC->WebBuffer[500], strlen(&TNC->WebBuffer[500]) + 1);	// Make sure null is moved
 		}
 	}
 

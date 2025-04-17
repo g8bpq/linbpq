@@ -451,8 +451,13 @@ int processRHCPSend(SOCKET Socket, char * Msg, char * ReplyBuffer)
 	int ID;
 	char * Data;
 	char * ptr;
+	unsigned char * uptr;
 	int c;
 	int Len;
+	unsigned int HexCode1;
+	unsigned int HexCode2;
+
+	int n;
 
 	int Handle = 1;
 
@@ -470,9 +475,10 @@ int processRHCPSend(SOCKET Socket, char * Msg, char * ReplyBuffer)
 
 	RHPSession = RHPSessions[Handle - 1];
 
-	// Look for \ escapes
+	// Look for \ escapes, Can now also get \u00c3
 
 	ptr = Data;
+	Len = strlen(Data);				// in case no escapes
 
 	while (ptr = strchr(ptr, '\\'))
 	{
@@ -483,23 +489,60 @@ int processRHCPSend(SOCKET Socket, char * Msg, char * ReplyBuffer)
 		case 'r':
 
 			*ptr = 13;
+			memmove(ptr + 1, ptr + 2, strlen(ptr + 1));
 			break;	
+
+		case 'u':
+
+			HexCode1 = HexCode2 = 0;
+			
+			n = toupper(ptr[2]) - '0';
+			if (n > 9) n = n - 7;
+			HexCode1 |= n << 4;
+
+			n = toupper(ptr[3]) - '0';
+			if (n > 9) n = n - 7;
+			HexCode1 |= n;
+
+			n = toupper(ptr[4]) - '0';
+			if (n > 9) n = n - 7;
+			HexCode2 |= n << 4;
+
+			n = toupper(ptr[5]) - '0';
+			if (n > 9) n = n - 7;
+			HexCode2 |= n;
+
+			if (HexCode1 == 0 || HexCode1 == 0xC2)
+			{
+				uptr = ptr;
+				*uptr = HexCode2;
+			}
+			else if (HexCode1 == 0xc2)
+			{
+				uptr = ptr;
+				*uptr = HexCode2 + 0x40;
+			}
+
+			memmove(ptr + 1, ptr + 6, strlen(ptr + 5));		
+			break;
+
 			
 		case '\\':
 
 			*ptr = '\\';
+			memmove(ptr + 1, ptr + 2, strlen(ptr + 1));
 			break;	
 
 		case '"':
 
 			*ptr = '"';
+			memmove(ptr + 1, ptr + 2, strlen(ptr + 1));
 			break;	
 		}
-		memmove(ptr + 1, ptr + 2, strlen(ptr + 1));
 		ptr++;
+		Len = ptr - Data;
 	}
 
-	Len = strlen(Data);
 	ptr = Data;
 
 	while (Len > RHPPaclen)
@@ -640,7 +683,7 @@ void RHPPoll()
 
 				// Message is JSON so Convert CR to \r, \ to \\ " to \"
 
-				// Looks like I need to escape everything not between 0x20 and 0x7f eg \U00c3
+				// Looks like I need to escape everything not between 0x20 and 0x7f eg \u00c3
 
 
 				while (c = *(ptr))

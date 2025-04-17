@@ -3622,7 +3622,7 @@ VOID MHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CM
 	}
 	else
 	{
-		if (CMD->String[2] == 'V')		// MHV
+		if (CMD->String[2] == 'V' || CMD->String[3] == 'V')		// MHV
 		{
 			Bufferptr = Cmdprintf(Session, Bufferptr, "MHeard List %s for Port %d\r", MYNODECALL, Port);
 			Bufferptr = Cmdprintf(Session, Bufferptr, "Callsign   Last heard     Pkts RX    via Digi ;) \r");
@@ -4326,6 +4326,8 @@ struct CMDX COMMANDS[] =
 	"MHU         ",3,MHCMD,0,		// UTC Times
 	"MHL         ",3,MHCMD,0,		// Local Times
 	"MHV         ",3,MHCMD,0,
+	"MHUV        ",3,MHCMD,0,		// UTC Times
+	"MHLV        ",3,MHCMD,0,		// Local Times
 	"MHEARD      ",1,MHCMD,0,
 	"APRS        ",2,APRSCMD,0,
 	"ATTACH      ",1,ATTACHCMD,0,
@@ -5543,22 +5545,14 @@ VOID KISSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct 
 
 			KISS = (struct KISSINFO *) PORT;
 
-			if (KISS->FIRSTPORT != KISS)
-			{
-				Bufferptr = Cmdprintf(Session, Bufferptr, "Not first port of a Multidrop Set\r");
-				SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
-				return;
-			}
-
 			// Send Command
 
 			KissLen = KissEncode(KissString, ENCBUFF, KissLen);
 
-			PORT = (struct PORTCONTROL *)KISS->FIRSTPORT;			// ALL FRAMES GO ON SAME Q
-
 			PORT->Session = Session;
 			PORT->LastKISSCmdTime = time(NULL);
 
+			PORT = (struct PORTCONTROL *)KISS->FIRSTPORT;			// ALL FRAMES GO ON SAME Q
 			ASYSEND(PORT, ENCBUFF, KissLen);
 
 			Bufferptr = Cmdprintf(Session, Bufferptr, "Command Sent\r");
