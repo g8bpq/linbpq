@@ -322,7 +322,10 @@ Dll VOID APIENTRY Send_AX(UCHAR * Block, DWORD Len, UCHAR Port)
 
 		EXTPORTDATA * EXTPORT = (EXTPORTDATA *) PORT;
 
-		C_Q_ADD(&EXTPORT->UI_Q, Copy);
+		if (EXTPORT->UI_Q)
+			C_Q_ADD(&EXTPORT->UI_Q, Copy);
+		else
+			C_Q_ADD(&EXTPORT->UI_Q, Copy);
 		return;
 	}
 

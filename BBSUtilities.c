@@ -10586,7 +10586,7 @@ int Connected(int Stream)
 	char callsign[10];
 	int port, paclen, maxframe, l4window;
 	char ConnectedMsg[] = "*** CONNECTED    ";
-	char Msg[100];
+	char Msg[256];
 	char Title[100];
 	int64_t Freq = 0;
 	int Mode = 0;
@@ -10669,7 +10669,13 @@ int Connected(int Stream)
 					}
 				}
 			}
-	
+
+			if (Mode < 0 || Mode > 54)
+				Mode = 0;
+
+			if (Freq < 0 || Freq > 11000000000)
+				Freq = 0;
+
 			memset(conn, 0, sizeof(ConnectionInfo));		// Clear everything
 			conn->Active = TRUE;
 			conn->BPQStream = Stream;
@@ -10734,7 +10740,7 @@ int Connected(int Stream)
 							LongFreq = GetPortFrequency(port, FreqString);
 #endif
 					}
-					Length += sprintf(MailBuffer, "New User %s Connected to Mailbox on Port %d Freq %d Mode %ld\r\n", callsign, port, LongFreq, Mode);
+					Length += sprintf(MailBuffer, "New User %s Connected to Mailbox on Port %d Freq %lld Mode %d\r\n", callsign, port, LongFreq, Mode);
 
 					sprintf(Title, "New User %s", callsign);
 
@@ -10794,10 +10800,10 @@ int Connected(int Stream)
 			}
 
 			if (port)
-				n=sprintf_s(Msg, sizeof(Msg), "Incoming Connect from %s on Port %d Freq %d Mode %s",
+				n = sprintf_s(Msg, sizeof(Msg), "Incoming Connect from %s on Port %d Freq %lld Mode %s",
 					user->Call,  port, Freq, WL2KModes[Mode]);
 			else
-				n=sprintf_s(Msg, sizeof(Msg), "Incoming Connect from %s", user->Call);
+				n = sprintf_s(Msg, sizeof(Msg), "Incoming Connect from %s", user->Call);
 			
 			// Send SID and Prompt (Unless Sync)
 

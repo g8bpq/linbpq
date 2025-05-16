@@ -3073,6 +3073,13 @@ VOID GetPage(struct HTTPConnectionInfo * Session, char * NodeURL)
 	ptr = strchr(&NodeURL[17], ',');
 	Dir = HtmlFormDirs[DirNo];
 
+
+	if (DirNo == -1)
+	{
+		*WebMail->RLen = sprintf(WebMail->Reply, "<html><script>alert(\"No Page Selected. \");window.location.href = '/Webmail/NewMsg?%s';</script></html>", Session->Key);
+		return;
+	}
+
 	SubDir = strlop(&NodeURL[17], ':');
 	if (SubDir)
 	{

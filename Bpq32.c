@@ -1265,6 +1265,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Improve handling of binary data in RHP interface (70)
 //	Fix sending KISS commands to multiport or multidropped TNCs (70)
 //	Add MHUV and MHLV commands (Verbose listing with timestamps in clock time) (70)
+//	Improvements to INP3 (71)
+//	Improvements to KAM driver including support for GTOR connects (71)
 
 #define CKernel
 
@@ -2386,6 +2388,8 @@ FirstInit()
 	}
 
 	timeLoadedMS = GetTickCount();
+
+	srand(time(NULL));
 	
 	INITIALISEPORTS();
 

@@ -733,7 +733,7 @@ VOID SendFrame(struct AXIPPORTINFO * PORT, struct arp_table_entry * arp_table, U
 		return;
 	}
 
-	// Seelcte source port by choosing right socket
+	// Select source port by choosing right socket
 
 	// First Set Default for Protocol
 

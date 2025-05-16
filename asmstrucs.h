@@ -253,6 +253,7 @@ typedef struct ROUTE
 #define GotRTTResponse 2	// Other end has sent us a RTT Response
 #define GotRIF 4			// Other end has sent RIF, so is probably an INP3 Node
 							//	(could just be monitoring RTT for some reason
+#define SentRTTRequest 8
 #define SentOurRIF 16		// Set when we have sent a rif for our Call and any ApplCalls
 							//  (only sent when we have seen both a request and response)
 
@@ -460,16 +461,18 @@ typedef struct _APPLCALLS
 //  This way our times adjust to changes of neighbour SRTT. We can't cater for changes to other hop RTTs,
 //	But if these are significant (say 25% or 100 ms) they will be retransmitted
 
+// We treat the Routes as an array of 6. First 3 are NODES routes, next 3 are INP3 Routes. This works, but maybe is not ideal
+
 typedef struct NR_DEST_ROUTE_ENTRY
 {
 	struct ROUTE * ROUT_NEIGHBOUR;	// POINTER TO NEXT NODE IN PATH
 	UCHAR ROUT_QUALITY;		// QUALITY
 	UCHAR ROUT_OBSCOUNT;
 	UCHAR ROUT_LOCKED;
-	UCHAR Padding[4];		// SO Entries are the same length
+	UCHAR Padding[4];		// So Entries are the same length
 } *PNR_DEST_ROUTE_ENTRY;
 
-typedef struct DEST_ROUTE_ENTRY
+typedef struct INP3_DEST_ROUTE_ENTRY
 {
 	struct ROUTE * ROUT_NEIGHBOUR;	// POINTER TO NEXT NODE IN PATH
 	USHORT LastRTT;					// Last Value Reported
@@ -493,8 +496,8 @@ typedef struct DEST_LIST
 	UCHAR DEST_ROUTE;			// CURRENTY ACTIVE DESTINATION
 	UCHAR INP3FLAGS;
 
-	struct NR_DEST_ROUTE_ENTRY NRROUTE[3];// Best 3 NR neighbours for this dest
-	struct DEST_ROUTE_ENTRY ROUTE[3];	// Best 3 INP neighbours for this dest
+	struct NR_DEST_ROUTE_ENTRY NRROUTE[3];	// Best 3 NR neighbours for this dest
+	struct INP3_DEST_ROUTE_ENTRY INP3ROUTE[3];	// Best 3 INP neighbours for this dest
 
 	void * DEST_Q;				// QUEUE OF FRAMES FOR THIS DESTINATION
 
@@ -698,6 +701,7 @@ typedef struct PORTCONTROL
 	BOOL NormalizeQuality;		// Normalise Node Qualities
 	BOOL IgnoreUnlocked;		// Ignore Unlocked routes
 	BOOL INP3ONLY;				// Default to INP3 and disallow NODES
+	BOOL ALLOWINP3;
 
 	void (* UIHook)(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffer, MESSAGE * ADJBUFFER, UCHAR CTL, UCHAR MSGFLAG);			// Used for KISSARQ
 	struct PORTCONTROL * HookPort;

@@ -77,6 +77,8 @@ char * stristr (char *ch1, char *ch2);
 
 extern VOID * ENDBUFFERPOOL;
 
+extern int PoolBuilt;
+
 
 //	Read/Write length field in a buffer header
 
@@ -363,7 +365,7 @@ BOK1:
 
 		if (n > 1000)
 		{
-			Debugprintf("Loop searching free chain - pointer = %p %p", debug, pointer);
+			Debugprintf("Releasebuffer Loop searching free chain - pointer = %p %p from %s Line %d", debug, pointer, File, Line);
 			return 0;
 		}
 	}
@@ -376,6 +378,11 @@ BOK1:
 
 	QCOUNT++;
 
+	if (PoolBuilt && QCOUNT > MAXBUFFS)
+	{
+		Debugprintf("Releasebuffer QCOUNT > MAXBUFFS - pointer = %p from %s Line %d", pointer, File, Line);
+		return 0;
+	}
 	return 0;
 }
 
@@ -473,7 +480,7 @@ int C_Q_ADD_NP(VOID *PQ, VOID *PBUFF)
 	next = Q[0];
 
 	while (next[0] != 0)
-		next=next[0];				// Chain to end of queue
+		next = next[0];				// Chain to end of queue
 
 	next[0] = BUFF;					// New one on end
 

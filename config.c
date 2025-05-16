@@ -308,7 +308,7 @@ static char *keywords[] =
 "BTEXT:", "NETROMCALL", "C_IS_CHAT", "MAXRTT", "MAXHOPS",		// IPGATEWAY= no longer allowed
 "LogL4Connects", "LogAllConnects", "SAVEMH", "ENABLEADIFLOG", "ENABLEEVENTS", "SAVEAPRSMSGS", 
 "EnableM0LTEMap", "MQTT", "MQTT_HOST", "MQTT_PORT", "MQTT_USER", "MQTT_PASS",
-"L4Compress", "L4CompMaxframe", "L4CompPaclen", "L2Compress", "L2CompMaxframe", "L2CompPaclen"
+"L4Compress", "L4CompMaxframe", "L4CompPaclen", "L2Compress", "L2CompMaxframe", "L2CompPaclen", "PREFERINP3ROUTES"
 };           /* parameter keywords */
 
 static void * offset[] =
@@ -330,7 +330,8 @@ static void * offset[] =
 &xxcfg.C_BTEXT, &xxcfg.C_NETROMCALL, &xxcfg.C_C, &xxcfg.C_MAXRTT, &xxcfg.C_MAXHOPS,		// IPGATEWAY= no longer allowed
 &xxcfg.C_LogL4Connects, &xxcfg.C_LogAllConnects, &xxcfg.C_SaveMH, &xxcfg.C_ADIF, &xxcfg.C_EVENTS, &xxcfg.C_SaveAPRSMsgs,
 &xxcfg.C_M0LTEMap, &xxcfg.C_MQTT, &xxcfg.C_MQTT_HOST, &xxcfg.C_MQTT_PORT, &xxcfg.C_MQTT_USER, &xxcfg.C_MQTT_PASS,
-&xxcfg.C_L4Compress, &xxcfg.C_L4CompMaxframe, &xxcfg.C_L4CompPaclen, &xxcfg.C_L2Compress, &xxcfg.C_L2CompMaxframe, &xxcfg.C_L2CompPaclen};		/* offset for corresponding data in config file */
+&xxcfg.C_L4Compress, &xxcfg.C_L4CompMaxframe, &xxcfg.C_L4CompPaclen, &xxcfg.C_L2Compress, &xxcfg.C_L2CompMaxframe, 
+&xxcfg.C_L2CompPaclen, &xxcfg.C_PREFERINP3ROUTES};		/* offset for corresponding data in config file */
 
 static int routine[] = 
 {
@@ -351,7 +352,8 @@ static int routine[] =
 15, 0, 2, 9, 9,
 2, 2, 1, 2, 2, 2,
 2, 2, 0, 1, 20, 20,
-1, 1, 1, 1, 1, 1} ;			// Routine to process param
+1, 1, 1, 1, 1, 
+1, 1} ;			// Routine to process param
 
 int PARAMLIM = sizeof(routine)/sizeof(int);
 //int NUMBEROFKEYWORDS = sizeof(routine)/sizeof(int);
@@ -373,7 +375,7 @@ static char *pkeywords[] =
 "BCALL", "DIGIMASK", "NOKEEPALIVES", "COMPORT", "DRIVER", "WL2KREPORT", "UIONLY",
 "UDPPORT", "IPADDR", "I2CBUS", "I2CDEVICE", "UDPTXPORT", "UDPRXPORT", "NONORMALIZE",
 "IGNOREUNLOCKEDROUTES", "INP3ONLY", "TCPPORT", "RIGPORT", "PERMITTEDAPPLS", "HIDE",
-"SMARTID", "KISSCOMMAND", "SendtoM0LTEMap", "PortFreq", "M0LTEMapInfo", "QTSMPort"};         /* parameter keywords */
+"SMARTID", "KISSCOMMAND", "SendtoM0LTEMap", "PortFreq", "M0LTEMapInfo", "QTSMPort", "ALLOWINP3"};         /* parameter keywords */
 
 static void * poffset[] =
 {
@@ -387,7 +389,7 @@ static void * poffset[] =
 &xxp.BCALL, &xxp.DIGIMASK, &xxp.DefaultNoKeepAlives, &xxp.IOADDR, &xxp.DLLNAME, &xxp.WL2K, &xxp.UIONLY,
 &xxp.IOADDR, &xxp.IPADDR, &xxp.INTLEVEL, &xxp.IOADDR, &xxp.IOADDR, &xxp.ListenPort, &xxp.NoNormalize,
 &xxp.IGNOREUNLOCKED, &xxp.INP3ONLY, &xxp.TCPPORT, &xxp.RIGPORT, &xxp.PERMITTEDAPPLS, &xxp.Hide,
-&xxp.SmartID, &xxp.KissParams, &xxp.SendtoM0LTEMap, &xxp.PortFreq, &xxp.M0LTEMapInfo, &xxp.QtSMPort};	/* offset for corresponding data in config file */
+&xxp.SmartID, &xxp.KissParams, &xxp.SendtoM0LTEMap, &xxp.PortFreq, &xxp.M0LTEMapInfo, &xxp.QtSMPort, &xxp.AllowINP3};	/* offset for corresponding data in config file */
 
 static int proutine[] = 
 {
@@ -401,7 +403,7 @@ static int proutine[] =
 0, 1, 2, 18, 15, 16, 2,
 1, 17, 1, 1, 1, 1, 2,
 2, 2, 1, 1, 19, 2,
-1, 20, 1, 21, 22, 1};							/* routine to process parameter */
+1, 20, 1, 21, 22, 1, 1};							/* routine to process parameter */
 
 int PPARAMLIM = sizeof(proutine)/sizeof(int);
 
@@ -535,6 +537,8 @@ BOOL ProcessConfig()
 
 //	xxcfg.SaveMH = TRUE;		// Default to save
 
+	xxcfg.C_PREFERINP3ROUTES = 0;	// Default to false
+
 	GetNextLine(rec);
 
 	while (rec[0])
@@ -624,6 +628,7 @@ BOOL ProcessConfig()
 	paramok[89]=1;			// L2Compress
 	paramok[90]=1;			// L2Compress Maxframe
 	paramok[91]=1;			// L2Compress Paclen
+	paramok[92]=1;			// PREFERINP3ROUTES
 
 
 	for (i=0; i < PARAMLIM; i++)

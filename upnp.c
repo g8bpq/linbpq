@@ -96,7 +96,6 @@ const char * minissdpdpath = 0;
 #ifdef UPNP_LOCAL_PORT_ANY
 int localport = UPNP_LOCAL_PORT_ANY;
 #else
-#pragma message "API 10"
 int localport = 0;
 #endif
 int retcode = 0;

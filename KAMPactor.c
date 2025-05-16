@@ -70,6 +70,8 @@ static RECT Rect;
 
 int DoScanLine(struct TNCINFO * TNC, char * Buff, int Len);
 VOID WritetoTrace(struct TNCINFO * TNC, char * Msg, int Len);
+VOID SuspendOtherPorts(struct TNCINFO * ThisTNC);
+VOID ReleaseOtherPorts(struct TNCINFO * ThisTNC);
 
 static FILE * LogHandle[32] = {0};
 
@@ -517,6 +519,28 @@ ok:
 	return 0;
 }
 
+VOID KAMSuspendPort(struct TNCINFO * TNC, struct TNCINFO * ThisTNC)
+{
+	struct STREAMINFO * STREAM = &TNC->Streams[0];
+
+	strcpy(TNC->WEB_TNCSTATE, "Interlocked");
+	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
+
+//	STREAM->CmdSet = STREAM->CmdSave = zalloc(100);
+//	sprintf(STREAM->CmdSet, "I%s\r", "SCSPTC");		// Should prevent connects
+
+}
+
+VOID KAMReleasePort(struct TNCINFO * TNC)
+{
+	struct STREAMINFO * STREAM = &TNC->Streams[0];
+
+	strcpy(TNC->WEB_TNCSTATE, "Free");
+	MySetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
+
+}
+
+
 static int WebProc(struct TNCINFO * TNC, char * Buff, BOOL LOCAL)
 {
 	int Len = sprintf(Buff, "<html><meta http-equiv=expires content=0><meta http-equiv=refresh content=15>"
@@ -594,6 +618,11 @@ void * KAMExtInit(EXTPORTDATA * PortEntry)
 
 	PortEntry->PORTCONTROL.PORTSTARTCODE = KAMStartPort;
 	PortEntry->PORTCONTROL.PORTSTOPCODE = KAMStopPort;
+
+//	TNC->SuspendPortProc = KAMSuspendPort;
+//	TNC->ReleasePortProc = KAMReleasePort;
+
+
 
 	ptr=strchr(TNC->NodeCall, ' ');
 	if (ptr) *(ptr) = 0;					// Null Terminate
@@ -1266,6 +1295,51 @@ VOID KAMPoll(int Port)
 					return;
 				}
 
+				if (memcmp(MsgPtr, "GTOR ", 5) == 0)	// GTOR Connect
+				{
+					memcpy(STREAM->RemoteCall, &MsgPtr[5], 9);
+					STREAM->Connecting = TRUE;
+
+					// If Stream 0, Convert C CALL to PACTOR CALL
+
+					if (Stream == 0)
+					{
+						datalen = sprintf(TXMsg, "C20GTOR %s", TNC->Streams[0].RemoteCall);
+						
+						// If Pactor, check busy detecters on any interlocked ports
+
+						if (TNC->HFPacket == 0 && InterlockedCheckBusy(TNC) && TNC->OverrideBusy == 0)
+						{
+							// Channel Busy. Wait
+
+							TNC->ConnectCmd = _strdup(TXMsg);
+
+							sprintf(TNC->WEB_TNCSTATE, "Waiting for clear channel");
+							SetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
+
+							TNC->BusyDelay = TNC->BusyWait * 10;
+
+							return;
+						}
+
+						TNC->OverrideBusy = FALSE;
+
+						sprintf(TNC->WEB_TNCSTATE, "%s Connecting to %s",
+							TNC->Streams[0].MyCall, TNC->Streams[0].RemoteCall);
+						SetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
+					}
+					else
+						datalen = sprintf(TXMsg, "C1%cC %s", Stream + '@', STREAM->RemoteCall);
+
+					EncodeAndSend(TNC, TXMsg, datalen);
+					TNC->Timeout = 50;
+					TNC->InternalCmd = 'C';			// So we dont send the reply to the user.
+					ReleaseBuffer(buffptr);
+					STREAM->Connecting = TRUE;
+
+					return;
+				}
+
 				if (memcmp(MsgPtr, "DISCONNECT", datalen) == 0)	// Disconnect
 				{
 					if (Stream == 0)
@@ -1644,6 +1718,10 @@ VOID ProcessKHOSTPacket(struct TNCINFO * TNC, UCHAR * Msg, int Len)
 			return;
 		}
 
+
+		WritetoTrace(TNC, Buffer, Len);
+
+
 		// Pass to Appl
 
 		Stream = TNC->CmdStream;
@@ -1789,6 +1867,10 @@ VOID ProcessKHOSTPacket(struct TNCINFO * TNC, UCHAR * Msg, int Len)
 
 				if (Msg[1] == '2' && Msg[2] == 'A')
 					TNC->HFPacket = TRUE;
+
+				// Stop other ports in same group
+
+				SuspendOtherPorts(TNC);
 
 				ProcessIncommingConnect(TNC, Call, Stream, TRUE);
 
@@ -2047,7 +2129,11 @@ VOID ForcedClose(struct TNCINFO * TNC, int Stream)
 
 VOID CloseComplete(struct TNCINFO * TNC, int Stream)
 {
-		TNC->NeedPACTOR = 50;	
+	sprintf(TNC->WEB_TNCSTATE, "Free");
+	SetWindowText(TNC->xIDC_TNCSTATE, TNC->WEB_TNCSTATE);
+
+	ReleaseOtherPorts(TNC);
+	TNC->NeedPACTOR = 50;	
 }
 
 

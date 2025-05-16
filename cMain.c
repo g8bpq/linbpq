@@ -148,6 +148,8 @@ int L2Compress = 0;
 int L2CompMaxframe = 3;
 int L2CompPaclen = 236;
 
+int PREFERINP3ROUTES = 0;
+
 BOOL LogL4Connects = FALSE;
 BOOL LogAllConnects = FALSE;
 BOOL AUTOSAVEMH = TRUE;
@@ -164,6 +166,8 @@ char MQTT_PASS[80] = "";
 
 int MQTT_Connecting = 0;
 int MQTT_Connected = 0;
+
+int PoolBuilt = 0;
 
 
 //TNCTABLE	DD	0
@@ -851,6 +855,9 @@ BOOL Start()
 	if (L2CompPaclen < 64 || L2CompPaclen > 236)
 		L2CompPaclen = 236;
 
+
+	PREFERINP3ROUTES = cfg->C_PREFERINP3ROUTES;
+
  
 	// Get pointers to PASSWORD and APPL1 commands
 
@@ -977,6 +984,7 @@ BOOL Start()
 		PORT->NormalizeQuality = !PortRec->NoNormalize;
 		PORT->IgnoreUnlocked = PortRec->IGNOREUNLOCKED;
 		PORT->INP3ONLY = PortRec->INP3ONLY;
+		PORT->ALLOWINP3 = PortRec->AllowINP3;
 
 		PORT->PORTWINDOW = (UCHAR)PortRec->MAXFRAME;
 
@@ -1001,6 +1009,9 @@ BOOL Start()
 		PORT->PORTPACLEN = (UCHAR)PortRec->PACLEN;
 		PORT->QUAL_ADJUST = (UCHAR)PortRec->QUALADJUST;
 	
+		if (PORT->QUAL_ADJUST < 0 || PORT->QUAL_ADJUST > 100)
+			PORT->QUAL_ADJUST = 100;
+
 		PORT->DIGIFLAG = PortRec->DIGIFLAG;
 		if (PortRec->DIGIPORT && CanPortDigi(PortRec->DIGIPORT))
 			PORT->DIGIPORT = PortRec->DIGIPORT;
@@ -1458,6 +1469,8 @@ BOOL Start()
 
 	ENDBUFFERPOOL = NEXTFREEDATA;
 
+	PoolBuilt = 1;
+
 
 	//	Copy Bridge Map
 
@@ -1575,6 +1588,7 @@ BOOL FindNeighbour(UCHAR * Call, int Port, struct ROUTE ** REQROUTE)
 	struct ROUTE * ROUTE = NEIGHBOURS;
 	struct ROUTE * FIRSTSPARE = NULL;
 	int n = MAXNEIGHBOURS;
+	char Normcall[10];
 
 	while (n--)
 	{
@@ -1587,6 +1601,10 @@ BOOL FindNeighbour(UCHAR * Call, int Port, struct ROUTE ** REQROUTE)
 			ROUTE++;
 			continue;
 		}
+
+			
+		Normcall[ConvFromAX25(ROUTE->NEIGHBOUR_CALL, Normcall)] = 0;
+
 		if (CompareCalls(ROUTE->NEIGHBOUR_CALL, Call))
 		{
 			*REQROUTE = ROUTE;

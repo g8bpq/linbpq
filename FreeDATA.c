@@ -452,6 +452,11 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 				TNC->lasttime = ltime;
 				ConnecttoFreeData(port);
 			}
+			while (TNC->PortRecord->UI_Q)
+			{
+				buffptr = Q_REM(&TNC->PortRecord->UI_Q);
+				ReleaseBuffer(buffptr);	
+			}
 		}
 
 

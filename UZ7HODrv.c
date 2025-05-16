@@ -685,6 +685,11 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 					ConnecttoUZ7HO(port);
 					lasttime[port] = ltime;
 				}
+				while (TNC->PortRecord->UI_Q)
+				{
+					buffptr = Q_REM(&TNC->PortRecord->UI_Q);
+					ReleaseBuffer(buffptr);	
+				}
 			}
 			else
 			{

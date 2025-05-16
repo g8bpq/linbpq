@@ -121,6 +121,7 @@ void hookL2SessionAccepted(int Port, char * fromCall, char * toCall, struct _LIN
 void hookL2SessionDeleted(struct _LINKTABLE * LINK);
 void hookL2SessionAttempt(int Port, char * fromCall, char * toCall, struct _LINKTABLE * LINK);
 int L2Compressit(unsigned char * Out, int OutSize, unsigned char * In, int Len);
+VOID DeleteINP3Routes(struct ROUTE * Route);
 
 extern int REALTIMETICKS;
 
@@ -1184,8 +1185,9 @@ VOID L2LINKACTIVE(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE *
 		//	2. OTHER END THINKS LINK HAS DIED
 		//	3. RECOVERY FROM FRMR CONDITION
 		//	4. REPEAT OF ORIGINAL SABM COS OTHER END MISSED UA
+		//	5. Other end has reloaded
 
-		//	FOR 1-3 IT IS REASONABLE TO FULLY RESET THE CIRCUIT, BUT IN 4
+		//	FOR 1-3 and 5 IT IS REASONABLE TO FULLY RESET THE CIRCUIT, BUT IN 4
 		//	SUCH ACTION WILL LOSE THE INITIAL SIGNON MSG IF CONNECTING TO A
 		//	BBS. THE PROBLEM IS TELLING THE DIFFERENCE. I'M GOING TO SET A FLAG 
 		//	WHEN FIRST INFO RECEIVED - IF SABM REPEATED BEFORE THIS, I'LL ASSUME
@@ -1198,7 +1200,7 @@ VOID L2LINKACTIVE(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE *
 			return;
 		}
 		
-		InformPartner(LINK, NORMALCLOSE);	// SEND DISC TO OTHER END
+		InformPartner(LINK, NORMALCLOSE);			// SEND DISC TO OTHER END
 		LINK->CIRCUITPOINTER = 0;
 
 		L2SABM(LINK, PORT, Buffer, ADJBUFFER, MSGFLAG);			// Process the SABM
@@ -1215,6 +1217,8 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 
 	TRANSPORTENTRY * Session;
 	int CONERROR;
+	struct ROUTE * ROUTE = NULL;
+
 
 	char toCall[12], fromCall[12];
 
@@ -1271,6 +1275,18 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 
 		if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
 			AttachKISSHF(PORT, Buffer);
+
+		// if it is an INP3 connection tell INP3 it is up
+
+
+		if (FindNeighbour(LINK->LINKCALL, PORT->PORTNUMBER, &ROUTE))
+		{
+			if (ROUTE->INP3Node)
+			{
+				Debugprintf("INP3 Incoming connect from %s", fromCall);
+				DeleteINP3Routes(ROUTE);
+			}
+		}
 
 		if (NO_CTEXT == 1)
 			return;
@@ -1955,10 +1971,22 @@ VOID L2_PROCESS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * B
 			//	RESPONSE TO SABM - SET LINK  UP
 
 			char fromCall[12];
+			struct ROUTE * ROUTE;
 
 			fromCall[ConvFromAX25(Buffer->ORIGIN, fromCall)] = 0;
 
 			RESET2X(LINK);			// LEAVE QUEUED STUFF
+
+			// See if INP3 route setup
+			
+			if (FindNeighbour(Buffer->ORIGIN, PORT->PORTNUMBER, &ROUTE))
+			{
+				if (ROUTE->INP3Node)
+				{
+					Debugprintf("INP3 Route to %s connected", fromCall);
+				}
+			}
+
 
 			SendL2ToMonMap(PORT, fromCall, '+', 'O');		
 	
@@ -2792,7 +2820,7 @@ VOID RESETNS(struct _LINKTABLE * LINK, UCHAR NS)
 
 int COUNT_AT_L2(struct _LINKTABLE * LINK)
 {
-	//	COUNTS FRAMES QUEUED ON AN L2 SESSION (IN BX)
+	//	COUNTS FRAMES QUEUED ON AN L2 SESSION (IN LINK)
 
 	int count = 0, abovelink = 0;
 	int n = 0;
@@ -3976,6 +4004,8 @@ VOID CONNECTREFUSED(struct _LINKTABLE * LINK)
 }
 
 VOID L3CONNECTFAILED(struct _LINKTABLE * LINK);
+VOID L3LINKSETUPFAILED(struct _LINKTABLE * LINK);
+
 
 VOID ConnectFailedOrRefused(struct _LINKTABLE * LINK, char * Msg)
 {
@@ -3990,7 +4020,7 @@ VOID ConnectFailedOrRefused(struct _LINKTABLE * LINK, char * Msg)
 
 	if (LINK->LINKTYPE == 3)
 	{
-		L3CONNECTFAILED(LINK);		// REPORT TO LEVEL 3
+		L3LINKSETUPFAILED(LINK);		// REPORT TO LEVEL 3
 		return;
 	}
 	

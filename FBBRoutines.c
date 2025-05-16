@@ -2065,7 +2065,7 @@ BOOL LookupRestart(CIRCUIT * conn, struct FBBHeaderLine * FBBHeader)
 
 			RestartRec->Count++;
 
-			if (RestartRec->Count > 3)
+			if (RestartRec->Count > 10)
 			{
 				len = sprintf_s(Msg, sizeof(Msg), "Too many restarts for %s - Requesting restart from beginning",
 					FBBHeader->BID);

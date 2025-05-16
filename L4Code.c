@@ -304,6 +304,7 @@ VOID SENDL4MESSAGE(TRANSPORTENTRY * L4, struct DATAMESSAGE * Msg)
 		return;
 	}
 
+	
 	L3MSG = GetBuff();
 
 	if (L3MSG == 0)

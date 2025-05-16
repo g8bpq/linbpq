@@ -2294,7 +2294,7 @@ VOID QtSMThread(struct PORTCONTROL * PORT)
 						char Msg[64];
 						int Len;
 
-						// We need tp send a QtSMPort message for each Channel sharing thia connection
+						// We need to send a QtSMPort message for each Channel sharing this connection
 						// Note struct KISSINFO and struct PORTCONTROL are different mappings of the same data
 
 						struct KISSINFO * KISS = (struct KISSINFO *)PORT;

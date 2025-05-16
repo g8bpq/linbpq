@@ -1152,6 +1152,7 @@
 //	Fixes to using {FormFolder} in Webmail Templates (68)
 //	Save FBB transfer restart data over program restarts (69) 
 //	Add Send and Receive byte counts to status displays (69)
+//	Validate Mode and Frequency and fix formatting in Connected Message (71)
 
 #include "bpqmail.h"
 #include "winstdint.h"

@@ -67,6 +67,8 @@ extern dest_list * CURRENTNODE;
 
 int L3_10SECS = 10;
 
+extern int PREFERINP3ROUTES;
+
 
 VOID L3BG()
 {
@@ -135,12 +137,14 @@ VOID L3BG()
 					// Drop through to Activate
 				}
 				
+				// No Active Route
+
 				if (ACTIVATE_DEST(DEST) == FALSE)
 				{
 					// Node has no routes - get rid of it
 
 					REMOVENODE(DEST);
-					return;					// Avoid riskof looking at lod entries
+					return;					// Avoid risk of looking at old entries
 				}
 			}
 		}
@@ -154,22 +158,32 @@ BOOL ACTIVATE_DEST(struct DEST_LIST * DEST)
 {
 	int n = MAXDESTS;
 	struct PORTCONTROL * PORT = PORTTABLE;
-	struct ROUTE * ROUTE;
+	struct ROUTE * ROUTE = NULL;
 	struct _LINKTABLE * LINK;
 	struct TNCINFO * TNC;
 
 	int ActiveRoute;
 
-	if (DEST->DEST_ROUTE == 0)		// ALREADY HAVE A SELECTED ROUTE?
-		DEST->DEST_ROUTE = 1;		// TRY TO ACTIVATE FIRST
+	if (DEST->DEST_ROUTE == 0)		// Don't ALREADY HAVE A SELECTED ROUTE?
+	{
+		DEST->DEST_ROUTE = 1;
 
+		if (PREFERINP3ROUTES)
+		{
+			// if we have any INP3 routes use the first. It will always be the fastest. The others are there for fallback if the first fails.
+
+			if (ROUTE = DEST->INP3ROUTE[0].ROUT_NEIGHBOUR)
+				DEST->DEST_ROUTE = 4;		// TRY TO ACTIVATE FIRST
+		}
+	}
+		
 	ActiveRoute = DEST->DEST_ROUTE - 1;
 
 	ROUTE = DEST->NRROUTE[ActiveRoute].ROUT_NEIGHBOUR;
 
 	if (ROUTE == 0)
 	{
-		//	Currnet Route not present
+		//	Current Route not present
 		//	If  current route is 1, then we must have INP3 routes (or entry is corrupt)
 
 		if (DEST->DEST_ROUTE != 1)
@@ -177,12 +191,16 @@ BOOL ACTIVATE_DEST(struct DEST_LIST * DEST)
 
 		// Current Route is 1
 
-		if (DEST->ROUTE[0].ROUT_NEIGHBOUR == 0)
+		if (DEST->INP3ROUTE[0].ROUT_NEIGHBOUR == 0)
 			return FALSE;					// No INP3 so No Routes
 
 		DEST->DEST_ROUTE = 4;			// First INP3
-		ROUTE = DEST->ROUTE[0].ROUT_NEIGHBOUR;
+		ROUTE = DEST->INP3ROUTE[0].ROUT_NEIGHBOUR;
 	}
+
+	if (ROUTE == 0)			// Shouldn't happen
+		return FALSE;
+
 
 	// if NetROM over VARA conection is made by the driver
 
@@ -204,7 +222,7 @@ BOOL ACTIVATE_DEST(struct DEST_LIST * DEST)
 		return L2SETUPCROSSLINK(ROUTE);
 	}
 	
-	// We mst be waiting for link to come up
+	// We umst be waiting for link to come up
 	
 	return TRUE;
 
@@ -707,11 +725,11 @@ int COUNTNODES(struct ROUTE * ROUTE)
 			count++;
 		else if (DEST->NRROUTE[2].ROUT_NEIGHBOUR == ROUTE)
 			count++;
-		else if (DEST->ROUTE[0].ROUT_NEIGHBOUR == ROUTE)
+		else if (DEST->INP3ROUTE[0].ROUT_NEIGHBOUR == ROUTE)
 			count++;
-		else if (DEST->ROUTE[1].ROUT_NEIGHBOUR == ROUTE)
+		else if (DEST->INP3ROUTE[1].ROUT_NEIGHBOUR == ROUTE)
 			count++;
-		else if (DEST->ROUTE[2].ROUT_NEIGHBOUR == ROUTE)
+		else if (DEST->INP3ROUTE[2].ROUT_NEIGHBOUR == ROUTE)
 			count++;
 
 		DEST++;
@@ -845,7 +863,7 @@ VOID SENDNEXTNODESFRAGMENT()
 
 		if (DEST->DEST_CALL[0] != 0x40 && DEST->NRROUTE[0].ROUT_QUALITY >= TXMINQUAL &&
 			DEST->NRROUTE[0].ROUT_OBSCOUNT >= OBSMIN &&
-			(NODE == 1 || DEST->DEST_STATE & 0x80))			// Only send appl nodes if DEST = 0;
+			(NODE == 1 || DEST->DEST_STATE & 0x80))			// Only send appl nodes if NODE = 0;
 		{		
 			// Send it
 			
@@ -877,6 +895,9 @@ VOID SENDNEXTNODESFRAGMENT()
 			Qual /= 100;
 
 			*(ptr1++) = (UCHAR)Qual;
+
+			if (Qual == 0)
+				continue;
 
 			Count--;
 		}
@@ -924,7 +945,7 @@ VOID L3LINKCLOSED(struct _LINKTABLE * LINK, int Reason)
 
 VOID CLEARACTIVEROUTE(struct ROUTE * ROUTE, int Reason)
 {
-	//	FIND ANY DESINATIONS WITH [ESI] AS ACTIVE NEIGHBOUR, AND
+	//	FIND ANY DESINATIONS WITH ROUTE AS ACTIVE NEIGHBOUR, AND
 	//	SET INACTIVE
 
 	dest_list * DEST;
@@ -945,7 +966,7 @@ VOID CLEARACTIVEROUTE(struct ROUTE * ROUTE, int Reason)
 		if (DEST->DEST_ROUTE == 0)
 			continue;
 
-		if (DEST->ROUTE[DEST->DEST_ROUTE].ROUT_NEIGHBOUR == ROUTE)   // Is this the active route
+		if (DEST->INP3ROUTE[DEST->DEST_ROUTE].ROUT_NEIGHBOUR == ROUTE)   // Is this the active route
 		{
 			// Yes, so clear
 
@@ -1120,7 +1141,7 @@ UPDEST000:
 		{
 			//	 Any INP3 Routes?
 
-			if (DEST->ROUTE[0].ROUT_NEIGHBOUR == 0)
+			if (DEST->INP3ROUTE[0].ROUT_NEIGHBOUR == 0)
 			{
 				//	NO ROUTES LEFT TO DEST - REMOVE IT
 
@@ -1292,6 +1313,32 @@ VOID REMOVENODE(dest_list * DEST)
 	NUMBEROFNODES--;
 }
 
+VOID L3LINKSETUPFAILED(struct _LINKTABLE * LINK)
+{
+	//	L2 LINK SETUP HAS FAILED - SEE IF ANOTHER NEIGHBOUR CAN BE USED
+
+	struct PORTCONTROL * PORT = PORTTABLE;
+	struct ROUTE * ROUTE;
+
+	ROUTE = LINK->NEIGHBOUR;		// TO NEIGHBOUR
+	
+	if (ROUTE == NULL)
+		return;						// NOTHING ???
+
+	if (ROUTE->INP3Node)
+	{
+		char Normcall[10];
+		Normcall[ConvFromAX25(ROUTE->NEIGHBOUR_CALL, Normcall)] = 0;
+		Debugprintf("INP3 Route to %s connect failed", Normcall);
+	}
+
+	
+	ROUTE->NEIGHBOUR_LINK = 0;		// CLEAR IT
+
+	L3TRYNEXTDEST(ROUTE);			// RESET ASSOCIATED DEST ENTRIES
+}
+
+
 VOID L3CONNECTFAILED(struct _LINKTABLE * LINK)
 {
 	//	L2 LINK SETUP HAS FAILED - SEE IF ANOTHER NEIGHBOUR CAN BE USED
@@ -1304,6 +1351,14 @@ VOID L3CONNECTFAILED(struct _LINKTABLE * LINK)
 	
 	if (ROUTE == NULL)
 		return;						// NOTHING ???
+
+	if (ROUTE->INP3Node)
+	{
+		char Normcall[10];
+		Normcall[ConvFromAX25(ROUTE->NEIGHBOUR_CALL, Normcall)] = 0;
+		Debugprintf("INP3 Route to %s connect failed or refused", Normcall);
+	}
+
 	
 	TellINP3LinkSetupFailed(ROUTE);
 
@@ -1315,7 +1370,7 @@ VOID L3CONNECTFAILED(struct _LINKTABLE * LINK)
 
 VOID L3TRYNEXTDEST(struct ROUTE * ROUTE)
 {
-	//	FIND ANY DESINATIONS WITH [ESI] AS ACTIVE NEIGHBOUR, AND
+	//	FIND ANY DESINATIONS WITH ROUTE AS ACTIVE NEIGHBOUR, AND
 	//	SET NEXT BEST NEIGHBOUR (IF ANY) ACTIVE
 
 	int n = MAXDESTS;
@@ -1328,7 +1383,7 @@ VOID L3TRYNEXTDEST(struct ROUTE * ROUTE)
 		
 		if (ActiveRoute)
 		{
-			ActiveRoute --;			// Routes numbered 1 - 6, idex from 0
+			ActiveRoute --;			// Routes numbered 1 - 6, index from 0
 			
 			if (DEST->NRROUTE[ActiveRoute].ROUT_NEIGHBOUR == ROUTE)
 			{

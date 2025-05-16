@@ -1229,38 +1229,81 @@ VOID CMDSTATS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 
+#define	PFBIT 0x10		// POLL/FINAL BIT IN CONTROL BYTE
+
+VOID InformPartner(struct _LINKTABLE * LINK, int Reason);
+VOID L2SENDCOMMAND(struct _LINKTABLE * LINK, int CMD);
+BOOL FindLink(UCHAR * LinkCall, UCHAR * OurCall, int Port, struct _LINKTABLE ** REQLINK);
+
 VOID CMDL00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	//	PROCESS 'LINKS' MESSAGE
 
 	struct _LINKTABLE * LINK = LINKS;
 	int n = MAXLINKS;
-	int len;
+	int len, Count;
 	char Normcall[11] = "";
+	UCHAR DEST[7];
+	UCHAR ORIGIN[7];
+	int Port = 0;
+	char * ptr = 0, * Context;
 
-	Bufferptr = Cmdprintf(Session, Bufferptr, "Links\r");
+	ptr = strtok_s(CmdTail, " ", &Context);
 
-	while (n--)
+	if (ptr && _stricmp(ptr, "reset") == 0)
 	{
-		if (LINK->LINKCALL[0])
+		ptr = strtok_s(NULL, " ", &Context);
+		if (ptr)
+			ConvToAX25(ptr, DEST);
+
+		ptr = strtok_s(NULL, " ", &Context);
+		if (ptr)
+			ConvToAX25(ptr, ORIGIN);
+
+		ptr = strtok_s(NULL, " ", &Context);
+		if (ptr)
+			Port = atoi(ptr);
+
+		if (FindLink(DEST, ORIGIN, Port, &LINK))
 		{
-			len = ConvFromAX25(LINK->LINKCALL, Normcall);
+			InformPartner(LINK, NORMALCLOSE);	// TELL OTHER END ITS GONE
 
-			Bufferptr = Cmdprintf(Session, Bufferptr, "%s", Normcall);
+			LINK->L2RETRIES -= 1;		// Just send one DISC
+			LINK->L2STATE = 4;			// CLOSING
 
-			len = ConvFromAX25(LINK->OURCALL, Normcall);
-			Bufferptr = Cmdprintf(Session, Bufferptr, "%s", Normcall);
-
-			if (LINK->Ver2point2)
-				Bufferptr = Cmdprintf(Session, Bufferptr, " S=%d P=%d T=%d V=2.2\r",
-					LINK->L2STATE, LINK->LINKPORT->PORTNUMBER, LINK->LINKTYPE);
-			else
-				Bufferptr = Cmdprintf(Session, Bufferptr, " S=%d P=%d T=%d V=%d\r",
-					LINK->L2STATE, LINK->LINKPORT->PORTNUMBER, LINK->LINKTYPE, 2 - LINK->VER1FLAG);
+			L2SENDCOMMAND(LINK, DISC | PFBIT);
+			Bufferptr = Cmdprintf(Session, Bufferptr, "Link Reset\r");
 		}
-		LINK++;
-	}
+		else
+			Bufferptr = Cmdprintf(Session, Bufferptr, "Link Not Found\r");
 
+	}
+	else
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Links\r");
+
+		while (n--)
+		{
+			if (LINK->LINKCALL[0])
+			{
+				len = ConvFromAX25(LINK->LINKCALL, Normcall);
+				Count = COUNT_AT_L2(LINK);
+
+				Bufferptr = Cmdprintf(Session, Bufferptr, "%s", Normcall);
+
+				len = ConvFromAX25(LINK->OURCALL, Normcall);
+				Bufferptr = Cmdprintf(Session, Bufferptr, "%s", Normcall);
+
+				if (LINK->Ver2point2)
+					Bufferptr = Cmdprintf(Session, Bufferptr, " S=%d P=%d T=%d V=2.2 Q=%d\r",
+					LINK->L2STATE, LINK->LINKPORT->PORTNUMBER, LINK->LINKTYPE, Count);
+				else
+					Bufferptr = Cmdprintf(Session, Bufferptr, " S=%d P=%d T=%d V=%d Q=%d\r",
+					LINK->L2STATE, LINK->LINKPORT->PORTNUMBER, LINK->LINKTYPE, 2 - LINK->VER1FLAG, Count);
+			}
+			LINK++;
+		}
+	}
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
 
@@ -2845,7 +2888,7 @@ char * DoOneNode(TRANSPORTENTRY * Session, char * Bufferptr, struct DEST_LIST * 
 	char Normcall[10];
 	char Alias[10];
 	struct NR_DEST_ROUTE_ENTRY * NRRoute;
-	struct DEST_ROUTE_ENTRY * Route;
+	struct INP3_DEST_ROUTE_ENTRY * Route;
 	struct ROUTE * Neighbour;
 	int i, Active, len;
 
@@ -2886,7 +2929,7 @@ char * DoOneNode(TRANSPORTENTRY * Session, char * Bufferptr, struct DEST_LIST * 
 
 	//	DISPLAY  INP3 ROUTES
 
-	Route = &Dest->ROUTE[0];
+	Route = &Dest->INP3ROUTE[0];
 
 	Active = Dest->DEST_ROUTE;
 
@@ -2943,17 +2986,17 @@ int DoINP3ViaEntry(struct DEST_LIST * Dest, int n, char * line, int cursor)
 	int len;
 	double srtt;
 
-	if (Dest->ROUTE[n].ROUT_NEIGHBOUR != 0)
+	if (Dest->INP3ROUTE[n].ROUT_NEIGHBOUR != 0)
 	{
-		srtt = Dest->ROUTE[n].SRTT/1000.0;
+		srtt = Dest->INP3ROUTE[n].SRTT/1000.0;
 
-		len=ConvFromAX25(Dest->ROUTE[n].ROUT_NEIGHBOUR->NEIGHBOUR_CALL, Portcall);
+		len=ConvFromAX25(Dest->INP3ROUTE[n].ROUT_NEIGHBOUR->NEIGHBOUR_CALL, Portcall);
 		Portcall[len]=0;
 
 		len=sprintf(&line[cursor],"%s %d %d %4.2fs ",
 			Portcall,
-			Dest->ROUTE[n].ROUT_NEIGHBOUR->NEIGHBOUR_PORT,
-			Dest->ROUTE[n].Hops, srtt);
+			Dest->INP3ROUTE[n].ROUT_NEIGHBOUR->NEIGHBOUR_PORT,
+			Dest->INP3ROUTE[n].Hops, srtt);
 
 		cursor+=len;
 
@@ -3241,7 +3284,7 @@ NODE_VIA:
 	{
 		Dest+=1;
 
-		if (Dest->NRROUTE[0].ROUT_NEIGHBOUR == 0 && Dest->ROUTE[0].ROUT_NEIGHBOUR == 0)
+		if (Dest->NRROUTE[0].ROUT_NEIGHBOUR == 0 && Dest->INP3ROUTE[0].ROUT_NEIGHBOUR == 0)
 			continue;
 
 
@@ -3249,9 +3292,9 @@ NODE_VIA:
 			|| (Dest->NRROUTE[1].ROUT_NEIGHBOUR && CompareCalls(Dest->NRROUTE[1].ROUT_NEIGHBOUR->NEIGHBOUR_CALL, AXCALL))
 			|| (Dest->NRROUTE[2].ROUT_NEIGHBOUR && CompareCalls(Dest->NRROUTE[2].ROUT_NEIGHBOUR->NEIGHBOUR_CALL, AXCALL))
 
-			|| (Dest->ROUTE[0].ROUT_NEIGHBOUR && CompareCalls(Dest->ROUTE[0].ROUT_NEIGHBOUR->NEIGHBOUR_CALL, AXCALL))
-			|| (Dest->ROUTE[1].ROUT_NEIGHBOUR && CompareCalls(Dest->ROUTE[1].ROUT_NEIGHBOUR->NEIGHBOUR_CALL, AXCALL))
-			|| (Dest->ROUTE[2].ROUT_NEIGHBOUR && CompareCalls(Dest->ROUTE[2].ROUT_NEIGHBOUR->NEIGHBOUR_CALL, AXCALL)))
+			|| (Dest->INP3ROUTE[0].ROUT_NEIGHBOUR && CompareCalls(Dest->INP3ROUTE[0].ROUT_NEIGHBOUR->NEIGHBOUR_CALL, AXCALL))
+			|| (Dest->INP3ROUTE[1].ROUT_NEIGHBOUR && CompareCalls(Dest->INP3ROUTE[1].ROUT_NEIGHBOUR->NEIGHBOUR_CALL, AXCALL))
+			|| (Dest->INP3ROUTE[2].ROUT_NEIGHBOUR && CompareCalls(Dest->INP3ROUTE[2].ROUT_NEIGHBOUR->NEIGHBOUR_CALL, AXCALL)))
 		{
 			len=ConvFromAX25(Dest->DEST_CALL,Normcall);
 
