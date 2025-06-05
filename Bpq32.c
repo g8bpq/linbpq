@@ -1270,6 +1270,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Support IPv6 for Telnet outward connects (72)
 //	Fix decaying NETROM routes (72)
 //	Add OnlyVer2point0 config command (72)
+//	Add option to allow AX/UDP on a network using NAT (72)
+//	Include AGWAPI foxes from Martin KD6YAM to enable use with Paracon terminal (72)
 
 
 #define CKernel

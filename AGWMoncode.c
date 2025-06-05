@@ -49,9 +49,14 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #define	DM	0x0F
 #define	UA	0x63
 #define	FRMR 0x87
+#define XID     0xAF
+#define TEST    0xE3
 #define	RR	1
 #define	RNR	5
 #define	REJ	9
+#define	SREJ 0x0D
+#define SABME 0x6F
+
 
 #define	PFBIT 0x10		// POLL/FINAL BIT IN CONTROL BYTE
 
@@ -261,6 +266,18 @@ int InternalAGWDecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp, int * Fra
 			strcpy(SUP, "FRMR");
 			FRMRFLAG = 1;
 			break;
+
+		case XID:
+
+			strcpy(SUP, "XID");
+			XIDFLAG = 1;
+			break;
+
+		case TEST:
+
+			strcpy(SUP, "TEST");
+			TESTFLAG = 1;
+			break;
 		}
 
 		Output += sprintf((char *)Output, "<%s%s%s>", SUP, CRCHAR, PFCHAR);
@@ -270,7 +287,7 @@ int InternalAGWDecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp, int * Fra
 		// Super
 
 		int NR = (CTL >> 5) & 7;
-		char SUP[4] = "??";
+		char SUP[5] = "??";
 
 		switch (CTL & 0x0F)
 		{
@@ -288,6 +305,13 @@ int InternalAGWDecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp, int * Fra
 
 			strcpy(SUP, "REJ");
 			break;
+
+
+		case SREJ:
+
+			strcpy(SUP, "SREJ");
+			break;
+
 		}
 
 		Output += sprintf((char *)Output, "<%s%s%s R%d>", SUP, CRCHAR, PFCHAR, NR);
@@ -299,6 +323,72 @@ int InternalAGWDecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp, int * Fra
 
 	if (FRMRFLAG)
 		Output += sprintf((char *)Output, "%02X %02X %02X", ADJBUFFER->PID, ADJBUFFER->L2DATA[0], ADJBUFFER->L2DATA[1]); 
+
+	if (XIDFLAG)
+	{
+		// Decode and display XID
+
+		UCHAR * ptr = &ADJBUFFER->PID;
+
+		if (*ptr++ == 0x82 && *ptr++ == 0x80)
+		{
+			int Type;
+			int Len;
+			unsigned int value;
+			int xidlen = *(ptr++) << 8;
+			xidlen += *ptr++;
+		
+			// XID is set of Type, Len, Value n-tuples
+
+// G8BPQ-2>G8BPQ:(XID cmd, p=1) Half-Duplex SREJ modulo-128 I-Field-Length-Rx=256 Window-Size-Rx=32 Ack-Timer=3000 Retries=10
+
+
+			while (xidlen > 0)
+			{
+				Type = *ptr++;
+				Len = *ptr++;
+
+				value = 0;
+				xidlen -= (Len + 2);
+
+				while (Len--)
+				{
+					value <<=8;
+					value += *ptr++;
+				}
+				switch(Type)
+				{
+				case 2:				//Bin fields
+				case 3:
+
+					Output += sprintf((char *)Output, " %d=%x", Type, value);
+					break;
+
+				case 6:				//RX Size
+
+					Output += sprintf((char *)Output, " RX Paclen=%d", value / 8);
+					break;
+
+				case 8:				//RX Window
+
+					Output += sprintf((char *)Output, " RX Window=%d", value);
+					break;
+
+				case 16:
+
+					Output += sprintf((char *)Output, " Can Compress");
+					break;
+
+				case 17:
+
+					Output += sprintf((char *)Output, " Compress ok");
+					break;
+				}
+			}	
+		}
+	}
+
+
 
 	if (Info)
 	{

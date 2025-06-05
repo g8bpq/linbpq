@@ -4005,6 +4005,7 @@ VOID CONNECTREFUSED(struct _LINKTABLE * LINK)
 	ConnectFailedOrRefused(LINK, "Busy from");
 }
 
+
 VOID L3LINKSETUPFAILED(struct _LINKTABLE * LINK);
 
 

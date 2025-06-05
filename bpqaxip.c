@@ -2623,6 +2623,7 @@ BOOL CheckSourceisResolvable(struct AXIPPORTINFO * PORT, char * call, int FromPo
 				if (arp->replytoSourcePort)
 				{
 					arp->port = FromPort;
+					arp->destaddr.sin_port = htons(arp->port);
 					if (arp->SourcePort == 0)
 						arp->SourcePort = ToPort;
 				}

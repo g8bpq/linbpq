@@ -36,8 +36,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 struct AGWHeader
 {
-    uint8_t Port;
-	uint8_t filler1[3];
+    unsigned int Port;
 	unsigned char DataKind;
     unsigned char filler2;
 	unsigned char PID;
@@ -752,12 +751,6 @@ int AGWDoMonitorData()
 		    RXFlag = TRUE;
 		}
 
-		if (Port == 0)
-		{
-			Debugprintf("AGWMON Port number is zero");
-			return 0;
-		}
-
 		// Can now have different mon flags per connection, so need to run decode for each socket
 
 		for (n = 1; n<= CurrentSockets; n++)
@@ -836,7 +829,9 @@ int AGWDoMonitorData()
 			}
 		}		
    }
-   return 0;
+
+	return 0;
+
 }
 
 int DeleteConnection(struct BPQConnectionInfo * Con)
@@ -1133,7 +1128,6 @@ int AGWDataSocket_Read(struct AGWSocketConnectionInfo * sockptr, SOCKET sock)
 int ProcessAGWCommand(struct AGWSocketConnectionInfo * sockptr)
 {
 	int AGWVersion[2]={2003,999};
-	byte AGWPortCaps[12] = { 0, 255, 30, 10, 63, 10, 4, 0, 1, 0, 0, 0 };
 	char AGWRegReply[1];
 	struct BPQConnectionInfo * Connection;
 	int Stream;
@@ -1299,7 +1293,9 @@ int ProcessAGWCommand(struct AGWSocketConnectionInfo * sockptr)
     //   Version
     
         memset(&AGWTXHeader,0,36);
+    
         AGWTXHeader.DataKind = 'R';
+
         AGWTXHeader.DataLength = 8;       // Length
     
         SendtoSocket(sockptr->socket, (char *)&AGWVersion[0]);
@@ -1313,26 +1309,14 @@ int ProcessAGWCommand(struct AGWSocketConnectionInfo * sockptr)
         
         
         memset(&AGWTXHeader,0,36);
+
         AGWTXHeader.DataKind = 'G';
+
         AGWTXHeader.DataLength =(int)strlen(AGWPorts)+1;     // Length
     
         SendtoSocket(sockptr->socket, AGWPorts);
 
 		return 0;
-
-		     
-	case 'g':
-
-        //   Port capabilities. Currently hard-coded.
-
-		AGWTXHeader.Port = sockptr->AGWRXHeader.Port;
-		AGWTXHeader.DataKind = 'g';
-		AGWTXHeader.DataLength = 12;
-
-		SendtoSocket(sockptr->socket, (char *)&AGWPortCaps[0]);
-
-		return 0;
-
 
     
 	case 'k':
@@ -1432,8 +1416,6 @@ int ProcessAGWCommand(struct AGWSocketConnectionInfo * sockptr)
 
         AGWTXHeader.DataKind = 'X';
         
-        memcpy(&AGWTXHeader.callfrom, RegCall, 10);
-
         AGWTXHeader.DataLength = 1;      // Length
              
         AGWRegReply[0] = 1;
