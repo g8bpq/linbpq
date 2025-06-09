@@ -3321,7 +3321,7 @@ VOID SendReportMsg(char * buff, int txlen)
 	buff[txlen++] = (crc&0xff);
 	buff[txlen++] = (crc>>8);
 
-//	sendto(ReportSocket, buff, txlen, 0, (struct sockaddr *)&reportdest, sizeof(reportdest));
+	sendto(ReportSocket, buff, txlen, 0, (struct sockaddr *)&reportdest, sizeof(reportdest));
 
 }
 VOID SendLocation()
