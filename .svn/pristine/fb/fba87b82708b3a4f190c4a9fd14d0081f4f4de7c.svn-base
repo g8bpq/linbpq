@@ -129,7 +129,7 @@ int DataSocket_Write(struct AGWSocketConnectionInfo * sockptr, SOCKET sock);
 int AGWGetSessionKey(char * key, struct AGWSocketConnectionInfo * sockptr);
 int ProcessAGWCommand(struct AGWSocketConnectionInfo * sockptr);
 int SendDataToAppl(int Stream, byte * Buffer, int Length);
-int InternalAGWDecodeFrame(MESSAGE * msg, char * buffer, time_t Stamp, int * FrameType, int useLocalTime, int doNodes);
+int InternalAGWDecodeFrame(char * msg, char * buffer, time_t Stamp, int * FrameType, int useLocalTime, int doNodes);
 int AGWDataSocket_Disconnect( struct AGWSocketConnectionInfo * sockptr);
 int SendRawPacket(struct AGWSocketConnectionInfo * sockptr, char *txmsg, int Length);
 int ShowApps();
@@ -721,7 +721,7 @@ int AGWDoMonitorData()
 
 		RawLen = monbuff->LENGTH;
 
-		if (RawLen < MSGHDDRLEN || RawLen > 350)
+		if (RawLen < 7 || RawLen > 350)
 		{	
 			ReleaseBuffer(monbuff);
 			FreeSemaphore(&Semaphore);
@@ -735,16 +735,12 @@ int AGWDoMonitorData()
 		ReleaseBuffer(monbuff);
 
 		FreeSemaphore(&Semaphore);
-
-		// Set monbuff to point to the copy
-
-		monbuff = (MESSAGE *)Buffer;
 	
 //'   4 byte chain
 //'   1 byte port - top bit = transmit
 //'   2 byte length (LO-HI)
 
-		Port = monbuff->PORT;
+		Port = Buffer[4];
 
 		if (Port > 127)
 		{
@@ -770,7 +766,7 @@ int AGWDoMonitorData()
 
 			if (sockptr->SocketActive && sockptr->MonFlag && (RXFlag || LoopMonFlag))
 			{
-				Length = InternalAGWDecodeFrame(monbuff, AGWBuffer, Stamp, &Frametype, sockptr->useLocalTime, sockptr->doNodes);
+				Length = InternalAGWDecodeFrame(Buffer, AGWBuffer, Stamp, &Frametype, sockptr->useLocalTime, sockptr->doNodes);
 
 				if (Length > 0)
 				{
@@ -814,7 +810,7 @@ int AGWDoMonitorData()
 			}
 		}
 
-		RawLen = RawLen - (MSGHDDRLEN - 1);		// One more for KISS control
+		RawLen = RawLen - 6;
  
 		if (RXFlag || Loopflag) // Send transmitted frames if requested
 		{
@@ -822,12 +818,8 @@ int AGWDoMonitorData()
         //
         //  Send raw data to any sockets that have requested Raw frames
         //
-
-		// Format is ax.25 packet prceeded by a KISS command byte 00 for channel 1 0x10 for channel 2 etc
-		// As this is an application API I think all should go as Port 1
-
-
-			Buffer[MSGHDDRLEN - 1] = 0;			// Just in case big-endian
+        
+			Buffer[6]=0;
        
 			AGWTXHeader.Port = Port - 1;       // AGW Ports start from 0
 			AGWTXHeader.DataKind = 'K';
@@ -839,7 +831,7 @@ int AGWDoMonitorData()
 				sockptr=&Sockets[n];
        
 				if (sockptr->SocketActive && sockptr->RawFlag)
-					SendRawPacket(sockptr, &Buffer[MSGHDDRLEN - 1], RawLen);
+					SendRawPacket(sockptr, &Buffer[6], RawLen);
         
 			}
 		}		
@@ -1209,7 +1201,7 @@ int ProcessAGWCommand(struct AGWSocketConnectionInfo * sockptr)
 
 			// Need to convert port index (used by AGW) to port number
 
-			conport=GetPortNumber(VisiblePortToRealPort[key[0]-49] + 1);
+			conport=GetPortNumber(VisiblePortToRealPort[key[0]-48]);
 
 			n = sprintf(ConnectMsg,"C %d %s",conport,ToCall);
 
