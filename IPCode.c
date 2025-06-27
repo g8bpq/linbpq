@@ -100,6 +100,9 @@ TODo	?Multiple Adapters
 #ifdef WIN32
 int pcap_sendpacket(pcap_t *p, u_char *buf, int size);
 #else
+ #ifndef PCAP_API
+  #define PCAP_API extern
+ #endif
  PCAP_API int pcap_sendpacket(pcap_t *, const u_char *, int);
 #endif
 

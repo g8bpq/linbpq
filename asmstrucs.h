@@ -1087,7 +1087,11 @@ struct SEM
 	int	Gets;
 	int Rels;
 	DWORD SemProcessID;
+#ifdef WIN32
 	DWORD SemThreadID;
+#else
+	pthread_t SemThreadID;
+#endif
 	int Line;		// caller file and line
 	char File[MAX_PATH];
 };

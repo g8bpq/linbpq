@@ -913,7 +913,7 @@ int main(int argc, char * argv[])
 
 	Debugprintf("G8BPQ AX25 Packet Switch System Version %s %s", TextVerstring, Datestring);
 
-#ifndef MACBPQ
+#if !(defined(MACBPQ) || defined(FREEBSD))
 	_MYTIMEZONE = _timezone;
 #endif
 
