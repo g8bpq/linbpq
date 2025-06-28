@@ -28,7 +28,7 @@ noi2c: linbpq
 
 	
 linbpq: $(OBJS)
-	cc $(OBJS) -L/usr/local/lib -Xlinker  -lminiupnpc -liconv  -lm -lz -lpthread -lconfig -lpcap -lexecinfo -o linbpq
+	cc $(OBJS) -L/usr/local/lib -Xlinker  -lminiupnpc -liconv  -lm -lz -lpthread -lconfig -lpcap -lexecinfo -lutil -o linbpq
 	cp linbpq ../linbpq/linbpq.new		
 
 -include *.d
