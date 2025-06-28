@@ -241,8 +241,14 @@ typedef struct _SERIAL_STATUS {
 
 #ifndef WIN32
 
-#ifdef MACBPQ
+#if defined(MACBPQ)
 #include <util.h>
+#elif defined(FREEBSD)
+#if defined(__FreeBSD__) || defined(__DragonFly__)
+#include <libutil.h>
+#else
+#include <util.h>
+#endif
 #endif
 
 extern int posix_openpt (int __oflag);
@@ -262,7 +268,7 @@ HANDLE LinuxOpenPTY(char * Name)
 	u_long param=1;
 	struct termios term;
 
-#ifdef MACBPQ
+#if defined(MACBPQ) || defined(FREEBSD)
 
 	// Create a pty pair
 	
