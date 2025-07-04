@@ -18,8 +18,17 @@ OBJS = pngwtran.o pngrtran.o pngset.o pngrio.o pngwio.o pngtrans.o pngrutil.o pn
 # Configuration:
 
 CC = cc
+
+OS_NAME = $(shell uname -s)
+ifeq ($(OS_NAME),NetBSD)
+    EXTRA_CFLAGS = -I/usr/pkg/include
+    EXTRA_LDFLAGS = -L/usr/pkg/lib -lrt
+else
+    EXTRA_CFLAGS = -I/usr/local/include
+    EXTRA_LDFLAGS = -L/usr/local/lib -liconv
+endif
 		                       
-all: CFLAGS = -DLINBPQ -DFREEBSD -DNOMQTT -MMD -g -fcommon -I/usr/local/include
+all: CFLAGS = -DLINBPQ -DFREEBSD -DNOMQTT -MMD -g -fcommon $(EXTRA_CFLAGS)
 all: linbpq
 
 
@@ -28,7 +37,7 @@ noi2c: linbpq
 
 	
 linbpq: $(OBJS)
-	cc $(OBJS) -L/usr/local/lib -Xlinker  -lminiupnpc -liconv  -lm -lz -lpthread -lconfig -lpcap -lexecinfo -lutil -o linbpq
+	cc $(OBJS) $(EXTRA_LDFLAGS) -Xlinker  -lminiupnpc  -lm -lz -lpthread -lconfig -lpcap -lexecinfo -lutil -o linbpq
 	cp linbpq ../linbpq/linbpq.new		
 
 -include *.d
