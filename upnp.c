@@ -134,7 +134,7 @@ int upnpInit()
 				return 0;
 			}
 
-#if MINIUPNPC_API_VERSION == 18
+#if MINIUPNPC_API_VERSION >= 18
 			i = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr), wanaddr, sizeof(wanaddr));
 #else
 			i = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr));
@@ -168,7 +168,7 @@ int upnpClose()
 				return 0;
 			}
 
-#if MINIUPNPC_API_VERSION == 18
+#if MINIUPNPC_API_VERSION >= 18
 			i = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr), wanaddr, sizeof(wanaddr));
 #else
 			i = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr));
