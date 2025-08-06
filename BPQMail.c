@@ -1154,6 +1154,7 @@
 //	Add Send and Receive byte counts to status displays (69)
 //	Validate Mode and Frequency and fix formatting in Connected Message (71)
 //	Fix using OpenBCM on other than Telnet connections (75)
+//	Fix sending + in Webmail (80)
 
 #include "bpqmail.h"
 #include "winstdint.h"

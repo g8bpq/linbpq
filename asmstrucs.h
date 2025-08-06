@@ -930,6 +930,9 @@ typedef struct _LINKTABLE
 	VOID *	FRAMES[8];		// FRAMES WAITING ACK
 	VOID *	RXFRAMES[8];	// Frames received out of sequence
 
+	time_t	LASTFRAMESENT;	// For detecting stuck links
+	int		LASTSENTQCOUNT;	//
+
 	UCHAR	L2STATE;		// PROCESSING STATE
 	UCHAR	Ver2point2;		// Set if running 2.2
 	USHORT	L2TIMER;		// FRAME RETRY TIMER

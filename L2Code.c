@@ -2176,7 +2176,9 @@ VOID SFRAME(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, UCHAR CTL, UCHA
 				int count;
 				MESSAGE * Msg;
 				MESSAGE * Buffer;
-						
+
+				LINK->L2FLAGS &= ~POLLSENT;			// CLEAR I(P) or RR(P) SET
+				
 				Msg = LINK->FRAMES[NS];	// is frame available?
 
 				if (Msg == NULL)
@@ -2977,6 +2979,43 @@ VOID SDETX(struct _LINKTABLE * LINK)
 //	if (LINK->L2RESEQ_Q)
 //		return;
 	
+	// **** Debug code **** look for stuck links
+
+	if (LINK->LASTFRAMESENT && (time(NULL) - LINK->LASTFRAMESENT) > 60)			// No send for 60 secs
+	{
+		if (COUNT_AT_L2(LINK) > 16)
+		{
+			// Dump Link State
+
+			char Normcall[11] = "";
+			char Normcall2[11] = "";
+
+			int Count = COUNT_AT_L2(LINK);
+			int secs = time(NULL) - LINK->LASTFRAMESENT;
+				
+			ConvFromAX25(LINK->LINKCALL, Normcall);
+			ConvFromAX25(LINK->OURCALL, Normcall2);
+
+			Debugprintf("*** Stuck L2 Session for %d Secs %s %s %d", secs, Normcall, Normcall2, Count);
+			Debugprintf("LINK->LINKNS %d LINK->LINKOWS %d SDTSLOT %d LINKWINDOW %d L2FLAGS %d", LINK->LINKNS, LINK->LINKOWS, LINK->SDTSLOT, LINK->LINKWINDOW, LINK->L2FLAGS);
+			Debugprintf("Slots %x %x %x %x %x %x %x %x", LINK->FRAMES[0], LINK->FRAMES[1], LINK->FRAMES[2], LINK->FRAMES[3],
+				LINK->FRAMES[4], LINK->FRAMES[5], LINK->FRAMES[6], LINK->FRAMES[7]);
+
+			// Reset Link
+
+
+			InformPartner(LINK, NORMALCLOSE);	// TELL OTHER END ITS GONE
+
+			LINK->L2RETRIES -= 1;		// Just send one DISC
+			LINK->L2STATE = 4;			// CLOSING
+
+			L2SENDCOMMAND(LINK, DISC | PFBIT);
+
+			return;
+		}
+	}
+
+
 	Outstanding = LINK->LINKNS - LINK->LINKOWS;			// Was WS not NS
 
 	if (Outstanding < 0)
@@ -2993,6 +3032,10 @@ VOID SDETX(struct _LINKTABLE * LINK)
 
 		Msg = Q_REM(&LINK->TX_Q);
 		Msg->CHAIN = NULL;
+
+		LINK->LASTFRAMESENT = time(NULL);
+		LINK->LASTSENTQCOUNT = COUNT_AT_L2(LINK);
+
 
 		if (LINK->AllowCompress && Msg->LENGTH > 20  && LINK->TX_Q && Msg->PID == 240)			// if short and no more not worth trying compression
 		{
@@ -3017,6 +3060,7 @@ VOID SDETX(struct _LINKTABLE * LINK)
 
 			// I think I need to know how many slots are available, so I don't compress too much
 			// Then collect data, compressing after each frame to make sure will fit in available space
+
 
 			while (LINK->FRAMES[n] == NULL && slots < 8)
 			{

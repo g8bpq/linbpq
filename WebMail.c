@@ -2662,10 +2662,10 @@ VOID SaveNewMessage(struct HTTPConnectionInfo * Session, char * MsgPtr, char * R
 	if (strlen(WebMail->BID) > 12)
 		WebMail->BID[12] = 0;
 
-	UndoTransparency(WebMail->BID);
-	UndoTransparency(WebMail->To);
-	UndoTransparency(WebMail->Subject);
-	UndoTransparency(WebMail->Body);
+//	UndoTransparency(WebMail->BID);
+//	UndoTransparency(WebMail->To);
+//	UndoTransparency(WebMail->Subject);
+//	UndoTransparency(WebMail->Body);
 
 	MsgLen = strlen(WebMail->Body);
 

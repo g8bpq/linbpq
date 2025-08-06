@@ -983,7 +983,27 @@ LRESULT APIENTRY InputProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			return 0; 
 		}
- 
+
+		if (wParam == 0x7)  // BEL (Ctrl/G)
+		{
+			// Get buffer, append 07 and write back
+
+			Cinfo->kbptr = SendMessage(Cinfo->hwndInput, WM_GETTEXT, INPUTLEN-1, 
+				(LPARAM) (LPCSTR)Cinfo->kbbuf);
+
+
+			Cinfo->kbbuf[Cinfo->kbptr++] = 7;
+			Cinfo->kbbuf[Cinfo->kbptr] = 0;
+
+			SendMessage(Cinfo->hwndInput,WM_SETTEXT,0,(LPARAM)(LPCSTR) Cinfo->kbbuf);
+
+			// Send cursor right
+
+			SendMessage(Cinfo->hwndInput, WM_KEYDOWN, VK_RIGHT, 0);
+			SendMessage(Cinfo->hwndInput, WM_KEYUP, VK_RIGHT, 0);
+
+			return 0;
+		}
 	}
 
     return CallWindowProc(Cinfo->wpOrigInputProc, hwnd, uMsg, wParam, lParam); 
