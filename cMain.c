@@ -52,6 +52,9 @@ int CanPortDigi(int Port);
 int	KissEncode(UCHAR * inbuff, UCHAR * outbuff, int len);
 void MQTTTimer();
 void SaveMH();
+VOID InformPartner(struct _LINKTABLE * LINK, int Reason);
+VOID L2SENDCOMMAND(struct _LINKTABLE * LINK, int CMD);
+
 
 #include "configstructs.h"
 

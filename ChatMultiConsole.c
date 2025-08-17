@@ -999,8 +999,11 @@ LRESULT APIENTRY InputProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 			// Send cursor right
 
-			SendMessage(Cinfo->hwndInput, WM_KEYDOWN, VK_RIGHT, 0);
-			SendMessage(Cinfo->hwndInput, WM_KEYUP, VK_RIGHT, 0);
+			for (i = 0; i < strlen(Cinfo->kbbuf); i++)
+			{
+				SendMessage(Cinfo->hwndInput, WM_KEYDOWN, VK_RIGHT, 0);
+				SendMessage(Cinfo->hwndInput, WM_KEYUP, VK_RIGHT, 0);
+			}
 
 			return 0;
 		}

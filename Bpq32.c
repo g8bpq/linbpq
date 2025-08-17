@@ -1280,6 +1280,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix possible FRMR when RNR is cleared by SREJ (78)
 //	Fix error in .77 L4Compress fix (mine, not Steve's!) (78)
 //	Fix possible stuck L2 session when handling SREJ (79)
+//	Allow sending CTRL/G From console (Windows) (80)
+//	Fix Webmail autorefresh extra threads problem (websock connection lost handling) (82)
 
 #define CKernel
 

@@ -4839,7 +4839,14 @@ void ProcessWebmailWebSockThread(void * conn)
 
 	Sent = send(sockptr->socket, _REPLYBUFFER, ReplyLen, 0);
 
-	while (Sent != ReplyLen && Loops++ < 3000)					// 100 secs max
+	if (Sent == -1)		// Connecton lost
+	{
+		closesocket(sockptr->socket);
+		free(conn);
+		return;
+	}
+
+	while (Sent != ReplyLen && Loops++ < 3000)					// 90 secs max
 	{	
 		if (Sent > 0)					// something sent
 		{
@@ -4885,11 +4892,16 @@ void ProcessWebmailWebSockThread(void * conn)
 
 	CloseHandle(hPipe);
 
-	// ?? do we need a thread to handle write which may block
-
 	Sent = send(sockptr->socket, Reply, ReplyLen, 0);
 
-	while (Sent != ReplyLen && Loops++ < 3000)					// 100 secs max
+	if (Sent == -1)		// Connecton lost
+	{
+		free(conn);
+		closesocket(sockptr->socket);
+		return;
+	}
+
+	while (Sent != ReplyLen && Loops++ < 3000)					// 90 secs max
 	{	
 		//			Debugprintf("%d out of %d sent %d Loops", Sent, InputLen, Loops);
 

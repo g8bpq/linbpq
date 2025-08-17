@@ -1229,7 +1229,7 @@ void chkctl(ChatCIRCUIT *ckt_from, char * Buffer, int Len)
 
 	for (i = 1; i < (Len - 1); i++)
 	{
-		if (Buffer[i] < 32)
+		if (Buffer[i] < 32 && Buffer[i] != 7)		// Accept BELL
 		{
 			if (Buffer[i] == 9)
 			{

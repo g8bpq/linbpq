@@ -74,6 +74,7 @@
 
 //  Increase size of status display buffers (7)
 //	Allow sending BEL (CTRL/G) (79)
+//	Fix sending BEL (CTRL/G) (81)
 
 
 #include "BPQChat.h"

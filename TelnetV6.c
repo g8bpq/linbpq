@@ -5018,23 +5018,20 @@ int DataSocket_ReadHTTP(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, S
 	{
 		// Failed or closed - clear connection
 
-		// if Websock connection till app
+		// if Websock connection tell app
 
 		if (sockptr->WebSocks)
 		{
 			if (memcmp(sockptr->WebURL, "rhp", 3) == 0)
-			{
 				ProcessRHPWebSockClosed(sockptr->socket);	
-				DataSocket_Disconnect(TNC, sockptr);
-				return 0;
-			}
-		}
-		else
-		{
-			TNC->Streams[sockptr->Number].ReportDISC = TRUE;		//Tell Node
+
 			DataSocket_Disconnect(TNC, sockptr);
 			return 0;
 		}
+
+		TNC->Streams[sockptr->Number].ReportDISC = TRUE;		//Tell Node
+		DataSocket_Disconnect(TNC, sockptr);
+		return 0;
 	}
 
 	MsgPtr = &sockptr->InputBuffer[0];
