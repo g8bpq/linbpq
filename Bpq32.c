@@ -1282,6 +1282,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix possible stuck L2 session when handling SREJ (79)
 //	Allow sending CTRL/G From console (Windows) (80)
 //	Fix Webmail autorefresh extra threads problem (websock connection lost handling) (82)
+//	Fix overwriting application alias (83)
 
 #define CKernel
 

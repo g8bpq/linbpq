@@ -5450,7 +5450,26 @@ void DecodeCM108(int Port, char * ptr)
 	hid_device *handle = NULL;
 
 	if (strlen(ptr) > 16)
-		CM108Device = _strdup(ptr);
+	{
+		path_to_open = _strdup(ptr);
+
+		handle = hid_open_path(path_to_open);
+	
+		if (handle)
+		{
+			hid_close(handle);
+			CM108Device = _strdup(path_to_open);
+		}
+		else
+		{
+			char msg[128];
+			sprintf(msg,"Port %d Unable to open CM108 device %s", Port, path_to_open);
+			WritetoConsole(msg);
+		}
+	}
+
+	
+	
 	else
 	{
 		VID = strtol(ptr, &next, 0);

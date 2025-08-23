@@ -118,6 +118,7 @@ void ReleaseWebMailStruct(WebMailInfo * WebMail);
 VOID TidyWelcomeMsg(char ** pPrompt);
 int MailAPIProcessHTTPMessage(struct HTTPConnectionInfo * Session, char * response, char * Method, char * URL, char * request, BOOL LOCAL, char * Param, char * Token);
 void UndoTransparency(char * input);
+int GetMessageSlotFromMessageNumber(int msgno);
 
 char UNC[] = "";
 char CHKD[] = "checked=checked ";
@@ -2442,8 +2443,8 @@ VOID ProcessMsgFwdUpdate(struct HTTPConnectionInfo * Session, char * MsgPtr, cha
 			set_fwd_bit(Msg->fbbs, BBSNumber);
 			User->ForwardingInfo->MsgCount++;
 			clear_fwd_bit(Msg->forw, BBSNumber);
-			if (FirstMessageIndextoForward > Msg->number)
-				FirstMessageIndextoForward = Msg->number;
+			if (FirstMessageIndextoForward > GetMessageSlotFromMessageNumber(Msg->number))
+				FirstMessageIndextoForward = GetMessageSlotFromMessageNumber(Msg->number);
 
 		}
 		*RLen = SendMessageDetails(Msg, Reply, Session->Key);

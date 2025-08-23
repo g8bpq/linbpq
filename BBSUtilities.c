@@ -531,7 +531,20 @@ struct MsgInfo * GetMsgFromNumber(int msgno)
 	
 	return MsgnotoMsg[msgno];
 }
-		
+
+int GetMessageSlotFromMessageNumber(int msgno)
+{
+	int i;
+
+	for (i=1; i <= NumberofMessages; i++)
+	{
+		if (MsgHddrPtr[i]->number == msgno)
+			return i;
+	}
+
+	return 0;
+}
+
 struct UserInfo * AllocateUserRecord(char * Call)
 {
 	struct UserInfo * User = zalloc(sizeof (struct UserInfo));

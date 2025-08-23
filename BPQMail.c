@@ -1155,6 +1155,7 @@
 //	Validate Mode and Frequency and fix formatting in Connected Message (71)
 //	Fix using OpenBCM on other than Telnet connections (75)
 //	Fix sending + in Webmail (80)
+//	Fix forwarding problem when using Web interface to change message routing (73)
 
 #include "bpqmail.h"
 #include "winstdint.h"

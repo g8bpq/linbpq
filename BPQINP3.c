@@ -491,7 +491,7 @@ VOID UpdateNode(struct ROUTE * Route, UCHAR * axcall, UCHAR * alias, int  hops, 
 	{
 		APPL=&APPLCALLTABLE[App];
 
-		if (APPL->APPLHASALIAS == 0 && CompareCalls(axcall, APPL->APPLCALL))
+		if (CompareCalls(axcall, APPL->APPLCALL))
 		{
 			Debugprintf("INP3 for an APPLCALL - discarding");
 			return;
@@ -557,14 +557,13 @@ Found:
 	if (Dest->DEST_STATE & 0x80)	// Application Entry
 	{
 		Debugprintf("INP3 Application Entry - discarding");
-		return;	// Tsble Full
+		return;	
 	}
 
 	// Update ALIAS
 
 	ConvFromAX25(Dest->DEST_CALL, call);
 	Debugprintf("INP3 Updating Node %s Hops %d RTT %d", call, hops, rtt);
-
 
 	if (alias[0] > ' ')
 		memcpy(Dest->DEST_ALIAS, alias, 6);

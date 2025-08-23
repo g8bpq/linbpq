@@ -277,7 +277,7 @@ VOID PROCESSNODEMESSAGE(MESSAGE * Msg, struct PORTCONTROL * PORT)
 	{
 		APPL=&APPLCALLTABLE[App];
 
-		if (APPL->APPLHASALIAS == 0 && CompareCalls(Msg->ORIGIN, APPL->APPLCALL))
+		if (CompareCalls(Msg->ORIGIN, APPL->APPLCALL))
 			return;
 	}
 
@@ -386,7 +386,7 @@ VOID PROCESSNODEMESSAGE(MESSAGE * Msg, struct PORTCONTROL * PORT)
 		NUMBEROFNODES++;
 	}
 
-	//	ALWAYS UPDATE ALIAS IN CASE NOT PRESENT IN ORIGINAL TABLE
+	//	ALWAYS UPDATE ALIAS IN CASE NOT PRESENT IN ORIGINAL TABLE 
 
 	ptr1 = &Msg->L2DATA[1];
 	ptr2 = &DEST->DEST_ALIAS[0];
@@ -454,10 +454,10 @@ VOID PROCESSNODEMESSAGE(MESSAGE * Msg, struct PORTCONTROL * PORT)
 		if (CheckExcludeList(ptr1) == 0)			// Excluded
 			continue;
 
-		for (n = 0; n < 32; n++)
+		for (n = 0; n < NumberofAppls; n++)
 		{
 			if (CompareCalls(ptr1, APPLCALLTABLE[n].APPLCALL))
-				continue;
+				goto IgnoreNode;					// Don't update our applications
 		}
 
 		//	MAKE SURE ITS NOT CORRUPTED
@@ -566,7 +566,7 @@ VOID PROCESSNODEMESSAGE(MESSAGE * Msg, struct PORTCONTROL * PORT)
 
 		ptr1 += 7;
 	
-		//	UPDATE ALIAS
+		//	UPDATE ALIAS#
 
 		memcpy(DEST->DEST_ALIAS, ptr1, 6);
 
