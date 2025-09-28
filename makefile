@@ -29,19 +29,19 @@ all: linbpq
 
 OS_NAME = $(shell uname -s)
 ifeq ($(OS_NAME),NetBSD)
-	CC = cc
-    EXTRA_CFLAGS = -DFREEBSD -DNOMQTT -I/usr/pkg/include 
-    LDFLAGS =  -Xlinker -Map=output.map -Wl,-R/usr/pkg/lib -L/usr/pkg/lib -lrt -lutil -lexecinfo
+    CC = cc
+    EXTRA_CFLAGS = -DFREEBSD -DNOMQTT -I/usr/pkg/include
+    LDFLAGS = -Xlinker -Map=output.map -Wl,-R/usr/pkg/lib -L/usr/pkg/lib -lrt -lutil -lexecinfo
 
-all: CFLAGS = -DLINBPQ  -MMD -g -fcommon -fasynchronous-unwind-tables $(EXTRA_CFLAGS)	
-all: LIBS = -lminiupnpc -lm -lz -lpthread -lconfig -lpcap                    
+all: CFLAGS = -DLINBPQ  -MMD -g -fcommon -fasynchronous-unwind-tables $(EXTRA_CFLAGS)
+all: LIBS = -lminiupnpc -lm -lz -lpthread -lconfig -lpcap
 all: linbpq
 endif
 
 ifeq ($(OS_NAME),OpenBSD)
     CC = cc
     EXTRA_CFLAGS = -DFREEBSD -DNOMQTT -I/usr/local/include
-    LDFLAGS =  -Xlinker -Map=output.map -L/usr/local/lib -liconv -lutil -lexecinfo
+    LDFLAGS = -Xlinker -Map=output.map -L/usr/local/lib -liconv -lutil -lexecinfo
 
 all: CFLAGS = -DLINBPQ  -MMD -g -fcommon -fasynchronous-unwind-tables $(EXTRA_CFLAGS)
 all: LIBS = -lminiupnpc -lm -lz -lpthread -lconfig -lpcap
@@ -53,8 +53,8 @@ ifeq ($(OS_NAME),DragonFly)
     EXTRA_CFLAGS = -DFREEBSD -DNOMQTT -I/usr/local/include
     LDFLAGS = -Xlinker -Map=output.map -L/usr/local/lib -lrt -liconv -lutil -lexecinfo
 
-all: CFLAGS = -DLINBPQ  -MMD -g -fcommon -fasynchronous-unwind-tables $(EXTRA_CFLAGS)	
-all: LIBS =  -lminiupnpc -lm -lz -lpthread -lconfig -lpcap	                       
+all: CFLAGS = -DLINBPQ  -MMD -g -fcommon -fasynchronous-unwind-tables $(EXTRA_CFLAGS)
+all: LIBS =  -lminiupnpc -lm -lz -lpthread -lconfig -lpcap
 all: linbpq
 endif
 
@@ -63,8 +63,8 @@ ifeq ($(OS_NAME),FreeBSD)
     EXTRA_CFLAGS = -DFREEBSD -DNOMQTT -I/usr/local/include
     LDFLAGS = -Xlinker -Map=output.map -L/usr/local/lib -lrt -liconv -lutil -lexecinfo
 
-all: CFLAGS = -DLINBPQ  -MMD -g -fcommon -fasynchronous-unwind-tables $(EXTRA_CFLAGS)	
-all: LIBS =  -lminiupnpc -lm -lz -lpthread -lconfig -lpcap	                       
+all: CFLAGS = -DLINBPQ  -MMD -g -fcommon -fasynchronous-unwind-tables $(EXTRA_CFLAGS)
+all: LIBS =  -lminiupnpc -lm -lz -lpthread -lconfig -lpcap
 all: linbpq
 endif
 
