@@ -75,7 +75,9 @@ noi2c: linbpq
 
 linbpq: $(OBJS)
 	cc $(OBJS) $(CFLAGS) $(LDFLAGS) $(LIBS) -o linbpq
+ifeq ($(OS_NAME),Linux)
 	sudo setcap "CAP_NET_ADMIN=ep CAP_NET_RAW=ep CAP_NET_BIND_SERVICE=ep" linbpq		
+endif
 
 -include *.d
 
