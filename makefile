@@ -48,6 +48,16 @@ all: LIBS = -lminiupnpc -lm -lz -lpthread -lconfig -lpcap
 all: linbpq
 endif
 
+ifeq ($(OS_NAME),DragonFly)
+    CC = cc
+    EXTRA_CFLAGS = -DFREEBSD -DNOMQTT -I/usr/local/include
+    LDFLAGS = -Xlinker -Map=output.map -L/usr/local/lib -lrt -liconv -lutil -lexecinfo
+
+all: CFLAGS = -DLINBPQ  -MMD -g -fcommon -fasynchronous-unwind-tables $(EXTRA_CFLAGS)	
+all: LIBS =  -lminiupnpc -lm -lz -lpthread -lconfig -lpcap	                       
+all: linbpq
+endif
+
 ifeq ($(OS_NAME),FreeBSD)
     CC = cc
     EXTRA_CFLAGS = -DFREEBSD -DNOMQTT -I/usr/local/include
