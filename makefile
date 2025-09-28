@@ -82,6 +82,6 @@ endif
 -include *.d
 
 clean :
-	rm *.d
-	rm linbpq $(OBJS)
+	rm -f *.d
+	rm -f linbpq $(OBJS)
 
