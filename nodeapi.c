@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include "tncinfo.h"
 #include "asmstrucs.h"
+#include "telnetserver.h"
 #include "kiss.h"
 
 // Constants
@@ -56,6 +57,7 @@ int sendUserList(char * response, char * token, char * Rest, int Local);
 int sendInfo(char * response, char * token, char * Rest, int Local);
 int sendLinks(char * response, char * token, char * Rest, int Local);
 int sendPortMHList(char * response, char * token, char * Rest, int Local);
+int sendPortQState(char * response, char * token, char * Rest, int Local);
 int sendWhatsPacState(char * response, char * token, char * param, int Local);
 int sendWhatsPacConfig(char * response, char * token, char * param, int Local);
 
@@ -74,6 +76,7 @@ struct API APIList[] =
 	"/api/links", 10, sendLinks, 0,
 	"/api/users", 10, sendUserList, 0,
 	"/api/mheard", 11, sendPortMHList, 0,
+	"/api/tcpqueues", 14, sendPortQState, 0,
 	"/api/v1/config", 14, sendWhatsPacConfig, AuthSysop,
 	"/api/v1/state", 13, sendWhatsPacState, AuthSysop
 };
@@ -799,36 +802,191 @@ int sendLinks(char * response, char * token, char * param, int Local)
 
 int sendPortMHList(char * response, char * token, char * param, int Local)
 {
-        struct PORTCONTROL * PORTVEC ;
-		int n;
-		int port = 0;
+	struct PORTCONTROL * PORTVEC ;
+	int n;
+	int port = 0;
 
-		if (param[0] = '?' || param[0] == '/')
-			port = atoi(&param[1]);
+	if (param[0] = '?' || param[0] == '/')
+		port = atoi(&param[1]);
 
-		PORTVEC = GetPortTableEntryFromPortNum(port);
-		response[0] = 0;
+	PORTVEC = GetPortTableEntryFromPortNum(port);
+	response[0] = 0;
 
-		if (PORTVEC == 0)
-			return send_http_response(response, "401 Invalid API Call");
+	if (PORTVEC == 0)
+		return send_http_response(response, "401 Invalid API Call");
 
-		n = sprintf(response,"{\"mheard\":[\r\n");
+	n = sprintf(response,"{\"mheard\":[\r\n");
 
-        BuildPortMH(&response[n], PORTVEC );
+	BuildPortMH(&response[n], PORTVEC );
 
-		if (response[n] == 0)		// No entries
-		{
-			response[strlen(response) - 2] = '\0';          // remove \r\n
-			strcat(response, "]}\r\n");
-		}
-		else
-		{
-			response[strlen(response)-3 ] = '\0';          // remove ,\r\n
-			strcat(response, "\r\n]}\r\n");
-//      printf("MH for port %d:\r\n%s\r\n", PORTVEC->PORTNUMBER, response);
-		}
-		return strlen(response);
+	if (response[n] == 0)		// No entries
+	{
+		response[strlen(response) - 2] = '\0';          // remove \r\n
+		strcat(response, "]}\r\n");
+	}
+	else
+	{
+		response[strlen(response)-3 ] = '\0';          // remove ,\r\n
+		strcat(response, "\r\n]}\r\n");
+		//      printf("MH for port %d:\r\n%s\r\n", PORTVEC->PORTNUMBER, response);
+	}
+
+	return strlen(response);
 }
+
+int sendPortQState(char * response, char * token, char * param, int Local)
+{
+	struct TNCINFO * TNC;
+	struct TCPINFO * TCP;
+	struct ConnectionInfo * Conn;
+	struct STREAMINFO * STREAM;
+	int Stream;
+	int tcpqueue;
+	int Queued;
+	int n;
+	int port = 0;
+	char Type[10];
+	char Appl[20];
+	int radioport = 0;
+
+
+	if (param[0] = '?' || param[0] == '/')
+		port = atoi(&param[1]);
+
+	TNC = TNCInfo[port];
+
+	// At the moment only supports Telnet Ports
+
+	if (TNC == 0 || TNC->Hardware != H_TELNET)
+		return send_http_response(response, "401 Invalid API Call");
+
+	response[0] = 0;
+
+
+	TCP = TNC->TCPInfo;
+
+	if (TCP == 0)
+		return send_http_response(response, "401 Invalid API Call");
+
+	n = sprintf(response,"{\"QState\":[\r\n");
+
+	for (Stream = 0; Stream <= TCP->MaxSessions; Stream++)
+	{
+		char Call[10];	
+		STREAM = &TNC->Streams[Stream];
+
+		Conn = TNC->Streams[Stream].ConnectionInfo;
+
+
+		// if connected to the node
+
+		if (Conn->SocketActive)
+		{
+			TRANSPORTENTRY * Sess1 = TNC->PortRecord->ATTACHEDSESSIONS[Stream];
+			TRANSPORTENTRY * Sess2 = NULL;
+
+			if (Sess1)
+				Sess2 = Sess1->L4CROSSLINK;
+			else
+				continue;
+
+			radioport = 0;
+			
+			// Can't use TXCount - it is Semaphored=
+
+			Queued = C_Q_COUNT(&TNC->Streams[Stream].PACTORtoBPQ_Q);
+			Queued += C_Q_COUNT((UINT *)&TNC->PortRecord->PORTCONTROL.PORTRX_Q);
+
+			if (Sess2)
+				Queued += CountFramesQueuedOnSession(Sess2);
+
+			if (Sess1)
+				Queued += CountFramesQueuedOnSession(Sess1);
+
+
+	//		CountFramesQueuedOnSession(TRANSPORTENTRY * Session)
+
+			tcpqueue = Conn->FromHostBuffPutptr - Conn->FromHostBuffGetptr;
+
+			if (Sess2)
+				Sess1 = Sess2;
+	
+			Call[ConvFromAX25(Sess1->L4USER, Call)] = 0;
+			
+
+			if (Sess1->L4CIRCUITTYPE & BPQHOST)
+				strcpy(Type, "Host");
+	
+			else if (Sess1->L4CIRCUITTYPE & SESSION)
+			{
+				struct DEST_LIST * DEST = Sess1->L4TARGET.DEST;
+
+				strcpy(Type, "NETROM");
+
+				if (DEST)
+				{
+					int ActiveRoute = DEST->DEST_ROUTE;
+
+					if (ActiveRoute)
+					{
+						struct ROUTE * ROUTE = DEST->NRROUTE[ActiveRoute - 1].ROUT_NEIGHBOUR;
+
+						if (ROUTE)
+						{
+							struct _LINKTABLE * LINK = ROUTE->NEIGHBOUR_LINK;
+				
+							if (LINK && LINK->LINKPORT)
+								radioport = LINK->LINKPORT->PORTNUMBER;
+						}
+					}
+				}
+			}
+			else if (Sess1->L4CIRCUITTYPE & PACTOR)
+			{
+				//	PACTOR Type - Frames are queued on the Port Entry
+
+				struct PORTCONTROL * PORT = Sess1->L4TARGET.PORT;
+				strcpy(Type, "HFLINK");
+
+				if (PORT)
+					radioport = PORT->PORTNUMBER;
+
+			}
+			else
+			{
+				struct _LINKTABLE * LINK = Sess1->L4TARGET.LINK;
+			
+				strcpy(Type, "L2 Link");
+
+				if (LINK && LINK->LINKPORT)
+					radioport = LINK->LINKPORT->PORTNUMBER;
+			}
+
+
+			memcpy(Appl, Sess1->APPL, 16);
+			strlop(Appl, ' ');
+	
+			n += sprintf(&response[n], "{\"APPL\": \"%s\", \"callSign\": \"%s\", \"type\": \"%s\", \"tcpqueue\": %d, \"packets\": %d, \"port\": %d},\r\n" , Appl, Call, Type, tcpqueue, Queued, radioport);
+		
+		}
+	}
+
+	if (n < 20)		// No entries
+	{
+		response[strlen(response) - 2] = '\0';          // remove \r\n
+		strcat(response, "]}\r\n");
+	}
+	else
+	{
+		response[strlen(response)-3 ] = '\0';          // remove ,\r\n
+		strcat(response, "\r\n]}\r\n");
+		//      printf("MH for port %d:\r\n%s\r\n", PORTVEC->PORTNUMBER, response);
+	}
+	return strlen(response);
+}
+
+
+
 
 // WhatsPac configuration interface
 // WhatsPac also uses Paula's Remote Host Protocol (RHP). This is in a separate module

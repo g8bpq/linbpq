@@ -64,7 +64,7 @@ VOID L2SENDRESPONSE(struct _LINKTABLE * LINK, int CMD);
 VOID L2SENDCOMMAND(struct _LINKTABLE * LINK, int CMD);
 VOID ACKMSG(struct _LINKTABLE * LINK);
 VOID InformPartner(struct _LINKTABLE * LINK, int Reason);
-UINT RR_OR_RNR(struct _LINKTABLE * LINK);
+UINT RR_OR_RNR(struct _LINKTABLE * LINK, int CMD);
 VOID L2TIMEOUT(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT);
 VOID CLEAROUTLINK(struct _LINKTABLE * LINK);
 VOID SENDFRMR(struct _LINKTABLE * LINK);
@@ -99,6 +99,7 @@ VOID L2SENDXID(struct _LINKTABLE * LINK);
 VOID __cdecl Debugprintf(const char * format, ...);
 VOID Q_IP_MSG(MESSAGE * Buffer);
 VOID PROCESSNODEMESSAGE(MESSAGE * Msg, struct PORTCONTROL * PORT);
+VOID PROCESSNODESPOLL(struct PORTCONTROL * PORT);
 VOID L2LINKACTIVE(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffer, MESSAGE * ADJBUFFER, UCHAR CTL, UCHAR MSGFLAG);
 BOOL CompareAliases(UCHAR * c1, UCHAR * c2);
 VOID L2FORUS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffer, MESSAGE * ADJBUFFER, UCHAR CTL, UCHAR MSGFLAG);
@@ -120,8 +121,10 @@ int CheckKissInterlock(struct PORTCONTROL * MYPORT, int Exclusive);
 void hookL2SessionAccepted(int Port, char * fromCall, char * toCall, struct _LINKTABLE * LINK);
 void hookL2SessionDeleted(struct _LINKTABLE * LINK);
 void hookL2SessionAttempt(int Port, char * fromCall, char * toCall, struct _LINKTABLE * LINK);
+void hookL2SessionConnected(struct _LINKTABLE * LINK);
 int L2Compressit(unsigned char * Out, int OutSize, unsigned char * In, int Len);
 VOID DeleteINP3Routes(struct ROUTE * Route);
+VOID SendRTTMsg(struct ROUTE * Route);
 
 extern int REALTIMETICKS;
 
@@ -445,6 +448,8 @@ TRYBBS:
 			if ((PORT->PERMITTEDAPPLS & APPLMASK) != 0)
 			{
 				ALIASMSG = 0;
+
+				strcpy(LINK->ApplName, APPL->APPLCMD);
 				
 				if (CompareCalls(Buffer->DEST, APPL->APPLCALL))
 					goto FORUS;
@@ -479,9 +484,9 @@ NOWTRY_NODES:
 	if (CompareCalls(Buffer->DEST, NODECALL))
 	{
 		if (Buffer->L2DATA[0] == 0xff)	// Valid NODES Broadcast
-		{
 			PROCESSNODEMESSAGE(Buffer, PORT);
-		}
+		else if (Buffer->L2DATA[0] == 0xfe)		// Paula's NODES Poll (request Nodes broadcast on port)
+			PROCESSNODESPOLL(PORT);
 	}
 
 	ReleaseBuffer(Buffer);
@@ -808,7 +813,15 @@ VOID L2FORUS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buff
 
 	if (CTLlessPF == XID)
 	{
-		ProcessXIDCommand(LINK, PORT, Buffer, ADJBUFFER, CTL, MSGFLAG);
+		// We could possibly get an XID response if packet is badly delayed and we had timed out
+
+		if ((MSGFLAG & CMDBIT))			// Command 
+			ProcessXIDCommand(LINK, PORT, Buffer, ADJBUFFER, CTL, MSGFLAG);
+		else
+		{
+			Debugprintf("Unexpected XID response with no session");
+			ReleaseBuffer(Buffer);					// Ignore if not
+		}
 		return;
 	}
 
@@ -929,6 +942,7 @@ VOID ProcessXIDCommand(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESS
 		LINK->L2STATE = 1;			// XID received
 		LINK->Ver2point2 = TRUE;	// Must support 2.2 if sent XID
 		LINK->L2TIME = PORT->PORTT1;
+		LINK->LINKWINDOW = PORT->PORTWINDOW;	// Just in case!
 
 		LINK->LINKPORT = PORT;
 
@@ -1076,87 +1090,128 @@ VOID L2LINKACTIVE(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE *
 		return;
 	}
 
-
-	if (LINK->L2STATE == 1)
+	if (CTLlessPF == XID)
 	{
-		// XID State. Should be XID response if 2.2 ok or DM/FRMR if not
+		// XID command or response on active session.
+		
+		// if Command and state = 2 then other end missed XID Response. Process command again
 
-		if (MSGFLAG & RESP)
+		if ((MSGFLAG & CMDBIT))
 		{
-			if (CTLlessPF == DM || CTLlessPF == FRMR)
+			if (LINK->L2STATE == 2)
 			{
-				// Doesn't support XID - Send SABM
+				// I think we can just process as normal.
 
-				LINK->L2STATE = 2;
-				LINK->Ver2point2 = FALSE;
-				LINK->L2TIMER = 1;		// Use retry to send SABM
+				ProcessXIDCommand(LINK, PORT, Buffer, ADJBUFFER, CTL, MSGFLAG);
+				return;
 			}
-			else if (CTLlessPF == XID)
+
+			if (LINK->L2STATE == 1)			// We've just sent XID so is probably XID Collision
 			{
-				// Process response to make sure ok, Send SABM or DISC
+				// I think we can just process as normal. If we don't send a response the other end may not switch to 2.2
 
-				LINK->L2STATE = 2;
-				LINK->Ver2point2 = TRUE;// Must support 2.2 if responded to XID
-
-				// if Compress enabled set it
-
-				ptr = &ADJBUFFER->PID;
-
-				if (*ptr++ == 0x82 && *ptr++ == 0x80)
-				{
-					int Type;
-					int Len;
-					unsigned int value;
-					int xidlen = *(ptr++) << 8;	
-					xidlen += *ptr++;
-
-					// XID is set of Type, Len, Value n-tuples
-
-					while (xidlen > 0)
-					{
-						Type = *ptr++;
-						Len = *ptr++;
-
-						value = 0;
-						xidlen -= (Len + 2);
-
-						while (Len--)
-						{
-							value <<=8;
-							value += *ptr++;
-						}
-						switch(Type)
-						{
-						case 17:
-
-							// Compression
-
-							if (L2Compress)
-								LINK->AllowCompress = 1;
-
-						}
-					}
-
-				}
-
-				LINK->L2TIMER = 1;		// Use retry to send SABM
+				ProcessXIDCommand(LINK, PORT, Buffer, ADJBUFFER, CTL, MSGFLAG);
+				return;
 			}
+
+			// XID Command on active session. Other end may be restarting. Reset session
+
+			InformPartner(LINK, NORMALCLOSE);			// SEND DISC TO OTHER END
+			LINK->CIRCUITPOINTER = 0;
+
+			// I think it is safer to ignore it. The retry will be processed normally as XID command with no session
 
 			ReleaseBuffer(Buffer);
 			return;
 		}
-	
-		// Command on existing session. Could be due to other end missing
-		// the XID response, so if XID just resend response
 
+		// XID Response
+
+		// if Link State = 1 this is a normal response. Check it then send SABM
+
+		if (LINK->L2STATE == 1)	
+		{
+			LINK->L2STATE = 2;
+			LINK->Ver2point2 = TRUE;// Must support 2.2 if responded to XID
+
+			// if Compress enabled set it
+
+			ptr = &ADJBUFFER->PID;
+
+			if (*ptr++ == 0x82 && *ptr++ == 0x80)
+			{
+				int Type;
+				int Len;
+				unsigned int value;
+				int xidlen = *(ptr++) << 8;	
+				xidlen += *ptr++;
+
+				// XID is set of Type, Len, Value n-tuples
+
+				while (xidlen > 0)
+				{
+					Type = *ptr++;
+					Len = *ptr++;
+
+					value = 0;
+					xidlen -= (Len + 2);
+
+					while (Len--)
+					{
+						value <<=8;
+						value += *ptr++;
+					}
+					switch(Type)
+					{
+					case 17:
+
+						// Compression
+
+						if (L2Compress)
+							LINK->AllowCompress = 1;
+
+					}
+				}
+
+			}
+
+			LINK->LINKWINDOW = PORT->PORTWINDOW;	// Just in case!
+			LINK->L2TIMER = 1;		// Use retry to send SABM
+
+			ReleaseBuffer(Buffer);
+			return;
+		}
+
+		// XID response, not in state 1.
+
+		// This "shouldn't happen"
+
+		Debugprintf("Unexpected XID response, State = %d", LINK->L2STATE);
+
+		// Discard
+
+		ReleaseBuffer(Buffer);
+		return;
 	}
 
-	if (CTLlessPF == XID && (MSGFLAG & CMDBIT))
-	{
-		// XID Command on active session. Other end may be restarting. Send Response
 
-		ProcessXIDCommand(LINK, PORT, Buffer, ADJBUFFER, CTL, MSGFLAG);
-		return;
+	// Not XID
+
+	// if state = 1 then unexpected response to XID
+
+	if (LINK->L2STATE == 1)	
+	{
+		if (CTLlessPF == DM || CTLlessPF == FRMR)
+		{
+			// Doesn't support XID - Send SABM
+
+			LINK->L2STATE = 2;
+			LINK->Ver2point2 = FALSE;
+			LINK->L2TIMER = 1;		// Use retry to send SABM
+	
+			ReleaseBuffer(Buffer);
+			return;
+		}
 	}
 
 
@@ -1288,6 +1343,16 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 				Debugprintf("INP3 Incoming connect from %s", fromCall);
 				DeleteINP3Routes(ROUTE);
 			}
+			else
+			{
+				if (PORT->ENABLEINP3)
+				{
+					// We will offer INP3 by sending an RTT probe.
+
+					SendRTTMsg(ROUTE);
+
+				}
+			}
 		}
 
 		if (NO_CTEXT == 1)
@@ -1387,6 +1452,8 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 
 		return;
 	}
+
+	strcpy(Session->APPL, LINK->ApplName);
 
 	//	NOW TRY A BBS CONNECT
 	//	IF APPL CONNECT, SEE IF APPL HAS AN ALIAS
@@ -1987,15 +2054,26 @@ VOID L2_PROCESS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * B
 				{
 					Debugprintf("INP3 Route to %s connected", fromCall);
 				}
+				else
+				{
+					if (PORT->ENABLEINP3)
+					{
+						// We will offer INP3 by sending an RTT probe.
+
+						SendRTTMsg(ROUTE);
+
+					}
+				}
 			}
 
+			hookL2SessionConnected(LINK);
 
 			SendL2ToMonMap(PORT, fromCall, '+', 'O');		
 	
 			LINK->L2STATE = 5;
 			LINK->L2TIMER = 0;		// CANCEL TIMER
 			LINK->L2RETRIES = 0;
-			LINK->L2SLOTIM, T3;		// SET FRAME SENT RECENTLY
+			LINK->L2SLOTIM = T3;	// SET FRAME SENT RECENTLY
 
 			//	IF VERSION 1 MSG, SET FLAG
 
@@ -2274,7 +2352,7 @@ VOID SFRAME(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, UCHAR CTL, UCHA
 		if (LINK->LAST_F_TIME + 15 > REALTIMETICKS)
 			return;			// DISCARD
 
-		CTL = RR_OR_RNR(LINK);
+		CTL = RR_OR_RNR(LINK, FALSE);	// Sending response
 
 		CTL |= LINK->LINKNR << 5;	// SHIFT N(R) TO TOP 3 BITS
 		CTL |= PFBIT;
@@ -2981,9 +3059,9 @@ VOID SDETX(struct _LINKTABLE * LINK)
 	
 	// **** Debug code **** look for stuck links
 
-	if (LINK->LASTFRAMESENT && (time(NULL) - LINK->LASTFRAMESENT) > 60)			// No send for 60 secs
+	if (LINK->LINKWINDOW == 0 || LINK->LASTFRAMESENT == 0 || (time(NULL) - LINK->LASTFRAMESENT) > 60)			// No send for 60 secs
 	{
-		if (COUNT_AT_L2(LINK) > 16)
+		if (COUNT_AT_L2(LINK) > 16 || LINK->LINKWINDOW == 0)
 		{
 			// Dump Link State
 
@@ -3316,7 +3394,7 @@ VOID L2TimerProc()
 		{
 			//	Was busy
 
-			if (RR_OR_RNR(LINK) != RNR)		//  SEE IF STILL BUSY
+			if (RR_OR_RNR(LINK, 0) != RNR)		//  SEE IF STILL BUSY
 			{
 				// Not still busy - tell other end
 
@@ -3375,7 +3453,7 @@ VOID L2TimerProc()
 			{
 				SendSupervisCmd(LINK);
 				LINK++;
-					continue;
+				continue;
 			}
 		}
 
@@ -3432,7 +3510,7 @@ VOID SendSupervisCmd(struct _LINKTABLE * LINK)
 
 	LINK->L2ACKREQ = 0;			// CLEAR ACK NEEDED
 
-	CTL = RR_OR_RNR(LINK);
+	CTL = RR_OR_RNR(LINK, TRUE);
 
 //	MOV	L2STATE[EBX],5			; CANCEL REJ - ACTUALLY GOING TO 'PENDING ACK'
 
@@ -3450,7 +3528,7 @@ void SEND_RR_RESP(struct _LINKTABLE * LINK, UCHAR PF)
 {
 	UCHAR CTL;
 	
-	CTL = RR_OR_RNR(LINK);
+	CTL = RR_OR_RNR(LINK, FALSE);
 
 //	MOV	L2STATE[EBX],5			; CANCEL REJ - ACTUALLY GOING TO 'PENDING ACK'
 
@@ -3801,6 +3879,7 @@ VOID L2SENDXID(struct _LINKTABLE * LINK)
 
 	if (PORT)
 	{
+		LINK->LINKWINDOW = PORT->PORTWINDOW;			// Just in case!
 		Buffer->PORT = PORT->PORTNUMBER;
 		PUT_ON_PORT_Q(PORT, Buffer);
 	}
@@ -3944,7 +4023,7 @@ VOID InformPartner(struct _LINKTABLE * LINK, int Reason)
 }
 
 
-UINT RR_OR_RNR(struct _LINKTABLE * LINK)
+UINT RR_OR_RNR(struct _LINKTABLE * LINK, int CMD)
 {
 	UCHAR Temp;
 	TRANSPORTENTRY * Session;
@@ -4026,7 +4105,9 @@ stayinREJ2:
 
 		// Dont send SREJ if clearing RNR - causes FRMR
 
-		if (SaveRNRSent)
+		// Latest Spec says shouldn't send SREJ as Command
+
+		if (SaveRNRSent || CMD == 1)
 			return REJ;
 
 		if (LINK->Ver2point2)		// We only allow 2.2 with SREJ Multi

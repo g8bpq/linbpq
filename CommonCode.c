@@ -79,6 +79,7 @@ extern VOID * ENDBUFFERPOOL;
 
 extern int PoolBuilt;
 
+extern int EnableOARCAPI;
 
 //	Read/Write length field in a buffer header
 
@@ -3313,7 +3314,11 @@ SOCKADDR_IN reportdest = {0};
 
 SOCKET ReportSocket = 0;
 
+SOCKET NodeAPISocket = 0 ;
+
 SOCKADDR_IN Chatreportdest = {0};
+
+SOCKADDR_IN UDPreportdest = {0};
 
 extern char LOCATOR[];			// Locator for Reporting - may be Maidenhead or LAT:LON
 extern char MAPCOMMENT[];		// Locator for Reporting - may be Maidenhead or LAT:LON
@@ -3670,11 +3675,16 @@ pthread_t ResolveUpdateThreadId = 0;
 
 char NodeMapServer[80] = "update.g8bpq.net";
 char ChatMapServer[80] = "chatupdate.g8bpq.net";
+char NodeAPIServer[80] = "node-api.packet.oarc.uk";
+
+int NodeAPIPort = 13579;
 
 VOID ResolveUpdateThread(void * Unused)
 {
 	struct hostent * HostEnt1;
 	struct hostent * HostEnt2;
+	struct hostent * HostEnt3;
+
 
 	ResolveUpdateThreadId = GetCurrentThreadId();
 
@@ -3701,6 +3711,14 @@ VOID ResolveUpdateThread(void * Unused)
 
 		if (HostEnt2)
 			memcpy(&Chatreportdest.sin_addr.s_addr,HostEnt2->h_addr,4);
+
+		Debugprintf("Resolving %s", NodeAPIServer);
+		
+		HostEnt3 = gethostbyname(NodeAPIServer);
+	
+		if (HostEnt3)
+			memcpy(&UDPreportdest.sin_addr.s_addr,HostEnt3->h_addr,4);
+
 
 		if (HostEnt1 && HostEnt2)
 		{
@@ -3742,6 +3760,13 @@ VOID OpenReportingSockets()
 		ConvToAX25("DUMMY-1", ReportDest);
 	}
 
+	UDPreportdest.sin_family = AF_INET;
+	UDPreportdest.sin_port = htons(NodeAPIPort);
+
+	if (EnableOARCAPI)
+		NodeAPISocket = socket(AF_INET, SOCK_DGRAM, 0);
+
+	
 	// Set up Chat Report even if no LOCATOR	reportdest.sin_family = AF_INET;
 	// Socket must be opened in MailChat Process
 
@@ -5194,14 +5219,14 @@ skipit:
 	}
 }
 
-void SendDataToPktMapThread();
+void SendDataToPktMapThread(void * Param);
 
 void SendDataToPktMap()
 {
 	_beginthread(SendDataToPktMapThread,2048000,0);
 }
 
-void SendDataToPktMapThread()
+void SendDataToPktMapThread(void * Param)
 {
 	char Return[256] = "";
 	char Request[64];

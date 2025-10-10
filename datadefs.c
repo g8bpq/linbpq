@@ -35,6 +35,9 @@ int RFOnly = 0;
 
 int MAXRTT = 9000;			// 90 secs
 int MaxHops = 4;
+int DEBUGINP3 = 0;
+
+int EnableOARCAPI = 0;
 
 int RTTInterval = 24;		// 4 Minutes
 

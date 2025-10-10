@@ -791,7 +791,7 @@ VOID L4BG()
 	
 					complen = L2Compressit(Compressed, 8192, toCompress, toCompressLen);
 
-					Debugprintf("%d %d %d%%", toCompressLen, complen, ((toCompressLen - complen) * 100) / toCompressLen);
+	//				Debugprintf("%d %d %d%%", toCompressLen, complen, ((toCompressLen - complen) * 100) / toCompressLen);
 
 					// Send compressed
 
@@ -826,7 +826,7 @@ VOID L4BG()
 								Len = ChunkSize;
 			
 							complen = L2Compressit(Compressed, 8192, CompressPtr, Len);
-							Debugprintf("Chunked %d %d %d%%", Len, complen, ((Len - complen) * 100) / Len);
+//							Debugprintf("Chunked %d %d %d%%", Len, complen, ((Len - complen) * 100) / Len);
 
 							sendChunk(L4, Compressed, complen, savePort);
 

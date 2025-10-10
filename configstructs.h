@@ -82,6 +82,7 @@ struct PORTCONFIG
 	char * M0LTEMapInfo;
 	int QtSMPort;
 	int AllowINP3;
+	int EnableINP3;
 };
 
 struct ROUTECONFIG
@@ -179,6 +180,8 @@ struct CONFIGTABLE
 	int C_L2CompPaclen;
 	int C_PREFERINP3ROUTES;
 	int C_OnlyVer2point0;
+	int C_DEBUGINP3;
+	int C_OARCAPI;
 
 
 //#define ApplOffset 80000			// Applications offset in config buffer

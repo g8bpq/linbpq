@@ -426,7 +426,7 @@ VOID ChatExpandAndSendMessage(ChatCIRCUIT * conn, char * Msg, int LOG)
 
 	len = RemoveLF(NewMessage, (int)strlen(NewMessage));
 
-	ChatWriteLogLine(conn, '>', NewMessage,  len, LOG);
+	ChatWriteLogLine(conn, '>', NewMessage,  len, LOG_CHAT);
 	ChatQueueMsg(conn, NewMessage, len);
 }
 

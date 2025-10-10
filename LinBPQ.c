@@ -84,7 +84,7 @@ void RHPPoll();
 VOID GetPGConfig();
 void SendBBSDataToPktMap();
 
-extern uint64_t timeLoadedMS;
+extern uint64_t INP3timeLoadedMS;
 
 BOOL IncludesMail = FALSE;
 BOOL IncludesChat = FALSE;
@@ -839,15 +839,14 @@ int main(int argc, char * argv[])
 #endif
 #endif
 
-	// Disable Console Terminal if stdout redirected
-
+// Disable Console Terminal if stdout redirected
 //	printf("STDOUT %d\n",isatty(STDOUT_FILENO));
 //	printf("STDIN %d\n",isatty(STDIN_FILENO));
 
 	if (!isatty(STDOUT_FILENO) || !isatty(STDIN_FILENO))
 		Redirected = 1;
 
-	 timeLoadedMS = GetTickCount();
+	 INP3timeLoadedMS = GetTickCount();
 
 #endif
 

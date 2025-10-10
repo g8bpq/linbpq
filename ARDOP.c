@@ -567,7 +567,7 @@ static int ProcessLine(char * buf, int Port)
 }
 
 
-void ARDOPThread(struct TNCINFO * TNC);
+void ARDOPThread(VOID * Param);
 VOID ARDOPProcessDataSocketData(int port);
 int ConnecttoARDOP(struct TNCINFO * TNC);
 static VOID ARDOPProcessReceivedData(struct TNCINFO * TNC);
@@ -2312,12 +2312,13 @@ int ConnecttoARDOP(struct TNCINFO * TNC)
 	return 0;
 }
 
-VOID ARDOPThread(struct TNCINFO * TNC)
+VOID ARDOPThread(VOID * Param)
 {
 	// Opens sockets and looks for data on control and data sockets.
 	
 	// Socket may be TCP/IP or Serial
 
+    struct TNCINFO * TNC = (struct TNCINFO *) Param;
 	char Msg[255];
 	int err, i, ret;
 	u_long param=1;
@@ -5758,8 +5759,7 @@ VOID ARDOPSCSPoll(struct TNCINFO * TNC)
 
 // Probably only for Teensy with ESP01. Runs SCS Emulator over a TCP Link
 
-
-VOID SerialConnecttoTCPThread(struct TNCINFO * TNC);
+VOID SerialConnecttoTCPThread(VOID *  Param);
 
 int SerialConnecttoTCP(struct TNCINFO * TNC)
 {
@@ -5767,9 +5767,9 @@ int SerialConnecttoTCP(struct TNCINFO * TNC)
 
 	return 0;
 }
-
-VOID SerialConnecttoTCPThread(struct TNCINFO * TNC)
+VOID SerialConnecttoTCPThread(VOID *  Param)
 {
+	struct TNCINFO * TNC = (struct TNCINFO *) Param;
 	char Msg[255];
 	int i;
 	u_long param = 1;

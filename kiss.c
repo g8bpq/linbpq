@@ -1905,7 +1905,7 @@ int i2cPoll(struct PORTCONTROL * PORT, NPASYINFO npKISSINFO)
 
 // KISS Over TCP Routines
 
-VOID ConnecttoTCPThread(NPASYINFO ASY);
+VOID ConnecttoTCPThread(void * Param);
 
 int ConnecttoTCP(NPASYINFO ASY)
 {
@@ -1914,8 +1914,9 @@ int ConnecttoTCP(NPASYINFO ASY)
 	return 0;
 }
 
-VOID ConnecttoTCPThread(NPASYINFO ASY)
+VOID ConnecttoTCPThread(void * Param)
 {
+	NPASYINFO ASY = (NPASYINFO)Param;
 	char Msg[255];
 	int err,i;
 	u_long param=1;
@@ -2131,7 +2132,7 @@ int KISSGetTCPMessage(NPASYINFO ASY)
 // Interface to QtSM Managmemt Interface
 
 
-VOID QtSMThread(struct PORTCONTROL * PORT);
+VOID QtSMThread(void * Param);
 
 VOID ConnecttoQtSM(struct PORTCONTROL * PORT)
 {
@@ -2141,11 +2142,12 @@ VOID ConnecttoQtSM(struct PORTCONTROL * PORT)
 	return ;
 }
 
-VOID QtSMThread(struct PORTCONTROL * PORT)
+VOID QtSMThread(void * Param)
 {
 	// This is the Managemt Interface in QtSM. It receives PTT ON/OFF msgs from QtSM and allows changing modem mode and freq.
 	//	Also will collect link usage stats
 	
+	struct PORTCONTROL * PORT = (struct PORTCONTROL *)Param;
 	char Msg[255];
 	int err, i, ret;
 	u_long param = 1;

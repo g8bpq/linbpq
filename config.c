@@ -309,7 +309,7 @@ static char *keywords[] =
 "LogL4Connects", "LogAllConnects", "SAVEMH", "ENABLEADIFLOG", "ENABLEEVENTS", "SAVEAPRSMSGS", 
 "EnableM0LTEMap", "MQTT", "MQTT_HOST", "MQTT_PORT", "MQTT_USER", "MQTT_PASS",
 "L4Compress", "L4CompMaxframe", "L4CompPaclen", "L2Compress", "L2CompMaxframe",
-"L2CompPaclen", "PREFERINP3ROUTES", "OnlyVer2point0"
+"L2CompPaclen", "PREFERINP3ROUTES", "OnlyVer2point0", "DEBUGINP3", "ENABLEOARCAPI"
 };           /* parameter keywords */
 
 static void * offset[] =
@@ -332,7 +332,7 @@ static void * offset[] =
 &xxcfg.C_LogL4Connects, &xxcfg.C_LogAllConnects, &xxcfg.C_SaveMH, &xxcfg.C_ADIF, &xxcfg.C_EVENTS, &xxcfg.C_SaveAPRSMsgs,
 &xxcfg.C_M0LTEMap, &xxcfg.C_MQTT, &xxcfg.C_MQTT_HOST, &xxcfg.C_MQTT_PORT, &xxcfg.C_MQTT_USER, &xxcfg.C_MQTT_PASS,
 &xxcfg.C_L4Compress, &xxcfg.C_L4CompMaxframe, &xxcfg.C_L4CompPaclen, &xxcfg.C_L2Compress, &xxcfg.C_L2CompMaxframe, 
-&xxcfg.C_L2CompPaclen, &xxcfg.C_PREFERINP3ROUTES, &xxcfg.C_OnlyVer2point0};		/* offset for corresponding data in config file */
+&xxcfg.C_L2CompPaclen, &xxcfg.C_PREFERINP3ROUTES, &xxcfg.C_OnlyVer2point0,  &xxcfg.C_DEBUGINP3, &xxcfg.C_OARCAPI};		/* offset for corresponding data in config file */
 
 static int routine[] = 
 {
@@ -354,7 +354,7 @@ static int routine[] =
 2, 2, 1, 2, 2, 2,
 2, 2, 0, 1, 20, 20,
 1, 1, 1, 1, 1, 
-1, 1, 1} ;			// Routine to process param
+1, 1, 1, 1, 1};			// Routine to process param
 
 int PARAMLIM = sizeof(routine)/sizeof(int);
 //int NUMBEROFKEYWORDS = sizeof(routine)/sizeof(int);
@@ -376,7 +376,7 @@ static char *pkeywords[] =
 "BCALL", "DIGIMASK", "NOKEEPALIVES", "COMPORT", "DRIVER", "WL2KREPORT", "UIONLY",
 "UDPPORT", "IPADDR", "I2CBUS", "I2CDEVICE", "UDPTXPORT", "UDPRXPORT", "NONORMALIZE",
 "IGNOREUNLOCKEDROUTES", "INP3ONLY", "TCPPORT", "RIGPORT", "PERMITTEDAPPLS", "HIDE",
-"SMARTID", "KISSCOMMAND", "SendtoM0LTEMap", "PortFreq", "M0LTEMapInfo", "QTSMPort", "ALLOWINP3"};         /* parameter keywords */
+"SMARTID", "KISSCOMMAND", "SendtoM0LTEMap", "PortFreq", "M0LTEMapInfo", "QTSMPort", "ALLOWINP3", "ENABLEINP3"};         /* parameter keywords */
 
 static void * poffset[] =
 {
@@ -390,7 +390,7 @@ static void * poffset[] =
 &xxp.BCALL, &xxp.DIGIMASK, &xxp.DefaultNoKeepAlives, &xxp.IOADDR, &xxp.DLLNAME, &xxp.WL2K, &xxp.UIONLY,
 &xxp.IOADDR, &xxp.IPADDR, &xxp.INTLEVEL, &xxp.IOADDR, &xxp.IOADDR, &xxp.ListenPort, &xxp.NoNormalize,
 &xxp.IGNOREUNLOCKED, &xxp.INP3ONLY, &xxp.TCPPORT, &xxp.RIGPORT, &xxp.PERMITTEDAPPLS, &xxp.Hide,
-&xxp.SmartID, &xxp.KissParams, &xxp.SendtoM0LTEMap, &xxp.PortFreq, &xxp.M0LTEMapInfo, &xxp.QtSMPort, &xxp.AllowINP3};	/* offset for corresponding data in config file */
+&xxp.SmartID, &xxp.KissParams, &xxp.SendtoM0LTEMap, &xxp.PortFreq, &xxp.M0LTEMapInfo, &xxp.QtSMPort, &xxp.AllowINP3, &xxp.EnableINP3};	/* offset for corresponding data in config file */
 
 static int proutine[] = 
 {
@@ -404,7 +404,7 @@ static int proutine[] =
 0, 1, 2, 18, 15, 16, 2,
 1, 17, 1, 1, 1, 1, 2,
 2, 2, 1, 1, 19, 2,
-1, 20, 1, 21, 22, 1, 1};							/* routine to process parameter */
+1, 20, 1, 21, 22, 1, 1, 1};							/* routine to process parameter */
 
 int PPARAMLIM = sizeof(proutine)/sizeof(int);
 
@@ -601,7 +601,6 @@ BOOL ProcessConfig()
 			
 	
 	for (i=0;i<24;i++)
-		
 		paramok[45+i]=1;	/* or APPLCALLS, APPLALIASS APPLQUAL */
 
 	paramok[69]=1;			// BText optional
@@ -630,7 +629,9 @@ BOOL ProcessConfig()
 	paramok[90]=1;			// L2Compress Maxframe
 	paramok[91]=1;			// L2Compress Paclen
 	paramok[92]=1;			// PREFERINP3ROUTES
-	paramok[93]=1;			// C_ONLYVer2point0
+	paramok[93]=1;			// ONLYVer2point0
+	paramok[94]=1;			// DEBUGINP3
+	paramok[95]=1;			// EnableOARCAPI
 
 	for (i=0; i < PARAMLIM; i++)
 	{

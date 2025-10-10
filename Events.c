@@ -43,7 +43,15 @@ void MQTTReportSession(char * Msg);
 extern int MQTT;
 
 
+int UDPSeq = 0;
+
+extern SOCKET NodeAPISocket;
+extern SOCKADDR_IN UDPreportdest;
+
 extern char Modenames[19][10];
+
+extern char NODECALLLOPPED[10];
+
 
 // Runs use specified routine on certain event
 #ifndef WIN32
@@ -117,7 +125,11 @@ DllExport void APIENTRY RunEventProgram(char * Program, char * Param)
 
 void hookL2SessionAccepted(int Port, char * remotecall, char * ourcall, struct _LINKTABLE * LINK)
 {
-	// Incoming SABM
+	// Incoming SABM accepted
+
+	char UDPMsg[1024];	
+	int udplen;
+
 
 	LINK->ConnectTime = time(NULL);
 	LINK->bytesTXed = LINK->bytesRXed = 0;
@@ -125,7 +137,18 @@ void hookL2SessionAccepted(int Port, char * remotecall, char * ourcall, struct _
 	strcpy(LINK->callingCall, remotecall);
 	strcpy(LINK->receivingCall, ourcall);
 	strcpy(LINK->Direction, "In");
+
+	if (NodeAPISocket)
+	{
+		udplen = sprintf(UDPMsg, "{\"@type\":\"LinkUpEvent\", \"node\": \"%s\", \"id\": %d, \"direction\": \"incoming\", \"port\": \"%d\", \"remote\": \"%s\", \"local\": \"%s\"}",
+			NODECALLLOPPED, UDPSeq++, LINK->LINKPORT->PORTNUMBER, LINK->callingCall, LINK->receivingCall);
+
+		Debugprintf(UDPMsg);
+
+		sendto(NodeAPISocket, UDPMsg, udplen, 0, (struct sockaddr *)&UDPreportdest, sizeof(UDPreportdest));
+	}
 }
+
 
 void hookL2SessionDeleted(struct _LINKTABLE * LINK)
 {
@@ -141,12 +164,14 @@ void hookL2SessionDeleted(struct _LINKTABLE * LINK)
 		else
 		{
 			char Msg[256];
-			char timestamp[16];
+			char timestamp[64];
 			time_t sessionTime = time(NULL) - LINK->ConnectTime;
 			double avBytesSent = LINK->bytesTXed / (sessionTime / 60.0);
 			double avBytesRXed = LINK->bytesRXed / (sessionTime / 60.0);
 			time_t Now = time(NULL);
 			struct tm * TM = localtime(&Now);
+			char UDPMsg[1024];
+			int udplen;
 
 			sprintf(timestamp, "%02d:%02d:%02d", TM->tm_hour, TM->tm_min, TM->tm_sec);
 
@@ -164,6 +189,21 @@ void hookL2SessionDeleted(struct _LINKTABLE * LINK)
 
 			if (MQTT)
 				MQTTReportSession(Msg);
+
+
+			if (NodeAPISocket)
+			{
+				if (strcmp(LINK->Direction, "Out") == 0)
+					udplen = sprintf(UDPMsg, "{\"@type\":\"LinkDownEvent\", \"node\": \"%s\", \"id\": %d, \"direction\": \"outgoing\", \"port\": \"%d\", \"remote\": \"%s\", \"local\": \"%s\"}",
+						NODECALLLOPPED, UDPSeq++, LINK->LINKPORT->PORTNUMBER, LINK->receivingCall, LINK->callingCall);
+				else
+					udplen = sprintf(UDPMsg, "{\"@type\":\"LinkDownEvent\", \"node\": \"%s\", \"id\": %d, \"direction\": \"incoming\", \"port\": \"%d\", \"remote\": \"%s\", \"local\": \"%s\"}",
+						NODECALLLOPPED, UDPSeq++, LINK->LINKPORT->PORTNUMBER, LINK->callingCall, LINK->receivingCall);
+
+				Debugprintf(UDPMsg);
+		
+				sendto(NodeAPISocket, UDPMsg, udplen, 0, (struct sockaddr *)&UDPreportdest, sizeof(UDPreportdest));
+			}
 		}
 
 		LINK->ConnectTime = 0;
@@ -185,6 +225,27 @@ void hookL2SessionAttempt(int Port, char * ourcall, char * remotecall, struct _L
 	strcpy(LINK->receivingCall, remotecall);
 	strcpy(LINK->Direction, "Out");
 }
+
+void hookL2SessionConnected(struct _LINKTABLE * LINK)
+{
+	// UA received in reponse to SABM
+
+	char UDPMsg[1024];	
+	int udplen;
+
+	if (NodeAPISocket)
+	{
+		udplen = sprintf(UDPMsg, "{\"@type\":\"LinkUpEvent\", \"node\": \"%s\", \"id\": %d, \"direction\": \"outgoing\", \"port\": \"%d\", \"remote\": \"%s\", \"local\": \"%s\"}",
+			NODECALLLOPPED, UDPSeq++, LINK->LINKPORT->PORTNUMBER, LINK->callingCall, LINK->receivingCall);
+
+		Debugprintf(UDPMsg);
+
+		sendto(NodeAPISocket, UDPMsg, udplen, 0, (struct sockaddr *)&UDPreportdest, sizeof(UDPreportdest));
+	}
+}
+
+
+
 
 void hookL4SessionAttempt(struct STREAMINFO * STREAM, char * remotecall, char * ourcall)
 {
@@ -209,6 +270,20 @@ void hookL4SessionAccepted(struct STREAMINFO * STREAM, char * remotecall, char *
 	strcpy(STREAM->receivingCall, ourcall);
 	strcpy(STREAM->Direction, "In");
 }
+
+/*
+{
+  "eventSource": "circuit",
+  "time": "2025-10-08T14:05:54+00:00",
+  "id": 23,
+  "direction": "incoming",
+  "port": "0",
+  "remote": "G8PZT@G8PZT:15aa",
+  "local": "GE8PZT:0017",
+  "event": "disconnect",
+  "@type": "event"
+}
+*/
 
 void hookL4SessionDeleted(struct TNCINFO * TNC, struct STREAMINFO * STREAM)
 {

@@ -73,7 +73,7 @@ int seeifInterlockneeded(struct PORTCONTROL * PORT);
 int CompareNode(const void *a, const void *b);
 int CompareAlias(const void *a, const void *b);
 int CompareRoutes(const void * a, const void * b);
-
+void SendVARANetromNodes(struct TNCINFO * TNC, MESSAGE *Buffer);
 
 extern VOID KISSTX(struct KISSINFO * KISS, PMESSAGE Buffer);
 
@@ -86,6 +86,7 @@ UCHAR SAVEDAPPLFLAGS = 0;
 
 UCHAR ALIASINVOKED = 0;
 
+extern int MONTOFILEFLAG;
 
 VOID * CMDPTR = 0;
 
@@ -155,13 +156,15 @@ char * ALIASPTR	= &CMDALIAS[0][0];
 
 extern int RigReconfigFlag;
 
+extern int DEBUGINP3;
+extern int PREFERINP3ROUTES;
 
 
 struct CMDX COMMANDS[];
 
 int CMDXLEN	= sizeof (struct CMDX);
 
-VOID SENDNODESMSG();
+VOID SENDNODESMSG(int Portnum);
 VOID KISSCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
 VOID STOPCMS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
 VOID STARTCMS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
@@ -249,10 +252,81 @@ char * __cdecl Cmdprintf(TRANSPORTENTRY * Session, char * Bufferptr, const char 
 	return Bufferptr + MsgLen;
 }
 
+VOID POLLNODES(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
+{
+	int Portnum = atoi(CmdTail);
+	struct PORTCONTROL * PORT = 0;
+	MESSAGE * Buffer;
+	UCHAR * ptr1;
 
+	if (Portnum)
+		PORT = GetPortTableEntryFromPortNum(Portnum);
+		
+	if (Portnum == 0 || PORT == 0)
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Invalid Port\r");			
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
+	if (PORT->PORTQUALITY == 0 || PORT->INP3ONLY)
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Quality = 0 or INP3 Port\r");			
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+	Buffer = GetBuff();
+
+	if (Buffer == 0)
+		return;
+
+	Buffer->PORT = Portnum;
+
+	memcpy(Buffer->ORIGIN, NETROMCALL, 7);
+	memcpy(Buffer->DEST, NODECALL, 7);
+
+	Buffer->ORIGIN[6] |= 0x61;		// SET CMD END AND RESERVED BITS
+
+	Buffer->CTL = UI;
+	Buffer->PID = 0xCF;				// Netrom
+
+	ptr1 = &Buffer->L2DATA[0];
+	
+	*(ptr1++) = 0xfe;				// Nodes Poll Flag
+
+	memcpy(ptr1, MYALIASTEXT, 6);
+
+	ptr1+= 6;
+
+	Buffer->LENGTH = (int)(ptr1 - (UCHAR *)Buffer);
+
+	if (PORT->TNC && PORT->TNC->Hardware == H_VARA)
+		SendVARANetromNodes(PORT->TNC, Buffer);
+	else
+		PUT_ON_PORT_Q(PORT, Buffer);
+
+	strcpy(Bufferptr, OKMSG);
+	Bufferptr += (int)strlen(OKMSG);
+						
+	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+}
 VOID SENDNODES(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
-	SENDNODESMSG();
+	int Portnum = atoi(CmdTail);
+	struct PORTCONTROL * PORT;
+
+	if (Portnum)
+	{
+		PORT = GetPortTableEntryFromPortNum(Portnum);
+		if (PORT == 0)
+		{
+			Bufferptr = Cmdprintf(Session, Bufferptr, "Invalid Port\r");			
+			SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+			return;
+		}
+	}
+
+	SENDNODESMSG(Portnum);
 
 	strcpy(Bufferptr, OKMSG);
 	Bufferptr += (int)strlen(OKMSG);
@@ -1300,6 +1374,17 @@ VOID CMDL00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct C
 				else
 					Bufferptr = Cmdprintf(Session, Bufferptr, " S=%d P=%d T=%d V=%d Q=%d\r",
 					LINK->L2STATE, LINK->LINKPORT->PORTNUMBER, LINK->LINKTYPE, 2 - LINK->VER1FLAG, Count);
+			
+				if (Count > 16 || LINK->LINKWINDOW == 0)
+				{
+					// Dump Link State
+
+					int secs = time(NULL) - LINK->LASTFRAMESENT;
+						
+					Bufferptr = Cmdprintf(Session, Bufferptr, "  Debug Info: LINK->LINKNS %d LINK->LINKOWS %d SDTSLOT %d LINKWINDOW %d L2FLAGS %d\r", LINK->LINKNS, LINK->LINKOWS, LINK->SDTSLOT, LINK->LINKWINDOW, LINK->L2FLAGS);
+					Bufferptr = Cmdprintf(Session, Bufferptr, "  Debug Info: Slots %x %x %x %x %x %x %x %x\r", LINK->FRAMES[0], LINK->FRAMES[1], LINK->FRAMES[2], LINK->FRAMES[3],
+					LINK->FRAMES[4], LINK->FRAMES[5], LINK->FRAMES[6], LINK->FRAMES[7]);
+				}
 			}
 			LINK++;
 		}
@@ -1622,8 +1707,8 @@ char *  DisplayRoute(TRANSPORTENTRY * Session, char * Bufferptr, struct ROUTE * 
 
 		if (Routes->INP3Node)		// INP3 Enabled?
 		{
-			double srtt = Routes->SRTT/1000.0;
-			double nsrtt = Routes->NeighbourSRTT/1000.0;
+			double srtt = Routes->SRTT/100.0;
+			double nsrtt = Routes->NeighbourSRTT/100.0;
 
 			Bufferptr = Cmdprintf(Session, Bufferptr, " %4.2fs %4.2fs", srtt, nsrtt);
 		}
@@ -2169,6 +2254,32 @@ VOID DoNetromConnect(TRANSPORTENTRY * Session, char * Bufferptr, struct DEST_LIS
 	return;
 }
 
+BOOL CheckLink(UCHAR * LinkCall, UCHAR * OurCall, int Port)
+{
+	// Check if a link exists betwwn a pair of calls on a port. Return TRUE if found
+
+	struct _LINKTABLE * LINK = LINKS;
+	int n = MAXLINKS;
+
+	while (n--)
+	{
+		if (LINK->LINKCALL[0] == 0)		// Spare
+		{		
+			LINK++;
+			continue;
+		}
+
+		if ((LINK->LINKPORT->PORTNUMBER == Port) && CompareCalls(LINK->LINKCALL, LinkCall) && CompareCalls(LINK->OURCALL, OurCall))
+			return TRUE;
+
+		LINK++;
+	}
+
+	//	ENTRY NOT FOUND 
+
+	return FALSE;
+}
+
 BOOL FindLink(UCHAR * LinkCall, UCHAR * OurCall, int Port, struct _LINKTABLE ** REQLINK)
 {
 	struct _LINKTABLE * LINK = LINKS;
@@ -2194,6 +2305,7 @@ BOOL FindLink(UCHAR * LinkCall, UCHAR * OurCall, int Port, struct _LINKTABLE ** 
 
 		LINK++;
 	}
+
 	//	ENTRY NOT FOUND - FIRSTSPARE HAS FIRST FREE ENTRY, OR ZERO IF TABLE FULL
 
 	*REQLINK = FIRSTSPARE;
@@ -2387,6 +2499,9 @@ NoPort:
 					// Call to an appl
 
 					//	Convert to an APPL command, so any alias is actioned
+
+					memcpy(Session->APPL,APPL->APPLCMD, 12);
+
 
 					//	SEE IF THERE IS AN ALIAS DEFINDED FOR THIS COMMAND
 
@@ -2939,7 +3054,7 @@ char * DoOneNode(TRANSPORTENTRY * Session, char * Bufferptr, struct DEST_LIST * 
 
 		if (Neighbour)
 		{
-			double srtt = Route->SRTT/1000.0;
+			double srtt = Route->SRTT/100.0;
 
 			len = ConvFromAX25(Neighbour->NEIGHBOUR_CALL, Normcall);
 			Normcall[len] = 0;
@@ -2988,7 +3103,7 @@ int DoINP3ViaEntry(struct DEST_LIST * Dest, int n, char * line, int cursor)
 
 	if (Dest->INP3ROUTE[n].ROUT_NEIGHBOUR != 0)
 	{
-		srtt = Dest->INP3ROUTE[n].SRTT/1000.0;
+		srtt = Dest->INP3ROUTE[n].SRTT/100.0;
 
 		len=ConvFromAX25(Dest->INP3ROUTE[n].ROUT_NEIGHBOUR->NEIGHBOUR_CALL, Portcall);
 		Portcall[len]=0;
@@ -4258,6 +4373,7 @@ struct CMDX COMMANDS[] =
 	"RIGRECONFIG ",8, &RIGRECONFIG, 0,
 	"RESTART     ",7, &RESTART,0,
 	"RESTARTTNC  ",10,&RESTARTTNC,0,
+	"POLLNODES   ",8, &POLLNODES,0,
 	"SENDNODES   ",8, &SENDNODES,0,
 	"EXTRESTART  ",10, EXTPORTVAL, offsetof(EXTPORTDATA, EXTRESTART),
 	"TXDELAY     ",3, PORTVAL, offsetof(PORTCONTROLX, PORTTXDELAY),
@@ -4275,6 +4391,10 @@ struct CMDX COMMANDS[] =
 	"MAXUSERS    ",4,PORTVAL, offsetof(PORTCONTROLX, USERS),
 	"L3ONLY      ",6,PORTVAL, offsetof(PORTCONTROLX, PORTL3FLAG),
 	"BBSALIAS    ",4,PORTVAL, offsetof(PORTCONTROLX, PORTBBSFLAG),
+	"INP3ONLY    ",8,PORTVAL, offsetof(PORTCONTROLX, INP3ONLY),
+	"ALLOWINP3   ",9,PORTVAL, offsetof(PORTCONTROLX, ALLOWINP3),
+	"ENABLEINP3  ",10,PORTVAL, offsetof(PORTCONTROLX, ENABLEINP3),
+	"MONTOFILE   ",9,SWITCHVAL,(size_t)&MONTOFILEFLAG,
 	"VALIDCALLS  ",5,VALNODES,0,
 	"WL2KSYSOP   ",5,WL2KSYSOP,0,
 	"STOPPORT    ",4,STOPPORT,0,
@@ -4285,6 +4405,7 @@ struct CMDX COMMANDS[] =
 	"FINDBUFFS   ",4,FINDBUFFS,0,
 	"KISS        ",4,KISSCMD,0,
 	"GETPORTCTEXT",9,GetPortCTEXT, 0,
+
 
 #ifdef EXCLUDEBITS
 
@@ -4310,6 +4431,10 @@ struct CMDX COMMANDS[] =
 	"L4DELAY     ",7,SWITCHVAL,(size_t)&L4DELAY,
 	"L4WINDOW    ",6,SWITCHVAL,(size_t)&L4DEFAULTWINDOW,
 	"BTINTERVAL  ",5,SWITCHVAL,(size_t)&BTINTERVAL,
+	"DEBUGINP3   ",8,SWITCHVAL,(size_t)&DEBUGINP3,
+	"MAXHOPS     ",7,SWITCHVAL,(size_t)&MaxHops,
+	"PREFERINP3  ",10,SWITCHVAL,(size_t)&PREFERINP3ROUTES,
+	"MAXRTT      ",6,SWITCHVALW,(size_t)&MAXRTT,
 	"PASSWORD    ", 8, PWDCMD, 0,
 
 	"************", 12, APPLCMD, 0,

@@ -509,6 +509,14 @@ UCHAR * DISPLAY_NETROM(MESSAGE * ADJBUFFER, UCHAR * Output, int MsgLen, int DoNo
 		return Output;
 	}
 
+	if (ADJBUFFER->L2DATA[0] == 0xfe)			// Paula's Nodes Poll
+	{
+		memcpy(Alias, ++ptr, 6);
+		Output += sprintf((char *)Output, " NODES POLL from %s\r", Alias);
+		return Output;
+	}
+
+
 	//	Display normal NET/ROM transmissions 
 
 	Output += sprintf((char *)Output, " NET/ROM\r  ");

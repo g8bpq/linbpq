@@ -192,8 +192,8 @@ extern UCHAR BPQDirectory[];
 
 extern int OffsetH, OffsetW;
 
-static void ResolveNames(struct AXIPPORTINFO * PORT);
-void OpenSockets(struct AXIPPORTINFO * PORT);
+static void ResolveNames(VOID * Param);
+void OpenSockets(VOID * Param);
 void CloseSockets(struct AXIPPORTINFO * PORT);
 
 
@@ -221,7 +221,7 @@ int	KissDecode(UCHAR * inbuff, int len);
 int Socket_Accept(int SocketId);
 int Socket_Connect(int SocketId, int Error);
 int Socket_Data(int sock, int error, int eventcode);
-VOID TCPConnectThread(struct arp_table_entry * arp);
+VOID TCPConnectThread(VOID * Param);
 VOID __cdecl Debugprintf(const char * format, ...);
 VOID __cdecl Consoleprintf(const char * format, ...);
 BOOL OpenListeningSocket(struct AXIPPORTINFO * PORT, struct arp_table_entry * arp);
@@ -692,7 +692,7 @@ static size_t ExtProc(int fn, int port, PMESSAGE buff)
 		else 
 			Consoleprintf("Failed to reread config file - leaving config unchanged");
 
-		_beginthread(OpenSockets, 0, PORT );
+		_beginthread(OpenSockets, 0, PORT);
 
 		GetAXIPCache(PORT);
 
@@ -844,8 +844,9 @@ int InitAXIP(int Port)
 	return (TRUE);	
 }
 
-void OpenSockets(struct AXIPPORTINFO * PORT)
+void OpenSockets(void * Param)
 {
+	struct AXIPPORTINFO * PORT = (struct AXIPPORTINFO *)Param;
 	char Msg[255];
 	int err;
 	u_long param=1;
@@ -1528,8 +1529,9 @@ static void CreateResolverWindow(struct AXIPPORTINFO * PORT)
 extern HWND hWndPopup;
 
 
-static void ResolveNames(struct AXIPPORTINFO * PORT)
+static void ResolveNames(VOID * Param)
 {
+	struct AXIPPORTINFO * PORT = (struct AXIPPORTINFO *)Param;
 	int count = 0;
 
 	PORT->ResolveNamesThreadId = GetCurrentThreadId();		// Detect if another started
@@ -2996,8 +2998,9 @@ int	KissDecode(UCHAR * inbuff, int len)
 	return txptr;
 }
 
-VOID TCPConnectThread(struct arp_table_entry * arp)
+VOID TCPConnectThread(void * Param)
 {
+	struct arp_table_entry * arp = (struct arp_table_entry *)Param;
 	char Msg[255];
 	int err, i;
 	u_long param=1;

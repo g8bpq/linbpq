@@ -49,7 +49,39 @@ Stuff to make compiling on WINDOWS and LINUX easier
 
 int pthread_equal(pthread_t T1, pthread_t T2);
 
-uintptr_t _beginthread(void(__cdecl *start_address)(void *), unsigned stack_size, void *arglist);
+uintptr_t _beginthread(void(__cdecl start_address)(void *), unsigned stack_size, void *arglist);
+
+#if defined(_MSC_VER) && _MSC_VER < 1900
+
+#define snprintf c99_snprintf
+#define vsnprintf c99_vsnprintf
+
+__inline int c99_vsnprintf(char *outBuf, size_t size, const char *format, va_list ap)
+{
+    int count = -1;
+
+    if (size != 0)
+        count = _vsnprintf_s(outBuf, size, _TRUNCATE, format, ap);
+    if (count == -1)
+        count = _vscprintf(format, ap);
+
+    return count;
+}
+
+__inline int c99_snprintf(char *outBuf, size_t size, const char *format, ...)
+{
+    int count;
+    va_list ap;
+
+    va_start(ap, format);
+    count = c99_vsnprintf(outBuf, size, format, ap);
+    va_end(ap);
+
+    return count;
+}
+#endif
+
+
 
 #else
 
@@ -152,9 +184,7 @@ int stricmp(const unsigned char * pStr1, const unsigned char *pStr2);
 char * strupr(char* s);
 char * strlwr(char* s);
 
-pthread_t _beginthread(void(*start_address)(), unsigned stack_size, VOID * arglist);
-
-
+pthread_t _beginthread(void(start_address)(void *), unsigned stack_size, VOID * arglist);
 
 #define WSAGetLastError() errno
 #define GetLastError() errno 

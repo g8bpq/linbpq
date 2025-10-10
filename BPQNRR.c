@@ -45,6 +45,8 @@ extern VOID Q_ADD();
 VOID __cdecl Debugprintf(const char * format, ...);
 
 TRANSPORTENTRY * NRRSession;
+time_t NRRTime;
+
 
 /*
 datagrams (and other things) to be transported in Netrom L3 frames. 
@@ -76,6 +78,7 @@ VOID NRRecordRoute(UCHAR * Buff, int Len)
 		UCHAR * BUFFER = GetBuff();
 		UCHAR * ptr1;
 		struct _MESSAGE * Msg;
+		time_t Now = time(NULL);
 
 		if (BUFFER == NULL)
 			return;
@@ -84,7 +87,7 @@ VOID NRRecordRoute(UCHAR * Buff, int Len)
 		
 		*ptr1++ = 0xf0;			// PID
 
-		ptr1 += sprintf(ptr1, "NRR Response:");
+		ptr1 += sprintf(ptr1, "NRR Response in (probably) %d Secs :", (int)(Now - NRRTime));
 
 		Buff += 21 + MSGHDDRLEN;
 		Len -= (21 + MSGHDDRLEN);
@@ -172,6 +175,7 @@ VOID SendNRRecordRoute(struct DEST_LIST * DEST, TRANSPORTENTRY * Session)
 		return;
 
 	NRRSession = Session;			// Save Session Pointer for reply
+	NRRTime = time(NULL);
 
 	Msg->Port = 0;
 	Msg->L3PID = NRPID;

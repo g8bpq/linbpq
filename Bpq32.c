@@ -1180,7 +1180,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix processing of the Winlink API /account/exists response (82)
 //	Fix sending CTEXT to L4 connects to Node when FULL_CTEXT is not set
 
-//  Version 6.0.25.? 
+//  Version 6.0.25.1 Sept 2025
 
 //	Fix 64 bit compatibility problems in SCSTracker and UZ7HO drivers
 //	Add Chat PACLEN config (5)
@@ -1283,6 +1283,16 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Allow sending CTRL/G From console (Windows) (80)
 //	Fix Webmail autorefresh extra threads problem (websock connection lost handling) (82)
 //	Fix overwriting application alias (83)
+
+
+//  Version 6.0.26.?
+
+//	Fix for compiling with gcc15 (2)
+//	Fix possble stuck L2 session caused by window being set to zero (3)
+//	Improvments to INP3 (4, 5)
+//	Add Node API /api/tcpqueues (5)
+//	Add sending link events to OARC API (disabled by default) (6)
+
 
 #define CKernel
 
@@ -1444,7 +1454,8 @@ extern char MYCALL[];			// 7 chars, ax.25 format
 extern HWND hIPResWnd;
 extern BOOL IPMinimized;
 
-extern int	NODESINPROGRESS;
+extern int NODESINPROGRESS;
+extern int NODESToOnePort;
 extern VOID * CURRENTNODE;
 
 
@@ -1514,7 +1525,7 @@ extern char ReportDest[7];
 
 extern UCHAR ConfigDirectory[260];
 
-extern uint64_t timeLoadedMS;
+extern uint64_t INP3timeLoadedMS;
 
 VOID __cdecl Debugprintf(const char * format, ...);
 VOID __cdecl Consoleprintf(const char * format, ...);
@@ -2403,7 +2414,7 @@ FirstInit()
 		EnumProcessesPtr = (FARPROCX)GetProcAddress(ExtDriver,"EnumProcesses");
 	}
 
-	timeLoadedMS = GetTickCount();
+	INP3timeLoadedMS = GetTickCount();
 
 	srand(time(NULL));
 	

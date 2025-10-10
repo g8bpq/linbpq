@@ -54,6 +54,7 @@ void MQTTTimer();
 void SaveMH();
 VOID InformPartner(struct _LINKTABLE * LINK, int Reason);
 VOID L2SENDCOMMAND(struct _LINKTABLE * LINK, int CMD);
+void WritePacketLogThread(void * param);
 
 
 #include "configstructs.h"
@@ -61,6 +62,7 @@ VOID L2SENDCOMMAND(struct _LINKTABLE * LINK, int CMD);
 extern struct CONFIGTABLE xxcfg;
 extern BOOL needAIS;
 extern int needADSB;
+extern int EnableOARCAPI;
 
 struct PORTCONFIG * PortRec;
 
@@ -181,6 +183,7 @@ extern VOID * ENDPOOL;
 extern void * APPL_Q;				// Queue of frames for APRS Appl
 
 extern BOOL APRSActive;
+extern int DEBUGINP3;
 
 #define BPQHOSTSTREAMS	64
 
@@ -194,8 +197,11 @@ BPQVECSTRUC * TELNETMONVECPTR = &BPQHOSTVECTOR[BPQHOSTSTREAMS];
 BPQVECSTRUC * AGWMONVECPTR = &BPQHOSTVECTOR[BPQHOSTSTREAMS + 1];
 BPQVECSTRUC * APRSMONVECPTR = &BPQHOSTVECTOR[BPQHOSTSTREAMS + 2];
 BPQVECSTRUC * IPHOSTVECTORPTR = &BPQHOSTVECTOR[BPQHOSTSTREAMS + 3];
+BPQVECSTRUC * FILEMONVECTOR = &BPQHOSTVECTOR[BPQHOSTSTREAMS + 4];
 
 int BPQVECLENGTH = sizeof(BPQVECSTRUC);
+
+int MONTOFILEFLAG = 0;
 
 int NODEORDER = 0;
 UCHAR LINKEDFLAG = 0;
@@ -250,6 +256,8 @@ int CFLAG = 0;						// C =HOST Command
 VOID * IDMSG_Q = NULL;				// ID/BEACONS WAITING TO BE SENT
 
 int	NODESINPROGRESS = 0;
+int NODESToOnePort = 0;				// Set to port num to send NODES to only one port.
+
 VOID * CURRENTNODE = NULL;			// NEXT _NODE TO SEND
 VOID * DESTHEADER = NULL;			// HEAD OF SORTED NODES CHAIN
 
@@ -862,6 +870,11 @@ BOOL Start()
 
 	PREFERINP3ROUTES = cfg->C_PREFERINP3ROUTES;
 
+	if (cfg->C_DEBUGINP3)
+		DEBUGINP3 = 0;
+
+	EnableOARCAPI = cfg->C_OARCAPI;
+
 	if (cfg->C_OnlyVer2point0)
 		SUPPORT2point2 = 0;
 
@@ -992,6 +1005,7 @@ BOOL Start()
 		PORT->IgnoreUnlocked = PortRec->IGNOREUNLOCKED;
 		PORT->INP3ONLY = PortRec->INP3ONLY;
 		PORT->ALLOWINP3 = PortRec->AllowINP3;
+		PORT->ENABLEINP3 = PortRec->EnableINP3;
 
 		PORT->PORTWINDOW = (UCHAR)PortRec->MAXFRAME;
 
@@ -1563,6 +1577,10 @@ BOOL Start()
 	GetPortCTEXT(0, 0, 0, 0);
 
 	upnpInit();
+
+	// Start Monitor to file thread
+	
+	_beginthread(WritePacketLogThread, 0, NULL);
 
 	lastSaveSecs = CurrentSecs = lastSlowSecs = time(NULL);
 
@@ -2514,9 +2532,9 @@ ENDOFLIST:
 				{
 					// Stuck link debug check
 
-					if (LINK->LASTFRAMESENT && (time(NULL) - LINK->LASTFRAMESENT) > 60)			// No send for 60 secs
+					if (LINK->LINKWINDOW == 0 || LINK->LASTFRAMESENT == 0 || (time(NULL) - LINK->LASTFRAMESENT) > 60)			// No send for 60 secs
 					{
-						if (COUNT_AT_L2(LINK) > 16)
+						if (COUNT_AT_L2(LINK) > 16 || LINK->LINKWINDOW == 0)
 						{
 							// Dump Link State
 
@@ -2673,6 +2691,19 @@ int BPQTRACE(MESSAGE * Msg, BOOL TOAPRS)
 				DoListenMonitor(L4, Msg);
 			
 		L4++;
+	}
+
+	// And to the Monitor to File system.
+
+
+	if (MONTOFILEFLAG)		// Trace Enabled?
+	{
+		Buffer = GetBuff();
+		if (Buffer)
+		{
+			memcpy(&Buffer->PORT, &Msg->PORT, BUFFLEN - sizeof(void *));	// Dont copy chain word
+			C_Q_ADD(&FILEMONVECTOR->HOSTTRACEQ, Buffer);
+		}
 	}
 
 	return TRUE;

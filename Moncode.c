@@ -691,6 +691,14 @@ char * DISPLAY_NETROM(MESSAGE * ADJBUFFER, UCHAR * Output, int MsgLen)
 		return Output;
 	}
 
+	if (ADJBUFFER->L2DATA[0] == 0xfe)			// Paula's Nodes Poll
+	{
+		memcpy(Alias, ++ptr, 6);
+		Output += sprintf((char *)Output, " NODES POLL from %s\r", Alias);
+		return Output;
+	}
+
+
 	//	Display normal NET/ROM transmissions 
 
 	Output += sprintf((char *)Output, " NET/ROM\r  ");
@@ -985,3 +993,87 @@ char * DISPLAYARPDATAGRAM(UCHAR * Datagram, UCHAR * Output)
 			ptr[15], ptr[16], ptr[17], ptr[18], Dest, ptr[26], ptr[27], ptr[28], ptr[29]);
 
 }
+
+char Lastpacketlog[256];
+
+int PacketLogDelay = 30000;
+
+extern BPQVECSTRUC * FILEMONVECTOR;
+extern UCHAR LogDirectory[260];
+
+void WritePacketLogThread(void * param)
+{
+	char FN[256];
+	time_t T;
+	struct tm * tm;
+	FILE * Handle;
+	int MsgLen;
+	MESSAGE * MSG;
+	MESSAGE * Q;
+	char buffer[512];
+
+
+	while(1)
+	{
+		BOOL SaveMTX = MTX;
+		BOOL SaveMCOM = MCOM;
+		BOOL SaveMUI = MUIONLY;
+
+		Sleep(PacketLogDelay);
+
+		// Get chain of queued packets under semaphore
+
+		GetSemaphore(&Semaphore, 101);
+
+		Q = FILEMONVECTOR->HOSTTRACEQ;
+		FILEMONVECTOR->HOSTTRACEQ = 0;
+
+		FreeSemaphore(&Semaphore);
+		
+		if (Q == 0)
+			continue;
+
+		// Open log file and write decoded packets
+
+		T = time(NULL);
+		tm = gmtime(&T);
+
+		if (LogDirectory[0] == 0)
+		{
+			strcpy(FN, "logs/PacketLog");
+		}
+		else
+		{
+			strcpy(FN, LogDirectory);
+			strcat(FN, "/");
+			strcat(FN, "logs/PacketLog");
+		}
+
+		sprintf(&FN[strlen(FN)], "_%04d%02d%02d.log", tm->tm_year +1900, tm->tm_mon+1, tm->tm_mday);
+
+		Handle = fopen(FN, "ab");
+
+		if (Handle == NULL)
+			return;
+
+		while (Q)
+		{
+			MSG = Q;
+			Q = MSG->CHAIN;			// get first
+
+			IntSetTraceOptionsEx(MMASK, 1, 1, 0);
+			MsgLen = IntDecodeFrame(MSG, buffer, MSG->Timestamp, 0xffffffffffffffff, FALSE, FALSE);
+			IntSetTraceOptionsEx(MMASK, SaveMTX, SaveMCOM, SaveMUI);
+
+			fwrite(buffer , 1, MsgLen, Handle);
+
+			GetSemaphore(&Semaphore, 101);
+			ReleaseBuffer(MSG);
+			FreeSemaphore(&Semaphore);
+		}
+		fclose(Handle);
+	}
+
+	return;
+}
+

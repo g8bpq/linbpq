@@ -64,15 +64,6 @@ extern int ENDOFDATA;
 extern int L3LIVES;
 extern int NUMBEROFNODES;
 
-struct CMDX
-{
-	char String[12];			// COMMAND STRING
-	UCHAR CMDLEN;				// SIGNIFICANT LENGTH
-//	VOID (*CMDPROC)(struct _TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail,  struct CMDX * CMD);// COMMAND PROCESSOR
-	VOID (*CMDPROC)();// COMMAND PROCESSOR
-	size_t CMDFLAG;				// FLAG/VALUE Offset
-
-};
 
 struct APPLCONFIG
 {
@@ -230,12 +221,13 @@ typedef struct ROUTE
 	BOOL NoKeepAlive;			// Suppress Keepalive Processing
 	int	LastConnectAttempt;		// To stop us trying too often
 
-	int Status;			// 
+	int Status;			//
+	int OldBPQ;				// Set if other end is BPQ sending RIF in mS
 	int LastRTT;			// Last Value Reported
 	int RTT;				// Current	
 	int SRTT;				// Smoothed RTT
 	int NeighbourSRTT;		// Other End SRTT
-//	int RTTIncrement;		// Average of Ours and Neighbours SRTT in 10 ms
+	int RTTIncrement;		// Average of Ours and Neighbours SRTT in 10 ms - smoothed neighbor transport time (SNTT) in spec
 	int BCTimer;			// Time to next L3RTT Broadcast
 	int Timeout;			// Lost Response Timer
 	int Retries;			// Lost Response Count
@@ -244,6 +236,8 @@ typedef struct ROUTE
 	int	OtherendsRouteQual;	//	Route quality used by other end.
 	int	OtherendLocked;		//	Route quality locked by ROUTES entry.
 	int	FirstTimeFlag;		//	Set once quality has been set by direct receive
+	int RemoteMAXRTT;		//	For INP3
+	int RemoteMAXHOPS;
 
 } *PROUTE;
 
@@ -701,7 +695,8 @@ typedef struct PORTCONTROL
 	BOOL NormalizeQuality;		// Normalise Node Qualities
 	BOOL IgnoreUnlocked;		// Ignore Unlocked routes
 	BOOL INP3ONLY;				// Default to INP3 and disallow NODES
-	BOOL ALLOWINP3;
+	BOOL ALLOWINP3;				// Accept INP3 if offered by other end
+	BOOL ENABLEINP3;			// Send INP3 RTT probes to discovered neighbours
 
 	void (* UIHook)(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffer, MESSAGE * ADJBUFFER, UCHAR CTL, UCHAR MSGFLAG);			// Used for KISSARQ
 	struct PORTCONTROL * HookPort;
@@ -980,6 +975,8 @@ typedef struct _LINKTABLE
 
 	int Received;
 	int ReceivedAfterExpansion;
+
+	char ApplName[16];
 
 
 } LINKTABLE;
@@ -1469,6 +1466,16 @@ struct AXIPPORTINFO
 	HMENU hMHMenu;
 
 	pthread_t ResolveNamesThreadId;
+
+};
+
+struct CMDX
+{
+	char String[12];			// COMMAND STRING
+	UCHAR CMDLEN;				// SIGNIFICANT LENGTH
+	VOID (*CMDPROC)(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail,  struct CMDX * CMD);// COMMAND PROCESSOR
+//	VOID (*CMDPROC)();// COMMAND PROCESSOR
+	size_t CMDFLAG;				// FLAG/VALUE Offset
 
 };
 

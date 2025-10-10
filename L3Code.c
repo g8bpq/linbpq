@@ -60,6 +60,10 @@ VOID L3TRYNEXTDEST(struct ROUTE * ROUTE);
 VOID SendNETROMRoute(struct PORTCONTROL * PORT, unsigned char * axcall);
 void SendVARANetromNodes(struct TNCINFO * TNC, MESSAGE *Buffer);
 void SendVARANetromMsg(struct TNCINFO * TNC,L3MESSAGEBUFFER * Buffer);
+VOID SENDNODESMSG(int Portnum);
+
+extern int NODESINPROGRESS;
+extern int NODESToOnePort;
 
 extern BOOL NODESINPROGRESS ;;
 PPORTCONTROL L3CURRENTPORT;
@@ -241,6 +245,13 @@ char Call1[10];
 char Call2[10];
 char Call3[10];
 
+VOID PROCESSNODESPOLL(struct PORTCONTROL * PORT)
+{
+	// Pauls G8BPT's request NODES Broadcast
+
+	SENDNODESMSG(PORT->PORTNUMBER);
+	return;
+}
 VOID PROCESSNODEMESSAGE(MESSAGE * Msg, struct PORTCONTROL * PORT)
 {
 	//	PROCESS A NET/ROM 'NODES' MESSAGE
@@ -744,12 +755,26 @@ VOID L3BG();
 
 VOID SENDNEXTNODESFRAGMENT();
 
-VOID SENDNODESMSG()
+VOID SENDNODESMSG(int Portnum)
 {
 	if (NODESINPROGRESS)
 		return;
 
-	L3CURRENTPORT = PORTTABLE;
+	NODESToOnePort = Portnum;
+
+	if (Portnum)			// Nodes to one port only
+	{
+		L3CURRENTPORT = GetPortTableEntryFromPortNum(Portnum);
+
+		if (L3CURRENTPORT == 0)
+		{
+			NODESToOnePort = 0;
+			return;
+		}
+	}
+	else
+		L3CURRENTPORT = PORTTABLE;
+	
 	SENDNEXTNODESFRAGMENT();
 }
 
@@ -785,16 +810,19 @@ VOID SENDNEXTNODESFRAGMENT()
 			// No NODES to this port, so go to next
 
 			PORT = PORT->PORTPOINTER;
-			if (PORT == NULL)
+
+			if (PORT == NULL || NODESToOnePort)
 			{
 				// Finished
 
+				NODESToOnePort = 0;
 				NODESINPROGRESS = 0;
 				return;
 			}
 		}
 
-		L3CURRENTPORT = PORT;
+		if (NODESToOnePort == 0)			// CurrentPort already set if NODESToOnePort
+			L3CURRENTPORT = PORT;
 
 		DEST = CURRENTNODE = DESTS;			// START OF LIST
 		NODESINPROGRESS = 1;
@@ -851,12 +879,23 @@ VOID SENDNEXTNODESFRAGMENT()
 		if (DEST >= ENDDESTLIST)
 		{
 			CURRENTNODE = 0;			// Finished on this port
-			L3CURRENTPORT = PORT->PORTPOINTER;
-			if (L3CURRENTPORT == NULL)
-			{
-				// Finished
 
+			// if sending to only one port then stop
+
+			if (NODESToOnePort)
+			{
+				NODESToOnePort = 0;
 				NODESINPROGRESS = 0;
+			}
+			else
+			{
+				L3CURRENTPORT = PORT->PORTPOINTER;
+				if (L3CURRENTPORT == NULL)
+				{
+					// Finished
+
+					NODESINPROGRESS = 0;
+				}
 			}
 			goto Sendit;
 		}
@@ -1044,7 +1083,7 @@ VOID L3TimerProc()
 			
 			L3TIMER = L3INTERVAL;
 			UPDATEDESTLIST();
-			SENDNODESMSG();
+			SENDNODESMSG(0);
 		}
 	}
 

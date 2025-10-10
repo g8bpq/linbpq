@@ -110,7 +110,7 @@ VOID ConnecttoFLRIG(struct RIGPORTINFO * PORT);
 int DecodeHAMLIBAddr(struct RIGPORTINFO * PORT, char * ptr);
 void ProcessHAMLIBFrame(struct RIGPORTINFO * PORT, int Length);
 VOID HAMLIBPoll(struct RIGPORTINFO * PORT);
-void HAMLIBSlaveThread(struct RIGINFO * RIG);
+void HAMLIBSlaveThread(VOID * Param);
 void CheckAndProcessRTLUDP(struct RIGPORTINFO * PORT);
 VOID RTLUDPPoll(struct RIGPORTINFO * PORT);
 VOID ConnecttoRTLUDP(struct RIGPORTINFO * PORT);
@@ -122,8 +122,8 @@ VOID ProcessSDRRadioFrame(struct RIGPORTINFO * PORT, int Length);
 VOID SDRRadioPoll(struct RIGPORTINFO * PORT);
 
 VOID SetupPortRIGPointers();
-VOID PTTCATThread(struct RIGINFO *RIG);
-VOID ConnecttoHAMLIB(struct RIGPORTINFO * PORT);
+VOID PTTCATThread(void * Param);
+
 
 // ----- G7TAJ ----
 VOID ConnecttoSDRANGEL(struct RIGPORTINFO * PORT);
@@ -7484,8 +7484,9 @@ VOID SetupPortRIGPointers()
 
 #ifdef WIN32
 
-VOID PTTCATThread(struct RIGINFO *RIG)
+VOID PTTCATThread(void * Param)
 {
+	struct RIGINFO * RIG = 	(struct RIGINFO *)Param;
 	DWORD dwLength = 0;
 	int Length, ret, i;
 	UCHAR * ptr1;
@@ -8471,7 +8472,7 @@ int DecodeHAMLIBAddr(struct RIGPORTINFO * PORT, char * ptr)
 	return 1;
 }
 
-VOID HAMLIBThread(struct RIGPORTINFO * PORT);
+VOID HAMLIBThread(void * Param);
 
 VOID ConnecttoHAMLIB(struct RIGPORTINFO * PORT)
 {
@@ -8481,10 +8482,11 @@ VOID ConnecttoHAMLIB(struct RIGPORTINFO * PORT)
 	return ;
 }
 
-VOID HAMLIBThread(struct RIGPORTINFO * PORT)
+VOID HAMLIBThread(void * Param)
 {
 	// Opens sockets and looks for data
-	
+
+	struct RIGPORTINFO * PORT = (struct RIGPORTINFO * )Param;
 	char Msg[255];
 	int err, i, ret;
 	u_long param=1;
@@ -8606,10 +8608,11 @@ Lost:
 
 
 
-void HAMLIBSlaveThread(struct RIGINFO * RIG)
+void HAMLIBSlaveThread(VOID * Param)
 {
 	// Wait for connections and messages from HAMLIB Clients
 
+	struct RIGINFO * RIG = (struct RIGINFO *)Param;
 	fd_set readfs;
 	fd_set errorfs;
 	struct timeval timeout;
@@ -8925,7 +8928,7 @@ VOID FLRIGSendCommand(struct RIGPORTINFO * PORT, char * Command, char * Value)
 
 
 
-VOID FLRIGThread(struct RIGPORTINFO * PORT);
+VOID FLRIGThread(VOID * Param);
 
 VOID ConnecttoFLRIG(struct RIGPORTINFO * PORT)
 {
@@ -8934,10 +8937,11 @@ VOID ConnecttoFLRIG(struct RIGPORTINFO * PORT)
 	return ;
 }
 
-VOID FLRIGThread(struct RIGPORTINFO * PORT)
+VOID FLRIGThread(VOID * Param)
 {
 	// Opens sockets and looks for data
 	
+	struct RIGPORTINFO * PORT = (struct RIGPORTINFO *)Param;
 	char Msg[255];
 	int err, i, ret;
 	u_long param=1;
@@ -10177,7 +10181,7 @@ void ProcessSDRANGELFrame(struct RIGPORTINFO * PORT)
 
 
 
-VOID SDRANGELThread(struct RIGPORTINFO * PORT);
+VOID SDRANGELThread(VOID * Param);
 
 VOID ConnecttoSDRANGEL(struct RIGPORTINFO * PORT)
 {
@@ -10186,9 +10190,11 @@ VOID ConnecttoSDRANGEL(struct RIGPORTINFO * PORT)
 	return ;
 }
 
-VOID SDRANGELThread(struct RIGPORTINFO * PORT)
+VOID SDRANGELThread(VOID * Param)
 {
 	// Opens sockets and looks for data
+
+	struct RIGPORTINFO * PORT = (struct RIGPORTINFO *)Param;
 	char Msg[512];
 	int err, i, ret;
 	u_long param=1;
