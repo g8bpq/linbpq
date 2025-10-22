@@ -2217,7 +2217,7 @@ int BittoInt(UINT BitMask)
 	return i;
 }
 
-extern char * RadioConfigMsg[36];
+extern char * RadioConfigMsg[70];
 
 struct TNCINFO RIGTNC;			// Dummy TNC Record for Rigcontrol without a corresponding TNC 
 

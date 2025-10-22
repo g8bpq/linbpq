@@ -80,6 +80,11 @@ int DoScanLine(struct TNCINFO * TNC, char * Buff, int Len);
 VOID ProcessARQPacket(struct PORTCONTROL * PORT, MESSAGE * Buffer);
 char * strlop(char * buf, char delim);
 
+void hookL4SessionAttempt(struct STREAMINFO * , char * remotecall, char * ourcall);
+void hookL4SessionAccepted(struct STREAMINFO * , char * remotecall, char * ourcall);
+void hookL4SessionDeleted(struct TNCINFO * TNC, void * STREAM);
+
+
 extern UCHAR BPQDirectory[];
 extern char MYALIASLOPPED[10];
 

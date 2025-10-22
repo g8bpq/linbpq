@@ -42,7 +42,7 @@ typedef int (FAR *FARPROCY)();
 #define L4INFO	5		// INFORMATION
 #define L4IACK	6		// INFORMATION ACK
 #define L4RESET 7		// Paula's extension
-
+#define L4CREQX 8		// Paula's extension
 
 extern char MYCALL[];	// 7 chars, ax.25 format
 extern char MYALIASTEXT[];	// 6 chars, not null terminated
@@ -177,6 +177,14 @@ typedef struct _TRANSPORTENTRY
 	int Received;
 	int ReceivedAfterExpansion;
 
+	int segsSent;
+	int segsRcvd;
+	int segsResent;
+
+	int NRRID;
+	time_t NRRTime;
+
+	int Service;			// For Paula's Connnect to Service
 
 } TRANSPORTENTRY;
 
@@ -220,6 +228,7 @@ typedef struct ROUTE
 	BOOL INP3Node;
 	BOOL NoKeepAlive;			// Suppress Keepalive Processing
 	int	LastConnectAttempt;		// To stop us trying too often
+	int ConnectionAttempts;
 
 	int Status;			//
 	int OldBPQ;				// Set if other end is BPQ sending RIF in mS
@@ -238,6 +247,10 @@ typedef struct ROUTE
 	int	FirstTimeFlag;		//	Set once quality has been set by direct receive
 	int RemoteMAXRTT;		//	For INP3
 	int RemoteMAXHOPS;
+
+	char * TCPHost;			// For NETROM over TCP
+	int TCPPort;
+	struct NRTCPSTRUCT * TCPSession;			
 
 } *PROUTE;
 
@@ -961,6 +974,9 @@ typedef struct _LINKTABLE
 	time_t ConnectTime;		// For session stats
 	int bytesRXed;			// Info bytes only
 	int bytesTXed;
+	int framesRXed;
+	int framesTXed;
+	int framesResent;
 
 	//	Now support compressing L2 Sessions.
 	//	We collect as much data as possible before compressing and re-packetizing
@@ -977,7 +993,7 @@ typedef struct _LINKTABLE
 	int ReceivedAfterExpansion;
 
 	char ApplName[16];
-
+	time_t lastStatusSentTime;
 
 } LINKTABLE;
 
@@ -1478,6 +1494,15 @@ struct CMDX
 	size_t CMDFLAG;				// FLAG/VALUE Offset
 
 };
+
+struct NETROMX
+{
+	 int ServiceNo;
+	 char ServiceName[10];
+};
+
+extern struct NETROMX SERVICES[];
+extern int NUMBEROFSSERVICES;
 
 
 #define Disconnect(stream) SessionControl(stream,2,0)

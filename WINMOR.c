@@ -105,6 +105,11 @@ int DoScanLine(struct TNCINFO * TNC, char * Buff, int Len);
 BOOL KillOldTNC(char * Path);
 int standardParams(struct TNCINFO * TNC, char * buf);
 
+void hookL4SessionAttempt(struct STREAMINFO * , char * remotecall, char * ourcall);
+void hookL4SessionAccepted(struct STREAMINFO * , char * remotecall, char * ourcall);
+void hookL4SessionDeleted(struct TNCINFO * TNC, void * STREAM);
+
+
 static char ClassName[]="WINMORSTATUS";
 static char WindowTitle[] = "WINMOR";
 static int RigControlRow = 165;

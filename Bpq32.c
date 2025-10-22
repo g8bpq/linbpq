@@ -1292,6 +1292,12 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Improvments to INP3 (4, 5)
 //	Add Node API /api/tcpqueues (5)
 //	Add sending link events to OARC API (disabled by default) (6)
+//	Fix possible program error in Telnet_Connected (7)
+//	Close links when program is closed down (7)
+//	Fix possible problem with deleting routes when using both NODES and INP3 routing on same link (7)
+//	Add Paula's Netromx (allows connects to different applications using Node call) (8)
+//	Add Netrom over TCP (8)
+//	Fix FRMR caused by sending SREJ when no frames outstanding (8)
 
 
 #define CKernel
@@ -1387,6 +1393,8 @@ void * HSMODEMExtInit(EXTPORTDATA * PortEntry);
 void * FreeDataExtInit(EXTPORTDATA * PortEntry);
 void * SIXPACKExtInit(EXTPORTDATA * PortEntry);
 
+VOID RealCloseAllPrograms();
+
 extern char * ConfigBuffer;	// Config Area
 VOID REMOVENODE(dest_list * DEST);
 DllExport int ConvFromAX25(unsigned char * incall,unsigned char * outcall);
@@ -1396,6 +1404,8 @@ VOID ADIFWriteFreqList();
 void SaveAIS();
 void initAIS();
 void initADSB();
+int CloseAllSessions();
+int CloseAllLinks();
 
 extern BOOL ADIFLogEnabled;
 
@@ -1643,6 +1653,8 @@ BOOL IGateEnabled = TRUE;
 extern int ISDelayTimer;			// Time before trying to reopen APRS-IS link
 extern int ISPort;
 
+int CLOSING = 0;
+
 UINT * WINMORTraceQ = NULL;
 UINT * SetWindowTextQ = NULL;
 
@@ -1698,6 +1710,8 @@ BOOL ReconfigFlag = FALSE;
 BOOL RigReconfigFlag = FALSE;
 BOOL APRSReconfigFlag = FALSE;
 BOOL CloseAllNeeded = FALSE;
+int CloseAllTimer = 0;
+
 BOOL NeedWebMailRefresh = FALSE;
 
 int AttachedPIDList[100] = {0};
@@ -2379,6 +2393,52 @@ VOID TimerProcX()
 
 	CheckGuardZone();
 
+	if (CloseAllTimer == 50)			// First entry
+	{
+		if (CloseAllSessions() == 0)
+		{
+			if (CloseAllLinks() == 0)			// No sessions closed so close links now
+				CloseAllTimer = 0;				// No Links so close now
+			else
+				CloseAllTimer = 39;				// ~4 secs for links to close
+		}
+	}
+
+	if (CloseAllTimer == 40)			// First entry
+		CloseAllLinks();				// No sessions closed so close links now
+	
+	if (CloseAllTimer)
+	{
+		// See if any links left
+
+		struct _LINKTABLE * LINK = LINKS;
+		int i = MAXLINKS;
+
+		if (CloseAllTimer == 0)
+			RealCloseAllPrograms();	
+
+		while (i--)
+		{
+			if (LINK->LINKCALL[0])
+			{
+				break;
+			}
+
+			if (i == 0)
+			{
+				CloseAllTimer = 0;
+				RealCloseAllPrograms();
+				return;
+			}
+			LINK++;
+			continue;
+		}
+
+		CloseAllTimer--;
+
+		if(CloseAllTimer == 0)
+			RealCloseAllPrograms();	
+	}
 	return;
 }
 
@@ -5905,13 +5965,24 @@ DllExport VOID APIENTRY CreateNewTrayIcon()
 	trayMenu = NULL;
 }
 
+void hookNodeClosing(char * Reason);
+
+
 DllExport VOID APIENTRY CloseAllPrograms()
 {
-//	HANDLE hProc;
+	CLOSING = TRUE;
 
-	// Close all attached BPQ32 programs
+	// Tell BG to shut when all links are gone or after 5 secs
 
-	Closing  = TRUE;
+	CloseAllTimer = 50;
+}
+
+VOID RealCloseAllPrograms()
+{
+	hookNodeClosing("Shutdown");
+	Sleep(500);
+
+	Closing = 1;
 
 	ShowWindow(FrameWnd, SW_RESTORE);
 

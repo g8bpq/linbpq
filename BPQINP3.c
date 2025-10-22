@@ -42,11 +42,19 @@ extern int DEBUGINP3;
 VOID SendNegativeInfo();
 VOID SortRoutes(struct DEST_LIST * Dest);
 VOID SendRTTMsg(struct ROUTE * Route);
+VOID TCPNETROMSend(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Frame);
 
 static VOID SendNetFrame(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Frame)
 {
 	// INP3 should only ever send over an active link, so just queue the message
-	
+
+	if (Route->TCPPort)			// NETROM over TCP
+	{
+		TCPNETROMSend(Route, Frame);
+		ReleaseBuffer(Frame);
+		return;
+	}
+
 	if (Route->NEIGHBOUR_LINK)
 		C_Q_ADD(&Route->NEIGHBOUR_LINK->TX_Q, Frame);
 	else
@@ -127,10 +135,11 @@ VOID TellINP3LinkGone(struct ROUTE * Route)
 	if (Route->NEIGHBOUR_LINK)
 		Debugprintf("BPQ32 Neighbour_Link not cleared");
 
+	// Link can have both NETROM and INP3 links
 
-	if (Route->INP3Node == 0)
+//	if (Route->INP3Node == 0)
 		DecayNETROMRoutes(Route);
-	else
+//	else
 		DeleteINP3Routes(Route);
 }
 
@@ -882,8 +891,10 @@ VOID ProcessRTTMsg(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Buff, int Len
 	int Dummy;
 	char * ptr;
 	struct _RTTMSG * RTTMsg = (struct _RTTMSG *)&Buff->L4DATA[0];
-
 	char Normcall[10];
+
+	if (Route->NEIGHBOUR_LINK == 0)
+		return;
 
 	Normcall[ConvFromAX25(Route->NEIGHBOUR_LINK->LINKCALL, Normcall)] = 0;
 
@@ -896,7 +907,7 @@ VOID ProcessRTTMsg(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Buff, int Len
 		return;
 	}
 
-	if (Route->NEIGHBOUR_LINK->LINKPORT->ALLOWINP3 || Route->NEIGHBOUR_LINK->LINKPORT->ENABLEINP3)
+	if (Route->NEIGHBOUR_LINK->LINKPORT && (Route->NEIGHBOUR_LINK->LINKPORT->ALLOWINP3 || Route->NEIGHBOUR_LINK->LINKPORT->ENABLEINP3))
 		Route->INP3Node = 1;
 
 	if (Route->INP3Node == 0)
@@ -1168,11 +1179,16 @@ int SendRIPTimer()
 
 				// Delay more if Locked - they could be retrying for a long time
 
-				if ((Route->NEIGHBOUR_FLAG))	 // LOCKED ROUTE
-					INP3Delay = 1200;
+				if (Route->ConnectionAttempts < 5)
+					INP3Delay = 30;
 				else
-					INP3Delay = 600;
- 
+				{
+					if ((Route->NEIGHBOUR_FLAG))	 // LOCKED ROUTE
+						INP3Delay = 300;
+					else
+						INP3Delay = 120;
+				}
+
 				if (Route->LastConnectAttempt && (REALTIMETICKS - Route->LastConnectAttempt) < INP3Delay) 
 				{
 					Route++;
@@ -1180,6 +1196,8 @@ int SendRIPTimer()
 				}
 
 				// Try to activate link
+
+				Route->ConnectionAttempts++;
 
 				if (Route->INP3Node)
 				{
@@ -1618,7 +1636,7 @@ VOID INP3TIMER()
 }
 
 
-UCHAR * DisplayINP3RIF(UCHAR * ptr1, UCHAR * ptr2, unsigned int msglen)
+UCHAR * DisplayINP3RIF(UCHAR * ptr1, UCHAR * ptr2, int msglen)
 {
 	char call[10];
 	int calllen;

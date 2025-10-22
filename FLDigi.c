@@ -36,6 +36,12 @@ extern int (WINAPI FAR *EnumProcessesPtr)();
 
 #include "bpq32.h"
 
+
+void hookL4SessionAttempt(struct STREAMINFO * , char * remotecall, char * ourcall);
+void hookL4SessionAccepted(struct STREAMINFO * , char * remotecall, char * ourcall);
+void hookL4SessionDeleted(struct TNCINFO * TNC, void * STREAM);
+
+
 #define VERSION_MAJOR         2
 #define VERSION_MINOR         0
 
@@ -819,7 +825,7 @@ pollloop:
 				char outbuff[1000];
 				int newlen;
 
-				buff->L2DATA[-1] = 6;				// KISS Control
+				buff->PID = 6;				// KISS Control (PID is just before Data)
 
 				newlen = KissEncode(&buff->L2DATA[-1], outbuff, txlen);
 				sendto(TNC->TCPDataSock, outbuff, newlen, 0, (struct sockaddr *)&TNC->Datadestaddr, sizeof(struct sockaddr));

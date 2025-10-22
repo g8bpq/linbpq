@@ -49,6 +49,12 @@ extern struct CONFIGTABLE xxcfg;
 
 #endif
 
+
+void hookL4SessionAttempt(struct STREAMINFO * , char * remotecall, char * ourcall);
+void hookL4SessionAccepted(struct STREAMINFO * , char * remotecall, char * ourcall);
+void hookL4SessionDeleted(struct TNCINFO * TNC, void * STREAM);
+
+
 struct TNCINFO * TNCInfo[71];		// Records are Malloc'd
 
 extern int ReportTimer;
@@ -3679,6 +3685,12 @@ char NodeAPIServer[80] = "node-api.packet.oarc.uk";
 
 int NodeAPIPort = 13579;
 
+int nodeStartedSent = 0;
+
+extern time_t LastNodeStatus;
+
+void hookNodeStarted();
+
 VOID ResolveUpdateThread(void * Unused)
 {
 	struct hostent * HostEnt1;
@@ -3717,15 +3729,23 @@ VOID ResolveUpdateThread(void * Unused)
 		HostEnt3 = gethostbyname(NodeAPIServer);
 	
 		if (HostEnt3)
+		{
 			memcpy(&UDPreportdest.sin_addr.s_addr,HostEnt3->h_addr,4);
 
-
+			if (nodeStartedSent == 0)
+			{
+				hookNodeStarted();
+				nodeStartedSent = 1;
+				LastNodeStatus = time(NULL);
+			}
+		}
+		
 		if (HostEnt1 && HostEnt2)
-		{
-			Sleep(1000 * 60 * 30);
+		{		
+			Sleep(1000 * 60 * 30);	
 			continue;
 		}
-
+		
 		Debugprintf("Resolve Failed for update.g8bpq.net or chatmap.g8bpq.net");
 		Sleep(1000 * 60 * 5);
 	}
@@ -3759,13 +3779,6 @@ VOID OpenReportingSockets()
 		reportdest.sin_port = htons(81);
 		ConvToAX25("DUMMY-1", ReportDest);
 	}
-
-	UDPreportdest.sin_family = AF_INET;
-	UDPreportdest.sin_port = htons(NodeAPIPort);
-
-	if (EnableOARCAPI)
-		NodeAPISocket = socket(AF_INET, SOCK_DGRAM, 0);
-
 	
 	// Set up Chat Report even if no LOCATOR	reportdest.sin_family = AF_INET;
 	// Socket must be opened in MailChat Process

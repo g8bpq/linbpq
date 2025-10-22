@@ -90,7 +90,7 @@ void RHPThread(void * Params);
 void ProcessRHPWebSockClosed(SOCKET socket);
 int ProcessSNMPPayload(UCHAR * Msg, int Len, UCHAR * Reply, int * OffPtr);
 int RHPProcessHTTPMessage(struct ConnectionInfo * conn, char * response, char * Method, char * URL, char * request, BOOL LOCAL, BOOL COOKIE);
-
+void checkNRTCPSockets(int portNo);
 
 #ifndef LINBPQ
 extern HKEY REGTREE;
@@ -172,10 +172,12 @@ VOID Tel_Format_Addr(struct ConnectionInfo * sockptr, char * dst);
 VOID ProcessTrimodeCommand(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, char * MsgPtr);
 VOID ProcessTrimodeResponse(struct TNCINFO * TNC, struct STREAMINFO * STREAM, unsigned char * MsgPtr, int Msglen);
 VOID ProcessTriModeDataMessage(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, SOCKET sock, struct STREAMINFO * STREAM);
-
+void processNETROMFrame(unsigned char * Message, int Len, struct ConnectionInfo * sockptr);
+void NETROMConnectionLost(struct ConnectionInfo * sockptr);
+void NETROMConnectionAccepted(struct ConnectionInfo * sockptr);
+struct ConnectionInfo * AllocateNRTCPRec();
 
 static int LogAge = 13;
-
 
 
 #ifdef WIN32
@@ -541,6 +543,9 @@ int ProcessLine(char * buf, int Port)
 	
 	else if (_stricmp(param,"HTTPPORT") == 0)
 		HTTPPort = TCP->HTTPPort = atoi(value);
+
+	else if (_stricmp(param,"NETROMPORT") == 0)
+		TCP->NETROMPort = atoi(value);
 
 	else if (_stricmp(param,"APIPORT") == 0)
 		TCP->APIPort = atoi(value);
@@ -1139,7 +1144,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			shutdown(TCP->FBBsock[n++], SD_BOTH);
 
 		shutdown(TCP->Relaysock, SD_BOTH);
-		shutdown(TCP->HTTPsock, SD_BOTH);
+		shutdown(TCP->HTTPSock, SD_BOTH);
 		shutdown(TCP->HTTPsock6, SD_BOTH);
 
 
@@ -1163,7 +1168,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 		closesocket(TCP->Relaysock);
 		closesocket(TCP->Relaysock6);
-		closesocket(TCP->HTTPsock);
+		closesocket(TCP->HTTPSock);
 		closesocket(TCP->HTTPsock6);
 
 		// Save info from old TNC record
@@ -1248,7 +1253,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			shutdown(TCP->FBBsock[n++], SD_BOTH);
 
 		shutdown(TCP->Relaysock, SD_BOTH);
-		shutdown(TCP->HTTPsock, SD_BOTH);
+		shutdown(TCP->HTTPSock, SD_BOTH);
 		shutdown(TCP->HTTPsock6, SD_BOTH);
 
 		shutdown(TCP->sock6, SD_BOTH);
@@ -1275,7 +1280,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			closesocket(TCP->FBBsock6[n++]);
 
 		closesocket(TCP->Relaysock6);
-		closesocket(TCP->HTTPsock);
+		closesocket(TCP->HTTPSock);
 		closesocket(TCP->HTTPsock6);
 
 		return (0);
@@ -1713,10 +1718,13 @@ BOOL OpenSockets(struct TNCINFO * TNC)
 	}
 
 	if (TCP->HTTPPort)
-		TCP->HTTPsock = OpenSocket4(TNC, TCP->HTTPPort);
+		TCP->HTTPSock = OpenSocket4(TNC, TCP->HTTPPort);
 
 	if (TCP->APIPort)
 		TCP->APIsock = OpenSocket4(TNC, TCP->APIPort);
+
+	if (TCP->NETROMPort)
+		TCP->NETROMSock = OpenSocket4(TNC, TCP->NETROMPort);
 
 	if (TCP->SyncPort)
 		TCP->Syncsock = OpenSocket4(TNC, TCP->SyncPort);
@@ -1836,6 +1844,9 @@ BOOL OpenSockets6(struct TNCINFO * TNC)
 	if (TCP->APIPort)
 		TCP->APIsock6 = OpenSocket6(TNC, TCP->APIPort);
 
+	if (TCP->NETROMPort)
+		TCP->NETROMSock6 = OpenSocket6(TNC, TCP->NETROMPort);
+
 	if (TCP->SyncPort)
 		TCP->Syncsock6 = OpenSocket6(TNC, TCP->SyncPort);
 
@@ -1888,7 +1899,7 @@ static VOID SetupListenSet(struct TNCINFO * TNC)
 			maxsock = sock;
 	}
 		
-	sock = TCP->HTTPsock;
+	sock = TCP->HTTPSock;
 	if (sock)
 	{
 		FD_SET(sock, readfd);
@@ -1904,6 +1915,14 @@ static VOID SetupListenSet(struct TNCINFO * TNC)
 			maxsock = sock;
 	}
 		
+	sock = TCP->NETROMSock;
+	if (sock)
+	{
+		FD_SET(sock, readfd);
+		if (sock > maxsock)
+			maxsock = sock;
+	}
+
 	sock = TCP->Syncsock;
 	if (sock)
 	{
@@ -1972,6 +1991,14 @@ static VOID SetupListenSet(struct TNCINFO * TNC)
 	}
 
 	sock = TCP->APIsock6;
+	if (sock)
+	{
+		FD_SET(sock, readfd);
+		if (sock > maxsock)
+			maxsock = sock;
+	}
+
+	sock = TCP->NETROMSock6;
 	if (sock)
 	{
 		FD_SET(sock, readfd);
@@ -2066,11 +2093,18 @@ VOID TelnetPoll(int Port)
 				Socket_Accept(TNC, sock, TCP->RelayPort);
 		}
 
-		sock = TCP->HTTPsock;
+		sock = TCP->HTTPSock;
 		if (sock)
 		{
 			if (FD_ISSET(sock, &readfd))
 				Socket_Accept(TNC, sock, TCP->HTTPPort);
+		}
+
+		sock = TCP->NETROMSock;
+		if (sock)
+		{
+			if (FD_ISSET(sock, &readfd))
+				Socket_Accept(TNC, sock, TCP->NETROMPort);
 		}
 
 		sock = TCP->DRATSsock;
@@ -2119,6 +2153,14 @@ VOID TelnetPoll(int Port)
 			if (FD_ISSET(sock, &readfd))
 				Socket_Accept(TNC, sock, TCP->HTTPPort);
 		}
+
+		sock = TCP->NETROMSock6;
+		if (sock)
+		{
+			if (FD_ISSET(sock, &readfd))
+				Socket_Accept(TNC, sock, TCP->NETROMPort);
+		}
+
 
 		sock = TCP->DRATSsock6;
 		if (sock)
@@ -2247,8 +2289,11 @@ VOID TelnetPoll(int Port)
 		}
 	}
 
-
 nosocks:
+
+	// Poll TCPNR
+
+	checkNRTCPSockets(Port);
 
 	// Try SNMP
 
@@ -3062,7 +3107,7 @@ LRESULT CALLBACK TelWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 				shutdown(TCP->FBBsock[n++], SD_BOTH);
 
 			shutdown(TCP->Relaysock, SD_BOTH);
-			shutdown(TCP->HTTPsock, SD_BOTH);
+			shutdown(TCP->HTTPSock, SD_BOTH);
 			shutdown(TCP->HTTPsock6, SD_BOTH);
 
 
@@ -3087,7 +3132,7 @@ LRESULT CALLBACK TelWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
 			closesocket(TCP->Relaysock);
 			closesocket(TCP->Relaysock6);
-			closesocket(TCP->HTTPsock);
+			closesocket(TCP->HTTPSock);
 			closesocket(TCP->HTTPsock6);
 
 			// Save info from old TNC record
@@ -3256,6 +3301,35 @@ int Socket_Accept(struct TNCINFO * TNC, SOCKET SocketId, int Port)
 		return 0;
 	}
 
+	// Netrom Over TCP uses its own Connection Entries
+
+	if (SocketId == TCP->NETROMSock || SocketId == TCP->NETROMSock6)
+	{
+		sockptr = AllocateNRTCPRec();
+
+		if (sockptr == 0)
+		{
+			// No entries - accept and close
+			
+			sock = accept(SocketId, (struct sockaddr *)&sin6, &addrlen);
+
+			send(sock,"No Free Sessions\r\n", 18,0);
+			Debugprintf("No Free Netrom Telnet Sessions");
+
+			Sleep (500);
+			closesocket(sock);
+			return 0;
+		}
+
+		sock = accept(SocketId, (struct sockaddr *)&sockptr->sin, &addrlen);
+		sockptr->socket = sock;
+		ioctl(sock, FIONBIO, &param);
+		
+		sockptr->NETROMMode = TRUE;
+		NETROMConnectionAccepted(sockptr);
+		return 0;
+	}
+
 //   Find a free Session
 
 	for (n = 1; n <= TCP->MaxSessions; n++)
@@ -3307,7 +3381,8 @@ int Socket_Accept(struct TNCINFO * TNC, SOCKET SocketId, int Port)
 			TNC->Streams[n].FramesQueued = 0;
 
 			sockptr->HTTPMode = FALSE;	
-			sockptr->APIMode = FALSE;	
+			sockptr->APIMode = FALSE;
+			sockptr->NETROMMode = FALSE;
 			sockptr->SyncMode = FALSE;	
 			sockptr->DRATSMode = FALSE;	
 			sockptr->FBBMode = FALSE;	
@@ -3322,8 +3397,11 @@ int Socket_Accept(struct TNCINFO * TNC, SOCKET SocketId, int Port)
 
 			memset(sockptr->ADIF, 0, sizeof(struct ADIF));
 
-			if (SocketId == TCP->HTTPsock || SocketId == TCP->HTTPsock6)
+			if (SocketId == TCP->HTTPSock || SocketId == TCP->HTTPsock6)
 				sockptr->HTTPMode = TRUE;
+
+			if (SocketId == TCP->NETROMSock || SocketId == TCP->NETROMSock6)
+				sockptr->NETROMMode = TRUE;
 
 			if (SocketId == TCP->APIsock || SocketId == TCP->APIsock6)
 			{
@@ -3358,7 +3436,7 @@ int Socket_Accept(struct TNCINFO * TNC, SOCKET SocketId, int Port)
 
 			if (sockptr->HTTPMode)
 				return 0;
-
+	
 			if (sockptr->DRATSMode)
 			{
 				send(sock, "100 Authentication not required\n", 33, 0);
@@ -5271,6 +5349,7 @@ int DataSocket_ReadDRATS(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, 
 }
 
 
+
 int DataSocket_Disconnect(struct TNCINFO * TNC,  struct ConnectionInfo * sockptr)
 {
 	int n;
@@ -5685,7 +5764,9 @@ int Telnet_Connected(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, SOCK
 			}
 			else
 			{
-				if (TNC->PortRecord->ATTACHEDSESSIONS[Stream]->L4CROSSLINK->APPL[0])
+				struct _TRANSPORTENTRY * CROSSLINK = TNC->PortRecord->ATTACHEDSESSIONS[Stream]->L4CROSSLINK;
+
+				if (CROSSLINK && CROSSLINK->APPL[0])
 					buffptr->Len = sprintf(&buffptr->Data[0], "*** Connected to %s\r",
 						TNC->PortRecord->ATTACHEDSESSIONS[Stream]->L4CROSSLINK->APPL);
 				else

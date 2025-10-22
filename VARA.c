@@ -73,6 +73,11 @@ int	KissEncode(UCHAR * inbuff, UCHAR * outbuff, int len);
 VOID PROCESSNODEMESSAGE(MESSAGE * Msg, struct PORTCONTROL * PORT);
 VOID NETROMMSG(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG);
 
+void hookL4SessionAttempt(struct STREAMINFO * , char * remotecall, char * ourcall);
+void hookL4SessionAccepted(struct STREAMINFO * , char * remotecall, char * ourcall);
+void hookL4SessionDeleted(struct TNCINFO * TNC, void * STREAM);
+
+
 #ifndef LINBPQ
 BOOL CALLBACK EnumVARAWindowsProc(HWND hwnd, LPARAM  lParam);
 #endif

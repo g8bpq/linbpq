@@ -55,7 +55,9 @@ void SaveMH();
 VOID InformPartner(struct _LINKTABLE * LINK, int Reason);
 VOID L2SENDCOMMAND(struct _LINKTABLE * LINK, int CMD);
 void WritePacketLogThread(void * param);
-
+void hookNodeStarted();
+void hookNodeRunning();
+void APIL2Trace(struct _MESSAGE * Message, char Dirn);
 
 #include "configstructs.h"
 
@@ -63,6 +65,15 @@ extern struct CONFIGTABLE xxcfg;
 extern BOOL needAIS;
 extern int needADSB;
 extern int EnableOARCAPI;
+extern SOCKET NodeAPISocket;
+extern int nodeStartedSent;
+extern SOCKADDR_IN UDPreportdest;
+extern char NodeAPIServer[80];
+extern int NodeAPIPort;
+
+time_t LastNodeStatus = 0;
+
+int nodeStatusTimer = 20 * 60;		// 20 mins
 
 struct PORTCONFIG * PortRec;
 
@@ -313,8 +324,8 @@ VOID LINKINIT(PEXTPORTDATA PORTVEC)
 VOID LINKTX(PEXTPORTDATA PORTVEC, PMESSAGE Buffer)
 {
 	//	LOOP BACK TO SWITCH
+
 	struct _LINKTABLE * LINK;
-	
 	LINK = Buffer->Linkptr;
 
 	if (LINK)
@@ -1380,13 +1391,13 @@ BOOL Start()
 		
 		PORT = GetPortTableEntryFromPortNum(ROUTE->NEIGHBOUR_PORT);
 
-		if (Rcfg->pwind & 0x40)
+		if (Rcfg->nokeepalives)
 			ROUTE->NoKeepAlive = 1;
 		else
 			if (PORT != NULL)
 				ROUTE->NoKeepAlive = PORT->PortNoKeepAlive;
 
-		if (Rcfg->pwind & 0x80 || (PORT && PORT->INP3ONLY))
+		if (Rcfg->inp3 || (PORT && PORT->INP3ONLY))
 		{
 			ROUTE->INP3Node = 1;
 			ROUTE->NoKeepAlive = 0;			// Cant have INP3 and NOKEEPALIVES
@@ -1400,6 +1411,12 @@ BOOL Start()
 		ROUTE->OtherendsRouteQual = ROUTE->OtherendLocked = Rcfg->farQual;
 
 		ROUTE->NEIGHBOUR_FLAG = LOCKEDBYCONFIG;			// Locked
+
+		if (Rcfg->tcphost)
+		{
+			ROUTE->TCPHost = Rcfg->tcphost;
+			ROUTE->TCPPort = Rcfg->tcpport;
+		}
 		
 		Rcfg++;
 		ROUTE++;
@@ -1583,6 +1600,28 @@ BOOL Start()
 	_beginthread(WritePacketLogThread, 0, NULL);
 
 	lastSaveSecs = CurrentSecs = lastSlowSecs = time(NULL);
+
+	// if EnableOARCAPI set try to resolve host here so we can send Node up event before anything else
+
+	if (EnableOARCAPI)
+	{
+		struct hostent * HostEnt3;
+		HostEnt3 = gethostbyname(NodeAPIServer);
+
+		NodeAPISocket = socket(AF_INET, SOCK_DGRAM, 0);
+		UDPreportdest.sin_family = AF_INET;
+		UDPreportdest.sin_port = htons(NodeAPIPort);
+
+		if (HostEnt3)
+		{
+			memcpy(&UDPreportdest.sin_addr.s_addr,HostEnt3->h_addr,4);
+
+			hookNodeStarted();
+			nodeStartedSent = 1;
+			LastNodeStatus = time(NULL);
+		}
+	}
+
 
 	return 0;
 }
@@ -2177,6 +2216,12 @@ VOID TIMERINTERRUPT()
 		if (MQTT)
 			MQTTTimer();
 
+		if (LastNodeStatus && (time(NULL) - LastNodeStatus) > nodeStatusTimer)
+		{
+			LastNodeStatus = time(NULL);
+			hookNodeRunning();
+		}
+
 /*
 		if (QCOUNT < 200)
 		{
@@ -2232,6 +2277,10 @@ VOID TIMERINTERRUPT()
 		}
 
 		Message = (struct _MESSAGE *)Buffer;
+
+		if(NodeAPISocket)
+			APIL2Trace(Message, 'T');
+
 		Message->PORT |= 0x80;			// Set TX Bit
 	
 		BPQTRACE(Message, FALSE);		// Dont send TX'ed frames to APRS
@@ -2343,6 +2392,9 @@ L2Packet:
 
 			if (MQTT && PORT->PROTOCOL == 0)
 				MQTTKISSRX(Buffer);
+
+			if(NodeAPISocket &&PORT->PROTOCOL == 0)
+				APIL2Trace(Message, 'R');
 			
 			// Bridge if requested
 
@@ -2694,7 +2746,6 @@ int BPQTRACE(MESSAGE * Msg, BOOL TOAPRS)
 	}
 
 	// And to the Monitor to File system.
-
 
 	if (MONTOFILEFLAG)		// Trace Enabled?
 	{

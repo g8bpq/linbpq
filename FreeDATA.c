@@ -43,6 +43,11 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 int KillTNC(struct TNCINFO * TNC);
 static int RestartTNC(struct TNCINFO * TNC);
 
+
+void hookL4SessionAttempt(struct STREAMINFO * , char * remotecall, char * ourcall);
+void hookL4SessionAccepted(struct STREAMINFO * , char * remotecall, char * ourcall);
+void hookL4SessionDeleted(struct TNCINFO * TNC, void * STREAM);
+
 extern int (WINAPI FAR *GetModuleFileNameExPtr)();
 extern int (WINAPI FAR *EnumProcessesPtr)();
 static int Socket_Data(int sock, int error, int eventcode);

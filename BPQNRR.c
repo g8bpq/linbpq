@@ -45,7 +45,7 @@ extern VOID Q_ADD();
 VOID __cdecl Debugprintf(const char * format, ...);
 
 TRANSPORTENTRY * NRRSession;
-time_t NRRTime;
+int NRRID = 1;			// Id to correlate requests and responses
 
 
 /*
@@ -77,8 +77,9 @@ VOID NRRecordRoute(UCHAR * Buff, int Len)
 	{
 		UCHAR * BUFFER = GetBuff();
 		UCHAR * ptr1;
-		struct _MESSAGE * Msg;
+		struct _MESSAGE * Msg1;
 		time_t Now = time(NULL);
+		int ID = (Msg->L4TXNO << 8) | Msg->L4RXNO;
 
 		if (BUFFER == NULL)
 			return;
@@ -87,7 +88,18 @@ VOID NRRecordRoute(UCHAR * Buff, int Len)
 		
 		*ptr1++ = 0xf0;			// PID
 
-		ptr1 += sprintf(ptr1, "NRR Response in (probably) %d Secs :", (int)(Now - NRRTime));
+
+		if (BUFFER == NULL)
+			return;
+
+		ptr1 = &BUFFER[MSGHDDRLEN];
+		
+		*ptr1++ = 0xf0;			// PID
+
+	if (ID == NRRSession->NRRID)
+			ptr1 += sprintf(ptr1, "NRR Response in %d Secs:", (int)(Now - NRRSession->NRRTime));
+		else
+			ptr1 += sprintf(ptr1, "NRR Response:", (int)(Now - NRRSession->NRRTime));
 
 		Buff += 21 + MSGHDDRLEN;
 		Len -= (21 + MSGHDDRLEN);
@@ -100,7 +112,7 @@ VOID NRRecordRoute(UCHAR * Buff, int Len)
 			if ((Buff[7] & 0x80) == 0x80)			// Check turnround bit
 				*ptr1++ = '*';
 	
-			Buff+=8;
+			Buff += 8;
 			Len -= 8;
 		}
 
@@ -114,11 +126,11 @@ VOID NRRecordRoute(UCHAR * Buff, int Len)
 
 		Len = (int)(ptr1 - BUFFER);
 
-		Msg = (struct _MESSAGE *)BUFFER;
+		Msg1 = (struct _MESSAGE *)BUFFER;
 		
-		Msg->LENGTH = Len;
+		Msg1->LENGTH = Len;
 
-		Msg->CHAIN = NULL;
+		Msg1->CHAIN = NULL;
 
 		C_Q_ADD(&NRRSession->L4TX_Q, (UINT *)BUFFER);
 
@@ -175,7 +187,6 @@ VOID SendNRRecordRoute(struct DEST_LIST * DEST, TRANSPORTENTRY * Session)
 		return;
 
 	NRRSession = Session;			// Save Session Pointer for reply
-	NRRTime = time(NULL);
 
 	Msg->Port = 0;
 	Msg->L3PID = NRPID;
@@ -187,11 +198,16 @@ VOID SendNRRecordRoute(struct DEST_LIST * DEST, TRANSPORTENTRY * Session)
 	Msg->L4ID = 1;
 	Msg->L4INDEX = 0;
 	Msg->L4FLAGS = 0;
+	Msg->L4TXNO = NRRID << 8;
+	Msg->L4RXNO = NRRID & 0xff;
 
 	memcpy(Msg->L4DATA, MYCALL, 7);
 	Msg->L4DATA[7] = Stream + 28;
 		
 	Msg->LENGTH = 8 + 21 + MSGHDDRLEN;
-	
+
+	Session->NRRTime = time(NULL);
+	Session->NRRID = NRRID++;
+
 	C_Q_ADD(&DEST->DEST_Q, Msg);
 }

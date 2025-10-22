@@ -38,6 +38,7 @@ struct ConnectionInfo
 	BOOL SyncMode;				// RMS Relay Sync
 	BOOL HTTPMode;				// HTTP Server
 	BOOL APIMode;				// REST API Server
+	BOOL NETROMMode;
 	BOOL TriMode;				// Trimode emulation
 	BOOL TriModeConnected;		// Set when remote session is connected - now send data to DataSock
 	SOCKET TriModeDataSock;		// Data Socket
@@ -73,6 +74,9 @@ struct ConnectionInfo
 	int WebSocks;
 	char WebURL[32];			// URL for WebSocket Connection
 	int WebSecure;				// Set if secure session
+
+	int Connecting;				// For outward connect
+	int Connected;
 };
 
 

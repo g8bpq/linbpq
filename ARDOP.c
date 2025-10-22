@@ -62,6 +62,12 @@ int (WINAPI FAR *EnumProcessesPtr)();
 #include "tncinfo.h"
 
 
+void hookL4SessionAttempt(struct STREAMINFO * , char * remotecall, char * ourcall);
+void hookL4SessionAccepted(struct STREAMINFO * , char * remotecall, char * ourcall);
+void hookL4SessionDeleted(struct TNCINFO * TNC, void * STREAM);
+
+
+
 #define WSA_ACCEPT WM_USER + 1
 #define WSA_DATA WM_USER + 2
 #define WSA_CONNECT WM_USER + 3

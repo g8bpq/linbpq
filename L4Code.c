@@ -49,7 +49,7 @@ BOOL FINDCIRCUIT(L3MESSAGEBUFFER * L3MSG, TRANSPORTENTRY ** REQL4, int * NewInde
 int GETBUSYBIT(TRANSPORTENTRY * L4);
 BOOL cATTACHTOBBS(TRANSPORTENTRY * Session, UINT Mask, int Paclen, int * AnySessions);
 VOID SETUPNEWCIRCUIT(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, 
-		 TRANSPORTENTRY * L4, char * BPQPARAMS, int ApplMask, int * BPQNODE);
+		 TRANSPORTENTRY * L4, char * BPQPARAMS, int ApplMask, int * BPQNODE, int Service);
 extern char * ALIASPTR;
 void SendConACK(struct _LINKTABLE * LINK, TRANSPORTENTRY * L4, L3MESSAGEBUFFER * L3MSG, BOOL BPQNODE, UINT Applmask, UCHAR * ApplCall);
 void L3SWAPADDRESSES(L3MESSAGEBUFFER * L3MSG);
@@ -69,6 +69,11 @@ void WriteConnectLog(char * fromCall, char * toCall, UCHAR * Mode);
 void SendVARANetromMsg(struct TNCINFO * TNC, PL3MESSAGEBUFFER MSG);
 int doinflate(unsigned char * source, unsigned char * dest, int Len, int destlen, int * outLen);
 int L2Compressit(unsigned char * Out, int OutSize, unsigned char * In, int Len);
+void OutgoingL4ConnectionEvent(TRANSPORTENTRY * L4);
+void IncomingL4ConnectionEvent(TRANSPORTENTRY * L4);
+void L4DisconnectEvent(TRANSPORTENTRY * L4, char * Direction, char * Reason);
+VOID TCPNETROMSend(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Frame);
+
 static UINT APPLMASK;
 
 extern BOOL LogL4Connects;
@@ -131,6 +136,14 @@ VOID NETROMMSG(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG)
 		return;
 	}
 
+	//	IS IT INP3 (L3RTT)
+
+	if (CompareCalls(L3MSG->L3DEST, L3RTT))
+	{
+		ProcessRTTMsg(LINK->NEIGHBOUR, L3MSG, L3MSG->LENGTH, L3MSG->Port);
+		return;
+	}
+
 	APPLMASK = 0;		//	NOT APPLICATION 
 	
 	if (NODE)				// _NODE SUPPORT INCLUDED?
@@ -165,14 +178,6 @@ VOID NETROMMSG(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG)
 		APPLMASK <<= 1;
 		ALIASPTR += ALIASLEN;
 		APPL++;
-	}
-
-	//	IS IT INP3 (L3RTT)
-
-	if (CompareCalls(L3MSG->L3DEST, L3RTT))
-	{
-		ProcessRTTMsg(LINK->NEIGHBOUR, L3MSG, L3MSG->LENGTH, L3MSG->Port);
-		return;
 	}
 
 	L3MSG->L3TTL--;
@@ -455,7 +460,7 @@ VOID Q_IP_MSG(MESSAGE * Buffer)
 	ReleaseBuffer(Buffer);
 }
 
-VOID SENDL4CONNECT(TRANSPORTENTRY * Session)
+VOID SENDL4CONNECT(TRANSPORTENTRY * Session, int Service)
 {
 	PL3MESSAGEBUFFER MSG = (PL3MESSAGEBUFFER)GetBuff();
 	struct DEST_LIST * DEST = Session->L4TARGET.DEST;
@@ -479,12 +484,21 @@ VOID SENDL4CONNECT(TRANSPORTENTRY * Session)
 
 	MSG->L4INDEX = Session->CIRCUITINDEX;
 	MSG->L4ID = Session->CIRCUITID;
-	MSG->L4TXNO = 0;
-	MSG->L4RXNO = 0;
-	MSG->L4FLAGS = L4CREQ;
+
+	if (Service == -1)				// Normal CREQ
+	{
+		MSG->L4RXNO = 0;
+		MSG->L4FLAGS = L4CREQ;
+	}
+	else
+	{
+		MSG->L4RXNO = Service << 8;			// Paula's extended connect
+		MSG->L4TXNO = (Service & 0xff);
+		MSG->L4FLAGS = L4CREQX;
+	}
 
 	MSG->L4DATA[0] = L4DEFAULTWINDOW;	// PROPOSED WINDOW
-
+	
 	memcpy(&MSG->L4DATA[1], Session->L4USER, 7);		// ORIG CALL
 	memcpy(&MSG->L4DATA[8], Session->L4MYCALL, 7);
 	
@@ -858,8 +872,6 @@ VOID L4BG()
 
 			Msglen = Msg->LENGTH - (MSGHDDRLEN + 1); //Dont include PID
 
-			LINK->bytesTXed += Msglen;
-
 			Paclen = L4->SESSPACLEN;
 
 			if (Paclen == 0)
@@ -1223,7 +1235,7 @@ VOID L4TIMEOUT(TRANSPORTENTRY * L4)
 
 		Debugprintf("Retrying L4 Connect Request");
 
-		SENDL4CONNECT(L4);				// Resend connect
+		SENDL4CONNECT(L4, L4->Service);				// Resend connect
 		return;
 	}
 
@@ -1258,9 +1270,12 @@ VOID L4TIMEOUT(TRANSPORTENTRY * L4)
 
 		// if compressed session display stats
 
+		L4DisconnectEvent(L4, "outgoing", "Retried Out");
+
 		CloseSessionPartner(L4);	// SEND CLOSE TO PARTNER (IF PRESENT)
 		return;
 	}
+
 
 	//	RESEND ALL OUTSTANDING FRAMES
 
@@ -1568,19 +1583,25 @@ void WriteL4LogLine(UCHAR * mycall, UCHAR * call, UCHAR * node)
 	fclose(L4LogHandle);
 }
 
-VOID CONNECTREQUEST(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, UINT ApplMask, UCHAR * ApplCall)
+extern struct CMDX COMMANDS[];
+extern int NUMBEROFCOMMANDS;
+
+VOID CONNECTREQUEST(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, UINT ApplMask, UCHAR * ApplCall, int Service)
 {
 	//	CONNECT REQUEST - SEE IF EXISTING SESSION
 	//	IF NOT, GET AND FORMAT SESSION TABLE ENTRY
 	//	SEND CONNECT ACK
 
-	//	EDI = _BUFFER, EBX = LINK
+	//	Service is for Paula's CREQX - Connect to Service
 
 	TRANSPORTENTRY * L4;
 	int BPQNODE = 0;				// NOT ONE OF MINE
 	char BPQPARAMS[10];				// Extended Connect Params from BPQ Node
 	int CONERROR;
 	int Index;
+	char APPLCMD[13] = "";
+
+	memcpy(APPLCMD, APPL->APPLCMD, 13);
 
 	memcpy(BPQPARAMS, &L4T1, 2);	// SET DEFAULT T1 IN CASE NOT FROM ANOTHER BPQ NODE
 
@@ -1608,8 +1629,9 @@ VOID CONNECTREQUEST(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, UINT Appl
 	}
 
 	L4->CIRCUITINDEX = Index;
+	L4->Service = Service;
 	
-	SETUPNEWCIRCUIT(LINK, L3MSG, L4, BPQPARAMS, ApplMask, &BPQNODE);
+	SETUPNEWCIRCUIT(LINK, L3MSG, L4, BPQPARAMS, ApplMask, &BPQNODE, Service);
 
 	if (L4->L4TARGET.DEST == 0)
 	{
@@ -1619,6 +1641,58 @@ VOID CONNECTREQUEST(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, UINT Appl
 		SendConNAK(LINK, L3MSG);
 		return;
 	}
+
+	// Check for NetromX Service
+
+	if (Service > 0 && Service != 23)		// 0 is CMD Hander 23 is TELNET which also connects to node
+	{
+		int i;
+
+		for (i = 0; i < NUMBEROFSSERVICES; i++)
+		{
+			if (SERVICES[i].ServiceNo == Service)
+			{
+				// Check if we have this application
+				struct CMDX * CMD = NULL;
+				int n;
+				char * APP = &SERVICES[i].ServiceName[0];
+				int APPlen = strlen(APP);
+
+				for (n = PASSCMD; n < NUMBEROFCOMMANDS; n++)		// Don't allow SYSOP Commands  
+				{
+					CMD = &COMMANDS[n];
+
+					if (n == APPL1)		// First APPL command
+					{
+						ApplMask = 1;	// FOR APPLICATION ATTACH REQUESTS
+						ALIASPTR = &CMDALIAS[0][0];
+					}
+
+					// ptr1 is input command
+
+					if (memcmp(CMD->String, APP, APPlen) == 0)
+					{
+						// At the moment I only handle connects to appls. May support other node commands later.
+
+						if (n < APPL1 + NumberofAppls)
+							goto doAPPLConnect;
+					}
+
+					ApplMask <<= 1;
+					ALIASPTR += ALIASLEN;
+
+				}
+			}
+		}
+
+		// Not one of our applications - refuse connect
+		
+		memset(L4, 0, sizeof (TRANSPORTENTRY));
+		SendConNAK(LINK, L3MSG);
+		return;
+	}
+
+	// 
 	//	IF CONNECT TO APPL, ALLOCATE BBS PORT
 
 	if (ApplMask == 0 || BPQPARAMS[2] == 'Z')		// Z is "Spy" Connect
@@ -1630,6 +1704,7 @@ VOID CONNECTREQUEST(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, UINT Appl
 
 	//	IF APPL CONNECT, SEE IF APPL HAS AN ALIAS
 
+doAPPLConnect:
 
 	if (ALIASPTR[0] > ' ')
 	{
@@ -1644,7 +1719,7 @@ VOID CONNECTREQUEST(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, UINT Appl
 		if (Msg)
 		{
 			Msg->PID = 0xf0;
-			memcpy(Msg->L2DATA, APPL->APPLCMD, 12);
+			memcpy(Msg->L2DATA, APPLCMD, 12);
 			Msg->L2DATA[12] = 13;
 			Msg->LENGTH = MSGHDDRLEN + 12 + 2;		// 2 for PID and CR
 
@@ -1747,10 +1822,17 @@ VOID SendConACK(struct _LINKTABLE * LINK, TRANSPORTENTRY * L4, L3MESSAGEBUFFER *
 
 	TNC = LINK->LINKPORT->TNC;
 
-	if (TNC && TNC->NetRomMode)
+	if (LINK->NEIGHBOUR && LINK->NEIGHBOUR->TCPPort)
+	{
+		TCPNETROMSend(LINK->NEIGHBOUR, L3MSG);
+		ReleaseBuffer(L3MSG);
+	}
+	else if (TNC && TNC->NetRomMode)
 		SendVARANetromMsg(TNC, L3MSG);
 	else
 		C_Q_ADD(&LINK->TX_Q, L3MSG);
+
+	IncomingL4ConnectionEvent(L4);
 }
 
 int FINDCIRCUIT(L3MESSAGEBUFFER * L3MSG, TRANSPORTENTRY ** REQL4, int * NewIndex)
@@ -1827,7 +1909,7 @@ void L3SWAPADDRESSES(L3MESSAGEBUFFER * L3MSG)
 	memcpy(L3MSG->L3SRCE, L3MSG->L3DEST, 7);
 	memcpy(L3MSG->L3DEST, Temp, 7);
 
-	L3MSG->L3DEST[6] &= 0x1E;		// Mack EOA and CMD
+	L3MSG->L3DEST[6] &= 0x1E;		// Mask EOA and CMD
 	L3MSG->L3SRCE[6] &= 0x1E;
 	L3MSG->L3SRCE[6] |= 1;			// Set Last Call
 }
@@ -1847,6 +1929,9 @@ VOID SendL4RESET(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG)
 {
 	// Paula's extension
 
+	L3MSG->L4RXNO = L3MSG->L4ID;
+	L3MSG->L4TXNO = L3MSG->L4INDEX;
+
 	L3MSG->L4FLAGS = L4RESET;
 
 	L3SWAPADDRESSES(L3MSG);	
@@ -1863,7 +1948,7 @@ VOID SendL4RESET(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG)
 
 
 VOID SETUPNEWCIRCUIT(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, 
-					 TRANSPORTENTRY * L4, char * BPQPARAMS, int ApplMask, int * BPQNODE)
+					 TRANSPORTENTRY * L4, char * BPQPARAMS, int ApplMask, int * BPQNODE, int Service)
 {
 	struct DEST_LIST * DEST;
 	int Maxtries = 2;					// Just in case
@@ -1882,10 +1967,10 @@ VOID SETUPNEWCIRCUIT(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG,
 
 	L4->SESSIONT1 = L4T1;
 	
-	L4->L4WINDOW = (UCHAR)L4DEFAULTWINDOW;
-
+	L4->L4WINDOW = L3MSG->L4DATA[0];
+	
 	if (L3MSG->L4DATA[0] > L4DEFAULTWINDOW)
-		L4->L4WINDOW = L3MSG->L4DATA[0];
+		L4->L4WINDOW = L4DEFAULTWINDOW;
 		
 	memcpy(L4->L4USER, &L3MSG->L4DATA[1], 7);		// Originator's call from Call Request
 	
@@ -2020,6 +2105,8 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 	char Call[10];
 	struct TNCINFO * TNC;
 
+	int Service = -1;		// Paula's connect to service
+
 	L4FRAMESRX++;
 
 	Opcode = L3MSG->L4FLAGS & 15;
@@ -2048,9 +2135,13 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 		ReleaseBuffer(L3MSG);
 		return;
 
+	case L4CREQX:			// Paula's connect to service
+
+		Service = (L3MSG->L4RXNO << 8) | L3MSG->L4TXNO;
+
 	case L4CREQ:
 
-		CONNECTREQUEST(LINK, L3MSG, ApplMask, ApplCall);
+		CONNECTREQUEST(LINK, L3MSG, ApplMask, ApplCall, Service);
 		return;
 	}
 
@@ -2067,7 +2158,8 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 
 		while (n--)
 		{
-			if (L4->L4USER[0] && L4->FARID == L3MSG->L4ID && L4->FARINDEX == L3MSG->L4INDEX)
+			if ((L4->L4USER[0] && L4->FARID == L3MSG->L4RXNO && L4->FARINDEX == L3MSG->L4TXNO) ||	// Paula returns session in RX/TXNO, I sent in ID/INDEX
+				(L4->L4USER[0] && L4->FARID == L3MSG->L4ID && L4->FARINDEX == L3MSG->L4INDEX))
 			{
 				//  Check L3 source call to be sure (should that be L4 source call??
 
@@ -2075,10 +2167,9 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 
 				if (memcmp(L3MSG->L3SRCE, L4->L4TARGET.DEST->DEST_CALL, 7) == 0)
 				{
+					L4DisconnectEvent(L4, "incoming", "RESET Received");
 					CloseSessionPartner(L4);				// SEND CLOSE TO PARTNER (IF PRESENT)
 				}
-				ReleaseBuffer(L3MSG);
-				return;
 			}
 			L4++;
 		}
@@ -2156,6 +2247,9 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 			L4->L4WINDOW = L3MSG->L4DATA[0];
 
 			strcpy(ReplyText, "Connected to");
+
+			OutgoingL4ConnectionEvent(L4);
+
 		}
 
 		if (Partner == 0)
@@ -2194,16 +2288,25 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 
 		TNC = LINK->LINKPORT->TNC;
 
-		if (TNC && TNC->NetRomMode)
+		if (LINK->NEIGHBOUR && LINK->NEIGHBOUR->TCPPort)
+		{
+			TCPNETROMSend(LINK->NEIGHBOUR, L3MSG);
+			ReleaseBuffer(L3MSG);
+		}
+		else if (TNC && TNC->NetRomMode)
 			SendVARANetromMsg(TNC, L3MSG);
 		else
 			C_Q_ADD(&LINK->TX_Q, L3MSG);
+
+
+		L4DisconnectEvent(L4, "incoming", "DREQ Received");
 
 		CloseSessionPartner(L4);				// SEND CLOSE TO PARTNER (IF PRESENT)
 		return;
 
 	case L4DACK:
 
+		L4DisconnectEvent(L4, "outgoing", "DACK Received");
 		CLEARSESSIONENTRY(L4);
 		ReleaseBuffer(L3MSG);
 		return;
@@ -2640,241 +2743,32 @@ VOID SENDL4IACK(TRANSPORTENTRY * Session)
 }
 
 
+int CloseAllSessions()
+{
+	int n = MAXCIRCUITS;
+	TRANSPORTENTRY * L4 = L4TABLE;
+	TRANSPORTENTRY * Partner;
+	int MaxLinks = MAXLINKS;
+	int Closed = 0;
 
+	while (n--)
+	{
+		if (L4->L4USER[0] == 0)
+		{
+			L4++;
+			continue;
+		}
 
-/*
-	PUBLIC	KILLSESSION
-KILLSESSION:
-
-	pushad
-	push	ebx
-	CALL	_CLEARSESSIONENTRY
-	pop	ebx
-	popad
-
-	JMP	L4CONN90		; REJECT
-
-	PUBLIC	CONNECTACK
-CONNECTACK:
-;
-;	EXTRACT EXTENDED PARAMS IF PRESENT
-;
-
-	CMP	BYTE PTR MSGLENGTH[EDI],L4DATA+1
-	JE SHORT NOTBPQ
-
-	MOV	AL,L4DATA+1[EDI]
-	SUB	AL,L3MONR[EDI]
-	ADD	AL,41H			; HOPS TO DEST + 40H
-
-	MOV	ESI,L4TARGET[EBX]
-	AND	DEST_STATE[ESI],80H
-	OR	DEST_STATE[ESI],AL	; SAVE
-
-	PUBLIC	NOTBPQ
-NOTBPQ:
-;
-;	SEE IF SUCCESS OR FAIL
-;
-	PUSH	EDI
-
-	MOV	ESI,L4TARGET[EBX]		; ADDR OF LINK/DEST ENTRY
-	LEA	ESI,DEST_CALL[ESI]
-
-	CALL	DECODENODENAME		; CONVERT TO ALIAS:CALL
-
-	MOV	EDI,OFFSET32 CONACKCALL
-	MOV	ECX,17
-	REP MOVSB
-
-
-	POP	EDI
-
-	TEST	L4FLAGS[EDI],L4BUSY
-	JNZ SHORT L4CONNFAILED
-
-	CMP	L4STATE[EBX],5
-	JE SHORT CONNACK05		; MUST BE REPEAT MSG - DISCARD
-
-	MOV	AX,WORD PTR L4TXNO[EDI]	; HIS INDEX
-	MOV	WORD PTR FARINDEX[EBX],AX
-
-	MOV	L4STATE[EBX],5		; ACTIVE
-	MOV	L4TIMER[EBX],0		; CANCEL TIMER
-	MOV	L4RETRIES[EBX],0		; CLEAR RETRY COUNT
- 
-	MOV	AL,L4DATA[EDI]		; WINDOW
-	MOV	L4WINDOW[EBX],AL		; SET WINDOW
-
-	MOV	EDX,L4CROSSLINK[EBX]	; POINT TO PARTNER
-;
-	MOV	ESI,OFFSET32 CONNECTEDMSG
-	MOV	ECX,LCONNECTEDMSG
-
-	JMP SHORT L4CONNCOMM
-
-	PUBLIC	L4CONNFAILED
-L4CONNFAILED:
-;
-	MOV	EDX,L4CROSSLINK[EBX]	; SAVE PARTNER
-	pushad
-	push	ebx
-	CALL	_CLEARSESSIONENTRY
-	pop	ebx
-	popad
-
-	PUSH	EBX
-
-	MOV	EBX,EDX
-	MOV	L4CROSSLINK[EBX],0	; CLEAR CROSSLINK
-	POP	EBX
-
-	MOV	ESI,OFFSET32 BUSYMSG	; ?? BUSY
-	MOV	ECX,LBUSYMSG
-
-	PUBLIC	L4CONNCOMM
-L4CONNCOMM:
-
-	OR	EDX,EDX
-	JNZ SHORT L4CONNOK10
-;
-;	CROSSLINK HAS GONE?? - JUST CHUCK MESSAGE
-;
-	PUBLIC	CONNACK05
-CONNACK05:
-
-	JMP	L4DISCARD
-
-	PUBLIC	L4CONNOK10
-L4CONNOK10:
-
-	PUSH	EBX
-	PUSH	ESI
-	PUSH	ECX
-
-	MOV	EDI,_BUFFER
-
-	ADD	EDI,7
-	MOV	AL,0F0H
-	STOSB				; PID
-
-	CALL	_SETUPNODEHEADER		; PUT IN _NODE ID
-
-
-	POP	ECX
-	POP	ESI
-	REP MOVSB
-
-	MOV	ESI,OFFSET32 CONACKCALL
-	MOV	ECX,17			; MAX LENGTH ALIAS:CALL
-	REP MOVSB
-
-	MOV	AL,0DH
-	STOSB
-
-	MOV	ECX,EDI
-	MOV	EDI,_BUFFER
-	SUB	ECX,EDI
-
-	MOV	MSGLENGTH[EDI],CX
-
-	MOV	EBX,EDX			; CALLER'S SESSION
-
-	LEA	ESI,L4TX_Q[EBX]
-	CALL	_Q_ADD			; SEND MESSAGE TO CALLER
-
-	CALL	_POSTDATAAVAIL
-	
-	POP	EBX			; ORIGINAL CIRCUIT TABLE
-	RET
-
-
-	PUBLIC	SENDCONNECTREPLY
-SENDCONNECTREPLY:
-;
-;	LINK SETUP COMPLETE - EBX = LINK, EDI = _BUFFER
-;
-	CMP	LINKTYPE[EBX],3
-	JNE SHORT CONNECTED00
-;
-;	_NODE - _NODE SESSION SET UP - DONT NEED TO DO ANYTHING (I THINK!)
-;
-	CALL	RELBUFF
-	RET
-
-;
-;	UP/DOWN LINK
-;
-	PUBLIC	CONNECTED00
-CONNECTED00:
-	CMP	CIRCUITPOINTER[EBX],0	
-	JNE SHORT CONNECTED01
-
-	CALL	RELBUFF			; UP/DOWN WITH NO SESSION - NOONE TO TELL
-	RET				; NO CROSS LINK
-	PUBLIC	CONNECTED01
-CONNECTED01:
-	MOV	_BUFFER,EDI
-	PUSH	EBX
-	PUSH	ESI
-	PUSH	ECX
-
-	ADD	EDI,7
-	MOV	AL,0F0H
-	STOSB				; PID
-
-	CALL	_SETUPNODEHEADER		; PUT IN _NODE ID
-
-	LEA	ESI,LINKCALL[EBX]
-
-	PUSH	EDI
-	CALL	CONVFROMAX25		; ADDR OF CALLED STATION
-	POP	EDI
-
-	MOV	EBX,CIRCUITPOINTER[EBX]
-
-	MOV	L4STATE[EBX],5		; SET LINK UP
-
-	MOV	EBX,L4CROSSLINK[EBX]	; TO INCOMING LINK
-	cmp	ebx,0
-	jne	xxx
-;
-;	NO LINK ??? 
-;
-	MOV		EDI,_BUFFER
-	CALL	RELBUFF	
+		Closed++;
 		
-	POP	ECX
-	POP	ESI
-	POP	EBX
-	
-	RET
+		Partner = L4->L4CROSSLINK;
 
-	PUBLIC	xxx
-xxx:
-			
-	POP	ECX
-	POP	ESI
-	REP MOVSB
+		CLOSECURRENTSESSION(L4);
+				
+		if (Partner)
+			CLOSECURRENTSESSION(Partner);	// CLOSE THIS ONE
 
-	MOV	ESI,OFFSET32 _NORMCALL
-	MOVZX	ECX,_NORMLEN
-	REP MOVSB
-
-	MOV	AL,0DH
-	STOSB
-
-	MOV	ECX,EDI
-	MOV	EDI,_BUFFER
-	SUB	ECX,EDI
-
-	MOV	MSGLENGTH[EDI],CX
-
-	LEA	ESI,L4TX_Q[EBX]
-	CALL	_Q_ADD			; SEND MESSAGE TO CALLER
-
-	CALL	_POSTDATAAVAIL
-
-	POP	EBX
-	RET
-*/
+		L4++;
+	}
+	return Closed;
+}

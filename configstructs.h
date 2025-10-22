@@ -94,6 +94,10 @@ struct ROUTECONFIG
 	int pfrack;
 	int ppacl;
 	int farQual;
+	int inp3;
+	int nokeepalives;
+	char * tcphost;
+	int tcpport;
 };
 
 struct CONFIGTABLE

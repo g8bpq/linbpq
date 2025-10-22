@@ -83,6 +83,8 @@ void RHPPoll();
 
 VOID GetPGConfig();
 void SendBBSDataToPktMap();
+void CloseAllLinks();
+void hookNodeClosing(char * Reason);
 
 extern uint64_t INP3timeLoadedMS;
 
@@ -262,9 +264,9 @@ extern char MailDir[MAX_PATH];
 extern time_t MaintClock;						// Time to run housekeeping
 
 #ifdef WIN32
-BOOL KEEPGOING = 30;					// 5 secs to shut down
+int KEEPGOING = 30;					// 5 secs to shut down
 #else
-BOOL KEEPGOING = 50;					// 5 secs to shut down
+int KEEPGOING = 50;					// 5 secs to shut down
 #endif
 BOOL Restarting = FALSE;
 BOOL CLOSING = FALSE;
@@ -337,6 +339,7 @@ BOOL CtrlHandler(DWORD fdwCtrlType)
     // Handle the CTRL-C signal.
     case CTRL_C_EVENT:
       printf( "Ctrl-C event\n\n" );
+	  CloseAllLinks();
 	  CLOSING = TRUE;
       Beep( 750, 300 );
       return( TRUE );
@@ -344,7 +347,8 @@ BOOL CtrlHandler(DWORD fdwCtrlType)
     // CTRL-CLOSE: confirm that the user wants to exit.
     case CTRL_CLOSE_EVENT:
 
-	  CLOSING = TRUE;
+	CloseAllLinks();
+	CLOSING = TRUE;
      printf( "Ctrl-Close event\n\n" );
 	 Sleep(20000);
        Beep( 750, 300 );
@@ -354,7 +358,8 @@ BOOL CtrlHandler(DWORD fdwCtrlType)
     case CTRL_BREAK_EVENT:
       Beep( 900, 200 );
       printf( "Ctrl-Break event\n\n" );
-	  CLOSING = TRUE;
+	CloseAllLinks();
+	CLOSING = TRUE;
       Beep( 750, 300 );
      return FALSE;
 
@@ -366,7 +371,8 @@ BOOL CtrlHandler(DWORD fdwCtrlType)
     case CTRL_SHUTDOWN_EVENT:
       Beep( 750, 500 );
       printf( "Ctrl-Shutdown event\n\n" );
-	  CLOSING = TRUE;
+	CloseAllLinks();
+	CLOSING = TRUE;
       Beep( 750, 300 );
     return FALSE;
 
@@ -399,6 +405,9 @@ static void segvhandler(int sig)
     write(STDOUT_FILENO, msg, strlen(msg));
     backtrace_symbols_fd(array, size, STDOUT_FILENO);
 
+	hookNodeClosing("sigsegv");
+	Sleep(500);
+
     exit(1);
 }
 
@@ -419,6 +428,9 @@ static void abrthandler(int sig)
     write(STDOUT_FILENO, msg, strlen(msg));
     backtrace_symbols_fd(array, size, STDOUT_FILENO);
 
+	hookNodeClosing("sigabrt");
+	Sleep(500);
+
     exit(1);
 }
 
@@ -427,12 +439,14 @@ static void sigterm_handler(int sig)
 {
 	syslog(LOG_INFO, "terminating on SIGTERM\n");
 	CLOSING = TRUE;
+	CloseAllLinks();
 }
 
 static void sigint_handler(int sig)
 {
 	printf("terminating on SIGINT\n");
 	CLOSING = TRUE;
+	CloseAllLinks();
 }
 
 
@@ -1681,6 +1695,9 @@ int main(int argc, char * argv[])
 		if (Slowtimer > 100)
 			Slowtimer = 0;
 	}
+
+	hookNodeClosing("Shutdown");
+	Sleep(500);
 
 	printf("Closing Ports\n");
 

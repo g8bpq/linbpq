@@ -17,9 +17,7 @@ You should have received a copy of the GNU General Public License
 along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 */	
 
-//
-//	C replacement for cmd.asm
-//
+
 #define Kernel
 
 #define _CRT_SECURE_NO_DEPRECATE 
@@ -43,8 +41,6 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #include "tncinfo.h"
 #include "telnetserver.h"
-
-
 
 //#include "GetVersion.h"
 
@@ -74,6 +70,7 @@ int CompareNode(const void *a, const void *b);
 int CompareAlias(const void *a, const void *b);
 int CompareRoutes(const void * a, const void * b);
 void SendVARANetromNodes(struct TNCINFO * TNC, MESSAGE *Buffer);
+VOID DoNetromConnect(TRANSPORTENTRY * Session, char * Bufferptr, struct DEST_LIST * Dest, BOOL Spy, int Service);
 
 extern VOID KISSTX(struct KISSINFO * KISS, PMESSAGE Buffer);
 
@@ -189,6 +186,54 @@ VOID UZ7HOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct
 VOID QTSMCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * UserCMD);
 void hookL2SessionAttempt(int Port, char * fromCall, char * toCall, struct _LINKTABLE * LINK);
 
+
+/* Paula's NetROMX includes a service number in a CREQX message which allows a node to host lots of applications without
+   filling the Nodes table with SSID's
+
+I could make these (or some of them) BPQ Commands but some will clash (eg INFO) or match an existing APPL (eg BBS)
+
+I could use C APPL@CALL for an extended call to a node
+
+Maybe I can detect APPL NODE so Paula's syntax will work
+
+or both??
+
+Standard Services are:
+*/
+
+struct NETROMX SERVICES[] = {
+	{0, "CMD"},		// Normal connection to Node's command line
+	{1, "INFO"},	// Standard Information server
+	{2, "PMS"},		// Personal Message System
+	{3, "BBS"},		// (reserved for Bulletin Board System)
+	{4, "DX"},		// (reserved for DX cluster/dx-spot feed)
+	{5, "TPP"},		// (reserved for "Tampa Ping-Pong" chat)
+	{7, "ECHO"},	// Echoes data back to sender
+	{8, "XRCHAT"},	// XRChat server 
+	{9, "DISCARD"},	// Data sink
+	{10, "RMS"},	// (reserved for winlink RMS}
+	{11, "CHAT"},	// (reserved for BPQ chat server)
+	{13, "DAYTIME"},	// Local date/time (similar to RFC867)
+	{14, "APRS"},	// APRS Server
+	{15, "CUSTINF"},// (reserved for custom information file server)
+	{16, "WX"},		// Local weather information
+	{17, "TELEM"},	// (reserved for Telemetry server)
+	{18, "SMS"},	// Short Message System server
+	{19, "CHARGEN"},// Generates a test pattern
+	{20, "NDATA"},	// (reserved for NFTP extension)
+	{21, "NFTP"},	// Netrom File Transfer Protocol
+	{22, "NSSH"},	// (reserved for secure login - if legal?)
+	{23, "TELNET"},	// Normal L4 login (same as 0)
+	{25, "SMTP"},	// (reserved for Simple Mail Transfer Protocol)
+	{26, "MHEARD"},	// MHEARD server (shows MH lists)
+	{27, "DXLIST"},	// DX List server (shows DX lists)
+	{79, "FINGER"},	// Finger server
+	{80, "HTTP"},	// NetromWeb (HTTP over Netrom) server
+	{87, "NTTY"},	// Netrom TTY - Keyboard to keyboard chat
+	{1883, "MQTT"}	// MQTT server
+};
+
+int NUMBEROFSSERVICES = sizeof(SERVICES)/sizeof(struct NETROMX);
 
 
 char * __cdecl Cmdprintf(TRANSPORTENTRY * Session, char * Bufferptr, const char * format, ...)
@@ -791,6 +836,104 @@ BOOL cATTACHTOBBS(TRANSPORTENTRY * Session, UINT Mask, int Paclen, int * AnySess
 	return FALSE;
 }
 
+void ConnecttoService(TRANSPORTENTRY * Session, char * Bufferptr, int ServiceIndex, char * Node, int Stay)
+{
+	struct DEST_LIST * Dest = DESTS;
+	int n = MAXDESTS;
+	int gotDest = 0;
+	unsigned char axcall[7];
+	int Service = -1;
+
+	// Make Sure Node is Known
+
+	strcat(Node, "     ");			// Node table has 6 byte Aliases
+	
+	while (n--)
+	{
+		if (memcmp(Dest->DEST_ALIAS, Node, 6) == 0)	
+		{
+			gotDest = 1;
+			break;
+		}
+		Dest++;
+	}
+
+	if (gotDest == 0)
+	{
+		Dest = DESTS;
+		n = MAXDESTS;
+
+		ConvToAX25(Node, axcall);
+			
+		while (n--)
+		{
+			if (CompareCalls(Dest->DEST_CALL, axcall))	
+			{
+				gotDest = 1;
+				break;
+			}
+			Dest++;
+		}
+	}
+
+	strlop(Node, ' ');
+
+	if (gotDest == 0)
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Node %s not found\r", Node);
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
+	Session->STAYFLAG = Stay;
+
+	Service = SERVICES[ServiceIndex].ServiceNo;
+
+	Bufferptr = Cmdprintf(Session, Bufferptr, "Connecting to Service %s on Node %s \r", SERVICES[ServiceIndex].ServiceName, Node);
+
+	DoNetromConnect(Session, Bufferptr, Dest, 0, Service);
+
+	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+}
+
+int checkifService(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
+{
+	char APPName[13];
+	int n = 12;
+	BOOL Stay = FALSE;
+	char * ptr, *Context;
+	int i;
+
+	ptr = strtok_s(CmdTail, " ", &Context);
+
+	// see if any param. if longer than two chars treat as remote node
+
+	if (ptr == 0 || strlen(ptr) < 3)
+		return 0;
+
+	memcpy(APPName, CMD->String, 13);
+
+	strlop(APPName, ' ');
+		
+	 if (Context && Context[0] == 'S')
+		Session->STAYFLAG = Stay;
+
+	// See if APPL is one of Paula's service
+			
+	for (i = 0; i < NUMBEROFSSERVICES; i++)
+	{
+		if (strcmp(APPName, SERVICES[i].ServiceName) == 0)
+		{
+			ConnecttoService(Session, Bufferptr, i, ptr, Stay);
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+
+
 VOID APPLCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {		
 	BOOL CONFAILED = 0;
@@ -799,6 +942,7 @@ VOID APPLCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct 
 	char * ptr1, *ptr2;
 	int n = 12;
 	BOOL Stay = FALSE;
+	char * ptr, *Context;
 
 	//	Copy Appl and Null Terminate
 
@@ -817,12 +961,43 @@ VOID APPLCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct 
 		return;
 	}
 
+	ptr = strtok_s(CmdTail, " ", &Context);
 
-	if (CmdTail[0] == 'S')
-		Stay = TRUE;
-	
-	Session->STAYFLAG = Stay;
+	// ptr is first param. Context is rest of string;
 
+	if (ptr)
+	{
+		// could be Node for NETROMX connect or S flag
+		
+		int i;
+		
+		if (strlen(ptr) > 1)
+		{
+			 if (Context && Context[0] == 'S')
+				Session->STAYFLAG = Stay;
+
+			// See if APPL is one of Paula's service
+			
+			for (i = 0; i < NUMBEROFSSERVICES; i++)
+			{
+				if (strcmp(APPName, SERVICES[i].ServiceName) == 0)
+				{
+					ConnecttoService(Session, Bufferptr, i, ptr, Stay);
+					return;
+				}
+			}
+
+			// Not a service that can be accessed remotely
+
+			Bufferptr = Cmdprintf(Session, Bufferptr, "Connection to %s on a remote node is not possible\r", APPName);
+			SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+			return;
+		}
+
+		else if (ptr[0] == 'S')
+			Session->STAYFLAG = Stay;
+	}
+		
 	memcpy(Session->APPL, CMD->String, 12);
 
 	//	SEE IF THERE IS AN ALIAS DEFINDED FOR THIS COMMAND
@@ -904,6 +1079,9 @@ VOID APPLCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct 
 
 VOID CMDI00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
+	if (checkifService(Session, Bufferptr, CmdTail, CMD))		// See can be used remotely
+		return;
+		
 	Bufferptr = Cmdprintf(Session, Bufferptr, "%s", INFOMSG);
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
@@ -2229,7 +2407,7 @@ TRANSPORTENTRY * SetupNewSession(TRANSPORTENTRY * Session, char * Bufferptr)
 }
 
 
-VOID DoNetromConnect(TRANSPORTENTRY * Session, char * Bufferptr, struct DEST_LIST * Dest, BOOL Spy)
+VOID DoNetromConnect(TRANSPORTENTRY * Session, char * Bufferptr, struct DEST_LIST * Dest, BOOL Spy, int Service)
 {
 	TRANSPORTENTRY * NewSess;
 	
@@ -2238,6 +2416,8 @@ VOID DoNetromConnect(TRANSPORTENTRY * Session, char * Bufferptr, struct DEST_LIS
 	if (NewSess == NULL)
 		return;						// Tables Full
 
+	NewSess->Service = Service;
+
 	NewSess->L4CIRCUITTYPE = SESSION + DOWNLINK;
 
 	NewSess->L4TARGET.DEST = Dest;
@@ -2245,12 +2425,12 @@ VOID DoNetromConnect(TRANSPORTENTRY * Session, char * Bufferptr, struct DEST_LIS
 
 	NewSess->SPYFLAG = Spy;
 
-	ReleaseBuffer((UINT *)REPLYBUFFER);
+	if (Service == -1)
+		ReleaseBuffer((UINT *)REPLYBUFFER);
 
-	SENDL4CONNECT(NewSess);
+	SENDL4CONNECT(NewSess, Service);
 
 	L4CONNECTSOUT++;
-
 	return;
 }
 
@@ -2336,6 +2516,9 @@ VOID CMDC00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct C
 	char PortString[10];
 	char cmdCopy[256];
 	struct _EXTPORTDATA * EXTPORT = (struct _EXTPORTDATA *)PORT;
+	int Service = -1;
+	int haveService = 0;
+	int i = 0;
 
 
 #ifdef EXCLUDEBITS
@@ -2482,7 +2665,7 @@ NoPort:
 
 	//	SEE IF CALL TO ANY OF OUR HOST SESSIONS - UNLESS DIGIS SPECIFIED
 
-	if (axcalls[7] == 0)
+	if (axcalls[7] == 0 && axcalls[9] )
 	{
 		//	If this connect is as a result of a command alias, don't check appls or we will loop
 
@@ -2533,9 +2716,30 @@ NoPort:
 		}
 	}
 
-	if (axcalls[7] == 0)
+	// if no digis see if connect to known node. But now could have a single numeric param as a service number (Paula's Netromx)
+	// cmdCopy is command tail (after call)
+
+	// Make sure field is numeric
+
+	i = 0;
+
+	while (cmdCopy[i] >= '0' && cmdCopy[i]<= '9')
+		i++;
+
+	if (cmdCopy[i] != ' ')
+		goto Downlink;
+	else
 	{
-		//	SEE IF CALL TO ANOTHER NODE
+		if (i > 0)			// Some digits
+		{
+			haveService = 1;
+			Service = atoi(cmdCopy);
+		}
+	}
+
+	if (axcalls[7] == 0 || haveService)
+	{
+		//	SEE IF CALL TO ANOTHER NODE 
 
 		struct DEST_LIST * Dest = DESTS;
 		int n = MAXDESTS;
@@ -2546,7 +2750,7 @@ NoPort:
 			{
 				if (memcmp(Dest->DEST_ALIAS, TextCall, 6) == 0)	
 				{
-					DoNetromConnect(Session, Bufferptr, Dest, Spy);
+					DoNetromConnect(Session, Bufferptr, Dest, Spy, Service);
 					return;
 				}
 				Dest++;
@@ -2560,7 +2764,7 @@ NoPort:
 		{
 			if (CompareCalls(Dest->DEST_CALL, axcalls))	
 			{
-				DoNetromConnect(Session, Bufferptr, Dest, Spy);
+				DoNetromConnect(Session, Bufferptr, Dest, Spy, Service);
 				return;
 			}
 			Dest++;
@@ -3723,6 +3927,8 @@ VOID MHCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CM
 	int len;
 	char Digi = 0;
 
+	if (checkifService(Session, Bufferptr, CmdTail, CMD))		// See can be used remotely
+		return;
 
 	// Note that the MHDIGIS field may contain rubbish. You have to check End of Address bit to find
 	// how many digis there are
@@ -4435,6 +4641,7 @@ struct CMDX COMMANDS[] =
 	"MAXHOPS     ",7,SWITCHVAL,(size_t)&MaxHops,
 	"PREFERINP3  ",10,SWITCHVAL,(size_t)&PREFERINP3ROUTES,
 	"MAXRTT      ",6,SWITCHVALW,(size_t)&MAXRTT,
+	"MAXTT       ",6,SWITCHVALW,(size_t)&MAXRTT,
 	"PASSWORD    ", 8, PWDCMD, 0,
 
 	"************", 12, APPLCMD, 0,
@@ -4468,7 +4675,7 @@ struct CMDX COMMANDS[] =
 	"************", 12, APPLCMD, 0,	
 	"************", 12, APPLCMD, 0,	
 	"************", 12, APPLCMD, 0,	
-	"************", 12, APPLCMD, 0,			// Apppl 32 is internal Terminal
+	"************", 12, APPLCMD, 0,			// Apppl 32 is internal Terminal on Windows
 	"*** LINKED  ",10,LINKCMD,0,
 	"CQ          ",2,CQCMD,0,
 	"CONNECT     ",1,CMDC00,0,
@@ -4861,6 +5068,8 @@ VOID DoTheCommand(TRANSPORTENTRY * Session)
 	struct DATAMESSAGE * Buffer = REPLYBUFFER;
 	char * ptr1, * ptr2;
 	int n;
+	int i, Service = -1;
+	char * Cmd, *Node, *Context;
 
 	ptr1 = &COMMANDBUFFER[0];		//
 
@@ -4952,6 +5161,31 @@ VOID DoTheCommand(TRANSPORTENTRY * Session)
 		CMD++;
 	
 	}
+
+	// See if a NETROMX Service
+
+	Cmd = strtok_s(ptr1, " ", &Context);
+	Node = strtok_s(NULL, " ", &Context);
+		
+	for (i = 0; i < NUMBEROFSSERVICES; i++)
+	{
+		if (strcmp(Cmd, SERVICES[i].ServiceName) == 0)
+		{
+			int Stay = 0;
+			
+			if (Context && Context[0] == 'S')
+				Session->STAYFLAG = Stay;
+
+			if (Node)
+			{
+				ConnecttoService(Session, ReplyPointer, i, Node, Stay);
+				return;
+			}
+		
+			// Connecting to service on local node - msy be possible sometime
+		}
+	}
+
 	Session->BADCOMMANDS++;
 
 	if (Session->BADCOMMANDS > 6)			// TOO MANY ERRORS

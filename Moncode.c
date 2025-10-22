@@ -59,7 +59,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #define	NODES_SIG	0xFF
 
-UCHAR * DisplayINP3RIF(UCHAR * ptr1, UCHAR * ptr2, unsigned int msglen);
+UCHAR * DisplayINP3RIF(UCHAR * ptr1, UCHAR * ptr2, int msglen);
 
 char * DISPLAY_NETROM(MESSAGE * ADJBUFFER, UCHAR * Output, int MsgLen);
 UCHAR * DISPLAYIPDATAGRAM(IPMSG * IP, UCHAR * Output, int MsgLen);
@@ -655,11 +655,12 @@ char * DISPLAY_NETROM(MESSAGE * ADJBUFFER, UCHAR * Output, int MsgLen)
 	char Node[10];
 	UCHAR TTL, Index, ID, TXNO, RXNO, OpCode, Flags, Window;
 	UCHAR * ptr = &ADJBUFFER->L2DATA[0];
+	int service = 0;
+	int netromx = 0;		// Set if Paula's connect to service
 
  	if (ADJBUFFER->L2DATA[0] == NODES_SIG)
 	{
 		// Display NODES
-
 
 		// If an INP3 RIF (type <> UI) decode as such
 	
@@ -722,6 +723,12 @@ char * DISPLAY_NETROM(MESSAGE * ADJBUFFER, UCHAR * Output, int MsgLen)
 
 	switch (OpCode)
 	{
+
+	case L4CREQX:			// Paula's connect to service
+
+		netromx = 1;
+		service = (RXNO << 8) | TXNO;
+
 	case L4CREQ:
 
 		Window = *(ptr++);
@@ -730,7 +737,10 @@ char * DISPLAY_NETROM(MESSAGE * ADJBUFFER, UCHAR * Output, int MsgLen)
 		Node[ConvFromAX25(ptr, Node)] = 0;
 		ptr +=7;
 
-		Output += sprintf((char *)Output, "<CON REQ> w=%d %s at %s", Window, Dest, Node);
+		if (netromx)
+			Output += sprintf((char *)Output, "<CON REQX> w=%d %d@%s at %s", Window, service, Dest, Node);
+		else
+			Output += sprintf((char *)Output, "<CON REQ> w=%d %s at %s", Window, Dest, Node);
 
 		if (MsgLen > 38)				// BPQ Extended Params
 		{
@@ -745,7 +755,7 @@ char * DISPLAY_NETROM(MESSAGE * ADJBUFFER, UCHAR * Output, int MsgLen)
 		if (Flags & L4BUSY)				// BUSY RETURNED
 			return Output + sprintf((char *)Output, " <CON NAK> - BUSY");
 
-		return Output + sprintf((char *)Output, " <CON ACK> w=%d my cct=%02X%02X", ptr[1], TXNO, RXNO);
+		return Output + sprintf((char *)Output, " <CON ACK> w=%d my cct=%02X%02X", ptr[0], TXNO, RXNO);
 
 	case L4DREQ:
 

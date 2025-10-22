@@ -125,8 +125,13 @@ void hookL2SessionConnected(struct _LINKTABLE * LINK);
 int L2Compressit(unsigned char * Out, int OutSize, unsigned char * In, int Len);
 VOID DeleteINP3Routes(struct ROUTE * Route);
 VOID SendRTTMsg(struct ROUTE * Route);
+void hookL2SessionStatus(struct _LINKTABLE * LINK);
+void hookL2SessionClosed(struct _LINKTABLE * LINK, char * Reason, char * Direction);
+int NETROMOpenConnection(struct ROUTE * Route);
 
 extern int REALTIMETICKS;
+
+int linkStatusInterval = 300;		// 5 mins
 
 //	MSGFLAG contains CMD/RESPONSE BITS
 
@@ -142,6 +147,7 @@ extern int REALTIMETICKS;
 extern int L2Compress;
 extern int L2CompMaxframe;
 extern int L2CompPaclen;
+extern BOOL CLOSING;
 
 UCHAR NO_CTEXT = 0;
 UCHAR ALIASMSG = 0;
@@ -1081,6 +1087,7 @@ VOID L2LINKACTIVE(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE *
 	if (CTLlessPF == DISC)
 	{
 		InformPartner(LINK, NORMALCLOSE);		// SEND DISC TO OTHER END
+		hookL2SessionClosed(LINK, "Normal", "In");
 		CLEAROUTLINK(LINK);
 		L2SENDUA(PORT, Buffer, ADJBUFFER);
 
@@ -1276,9 +1283,13 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 	int CONERROR;
 	struct ROUTE * ROUTE = NULL;
 
-
 	char toCall[12], fromCall[12];
 
+	if (CLOSING)
+	{
+		L2SENDDM(PORT, Buffer, ADJBUFFER);
+		return;
+	}
 
 	if (LINK == 0)			// NO LINK ENTRIES - SEND DM RESPONSE
 	{
@@ -1839,6 +1850,16 @@ BOOL InternalL2SETUPCROSSLINK(PROUTE ROUTE, int Retries)
 	struct PORTCONTROL * PORT;
 	int FRACK;
 
+	// If it is NETROM Over TCP then check for existing connection
+
+	if (ROUTE->TCPPort)
+	{
+		if (strcmp(ROUTE->TCPHost, "0.0.0.0") == 0)		// listening connection so wait for other end to connect
+			return FALSE;
+
+		return NETROMOpenConnection(ROUTE);
+	}
+
 	if (FindLink(ROUTE->NEIGHBOUR_CALL, NETROMCALL, ROUTE->NEIGHBOUR_PORT, &LINK))
 	{
 		//	SESSION ALREADY EXISTS
@@ -2050,6 +2071,8 @@ VOID L2_PROCESS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * B
 			
 			if (FindNeighbour(Buffer->ORIGIN, PORT->PORTNUMBER, &ROUTE))
 			{
+				ROUTE->ConnectionAttempts = 0;		// Reset counter
+				
 				if (ROUTE->INP3Node)
 				{
 					Debugprintf("INP3 Route to %s connected", fromCall);
@@ -2093,6 +2116,8 @@ VOID L2_PROCESS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * B
 		if (LINK->L2STATE == 4)				// DISCONNECTING?
 		{
 			InformPartner(LINK, NORMALCLOSE);	// SEND DISC TO OTHER END
+			hookL2SessionClosed(LINK, "Normal", "Out");
+
 			CLEAROUTLINK(LINK);
 				
 			if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
@@ -2255,6 +2280,13 @@ VOID SFRAME(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, UCHAR CTL, UCHA
 				MESSAGE * Msg;
 				MESSAGE * Buffer;
 
+				// it shouldn't be possible to get srej when all are acked (NS = Link->NS) but just in case...
+
+				if (NS == LINK->LINKNS)
+				{
+					Debugprintf ("SREJ for our NS");
+					goto treatasRR;
+				}
 				LINK->L2FLAGS &= ~POLLSENT;			// CLEAR I(P) or RR(P) SET
 				
 				Msg = LINK->FRAMES[NS];	// is frame available?
@@ -2331,6 +2363,9 @@ VOID SFRAME(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, UCHAR CTL, UCHA
 
 		return;
 	}
+
+treatasRR:
+
 
 	//	VALID RR/RNR RECEIVED
 
@@ -2664,6 +2699,7 @@ VOID PROC_I_FRAME(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE *
 
 	LINK->bytesRXed += Length;
 	LINK->Received += Length - 1;	// Exclude PID
+	LINK->framesRXed++;
 
 	// Adjust for DIGIS
 
@@ -3239,6 +3275,10 @@ VOID SDETX(struct _LINKTABLE * LINK)
 				LINK->FRAMES[LINK->SDTSLOT] = Msg;
 				LINK->SDTSLOT ++;
 				LINK->SDTSLOT &= 7;
+
+				LINK->framesTXed++;
+				LINK->bytesTXed += sendLen;
+
 				
 				compdata += sendLen;
 				complen -= sendLen;
@@ -3252,6 +3292,9 @@ VOID SDETX(struct _LINKTABLE * LINK)
 			LINK->FRAMES[LINK->SDTSLOT] = Msg;
 			LINK->SDTSLOT ++;
 			LINK->SDTSLOT &= 7;
+
+			LINK->framesTXed++;
+			LINK->bytesTXed += (Msg->LENGTH - (MSGHDDRLEN + 1));
 		}
 	}
 
@@ -3350,6 +3393,7 @@ VOID L2TimerProc()
 	int i = MAXLINKS;
 	struct _LINKTABLE * LINK = LINKS;
 	struct PORTCONTROL * PORT = PORTTABLE;
+	time_t Now = time(NULL);
 
 	while (i--)
 	{
@@ -3357,8 +3401,14 @@ VOID L2TimerProc()
 		{
 			LINK++;
 			continue;
-		}		
+		}
 
+		// Check for Status report time
+
+		if (LINK->lastStatusSentTime && (Now - LINK->lastStatusSentTime) > linkStatusInterval)
+			hookL2SessionStatus(LINK);
+		
+		
 		//	CHECK FOR TIMER EXPIRY OR BUSY CLEARED  
 
 		PORT = LINK->LINKPORT;
@@ -3720,6 +3770,8 @@ VOID L2TIMEOUT(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT)
 	if (LINK->L2RETRIES >= PORT->PORTN2)
 	{
 		//	RETRIED N TIMES SEND A COUPLE OF DISCS AND THEN CLOSE
+
+		hookL2SessionClosed(LINK, "Retried Out", "Out");
 
 		InformPartner(LINK, RETRIEDOUT);	// TELL OTHER END ITS GONE
 
@@ -4100,20 +4152,21 @@ stayinREJ2:
 			goto CheckNSLoop2;		// See if OK or we have another saved frame
 		}
 		if (LINK->L2STATE == 6)
+		{
+			// if we support SREJ send that instesd or REJ
 
-		// if we support SREJ send that instesd or REJ
+			// Dont send SREJ if clearing RNR - causes FRMR
 
-		// Dont send SREJ if clearing RNR - causes FRMR
+			// Latest Spec says shouldn't send SREJ as Command
 
-		// Latest Spec says shouldn't send SREJ as Command
+			if (SaveRNRSent || CMD == 1)
+				return REJ;
 
-		if (SaveRNRSent || CMD == 1)
-			return REJ;
-
-		if (LINK->Ver2point2)		// We only allow 2.2 with SREJ Multi
-			return SREJ;
-		else
-			return REJ;
+			if (LINK->Ver2point2)		// We only allow 2.2 with SREJ Multi
+				return SREJ;
+			else
+				return REJ;
+		}
 	}
 	return RR;
 
@@ -4708,5 +4761,32 @@ int L2Compressit(unsigned char * Out, int OutSize, unsigned char * In, int Len)
 }
 
 
+int CloseAllLinks()
+{
+	struct _LINKTABLE * LINK = LINKS;
+	int i = MAXLINKS;
+	int Closed = 0;
+
+	while (i--)
+	{
+		if (LINK->LINKCALL[0] == 0  || LINK->L2STATE !=5 )
+		{
+			LINK++;
+			continue;
+		}	
+			
+		// Close Link
+
+		InformPartner(LINK, NORMALCLOSE);	// TELL OTHER END ITS GONE
+
+		LINK->L2RETRIES -= 1;		// Just send one DISC
+		LINK->L2STATE = 4;			// CLOSING
+
+		L2SENDCOMMAND(LINK, DISC | PFBIT);
+
+		Closed++;
+	}
+	return Closed;
+}
 
 

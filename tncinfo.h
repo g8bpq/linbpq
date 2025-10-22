@@ -116,6 +116,7 @@ struct TCPINFO
 	int SNMPPort;
 	int DRATSPort;
 	int CMDPort[33];
+	int NETROMPort;
 	char RELAYHOST[64];
 	char CMSServer[64];
 	BOOL FallbacktoRelay;		// Use Relsy if can't connect to CMS
@@ -160,13 +161,14 @@ struct TCPINFO
 	SOCKET TCPSock;
 	SOCKET FBBsock[100];
 	SOCKET Relaysock;
-	SOCKET HTTPsock;
+	SOCKET HTTPSock;
 	SOCKET APIsock;
 	SOCKET TriModeSock;
 	SOCKET TriModeDataSock;
 	SOCKET Syncsock;
 	SOCKET DRATSsock;
 	SOCKET SNMPsock;
+	SOCKET NETROMSock;
 
 	struct ConnectionInfo * TriModeControlSession;
 	SOCKET sock6;
@@ -176,6 +178,7 @@ struct TCPINFO
 	SOCKET APIsock6;
 	SOCKET Syncsock6;
 	SOCKET DRATSsock6;
+	SOCKET NETROMSock6;
 
 	fd_set ListenSet;
 	SOCKET maxsock;

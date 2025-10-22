@@ -78,6 +78,8 @@ typedef struct _ETHARP
 	UCHAR	TARGETHWADDR[6];
 	uint32_t	TARGETIPADDR;
 
+	char	Padding[18];		// For  min ether send of 60
+
 } ETHARP, *PETHARP;
 
 typedef struct _RIP2HDDR

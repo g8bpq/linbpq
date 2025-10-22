@@ -78,6 +78,11 @@ VOID ReleaseOtherPorts(struct TNCINFO * ThisTNC);
 int DoScanLine(struct TNCINFO * TNC, char * Buff, int Len);
 int standardParams(struct TNCINFO * TNC, char * buf);
 
+void hookL4SessionAttempt(struct STREAMINFO * , char * remotecall, char * ourcall);
+void hookL4SessionAccepted(struct STREAMINFO * , char * remotecall, char * ourcall);
+void hookL4SessionDeleted(struct TNCINFO * TNC, void * STREAM);
+
+
 extern UCHAR BPQDirectory[];
 
 #define MAXUZ7HOPORTS 16

@@ -305,7 +305,8 @@ static char *keywords[] =
 "APPL5ALIAS", "APPL6ALIAS", "APPL7ALIAS", "APPL8ALIAS",
 "APPL1QUAL", "APPL2QUAL", "APPL3QUAL", "APPL4QUAL",
 "APPL5QUAL", "APPL6QUAL", "APPL7QUAL", "APPL8QUAL",
-"BTEXT:", "NETROMCALL", "C_IS_CHAT", "MAXRTT", "MAXHOPS",		// IPGATEWAY= no longer allowed
+
+"BTEXT:", "NETROMCALL", "C_IS_CHAT", "MAXRTT", "MAXTT", "MAXHOPS",		// IPGATEWAY= no longer allowed
 "LogL4Connects", "LogAllConnects", "SAVEMH", "ENABLEADIFLOG", "ENABLEEVENTS", "SAVEAPRSMSGS", 
 "EnableM0LTEMap", "MQTT", "MQTT_HOST", "MQTT_PORT", "MQTT_USER", "MQTT_PASS",
 "L4Compress", "L4CompMaxframe", "L4CompPaclen", "L2Compress", "L2CompMaxframe",
@@ -328,7 +329,8 @@ static void * offset[] =
 &xxcfg.C_APPL[4].ApplAlias, &xxcfg.C_APPL[5].ApplAlias, &xxcfg.C_APPL[6].ApplAlias, &xxcfg.C_APPL[7].ApplAlias,
 &xxcfg.C_APPL[0].ApplQual, &xxcfg.C_APPL[1].ApplQual, &xxcfg.C_APPL[2].ApplQual, &xxcfg.C_APPL[3].ApplQual,
 &xxcfg.C_APPL[4].ApplQual, &xxcfg.C_APPL[5].ApplQual, &xxcfg.C_APPL[6].ApplQual, &xxcfg.C_APPL[7].ApplQual,
-&xxcfg.C_BTEXT, &xxcfg.C_NETROMCALL, &xxcfg.C_C, &xxcfg.C_MAXRTT, &xxcfg.C_MAXHOPS,		// IPGATEWAY= no longer allowed
+
+&xxcfg.C_BTEXT, &xxcfg.C_NETROMCALL, &xxcfg.C_C, &xxcfg.C_MAXRTT, &xxcfg.C_MAXRTT, &xxcfg.C_MAXHOPS,		// IPGATEWAY= no longer allowed
 &xxcfg.C_LogL4Connects, &xxcfg.C_LogAllConnects, &xxcfg.C_SaveMH, &xxcfg.C_ADIF, &xxcfg.C_EVENTS, &xxcfg.C_SaveAPRSMsgs,
 &xxcfg.C_M0LTEMap, &xxcfg.C_MQTT, &xxcfg.C_MQTT_HOST, &xxcfg.C_MQTT_PORT, &xxcfg.C_MQTT_USER, &xxcfg.C_MQTT_PASS,
 &xxcfg.C_L4Compress, &xxcfg.C_L4CompMaxframe, &xxcfg.C_L4CompPaclen, &xxcfg.C_L2Compress, &xxcfg.C_L2CompMaxframe, 
@@ -350,7 +352,8 @@ static int routine[] =
 13, 13 ,13, 13,
 14, 14, 14, 14,
 14, 14 ,14, 14,
-15, 0, 2, 9, 9,
+
+15, 0, 2, 9, 9, 9,
 2, 2, 1, 2, 2, 2,
 2, 2, 0, 1, 20, 20,
 1, 1, 1, 1, 1, 
@@ -1584,32 +1587,160 @@ int routes(int i)
 
 		// strtok and sscanf can't handle successive commas, so split up usig strchr
 
-		memset(Param, 0, 2048);
-		strlop(rec, 13);
-		strlop(rec, ';');
+		// Now support keyword=value format
 
-		ptr1 = rec;
-
-		while (ptr1 && *ptr1 && n < 8)
+		if (strchr(rec, '='))
 		{
-			ptr2 = strchr(ptr1, ',');
-			if (ptr2) *ptr2++ = 0;
+			// New format
+			// 		call quality port window frack paclen farquality inp3 nokeepalives tcp
 
-			strcpy(&Param[n++][0], ptr1);
-			ptr1 = ptr2;
-			while(ptr1 && *ptr1 && *ptr1 == ' ')
-				ptr1++;
+			char * ptr, *context;
+			char copy[512] = "";
+
+			if (strlen(rec) < 512)
+				strcpy(copy, rec);
+
+			_strupr(rec);
+
+			ptr = strtok_s(rec, " ,=", &context);
+
+			while (ptr)
+			{
+				if (strcmp(ptr, "CALL") == 0)
+				{
+					char * Call = strtok_s(NULL, ",=", &context);
+
+					if (strlen(Call) < 80)
+						strcpy(Route->call, Call);
+
+				}
+				else if (strcmp(ptr, "PORT") == 0)
+				{
+					char * val = strtok_s(NULL, " ,=", &context);
+
+					if (val)
+						Route->port = atoi(val);
+				}
+
+				else if (strcmp(ptr, "QUALITY") == 0)
+				{
+					char * val = strtok_s(NULL, " ,=", &context);
+
+					if (val)
+						Route->quality = atoi(val);
+				}
+
+				else if (strcmp(ptr, "FRACK") == 0)
+				{
+					char * val = strtok_s(NULL, " ,=", &context);
+
+					if (val)
+						Route->pfrack = atoi(val);
+				}
+
+				else if (strcmp(ptr, "PACLEN") == 0)
+				{
+					char * val = strtok_s(NULL, " ,=", &context);
+
+					if (val)
+						Route->pwind = atoi(val);
+				}
+
+				else if (strcmp(ptr, "WINDOW") == 0)
+				{
+					char * val = strtok_s(NULL, " ,=", &context);
+
+					if (val)
+						Route->pwind = atoi(val);
+				}
+
+				else if (strcmp(ptr, "FARQUALITY") == 0)
+				{
+					char * val = strtok_s(NULL, " ,=", &context);
+
+					if (val)
+						Route->farQual = atoi(val);
+				}
+
+				else if (strcmp(ptr, "INP3") == 0)
+				{
+					char * val = strtok_s(NULL, " ,=", &context);
+
+					if (val)
+						Route->inp3 = atoi(val);
+				}
+
+				else if (strcmp(ptr, "NOKEEPALIVES") == 0)
+				{
+					char * val = strtok_s(NULL, " ,=", &context);
+
+					if (val)
+						Route->farQual = atoi(val);
+				}
+
+
+				else if (strcmp(ptr, "TCP") == 0)
+				{
+					char * val = strtok_s(NULL, " ,=", &context);
+
+					if (val)
+					{
+						char * port = strlop(val, ':');
+
+						Route->tcphost = _strdup(val);
+						if (port)
+							Route->tcpport = atoi(port);
+						else
+							Route->tcpport = 53119;  
+					}
+				}
+				else
+				{
+					Consoleprintf("Bad Route %s\r\n",rec);
+					err_flag = 1;
+					break;
+				}
+
+				ptr = strtok_s(NULL, " ,=", &context);
+			}
 		}
 
-		strcpy(Route->call, &Param[0][0]);
+		else
+		{
 
-		Route->quality = atoi(Param[1]);
-		Route->port = atoi(Param[2]);
-		Route->pwind = atoi(Param[3]);
-		Route->pfrack = atoi(Param[4]);
-		Route->ppacl = atoi(Param[5]);
-		inp3 = atoi(Param[6]);
-		Route->farQual = atoi(Param[7]);
+			memset(Param, 0, 2048);
+			strlop(rec, 13);
+			strlop(rec, ';');
+
+			ptr1 = rec;
+
+			while (ptr1 && *ptr1 && n < 8)
+			{
+				ptr2 = strchr(ptr1, ',');
+				if (ptr2) *ptr2++ = 0;
+
+				strcpy(&Param[n++][0], ptr1);
+				ptr1 = ptr2;
+				while(ptr1 && *ptr1 && *ptr1 == ' ')
+					ptr1++;
+			}
+
+			strcpy(Route->call, &Param[0][0]);
+
+			Route->quality = atoi(Param[1]);
+			Route->port = atoi(Param[2]);
+			Route->pwind = atoi(Param[3]);
+			Route->pfrack = atoi(Param[4]);
+			Route->ppacl = atoi(Param[5]);
+			inp3 = atoi(Param[6]);
+			Route->farQual = atoi(Param[7]);
+
+			if (inp3 & 1)
+				Route->inp3 = 1;
+
+			if (inp3 & 2)
+				Route->nokeepalives = 1;
+		}
 
 	   if (Route->farQual < 0 || Route->farQual > 255)
 	   {
@@ -1633,14 +1764,6 @@ int routes(int i)
 			Consoleprintf("%s\r\n",rec);
 			err_flag = 1;
 	   }
-
-	   // Use top bit of window as INP3 Flag, next as NoKeepAlive
-
-	   if (inp3 & 1)
-		   Route->pwind |= 0x80;
-
-	   if (inp3 & 2)
-		   Route->pwind |= 0x40;
 
 	   if (err_flag == 1)
 	   {

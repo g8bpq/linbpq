@@ -61,9 +61,11 @@ VOID SendNETROMRoute(struct PORTCONTROL * PORT, unsigned char * axcall);
 void SendVARANetromNodes(struct TNCINFO * TNC, MESSAGE *Buffer);
 void SendVARANetromMsg(struct TNCINFO * TNC,L3MESSAGEBUFFER * Buffer);
 VOID SENDNODESMSG(int Portnum);
+VOID TCPNETROMSend(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Frame);
 
 extern int NODESINPROGRESS;
 extern int NODESToOnePort;
+extern int CLOSING;
 
 extern BOOL NODESINPROGRESS ;;
 PPORTCONTROL L3CURRENTPORT;
@@ -98,7 +100,15 @@ VOID L3BG()
 				{
 					ROUTE = DEST->NRROUTE[ActiveRoute - 1].ROUT_NEIGHBOUR;
 
-					// if NetROM over VARA pass direct to the driver
+					// if NetROM over VARA or NetROM over TCP pass direct to the driver
+
+					if (ROUTE && ROUTE->TCPPort)
+					{
+						PL3MESSAGEBUFFER Frame = (PL3MESSAGEBUFFER)Q_REM(&DEST->DEST_Q);
+						TCPNETROMSend(ROUTE, Frame);
+						ReleaseBuffer(Frame);
+						continue;
+					}
 
 					if (ROUTE)
 					{
@@ -990,7 +1000,9 @@ VOID CLEARACTIVEROUTE(struct ROUTE * ROUTE, int Reason)
 	dest_list * DEST;
 	int n;
 
-	if (Reason != NORMALCLOSE || ROUTE->INP3Node)
+	// If a link restarts and is no longer inp3 we must still clear any inp3 routes
+
+//	if (Reason != NORMALCLOSE || ROUTE->INP3Node)
 		TellINP3LinkGone(ROUTE);
 	
 	DEST = DESTS;
@@ -1120,6 +1132,11 @@ VOID L3FastTimer()
 
 	MESSAGE * Msg;
 	struct PORTCONTROL * PORT = PORTTABLE;
+
+	// Not if Node is closing
+
+	if (CLOSING)
+		return;
 
 	INP3TIMER();
 

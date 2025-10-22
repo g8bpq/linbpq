@@ -455,6 +455,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\NETROMTCP.c"
+				>
+			</File>
+			<File
 				RelativePath=".\nodeapi.c"
 				>
 			</File>
