@@ -7693,7 +7693,7 @@ VOID APRSProcessHTTPMessage(SOCKET sock, char * MsgPtr,	BOOL LOCAL, BOOL COOKIE)
 		while (ptr)
 		{
 			char ToLopped[11] = "";
-		
+
 			if (ptr->Acked)
 				strcpy(Retries, "A");
 			else if (ptr->Retries == 0)
@@ -7701,26 +7701,26 @@ VOID APRSProcessHTTPMessage(SOCKET sock, char * MsgPtr,	BOOL LOCAL, BOOL COOKIE)
 			else
 				sprintf(Retries, "%d", ptr->Retries);
 
-				memcpy(ToLopped, ptr->ToCall, 10);
-				strlop(ToLopped, ' ');
+			memcpy(ToLopped, ptr->ToCall, 10);
+			strlop(ToLopped, ' ');
 
-				OutputLen += sprintf(&OutBuffer[OutputLen], WebTXLine,
-					ptr->ToCall, ptr->Seq, ptr->Time, Retries, ptr->Text);
-				ptr = ptr->Next;
+			OutputLen += sprintf(&OutBuffer[OutputLen], WebTXLine,
+				ptr->ToCall, ptr->Seq, ptr->Time, Retries, ptr->Text);
+			ptr = ptr->Next;
 
-				if (OutputLen > 99000)
-					break;
+			if (OutputLen > 99000)
+				break;
 
-			}
+		}
 
-			OutputLen += sprintf(&OutBuffer[OutputLen], "%s", WebTrailer);
+		OutputLen += sprintf(&OutBuffer[OutputLen], "%s", WebTrailer);
 
-			HeaderLen = sprintf(Header, "HTTP/1.0 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", OutputLen);
-			sendandcheck(sock, Header, HeaderLen);
-			sendandcheck(sock, OutBuffer, OutputLen);
+		HeaderLen = sprintf(Header, "HTTP/1.0 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", OutputLen);
+		sendandcheck(sock, Header, HeaderLen);
+		sendandcheck(sock, OutBuffer, OutputLen);
 
-			return;
-		
+		return;
+
 	}
 
 

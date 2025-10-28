@@ -85,6 +85,7 @@ VOID GetPGConfig();
 void SendBBSDataToPktMap();
 void CloseAllLinks();
 void hookNodeClosing(char * Reason);
+void NETROMTCPResolve();
 
 extern uint64_t INP3timeLoadedMS;
 
@@ -1015,6 +1016,8 @@ int main(int argc, char * argv[])
 		return (0);
 	}
 
+	NETROMTCPResolve();
+
 	for (i=0;PWTEXT[i] > 0x20;i++); //Scan for cr or null
 
 	PWLen=i;
@@ -1546,6 +1549,8 @@ int main(int argc, char * argv[])
 			Consoleprintf(VerCopyright);
 
 			Start();
+			
+			NETROMTCPResolve();
 
 			INITIALISEPORTS();
 

@@ -444,7 +444,7 @@ static size_t ExtProc(int fn, int port, PMESSAGE buff)
 									From[ConvFromAX25(call, &From[1]) + 1] = 0;
 									if (strstr(CantReplyList, From) == 0)
 									{
-										if (strlen(CantReplyList) < 500);
+										if (strlen(CantReplyList) < 500)
 											strcat(CantReplyList, From);
 										Debugprintf("AXIP Packet from %s dropped - can't reply", &From[1]);
 									}
@@ -557,7 +557,7 @@ static size_t ExtProc(int fn, int port, PMESSAGE buff)
 								From[ConvFromAX25(call, &From[1]) + 1] = 0;
 								if (strstr(CantReplyList, From) == 0)
 								{
-									if (strlen(CantReplyList) < 500);
+									if (strlen(CantReplyList) < 500)
 										strcat(CantReplyList, From);
 									Debugprintf("AXIP Packet from %s dropped - can't reply", &From[1]);
 								}

@@ -2346,6 +2346,9 @@ VOID SFRAME(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, UCHAR CTL, UCHA
 
 				LINK->L2TIMER = ONEMINUTE;	// (RE)SET TIMER
 
+
+				LINK->framesResent++;
+
 				PORT = LINK->LINKPORT;
 
 				if (PORT)
@@ -2451,6 +2454,20 @@ treatasRR:
 	}
 
 	LINK->L2FLAGS &= ~POLLSENT;			// CLEAR I(P) or RR(P) SET
+
+	// ?? is this the place to do RTT?
+
+	if (LINK->lastPSent)
+	{
+		int RTT = GetTickCount() - LINK->lastPSent;
+
+		if (LINK->RTT)
+			LINK->RTT = ((LINK->RTT * 90) / 100) + RTT /10;		// Smooth - 90% of old + 10% of new
+		else 
+			LINK->RTT = RTT;
+
+		LINK->lastPSent = 0;
+	}
 
 	if ((CTL & 0xf) == RNR)
 	{
@@ -2927,6 +2944,8 @@ VOID RESETNS(struct _LINKTABLE * LINK, UCHAR NS)
 {
 	int Resent = (LINK->LINKNS - NS) & 7;	// FRAMES TO RESEND
 
+	LINK->framesResent += Resent;
+
 	LINK->LINKNS = NS;			// RESET N(S)
 
 	if (LINK->LINKTYPE == 3)	// mode-Node
@@ -3150,6 +3169,11 @@ VOID SDETX(struct _LINKTABLE * LINK)
 		LINK->LASTFRAMESENT = time(NULL);
 		LINK->LASTSENTQCOUNT = COUNT_AT_L2(LINK);
 
+		if (LINK->LASTSENTQCOUNT > LINK->maxQueued)
+			LINK->maxQueued = LINK->LASTSENTQCOUNT;
+
+		if (LINK->LASTSENTQCOUNT > LINK->intervalMaxQueued)
+			LINK->intervalMaxQueued = LINK->LASTSENTQCOUNT;
 
 		if (LINK->AllowCompress && Msg->LENGTH > 20  && LINK->TX_Q && Msg->PID == 240)			// if short and no more not worth trying compression
 		{
@@ -3352,6 +3376,7 @@ VOID SDETX(struct _LINKTABLE * LINK)
 				// FLAG BUFFER TO CAUSE TIMER TO BE RESET AFTER SEND (or ACK if ACKMODE)
 
 				Buffer->Linkptr = LINK;
+				LINK->lastPSent = GetTickCount();
 			}
 		}
 	

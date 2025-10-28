@@ -250,7 +250,8 @@ typedef struct ROUTE
 
 	char * TCPHost;			// For NETROM over TCP
 	int TCPPort;
-	struct NRTCPSTRUCT * TCPSession;			
+	struct NRTCPSTRUCT * TCPSession;	
+	struct addrinfo * TCPAddress;		// Resolved Address
 
 } *PROUTE;
 
@@ -977,6 +978,15 @@ typedef struct _LINKTABLE
 	int framesRXed;
 	int framesTXed;
 	int framesResent;
+	time_t LastStatusTime;		
+	int LastStatusbytesRXed;
+	int LastStatusbytesTXed;
+	int	maxQueued;
+	int intervalMaxQueued;
+
+	uint64_t lastPSent;		// Time last I frame with P bit sent in mS (for RTT Measurements)
+	int RTT;
+
 
 	//	Now support compressing L2 Sessions.
 	//	We collect as much data as possible before compressing and re-packetizing

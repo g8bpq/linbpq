@@ -487,124 +487,124 @@ static void reconst(void)
 
 static void update(int c)
 {
-    int i, j, l;
+	int i, j, l;
 	unsigned int k;
 
-        if (freq[R] == MAX_FREQ) {
-                reconst();
-        }
-        c = prnt[c + T];
-        do {
-                k = ++freq[c];
+	if (freq[R] == MAX_FREQ) {
+		reconst();
+	}
+	c = prnt[c + T];
+	do {
+		k = ++freq[c];
 
-                /* if the order is disturbed, exchange nodes */
+		/* if the order is disturbed, exchange nodes */
 
-        l = c + 1;
-		
+		l = c + 1;
+
 		if ((unsigned)k > freq[l]) 
 		{
-            while ((unsigned)k > freq[++l]);
-                        l--;
-                        freq[c] = freq[l];
-                        freq[l] = k;
+			while ((unsigned)k > freq[++l]);
+			l--;
+			freq[c] = freq[l];
+			freq[l] = k;
 
-                        i = son[c];
-                        prnt[i] = l;
-                        if (i < T) prnt[i + 1] = l;
+			i = son[c];
+			prnt[i] = l;
+			if (i < T) prnt[i + 1] = l;
 
-                        j = son[l];
-                        son[l] = i;
+			j = son[l];
+			son[l] = i;
 
-                        prnt[j] = c;
-                        if (j < T) prnt[j + 1] = c;
-                        son[c] = j;
+			prnt[j] = c;
+			if (j < T) prnt[j + 1] = c;
+			son[c] = j;
 
-                        c = l;
-                }
-        } while ((c = prnt[c]) != 0);   /* repeat up to root */
+			c = l;
+		}
+	} while ((c = prnt[c]) != 0);   /* repeat up to root */
 }
 
 unsigned code, len;
 
 static void EncodeChar(unsigned int c)
 {
-    unsigned int i;
-    int j, k;
+	unsigned int i;
+	int j, k;
 
-        i = 0;
-        j = 0;
-        k = prnt[c + T];
+	i = 0;
+	j = 0;
+	k = prnt[c + T];
 
-        /* travel from leaf to root */
-        do {
-                i >>= 1;
+	/* travel from leaf to root */
+	do {
+		i >>= 1;
 
-                /* if node's address is odd-numbered, choose bigger brother node */
-                if (k & 1) i += 0x8000;
+		/* if node's address is odd-numbered, choose bigger brother node */
+		if (k & 1) i += 0x8000;
 
-                j++;
-        } while ((k = prnt[k]) != R);
-        Putcode(j, i);
-        code = i;
-        len = j;
-        update(c);
+		j++;
+	} while ((k = prnt[k]) != R);
+	Putcode(j, i);
+	code = i;
+	len = j;
+	update(c);
 }
 
 static void EncodePosition(unsigned int c)
 {
-    unsigned int i;
+	unsigned int i;
 
-        /* output upper 6 bits by table lookup */
-        i = c >> 6;
-        Putcode(p_len[i], (unsigned)p_code[i] << 8);
+	/* output upper 6 bits by table lookup */
+	i = c >> 6;
+	Putcode(p_len[i], (unsigned)p_code[i] << 8);
 
-        /* output lower 6 bits verbatim */
-        Putcode(6, (c & 0x3f) << 10);
+	/* output lower 6 bits verbatim */
+	Putcode(6, (c & 0x3f) << 10);
 }
 
 static void EncodeEnd(void)
 {
-        if (putlen) {
-				if (crc_fputc(putbuf >> 8) == EOF) {
-                        Error(wterr);
-                }
-                codesize++;
-        }
+	if (putlen) {
+		if (crc_fputc(putbuf >> 8) == EOF) {
+			Error(wterr);
+		}
+		codesize++;
+	}
 }
 
 int DecodeChar(void)
 {
-    unsigned int c;
+	unsigned int c;
 
-        c = son[R];
+	c = son[R];
 
-        /* travel from root to leaf, */
-        /* choosing the smaller child node (son[]) if the read bit is 0, */
-        /* the bigger (son[]+1} if 1 */
-        while (c < T) {
-                c += GetBit();
-                c = son[c];
-        }
-        c -= T;
-        update(c);
-    return (int)c;
+	/* travel from root to leaf, */
+	/* choosing the smaller child node (son[]) if the read bit is 0, */
+	/* the bigger (son[]+1} if 1 */
+	while (c < T) {
+		c += GetBit();
+		c = son[c];
+	}
+	c -= T;
+	update(c);
+	return (int)c;
 }
 
 int DecodePosition(void)
 {
-    unsigned int i, j, c;
+	unsigned int i, j, c;
 
-		/* recover upper 6 bits from table */
-		i = GetByte();
-		c = (unsigned)d_code[i] << 6;
-		j = d_len[i];
+	/* recover upper 6 bits from table */
+	i = GetByte();
+	c = (unsigned)d_code[i] << 6;
+	j = d_len[i];
 
-		/* read lower 6 bits verbatim */
-		j -= 2;
-		while (j--) {
-				i = (i << 1) + GetBit();
-		}
-    return (int)(c | (i & 0x3f));
+	/* read lower 6 bits verbatim */
+	j -= 2;
+	while (j--) {
+		i = (i << 1) + GetBit();
+	}
+	return (int)(c | (i & 0x3f));
 }
 
 /* compression */

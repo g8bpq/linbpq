@@ -466,107 +466,107 @@ static int ProcessLine(char * buf, int Port)
 	else
 		return FALSE;						// Must start with ADDR
 
-		TNC->InitScript = malloc(1000);
-		TNC->InitScript[0] = 0;
+	TNC->InitScript = malloc(1000);
+	TNC->InitScript[0] = 0;
 
-		ptr = strtok(NULL, " \t\n\r");
+	ptr = strtok(NULL, " \t\n\r");
 
-		if (ptr)
+	if (ptr)
+	{
+		if (_stricmp(ptr, "PTT") == 0)
 		{
-			if (_stricmp(ptr, "PTT") == 0)
-			{
-				ptr = strtok(NULL, " \t\n\r");
+			ptr = strtok(NULL, " \t\n\r");
 
-				if (ptr)
-				{
-					DecodePTTString(TNC, ptr);
-					ptr = strtok(NULL, " \t\n\r");
-				}
-			}
-		}
-		
-		if (ptr)
-		{
-			if (_memicmp(ptr, "PATH", 4) == 0)
-			{
-				p_cmd = strtok(NULL, "\n\r");
-				if (p_cmd) TNC->ProgramPath = _strdup(p_cmd);
-			}
-		}
-
-		TNC->MaxConReq = 10;		// Default
-		TNC->OldMode = FALSE;		// Default 
-
-		// Read Initialisation lines
-
-		while(TRUE)
-		{
-			if (GetLine(buf) == 0)
-				return TRUE;
-
-			strcpy(errbuf, buf);
-
-			if (memcmp(buf, "****", 4) == 0)
-				return TRUE;
-
-			ptr = strchr(buf, ';');
 			if (ptr)
 			{
-				*ptr++ = 13;
-				*ptr = 0;
+				DecodePTTString(TNC, ptr);
+				ptr = strtok(NULL, " \t\n\r");
 			}
-				
-			if ((_memicmp(buf, "CAPTURE", 7) == 0) || (_memicmp(buf, "PLAYBACK", 8) == 0))
-			{}		// Ignore
-			else
-/*
+		}
+	}
+
+	if (ptr)
+	{
+		if (_memicmp(ptr, "PATH", 4) == 0)
+		{
+			p_cmd = strtok(NULL, "\n\r");
+			if (p_cmd) TNC->ProgramPath = _strdup(p_cmd);
+		}
+	}
+
+	TNC->MaxConReq = 10;		// Default
+	TNC->OldMode = FALSE;		// Default 
+
+	// Read Initialisation lines
+
+	while(TRUE)
+	{
+		if (GetLine(buf) == 0)
+			return TRUE;
+
+		strcpy(errbuf, buf);
+
+		if (memcmp(buf, "****", 4) == 0)
+			return TRUE;
+
+		ptr = strchr(buf, ';');
+		if (ptr)
+		{
+			*ptr++ = 13;
+			*ptr = 0;
+		}
+
+		if ((_memicmp(buf, "CAPTURE", 7) == 0) || (_memicmp(buf, "PLAYBACK", 8) == 0))
+		{}		// Ignore
+		else
+			/*
 			if (_memicmp(buf, "PATH", 4) == 0)
 			{
-				char * Context;
-				p_cmd = strtok_s(&buf[5], "\n\r", &Context);
-				if (p_cmd) TNC->ProgramPath = _strdup(p_cmd);
+			char * Context;
+			p_cmd = strtok_s(&buf[5], "\n\r", &Context);
+			if (p_cmd) TNC->ProgramPath = _strdup(p_cmd);
 			}
 			else
-*/
+			*/
 
 			if (_memicmp(buf, "PACKETCHANNELS", 14) == 0)	// Packet Channels
 				TNC->PacketChannels = atoi(&buf[14]);
 			else
-			if (_memicmp(buf, "MAXCONREQ", 9) == 0)		// Hold Time for Busy Detect
-				TNC->MaxConReq = atoi(&buf[9]);
+				if (_memicmp(buf, "MAXCONREQ", 9) == 0)		// Hold Time for Busy Detect
+					TNC->MaxConReq = atoi(&buf[9]);
 
-			else
-			if (_memicmp(buf, "STARTINROBUST", 13) == 0)
-				TNC->StartInRobust = TRUE;
-			
-			else
-			if (_memicmp(buf, "ROBUST", 6) == 0)
-			{
-				if (_memicmp(&buf[7], "TRUE", 4) == 0)
-					TNC->Robust = TRUE;
-				
-				strcat (TNC->InitScript, buf);
-			}
-			else
-			if (_memicmp(buf, "LOGDIR ", 7) == 0)
-				TNC->LogPath = _strdup(&buf[7]);
-			else
-			if (_memicmp(buf, "ENABLEPACKET", 12) == 0)
-			{
-				if (TNC->PacketChannels == 0)
-					TNC->PacketChannels = 5;
-			//	AddVirtualKISSPort(TNC, Port, buf);
-			}
+				else
+					if (_memicmp(buf, "STARTINROBUST", 13) == 0)
+						TNC->StartInRobust = TRUE;
 
-//			else if (_memicmp(buf, "PAC ", 4) == 0 && _memicmp(buf, "PAC MODE", 8) != 0)
-//			{
-				// PAC MODE goes to TNC, others are parsed locally
-//
-//				ConfigVirtualKISSPort(TNC, buf);
-//			}
-			else if (standardParams(TNC, buf) == FALSE)
-				strcat(TNC->InitScript, buf);
-		}
+					else
+						if (_memicmp(buf, "ROBUST", 6) == 0)
+						{
+							if (_memicmp(&buf[7], "TRUE", 4) == 0)
+								TNC->Robust = TRUE;
+
+							strcat (TNC->InitScript, buf);
+						}
+						else
+							if (_memicmp(buf, "LOGDIR ", 7) == 0)
+								TNC->LogPath = _strdup(&buf[7]);
+							else
+								if (_memicmp(buf, "ENABLEPACKET", 12) == 0)
+								{
+									if (TNC->PacketChannels == 0)
+										TNC->PacketChannels = 5;
+									//	AddVirtualKISSPort(TNC, Port, buf);
+								}
+
+								//			else if (_memicmp(buf, "PAC ", 4) == 0 && _memicmp(buf, "PAC MODE", 8) != 0)
+								//			{
+								// PAC MODE goes to TNC, others are parsed locally
+								//
+								//				ConfigVirtualKISSPort(TNC, buf);
+								//			}
+								else if (standardParams(TNC, buf) == FALSE)
+									strcat(TNC->InitScript, buf);
+	}
 
 
 	return (TRUE);	
@@ -1041,8 +1041,10 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			{
 				TNC->Busy--;
 				if (TNC->Busy == 0)
+				{
 					MySetWindowText(TNC->xIDC_CHANSTATE, "Clear");
 					strcpy(TNC->WEB_CHANSTATE, "Clear");
+				}
 			}
 		}
 

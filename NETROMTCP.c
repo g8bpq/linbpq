@@ -244,6 +244,45 @@ int NETROMOpenConnection(struct ROUTE * Route)
 
 }
 
+void NETROMTCPResolve()
+{
+	struct ROUTE * Route = NEIGHBOURS;
+	int n = MAXNEIGHBOURS;
+	struct addrinfo hints, *res = 0;
+	char PortString[20];
+	int err;
+
+	while (n--)
+	{
+		if (Route->TCPAddress)
+		{
+			// try to resolve host
+
+			sprintf(PortString, "%d", Route->TCPPort);
+
+			memset(&hints, 0, sizeof hints);
+			hints.ai_family = AF_UNSPEC;  // use IPv4 or IPv6, whichever
+			hints.ai_socktype = SOCK_STREAM;
+	
+			getaddrinfo(Route->TCPHost, PortString, &hints, &res);
+
+			err = WSAGetLastError();
+
+			if (res)
+			{
+				Route->TCPAddress->ai_family = res->ai_family;
+				Route->TCPAddress->ai_socktype = res->ai_socktype;
+				Route->TCPAddress->ai_protocol = res->ai_protocol;
+				Route->TCPAddress->ai_addrlen = res->ai_addrlen;
+				memcpy(Route->TCPAddress->ai_addr, res->ai_addr, sizeof(struct sockaddr));
+				freeaddrinfo(res);
+			}
+		}
+		
+		Route++;
+	}
+}
+
 int NETROMTCPConnect(struct ROUTE * Route, struct ConnectionInfo * sockptr)
 {
 	int err;
@@ -253,33 +292,21 @@ int NETROMTCPConnect(struct ROUTE * Route, struct ConnectionInfo * sockptr)
 	struct sockaddr_in sinx; 
 	int addrlen=sizeof(sinx);
 	char PortString[20];
-	struct addrinfo hints, *res = 0, *saveres;
+	struct addrinfo * res = Route->TCPAddress;
 	int Port = Route->TCPPort;
 
 	sprintf(PortString, "%d", Port);
 
 	// get host info, make socket, and connect it
 
-	memset(&hints, 0, sizeof hints);
-
-	hints.ai_family = AF_UNSPEC;  // use IPv4 or IPv6, whichever
-
-	hints.ai_socktype = SOCK_STREAM;
-	getaddrinfo(Route->TCPHost, PortString, &hints, &res);
-
-	if (!res)
+	if (res->ai_family == 0)
 	{
-		err = WSAGetLastError();
-		Debugprintf("Resolve HostName %s Failed - Error %d", Route->TCPHost, err);
+//		err = WSAGetLastError();
+//		Debugprintf("Resolve HostName %s Failed - Error %d", Route->TCPHost, err);
 		return FALSE;			// Resolve failed
 	}
 
-	// Step thorough the list of hosts
-
-	saveres = res;				// Save for free
-
 	sock = sockptr->socket = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-
 
 	if (sock == INVALID_SOCKET)
 	{
@@ -299,14 +326,10 @@ int NETROMTCPConnect(struct ROUTE * Route, struct ConnectionInfo * sockptr)
 		//
 		
 		sockptr->Connected = TRUE;
-		freeaddrinfo(saveres);
-
 		return TRUE;
 	}
 	else
 	{
-		freeaddrinfo(saveres);
-	
 		err=WSAGetLastError();
 
 		if (err == 10035 || err == 115 || err == 36)		//EWOULDBLOCK
@@ -399,6 +422,8 @@ checkLen:
 
 		// This must be an incoming connection as Call is set before calling so need to find route record and set things up.
 
+		Debugprintf("New NRTCP Connection from %s", Msg->Call);
+
 		memcpy(Info->Call, Msg->Call, 10);
 
 		ConvToAX25(Msg->Call, axCall);
@@ -407,16 +432,24 @@ checkLen:
 		{
 			Info->Route = Route;
 			Route->NEIGHBOUR_LINK = Info->LINK;
+			Route->NEIGHBOUR_PORT = portNo;
 			Info->LINK->NEIGHBOUR = Route;
-			Info->LINK->LINKPORT = GetPortTableEntryFromPortNum(Route->NEIGHBOUR_PORT);
+			Info->LINK->LINKPORT = GetPortTableEntryFromPortNum(portNo);
 			Route->TCPSession = Info;
 			Info->LINK->L2STATE = 5;
-
+		
 			if (Info->Route->INP3Node)
 				SendRTTMsg(Info->Route);
 		}
 		else
-			goto seeifMore;			// Should we kill connection?
+		{
+			Debugprintf("Neighbour %s port %d not found - closing connection", Msg->Call, portNo);
+			closesocket(sockptr->socket);
+			sockptr->SocketActive = FALSE;
+			memset(sockptr, 0, sizeof(struct ConnectionInfo)); 
+			Info->Call[0] = 0;
+			return 0;
+		}
 	}
 
 
@@ -434,7 +467,7 @@ checkLen:
 
 	L3Msg->LENGTH = (Msg->Length - 12) + MSGHDDRLEN;
 	L3Msg->Next = 0;
-	L3Msg->Port = 0;
+	L3Msg->Port = portNo;
 	L3Msg->L3PID = NETROM_PID;
 	memcpy(&L3Msg->L3SRCE, Msg->Packet, Msg->Length - 13);
 
@@ -539,7 +572,8 @@ void NETROMConnectionLost(struct ConnectionInfo * sockptr)
 		if (sockptr->Connecting)
 			L3LINKCLOSED(Info->LINK, SETUPFAILED);
 
-		Route->TCPSession = 0;
+		if (Route)
+			Route->TCPSession = 0;
 
 		Info->Call[0] = 0;
 	}

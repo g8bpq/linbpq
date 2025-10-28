@@ -2092,20 +2092,19 @@ int CreateSMTPMessage(SocketConn * sockptr, int i, char * MsgTitle, time_t Date,
 		struct tm * tm;
 
 		tm = gmtime(&Date);	
-	
+
 		sprintf(DateString, "%04d/%02d/%02d %02d:%02d",
 			tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min);
 
 
 		if (strcmp(Msg->to, "RMS") == 0)		// Address is in via
-		strcpy(B2To, Msg->via);
-	else
-		if (Msg->via[0])
-			sprintf(B2To, "%s@%s", Msg->to, Msg->via);
+			strcpy(B2To, Msg->via);
 		else
-			strcpy(B2To, Msg->to);
+			if (Msg->via[0])
+				sprintf(B2To, "%s@%s", Msg->to, Msg->via);
+			else
+				strcpy(B2To, Msg->to);
 
-		
 		Msg->B2Flags = B2Msg | Attachments;
 
 		if (Msg->type == 'P')
@@ -3934,12 +3933,12 @@ int CreatePOP3Message(char * From, char * To, char * MsgTitle, time_t Date, char
 
 
 		if (strcmp(Msg->to, "RMS") == 0)		// Address is in via
-		strcpy(B2To, Msg->via);
-	else
-		if (Msg->via[0])
-			sprintf(B2To, "%s@%s", Msg->to, Msg->via);
+			strcpy(B2To, Msg->via);
 		else
-			strcpy(B2To, Msg->to);
+			if (Msg->via[0])
+				sprintf(B2To, "%s@%s", Msg->to, Msg->via);
+			else
+				strcpy(B2To, Msg->to);
 
 		
 		Msg->B2Flags = B2Msg | Attachments;

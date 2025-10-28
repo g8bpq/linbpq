@@ -3874,12 +3874,14 @@ MsgLoop:
 	LFPtr=memchr(MsgPtr, 10, InputLen);
 
 	if (LFPtr == 0)
+	{
 		if (CRPtr)
 		{
 			LFPtr = ++CRPtr;
 			InputLen++;
 		}
-		if (LFPtr == 0)
+	}
+	if (LFPtr == 0)
 	{
 		// Check Paclen
 
@@ -3895,7 +3897,7 @@ MsgLoop:
 			}
 
 			// Send to Node
-    
+
 			// Line could be up to 500 chars if coming from a program rather than an interative user
 			// Limit send to node to 255
 
@@ -3907,16 +3909,16 @@ MsgLoop:
 
 				memmove(MsgPtr,MsgPtr+255,InputLen);
 			}
-	           
+
 			SendtoNode(TNC, sockptr->Number, MsgPtr, InputLen);
 
 			sockptr->InputLen = 0;
-		
+
 		} // PACLEN
 
 		return 0;	// No CR
 	}
-	
+
 	// Got a LF
 
 	// Process data up to the cr
@@ -3929,7 +3931,7 @@ MsgLoop:
 	case 2:
 
 		// Normal Data State
-			
+
 		STREAM->bytesRXed += MsgLen;
 		SendIndex = 0;
 
@@ -3944,7 +3946,7 @@ MsgLoop:
 		}
 
 		SendtoNode(TNC, sockptr->Number, MsgPtr + SendIndex, MsgLen);
-		
+
 		MsgLen += SendIndex;
 
 		// If anything left, copy down buffer, and go back
@@ -3963,20 +3965,20 @@ MsgLoop:
 		return 0;
 
 	case 0:
-		
-        //   Check Username
-        //
+
+		//   Check Username
+		//
 
 		*(LFPtr-1)=0;				 // remove cr
-        
-  //      send(sock, NLMsg, 2, 0);
 
-        if (LogEnabled)
+		//      send(sock, NLMsg, 2, 0);
+
+		if (LogEnabled)
 		{
 			char Addr[256];
-			
+
 			Tel_Format_Addr(sockptr, Addr);
-			
+
 			if (strlen(MsgPtr) > 64)
 			{
 				MsgPtr[64] = 0;
@@ -4571,7 +4573,8 @@ MsgLoop:
 
 				if (P8 == 1)
 					SendPortsForMonitor(sock, sockptr->UserPointer->Secure);
-					sockptr->InputLen = 0;
+				
+				sockptr->InputLen = 0;
 				return 0;
 			}
 		}
@@ -6386,10 +6389,10 @@ VOID SaveCMSHostInfo(int port, struct TCPINFO * TCP, int CMSNo)
 		char ip[256];
 		int n;
 
-	if (sizeof(time_t) == 4)
-		n = sscanf(buf,"%s %d %s", addr, (int *)&t, ip);
-	else
-		n = sscanf(buf, "%s %lld %s", addr, &t, ip);
+		if (sizeof(time_t) == 4)
+			n = sscanf(buf,"%s %d %s", addr, (int *)&t, ip);
+		else
+			n = sscanf(buf, "%s %lld %s", addr, &t, ip);
 
 		if (n == 3)
 		{

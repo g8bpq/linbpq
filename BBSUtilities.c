@@ -3701,10 +3701,10 @@ void DoKillCommand(CIRCUIT * conn, struct UserInfo * user, char * Cmd, char * Ar
 		if (conn->sysop)
 		{
 			if (Arg1)
-				if (KillMessagesFrom(conn, user, Arg1) == 0);
+				if (KillMessagesFrom(conn, user, Arg1) == 0)
 					BBSputs(conn, "No Messages found\r");
 
-					return;
+			return;
 		}
 	}
 
@@ -6556,7 +6556,7 @@ nextline:
 	{
 		char APRS[128];
 		char Call[16];
-		int SSID = user->flags >> 28;
+		int SSID = (user->flags >> 28) & 15;	// on some platforms this is treated as signed ??
 
 		if (SSID)
 			sprintf(Call, "%s-%d", Msg->to, SSID);
@@ -13395,7 +13395,7 @@ int DeleteRedundantMessages()
 	{ 
 		while(n--)
 		{
-			if (stat(namelist[n]->d_name, &STAT) == 0);
+			if (stat(namelist[n]->d_name, &STAT) == 0)
 			{
 				Msgno = atoi(&namelist[n]->d_name[2]);
 

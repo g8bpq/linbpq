@@ -747,6 +747,9 @@ VOID SortRoutes(struct DEST_LIST * Dest)
 {
 	 char Call1[10], Call2[10], Call3[10];
 
+	 // force route re-evaluation
+
+	 Dest->DEST_ROUTE = 0;
 
 	// May now be out of order
 

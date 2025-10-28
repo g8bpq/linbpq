@@ -568,18 +568,19 @@ void DRATSConnectionLost(struct ConnectionInfo * sockptr)
 
 int doinflate(unsigned char * source, unsigned char * dest, int Len, int destlen, int * outLen)
 {
-    int ret;
-    z_stream strm;
+	int ret;
+	z_stream strm;
 
-    strm.zalloc = Z_NULL;
-    strm.zfree = Z_NULL;
-    strm.opaque = Z_NULL;
-    strm.avail_in = 0;
-    strm.next_in = Z_NULL;
+	strm.zalloc = Z_NULL;
+	strm.zfree = Z_NULL;
+	strm.opaque = Z_NULL;
+	strm.avail_in = 0;
+	strm.next_in = Z_NULL;
 
-    ret = inflateInit(&strm);
-    if (ret != Z_OK)
-        return ret;
+	ret = inflateInit(&strm);
+
+	if (ret != Z_OK)
+		return ret;
 
 	strm.avail_in = Len;
 	strm.next_in = source;

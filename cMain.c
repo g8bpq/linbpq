@@ -57,7 +57,7 @@ VOID L2SENDCOMMAND(struct _LINKTABLE * LINK, int CMD);
 void WritePacketLogThread(void * param);
 void hookNodeStarted();
 void hookNodeRunning();
-void APIL2Trace(struct _MESSAGE * Message, char Dirn);
+void APIL2Trace(struct _MESSAGE * Message, char * Dirn);
 
 #include "configstructs.h"
 
@@ -1416,12 +1416,15 @@ BOOL Start()
 		{
 			ROUTE->TCPHost = Rcfg->tcphost;
 			ROUTE->TCPPort = Rcfg->tcpport;
+
+			ROUTE->TCPAddress = (struct addrinfo *)zalloc(sizeof(struct addrinfo));
+			ROUTE->TCPAddress->ai_addr = (struct sockaddr *) zalloc(sizeof(struct sockaddr));
 		}
 		
 		Rcfg++;
 		ROUTE++;
 	}
-
+	
 	//	SET UP INFO MESSAGE
 
 	ptr2 = &cfg->C_INFOMSG[0];
@@ -2028,7 +2031,7 @@ VOID ReadNodes()
 			ptr = strtok_s(NULL, seps, &Context);	// INP3
 			if (ptr == NULL) continue;
 
-			if (ROUTE->NEIGHBOUR_FLAG == 0 || ROUTE->OtherendLocked == 0);		// Not LOCKED ROUTE
+			if (ROUTE->NEIGHBOUR_FLAG == 0 || ROUTE->OtherendLocked == 0)		// Not LOCKED ROUTE
 				ROUTE->OtherendsRouteQual = atoi(ptr);
 
 			ptr = strtok_s(NULL, seps, &Context);	// INP3
@@ -2279,7 +2282,7 @@ VOID TIMERINTERRUPT()
 		Message = (struct _MESSAGE *)Buffer;
 
 		if(NodeAPISocket)
-			APIL2Trace(Message, 'T');
+			APIL2Trace(Message, "sent");
 
 		Message->PORT |= 0x80;			// Set TX Bit
 	
@@ -2394,7 +2397,7 @@ L2Packet:
 				MQTTKISSRX(Buffer);
 
 			if(NodeAPISocket &&PORT->PROTOCOL == 0)
-				APIL2Trace(Message, 'R');
+				APIL2Trace(Message, "rcvd");
 			
 			// Bridge if requested
 

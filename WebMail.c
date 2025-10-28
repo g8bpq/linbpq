@@ -3311,7 +3311,7 @@ char * xxReadTemplate(char * FormSet, char * DirName, char *FileName)
     while ((entry = readdir(dir)) != NULL)
 	{
         if (entry->d_type == DT_DIR)
-                continue;
+			continue;
 	
 		if (stristr(entry->d_name, FileName))
 		{
@@ -5609,7 +5609,7 @@ char * CheckFile(struct HtmlFormDir * Dir, char * FN)
     while ((entry = readdir(dir)) != NULL)
 	{
         if (entry->d_type == DT_DIR)
-                continue;
+			continue;
 	
 		if (stricmp(entry->d_name, FN) == 0)
 		{

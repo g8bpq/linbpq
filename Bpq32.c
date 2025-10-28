@@ -1406,12 +1406,15 @@ void initAIS();
 void initADSB();
 int CloseAllSessions();
 int CloseAllLinks();
+void NETROMTCPResolve();
 
 extern BOOL ADIFLogEnabled;
 
 int CloseOnError = 0;
 
 char UIClassName[]="UIMAINWINDOW";					// the main window class name
+
+char ClosingClassName[]="CLOSING";					// the main window class name
 
 HWND UIhWnd;
 
@@ -2216,6 +2219,8 @@ VOID TimerProcX()
 	
 			Start();
 
+			NETROMTCPResolve();
+
 			INITIALISEPORTS();			// Restart Ports
 
 			SetApplPorts();
@@ -2398,7 +2403,7 @@ VOID TimerProcX()
 		if (CloseAllSessions() == 0)
 		{
 			if (CloseAllLinks() == 0)			// No sessions closed so close links now
-				CloseAllTimer = 0;				// No Links so close now
+				CloseAllTimer = 1;				// No Links so close now
 			else
 				CloseAllTimer = 39;				// ~4 secs for links to close
 		}
@@ -2632,6 +2637,7 @@ Check_Timer()
 
 		WSAStartup(MAKEWORD(2, 0), &WsaData);
 
+
 		// Load Psapi.dll if possible
 
 		ExtDriver = LoadLibrary("Psapi.dll");
@@ -2646,6 +2652,8 @@ Check_Timer()
 			
 		Start();
 	
+		NETROMTCPResolve();
+
 		INITIALISEPORTS();
 
 		OpenReportingSockets();
@@ -2969,6 +2977,8 @@ BOOL APIENTRY DllMain(HANDLE hInst, DWORD ul_reason_being_called, LPVOID lpReser
 			}
 			else
 			{
+				NETROMTCPResolve();
+
 				SetApplPorts();
 
 				GetUIConfig();
@@ -5967,14 +5977,96 @@ DllExport VOID APIENTRY CreateNewTrayIcon()
 
 void hookNodeClosing(char * Reason);
 
+BOOL CALLBACK ClosaAllProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
+{
+	int wmId, wmEvent;
+
+ 	switch (message)
+	{ 
+	case WM_INITDIALOG:
+		return (INT_PTR)TRUE;
+
+	case WM_CTLCOLORDLG:
+		return (LONG)bgBrush;
+
+	case WM_CTLCOLORSTATIC:
+	{
+		HDC hdcStatic = (HDC)wParam;
+		SetTextColor(hdcStatic, RGB(0, 0, 0));
+		SetBkMode(hdcStatic, TRANSPARENT);
+
+		return (LONG)bgBrush;
+	}
+
+	case WM_COMMAND:
+
+			return 0;
+
+	case WM_SYSCOMMAND:
+
+		wmId    = LOWORD(wParam); // Remember, these are...
+		wmEvent = HIWORD(wParam); // ...different for Win32!
+
+		switch (wmId)
+		{
+		case SC_RESTORE:
+
+			return (DefWindowProc(hWnd, message, wParam, lParam));
+
+		case  SC_MINIMIZE: 
+			
+			if (MinimizetoTray)
+				return ShowWindow(hWnd, SW_HIDE);
+			else
+				return (DefWindowProc(hWnd, message, wParam, lParam));
+						
+			break;
+		
+		default:
+				return (DefWindowProc(hWnd, message, wParam, lParam));
+		}
+
+		case WM_CLOSE:
+			return(DestroyWindow(hWnd));
+
+		default:
+			return (DefWindowProc(hWnd, message, wParam, lParam));
+
+	}
+
+	return (0);
+}
+
+
+HWND hwndClosing = NULL;  // Window handle of dialog box 
+
 
 DllExport VOID APIENTRY CloseAllPrograms()
 {
+	WNDCLASS  wc;	
 	CLOSING = TRUE;
 
 	// Tell BG to shut when all links are gone or after 5 secs
 
 	CloseAllTimer = 50;
+
+
+	wc.style = CS_HREDRAW | CS_VREDRAW;
+	wc.lpfnWndProc = ClosaAllProc;       
+	wc.cbClsExtra = 0;                
+	wc.cbWndExtra = DLGWINDOWEXTRA;
+	wc.hInstance = hInstance;
+	wc.hIcon = LoadIcon( hInstance, MAKEINTRESOURCE(BPQICON) );
+	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wc.hbrBackground = bgBrush; 
+
+	wc.lpszMenuName = NULL;	
+	wc.lpszClassName = ClosingClassName; 
+
+	RegisterClass(&wc);
+
+	hwndClosing = CreateDialog(hInstance, ClosingClassName, NULL, (DLGPROC)ClosaAllProc); 
+	ShowWindow(hwndClosing, SW_SHOW); 
 }
 
 VOID RealCloseAllPrograms()

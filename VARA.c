@@ -423,8 +423,9 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 			{
 				TNC->Busy--;
 				if (TNC->Busy == 0)
-					SetWindowText(TNC->xIDC_CHANSTATE, "Clear");
+				{	SetWindowText(TNC->xIDC_CHANSTATE, "Clear");
 					strcpy(TNC->WEB_CHANSTATE, "Clear");
+				}
 			}
 		}
 

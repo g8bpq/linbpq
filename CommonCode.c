@@ -75,6 +75,7 @@ void printStack(void);
 char * FormatMH(PMHSTRUC MH, char Format);
 void WriteConnectLog(char * fromCall, char * toCall, UCHAR * Mode);
 void SendDataToPktMap();
+void NETROMTCPResolve();
 
 extern BOOL LogAllConnects;
 extern BOOL M0LTEMap;
@@ -3739,15 +3740,14 @@ VOID ResolveUpdateThread(void * Unused)
 				LastNodeStatus = time(NULL);
 			}
 		}
+
+		NETROMTCPResolve();
 		
 		if (HostEnt1 && HostEnt2)
 		{		
-			Sleep(1000 * 60 * 30);	
+			Sleep(1000 * 60 * 15);	
 			continue;
 		}
-		
-		Debugprintf("Resolve Failed for update.g8bpq.net or chatmap.g8bpq.net");
-		Sleep(1000 * 60 * 5);
 	}
 }
 

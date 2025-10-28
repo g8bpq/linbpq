@@ -635,6 +635,8 @@ BOOL ProcessConfig()
 	paramok[93]=1;			// ONLYVer2point0
 	paramok[94]=1;			// DEBUGINP3
 	paramok[95]=1;			// EnableOARCAPI
+	paramok[96]=1;			// OARCAPI
+
 
 	for (i=0; i < PARAMLIM; i++)
 	{

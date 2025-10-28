@@ -130,6 +130,8 @@ int NOBUFFCOUNT = 0;
 int BUFFERWAITS = 0;
 int MAXDESTS = 0;
 int NUMBEROFNODES = 0;
+int L2CONNECTSOUT = 0;
+int L2CONNECTSIN = 0;
 int L4CONNECTSOUT = 0;
 int L4CONNECTSIN = 0;
 int L4FRAMESTX = 0;
@@ -903,8 +905,12 @@ int checkifService(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, s
 	BOOL Stay = FALSE;
 	char * ptr, *Context;
 	int i;
+	char TailCopy[256];
 
-	ptr = strtok_s(CmdTail, " ", &Context);
+	strcpy(TailCopy, CmdTail);
+
+
+	ptr = strtok_s(TailCopy, " ", &Context);
 
 	// see if any param. if longer than two chars treat as remote node
 
@@ -2665,7 +2671,8 @@ NoPort:
 
 	//	SEE IF CALL TO ANY OF OUR HOST SESSIONS - UNLESS DIGIS SPECIFIED
 
-	if (axcalls[7] == 0 && axcalls[9] )
+//	if (axcalls[7] == 0 && axcalls[9])
+	if (axcalls[7] == 0)
 	{
 		//	If this connect is as a result of a command alias, don't check appls or we will loop
 
@@ -2716,24 +2723,29 @@ NoPort:
 		}
 	}
 
-	// if no digis see if connect to known node. But now could have a single numeric param as a service number (Paula's Netromx)
+	// if no digis see if connect to known node.
+	
+	// But now could have a single numeric param as a service number (Paula's Netromx)
 	// cmdCopy is command tail (after call)
 
 	// Make sure field is numeric
 
-	i = 0;
-
-	while (cmdCopy[i] >= '0' && cmdCopy[i]<= '9')
-		i++;
-
-	if (cmdCopy[i] != ' ')
-		goto Downlink;
-	else
+	if (cmdCopy[0] != ' ')
 	{
-		if (i > 0)			// Some digits
+		i = 0;
+
+		while (cmdCopy[i] >= '0' && cmdCopy[i]<= '9')
+			i++;
+
+		if (cmdCopy[i] != ' ')
+			goto Downlink;
+		else
 		{
-			haveService = 1;
-			Service = atoi(cmdCopy);
+			if (i > 0)			// Some digits
+			{
+				haveService = 1;
+				Service = atoi(cmdCopy);
+			}
 		}
 	}
 

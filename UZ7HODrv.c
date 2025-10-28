@@ -1586,81 +1586,81 @@ static int ProcessLine(char * buf, int Port)
 	if (TNC->TCPPort == 0)
 		TNC->TCPPort = 8000;
 
-		TNC->destaddr.sin_family = AF_INET;
-		TNC->destaddr.sin_port = htons(TNC->TCPPort);
-		TNC->HostName = malloc(strlen(p_ipad)+1);
+	TNC->destaddr.sin_family = AF_INET;
+	TNC->destaddr.sin_port = htons(TNC->TCPPort);
+	TNC->HostName = malloc(strlen(p_ipad)+1);
 
-		if (TNC->HostName == NULL) return TRUE;
+	if (TNC->HostName == NULL) return TRUE;
 
-		strcpy(TNC->HostName,p_ipad);
+	strcpy(TNC->HostName,p_ipad);
 
-		ptr = strtok(NULL, " \t\n\r");
+	ptr = strtok(NULL, " \t\n\r");
 
-		if (ptr)
+	if (ptr)
+	{
+		if (_stricmp(ptr, "PTT") == 0)
 		{
-			if (_stricmp(ptr, "PTT") == 0)
-			{
-				ptr = strtok(NULL, " \t\n\r");
+			ptr = strtok(NULL, " \t\n\r");
 
-				if (ptr)
-				{
-					DecodePTTString(TNC, ptr);
-					ptr = strtok(NULL, " \t\n\r");
-				}
-			}
-		
-			if (ptr &&_memicmp(ptr, "PATH", 4) == 0)
+			if (ptr)
 			{
-				p_cmd = strtok(NULL, "\n\r");
-				if (p_cmd) TNC->ProgramPath = _strdup(p_cmd);
+				DecodePTTString(TNC, ptr);
+				ptr = strtok(NULL, " \t\n\r");
 			}
 		}
 
-		// Read Initialisation lines
-
-		while(TRUE)
+		if (ptr &&_memicmp(ptr, "PATH", 4) == 0)
 		{
-			if (GetLine(buf) == 0)
-				return TRUE;
+			p_cmd = strtok(NULL, "\n\r");
+			if (p_cmd) TNC->ProgramPath = _strdup(p_cmd);
+		}
+	}
 
-			strcpy(errbuf, buf);
+	// Read Initialisation lines
 
-			if (memcmp(buf, "****", 4) == 0)
-				return TRUE;
+	while(TRUE)
+	{
+		if (GetLine(buf) == 0)
+			return TRUE;
 
-			ptr = strchr(buf, ';');
-			if (ptr)
-			{
-				*ptr++ = 13;
-				*ptr = 0;
-			}
-			
-			if (_memicmp(buf, "MAXSESSIONS", 11) == 0)
-			{
-				AGW->MaxSessions = atoi(&buf[12]);
-				if (AGW->MaxSessions > 26 ) AGW->MaxSessions = 26;
-			}
-			if (_memicmp(buf, "CONTIMEOUT", 10) == 0)
-				AGW->ConnTimeOut = atoi(&buf[11]) * 10;
-			else
+		strcpy(errbuf, buf);
+
+		if (memcmp(buf, "****", 4) == 0)
+			return TRUE;
+
+		ptr = strchr(buf, ';');
+		if (ptr)
+		{
+			*ptr++ = 13;
+			*ptr = 0;
+		}
+
+		if (_memicmp(buf, "MAXSESSIONS", 11) == 0)
+		{
+			AGW->MaxSessions = atoi(&buf[12]);
+			if (AGW->MaxSessions > 26 ) AGW->MaxSessions = 26;
+		}
+		if (_memicmp(buf, "CONTIMEOUT", 10) == 0)
+			AGW->ConnTimeOut = atoi(&buf[11]) * 10;
+		else
 			if (_memicmp(buf, "UPDATEMAP", 9) == 0)
 				TNC->PktUpdateMap = TRUE;
 			else
-			if (_memicmp(buf, "BEACONAFTERSESSION", 18) == 0) // Send Beacon after each session 
-				TNC->RPBEACON = TRUE;
-			else
-			if (_memicmp(buf, "WINDOW", 6) == 0)
-				TNC->Window = atoi(&buf[7]);
-			else
-			if (_memicmp(buf, "DEFAULTMODEM", 12) == 0) 
-				TNC->AGWInfo->Modem = atoi(&buf[13]);
-			else
-			if (_memicmp(buf, "MODEMCENTER", 11) == 0 || _memicmp(buf, "MODEMCENTRE", 11) == 0)
-				TNC->AGWInfo->CenterFreq = atoi(&buf[12]);
-			else
-			if (standardParams(TNC, buf) == FALSE)
-				strcat(TNC->InitScript, buf);
-		}
+				if (_memicmp(buf, "BEACONAFTERSESSION", 18) == 0) // Send Beacon after each session 
+					TNC->RPBEACON = TRUE;
+				else
+					if (_memicmp(buf, "WINDOW", 6) == 0)
+						TNC->Window = atoi(&buf[7]);
+					else
+						if (_memicmp(buf, "DEFAULTMODEM", 12) == 0) 
+							TNC->AGWInfo->Modem = atoi(&buf[13]);
+						else
+							if (_memicmp(buf, "MODEMCENTER", 11) == 0 || _memicmp(buf, "MODEMCENTRE", 11) == 0)
+								TNC->AGWInfo->CenterFreq = atoi(&buf[12]);
+							else
+								if (standardParams(TNC, buf) == FALSE)
+									strcat(TNC->InitScript, buf);
+	}
 
 
 	return (TRUE);	

@@ -236,7 +236,7 @@ BOOL ACTIVATE_DEST(struct DEST_LIST * DEST)
 		return L2SETUPCROSSLINK(ROUTE);
 	}
 	
-	// We umst be waiting for link to come up
+	// We must be waiting for link to come up
 	
 	return TRUE;
 
@@ -627,9 +627,6 @@ VOID PROCROUTES(struct DEST_LIST * DEST, struct ROUTE * ROUTE, int Qual)
 			if (Index == 0)
 			{
 				//	THIS IS A REFRESH OF BEST - IF THIS ISNT ACTIVE ROUTE, MAKE IT ACTIVE
-	
-				if (DEST->DEST_ROUTE > 1)	// LEAVE IT IF NOT SELECTED OR ALREADY USING BEST
-					DEST->DEST_ROUTE = 1;
 			}
 
 			goto UpdatateThisEntry;
@@ -728,6 +725,8 @@ SORTROUTES:
 		
 		goto SORTROUTES;			//  1 AND 2 MAY NOW BE WRONG!	
 	}
+
+	DEST->DEST_ROUTE = 0;			// OForce re-evaluation.
 }
 
 int COUNTNODES(struct ROUTE * ROUTE)
@@ -1042,7 +1041,8 @@ VOID L3TimerProc()
 		LINK = LINKS;
 		i = MAXLINKS;
 
-		while (i--);
+		
+		while (i--)
 		{
 			if (LINK->LINKTYPE == 3)		// Only if Internode
 			{
@@ -1309,6 +1309,9 @@ VOID REMOVENODE(dest_list * DEST)
 
 	while (DEST->DEST_Q)
 		ReleaseBuffer(Q_REM(&DEST->DEST_Q));
+
+	if (DEST->DEST_STATE & 0x80)	// LOCKED DESTINATION
+		return;
 
 	//	MAY NEED TO CHECK FOR L4 CIRCUITS USING DEST, BUT PROBABLY NOT,
 	//	 AS THEY SHOULD HAVE TIMED OUT LONG AGO

@@ -1601,7 +1601,8 @@ VOID CONNECTREQUEST(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, UINT Appl
 	int Index;
 	char APPLCMD[13] = "";
 
-	memcpy(APPLCMD, APPL->APPLCMD, 13);
+	if (APPL)
+		memcpy(APPLCMD, APPL->APPLCMD, 13);
 
 	memcpy(BPQPARAMS, &L4T1, 2);	// SET DEFAULT T1 IN CASE NOT FROM ANOTHER BPQ NODE
 
@@ -1673,6 +1674,8 @@ VOID CONNECTREQUEST(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, UINT Appl
 					if (memcmp(CMD->String, APP, APPlen) == 0)
 					{
 						// At the moment I only handle connects to appls. May support other node commands later.
+
+						memcpy(APPLCMD, CMD->String, 13);
 
 						if (n < APPL1 + NumberofAppls)
 							goto doAPPLConnect;
@@ -2028,7 +2031,7 @@ TryAgain:
 
 		while (n--)
 		{
-			if (DEST->DEST_COUNT == 0 && DEST->DEST_RTT == 0)		// Not used and not INP3
+			if (DEST->DEST_COUNT == 0 && DEST->DEST_RTT == 0 && (DEST->DEST_STATE & 0x80) == 0)		// Not used and not INP3 and not Appl
 			{
 				if (DEST->NRROUTE[0].ROUT_QUALITY < WorstQual)
 				{
