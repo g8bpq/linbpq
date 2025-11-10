@@ -184,7 +184,13 @@ typedef struct _TRANSPORTENTRY
 	int NRRID;
 	time_t NRRTime;
 
+	time_t ConnectTime;
+	char Direction[16];		// In or Out
+
 	int Service;			// For Paula's Connnect to Service
+	int apiSeq;				// for OARC event reporting
+	time_t lastStatusSentTime;
+
 
 } TRANSPORTENTRY;
 
@@ -737,6 +743,7 @@ typedef struct PORTCONTROL
 	UCHAR * BUSY;				// % Active (Normally DCD active or TX)
 
 	int Hardware;				// TNC H_TYPE. Copied here for access from application context
+	int isRF;					// For API reporting. -1  is unspecified
 
 
 }	PORTCONTROLX, *PPORTCONTROL;
@@ -1004,6 +1011,7 @@ typedef struct _LINKTABLE
 
 	char ApplName[16];
 	time_t lastStatusSentTime;
+	int apiSeq;						// for OARC event reporting
 
 } LINKTABLE;
 

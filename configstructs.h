@@ -83,6 +83,7 @@ struct PORTCONFIG
 	int QtSMPort;
 	int AllowINP3;
 	int EnableINP3;
+	short isRF;
 };
 
 struct ROUTECONFIG

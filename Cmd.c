@@ -2737,7 +2737,7 @@ NoPort:
 		while (cmdCopy[i] >= '0' && cmdCopy[i]<= '9')
 			i++;
 
-		if (cmdCopy[i] != ' ')
+		if (i && cmdCopy[i] != ' ')			// have an all digit param = probably a service
 			goto Downlink;
 		else
 		{

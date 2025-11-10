@@ -1298,6 +1298,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add Paula's Netromx (allows connects to different applications using Node call) (8)
 //	Add Netrom over TCP (8)
 //	Fix FRMR caused by sending SREJ when no frames outstanding (8)
+//	Fix some issues with NetromX connects and Route Selection when running INP3 and NODES routing (9)
+//	Fix connecting to a netrom node with c p node command (10)
 
 
 #define CKernel

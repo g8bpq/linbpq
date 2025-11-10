@@ -73,6 +73,7 @@ void OutgoingL4ConnectionEvent(TRANSPORTENTRY * L4);
 void IncomingL4ConnectionEvent(TRANSPORTENTRY * L4);
 void L4DisconnectEvent(TRANSPORTENTRY * L4, char * Direction, char * Reason);
 VOID TCPNETROMSend(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Frame);
+void L4StatusSeport(TRANSPORTENTRY * L4);
 
 static UINT APPLMASK;
 
@@ -88,6 +89,8 @@ extern int L4CompPaclen;
 extern int L2Compress;
 extern int L2CompMaxframe;
 extern int L2CompPaclen;
+
+int sessionStatusInterval = 300;		// 5 mins
 
 // L4 Flags Values
 
@@ -1128,6 +1131,7 @@ VOID L4TimerProc()
 	TRANSPORTENTRY * L4 = L4TABLE;
 	TRANSPORTENTRY * Partner;
 	int MaxLinks = MAXLINKS;
+	time_t Now = time(NULL);
 
 	while (n--)
 	{
@@ -1136,6 +1140,12 @@ VOID L4TimerProc()
 			L4++;
 			continue;
 		}
+	
+		// Check for Status report time
+
+		if (L4->lastStatusSentTime && (Now - L4->lastStatusSentTime) > sessionStatusInterval)
+			L4StatusSeport(L4);
+
 		
 		//	CHECK FOR L4BUSY SET AND NO LONGER BUSY
 
@@ -2260,6 +2270,14 @@ VOID FRAMEFORUS(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG, int ApplMask,
 			ReleaseBuffer(L3MSG);
 			return;
 		}
+
+		// if connect to service don't send connected to node messsage as service will send own message
+
+//		if (L4->Service)
+//		{
+//			ReleaseBuffer(L3MSG);
+//			return;
+//		}
 
 		Msg = (PDATAMESSAGE)L3MSG;					// reuse input buffer
 

@@ -26,6 +26,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include "asmstrucs.h"
 #include "tncinfo.h"
 #include "cheaders.h"
+#include "kiss.h"
 
 VOID __cdecl Debugprintf(const char * format, ...);
 
@@ -44,7 +45,9 @@ void MQTTReportSession(char * Msg);
 extern int MQTT;
 extern time_t TimeLoaded;
 
-int UDPSeq = 1;
+uint16_t UDPSeq = 1;
+int linkSeq = 1;
+int cctSeq = 1;
 
 extern SOCKET NodeAPISocket;
 extern SOCKADDR_IN UDPreportdest;
@@ -149,6 +152,7 @@ void hookL2SessionAccepted(int Port, char * remotecall, char * ourcall, struct _
 	int udplen;
 
 	L2CONNECTSIN++;
+	LINK->apiSeq = linkSeq++;
 
 	LINK->lastStatusSentTime = LINK->ConnectTime = time(NULL);
 	LINK->bytesTXed = LINK->bytesRXed = LINK->framesResent = LINK->framesRXed = LINK->framesTXed = 0;
@@ -161,8 +165,8 @@ void hookL2SessionAccepted(int Port, char * remotecall, char * ourcall, struct _
 	{
 		LINK->lastStatusSentTime = time(NULL);
 
-		udplen = sprintf(UDPMsg, "{\"@type\":\"LinkUpEvent\", \"node\": \"%s\", \"id\": %d, \"direction\": \"incoming\", \"port\": \"%d\", \"remote\": \"%s\", \"local\": \"%s\"}",
-			NODECALLLOPPED, UDPSeq++, LINK->LINKPORT->PORTNUMBER, LINK->callingCall, LINK->receivingCall);
+		udplen = sprintf(UDPMsg, "{\"@type\":\"LinkUpEvent\", \"node\": \"%s\", \"id\": %d, \"direction\": \"incoming\", \"port\": \"%d\", \"remote\": \"%s\", \"local\": \"%s\", \"isRF\": %s}",
+			NODECALLLOPPED, LINK->apiSeq, LINK->LINKPORT->PORTNUMBER, LINK->callingCall, LINK->receivingCall, (LINK->LINKPORT->isRF)?"true":"false");
 
 //		Debugprintf(UDPMsg);
 
@@ -238,13 +242,14 @@ void hookL2SessionConnected(struct _LINKTABLE * LINK)
 	int udplen;
 
 	L2CONNECTSOUT++;
+	LINK->apiSeq = linkSeq++;
 
 	if (NodeAPISocket)
 	{
 		LINK->lastStatusSentTime = time(NULL);
 
-		udplen = sprintf(UDPMsg, "{\"@type\":\"LinkUpEvent\", \"node\": \"%s\", \"id\": %d, \"direction\": \"outgoing\", \"port\": \"%d\", \"remote\": \"%s\", \"local\": \"%s\"}",
-			NODECALLLOPPED, UDPSeq++, LINK->LINKPORT->PORTNUMBER, LINK->callingCall, LINK->receivingCall);
+		udplen = sprintf(UDPMsg, "{\"@type\":\"LinkUpEvent\", \"node\": \"%s\", \"id\": %d, \"direction\": \"outgoing\", \"port\": \"%d\", \"remote\": \"%s\", \"local\": \"%s\", \"isRF\": %s}",
+			NODECALLLOPPED, LINK->apiSeq, LINK->LINKPORT->PORTNUMBER, LINK->callingCall, LINK->receivingCall, (LINK->LINKPORT->isRF)?"true":"false");
 
 //		Debugprintf(UDPMsg);
 
@@ -268,20 +273,19 @@ void hookL2SessionClosed(struct _LINKTABLE * LINK, char * Reason, char * Directi
 		if (strcmp(Direction, "Out") == 0)
 			udplen = sprintf(UDPMsg, "{\"@type\":\"LinkDownEvent\", \"node\": \"%s\", \"id\": %d, \"direction\": \"outgoing\", \"port\": \"%d\", \"remote\": \"%s\", \"local\": \"%s\","
 			"\"bytesSent\": %d, \"bytesRcvd\": %d, \"frmsSent\": %d, \"frmsRcvd\": %d, \"frmsQueued\": %d, \"frmsResent\": %d, \"reason\": \"%s\","
-			" \"time\": %d, \"upForSecs\": %d, \"frmsQdPeak\": %d}",
-			NODECALLLOPPED, UDPSeq++, LINK->LINKPORT->PORTNUMBER, LINK->receivingCall, LINK->callingCall,
+			" \"time\": %d, \"upForSecs\": %d, \"frmsQdPeak\": %d, \"isRF\": %s}",
+			NODECALLLOPPED, LINK->apiSeq, LINK->LINKPORT->PORTNUMBER, LINK->receivingCall, LINK->callingCall,
 			LINK->bytesTXed , LINK->bytesRXed, LINK->framesTXed, LINK->framesRXed, COUNT_AT_L2(LINK), LINK->framesResent, Reason,
-			(int)Now, (int)Now - LINK->ConnectTime, LINK->maxQueued);
+			(int)Now, (int)Now - LINK->ConnectTime, LINK->maxQueued, (LINK->LINKPORT->isRF)?"true":"false");
 		else
 			udplen = sprintf(UDPMsg, "{\"@type\":\"LinkDownEvent\", \"node\": \"%s\", \"id\": %d, \"direction\": \"incoming\", \"port\": \"%d\", \"remote\": \"%s\", \"local\": \"%s\","
 			"\"bytesSent\": %d, \"bytesRcvd\": %d, \"frmsSent\": %d, \"frmsRcvd\": %d, \"frmsQueued\": %d, \"frmsResent\": %d, \"reason\": \"%s\","
-			" \"time\": %d, \"upForSecs\": %d, \"frmsQdPeak\": %d}",
-			NODECALLLOPPED, UDPSeq++, LINK->LINKPORT->PORTNUMBER, LINK->callingCall, LINK->receivingCall,
+			" \"time\": %d, \"upForSecs\": %d, \"frmsQdPeak\": %d, \"isRF\": %s}",
+			NODECALLLOPPED, LINK->apiSeq, LINK->LINKPORT->PORTNUMBER, LINK->callingCall, LINK->receivingCall,
 			LINK->bytesTXed , LINK->bytesRXed, LINK->framesTXed, LINK->framesRXed, COUNT_AT_L2(LINK), LINK->framesResent, Reason,
-			(int)Now, (int)Now - LINK->ConnectTime, LINK->maxQueued);
+			(int)Now, (int)Now - LINK->ConnectTime, LINK->maxQueued, (LINK->LINKPORT->isRF)?"true":"false");
 
-
-		Debugprintf(UDPMsg);
+//		Debugprintf(UDPMsg);
 
 		sendto(NodeAPISocket, UDPMsg, udplen, 0, (struct sockaddr *)&UDPreportdest, sizeof(UDPreportdest));
 	}
@@ -309,22 +313,21 @@ void hookL2SessionStatus(struct _LINKTABLE * LINK)
 		if (strcmp(LINK->Direction, "Out") == 0)
 			udplen = sprintf(UDPMsg, "{\"@type\":\"LinkStatus\", \"node\": \"%s\", \"id\": %d, \"direction\": \"outgoing\", \"port\": \"%d\", \"remote\": \"%s\", \"local\": \"%s\","
 				"\"bytesSent\": %d, \"bytesRcvd\": %d, \"frmsSent\": %d, \"frmsRcvd\": %d, \"frmsQueued\": %d, \"frmsResent\": %d,"
-				"\"upForSecs\": %d, \"frmsQdPeak\": %d, \"bpsTxMean\": %d, \"bpsRxMean\": %d, \"frmQMax\": %d, \"l2rttMs\": %d}",
-				NODECALLLOPPED, UDPSeq++, LINK->LINKPORT->PORTNUMBER, LINK->receivingCall, LINK->callingCall,
+				"\"upForSecs\": %d, \"frmsQdPeak\": %d, \"bpsTxMean\": %d, \"bpsRxMean\": %d, \"frmQMax\": %d, \"l2rttMs\": %d, \"isRF\": %s}",
+				NODECALLLOPPED, LINK->apiSeq, LINK->LINKPORT->PORTNUMBER, LINK->receivingCall, LINK->callingCall,
 				LINK->bytesTXed, LINK->bytesRXed, LINK->framesTXed, LINK->framesRXed, 0, LINK->framesResent,
-				(int)Now - LINK->ConnectTime, LINK->maxQueued, bpsTx, bpsRx, LINK->intervalMaxQueued, LINK->RTT);
+				(int)Now - LINK->ConnectTime, LINK->maxQueued, bpsTx, bpsRx, LINK->intervalMaxQueued, LINK->RTT, (LINK->LINKPORT->isRF)?"true":"false");
 		else
 			udplen = sprintf(UDPMsg, "{\"@type\":\"LinkStatus\", \"node\": \"%s\", \"id\": %d, \"direction\": \"incoming\", \"port\": \"%d\", \"remote\": \"%s\", \"local\": \"%s\","
 				"\"bytesSent\": %d, \"bytesRcvd\": %d, \"frmsSent\": %d, \"frmsRcvd\": %d, \"frmsQueued\": %d, \"frmsResent\": %d,"
-				"\"upForSecs\": %d, \"frmsQdPeak\": %d, \"bpsTxMean\": %d, \"bpsRxMean\": %d, \"frmQMax\": %d, \"l2rttMs\": %d}",
-				NODECALLLOPPED, UDPSeq++, LINK->LINKPORT->PORTNUMBER, LINK->callingCall, LINK->receivingCall,
+				"\"upForSecs\": %d, \"frmsQdPeak\": %d, \"bpsTxMean\": %d, \"bpsRxMean\": %d, \"frmQMax\": %d, \"l2rttMs\": %d, \"isRF\": %s}",
+				NODECALLLOPPED, LINK->apiSeq, LINK->LINKPORT->PORTNUMBER, LINK->callingCall, LINK->receivingCall,
 				LINK->bytesTXed, LINK->bytesRXed, LINK->framesTXed, LINK->framesRXed, 0, LINK->framesResent,
-				(int)Now - LINK->ConnectTime, LINK->maxQueued, bpsTx, bpsRx, LINK->intervalMaxQueued, LINK->RTT);
+				(int)Now - LINK->ConnectTime, LINK->maxQueued, bpsTx, bpsRx, LINK->intervalMaxQueued, LINK->RTT, (LINK->LINKPORT->isRF)?"true":"false");
 
 		LINK->intervalMaxQueued = 0;
 
-		Debugprintf(UDPMsg);
-
+//		Debugprintf(UDPMsg);
 		sendto(NodeAPISocket, UDPMsg, udplen, 0, (struct sockaddr *)&UDPreportdest, sizeof(UDPreportdest));
 	}
 }
@@ -485,11 +488,17 @@ void IncomingL4ConnectionEvent(TRANSPORTENTRY * L4)
 	char remotecall[64];
 	char ourcall[64];
 	char circuitinfo[32];
+	int Service = L4->Service;
 
 	// CACK sent to CREQ
 
+	L4->apiSeq = cctSeq++;
+	strcpy(L4->Direction, "incoming");
+
 	if (NodeAPISocket)
 	{
+		L4->lastStatusSentTime = time(NULL);
+
 		remotecall[ConvFromAX25(L4->L4TARGET.DEST->DEST_CALL, remotecall)] = 0;
 	//	remotecall[ConvFromAX25(L4->L4USER, remotecall)] = 0;
 		ourcall[ConvFromAX25(L4->L4MYCALL, ourcall)] = 0;
@@ -499,10 +508,16 @@ void IncomingL4ConnectionEvent(TRANSPORTENTRY * L4)
 
 		sprintf(circuitinfo, ":%02x%02x", L4->CIRCUITINDEX, L4->CIRCUITID);
 		strcat(ourcall, circuitinfo);
-		
-		udplen = sprintf(UDPMsg, "{\"@type\": \"CircuitUpEvent\", \"node\": \"%s\", \"id\": %d, \"direction\": \"incoming\","
+
+		if (Service == -1)
+			udplen = sprintf(UDPMsg, "{\"@type\": \"CircuitUpEvent\", \"node\": \"%s\", \"id\": %d, \"direction\": \"incoming\", "
+			"\"remote\": \"%s\", \"local\": \"%s\"}",
+			NODECALLLOPPED, L4->apiSeq, remotecall, ourcall);
+		else
+			udplen = sprintf(UDPMsg, "{\"@type\": \"CircuitUpEvent\", \"node\": \"%s\", \"id\": %d, \"direction\": \"incoming\", "
 			"\"service\": %d, \"remote\": \"%s\", \"local\": \"%s\"}",
-			NODECALLLOPPED, UDPSeq++, L4->Service, remotecall, ourcall);
+			NODECALLLOPPED, L4->apiSeq, Service, remotecall, ourcall);
+
 
 //		Debugprintf(UDPMsg);
 		sendto(NodeAPISocket, UDPMsg, udplen, 0, (struct sockaddr *)&UDPreportdest, sizeof(UDPreportdest));
@@ -517,11 +532,18 @@ void OutgoingL4ConnectionEvent(TRANSPORTENTRY * L4)
 	char remotecall[64];
 	char ourcall[64];
 	char circuitinfo[32];
+	int Service = L4->Service;
 
 	// CACK received
 
+	strcpy(L4->Direction, "outgoing");
+
+	L4->apiSeq = cctSeq++;
+
 	if (NodeAPISocket)
 	{
+		L4->lastStatusSentTime = time(NULL);
+
 		remotecall[ConvFromAX25(L4->L4TARGET.DEST->DEST_CALL, remotecall)] = 0;
 	//	remotecall[ConvFromAX25(L4->L4USER, remotecall)] = 0;
 		ourcall[ConvFromAX25(L4->L4MYCALL, ourcall)] = 0;
@@ -532,9 +554,14 @@ void OutgoingL4ConnectionEvent(TRANSPORTENTRY * L4)
 		sprintf(circuitinfo, ":%02x%02x", L4->CIRCUITID, L4->CIRCUITINDEX);
 		strcat(ourcall, circuitinfo);
 
-		udplen = sprintf(UDPMsg, "{\"@type\": \"CircuitUpEvent\", \"node\": \"%s\", \"id\": %d, \"direction\": \"outgoing\","
+		if (Service == -1)
+			udplen = sprintf(UDPMsg, "{\"@type\": \"CircuitUpEvent\", \"node\": \"%s\", \"id\": %d, \"direction\": \"outgoing\", "
+			"\"remote\": \"%s\", \"local\": \"%s\"}",
+			NODECALLLOPPED, L4->apiSeq, remotecall, ourcall);
+		else
+			udplen = sprintf(UDPMsg, "{\"@type\": \"CircuitUpEvent\", \"node\": \"%s\", \"id\": %d, \"direction\": \"outgoing\", "
 			"\"service\": %d, \"remote\": \"%s\", \"local\": \"%s\"}",
-			NODECALLLOPPED, UDPSeq++, L4->Service, remotecall, ourcall);
+			NODECALLLOPPED, L4->apiSeq, Service, remotecall, ourcall);
 
 //		Debugprintf(UDPMsg);
 		sendto(NodeAPISocket, UDPMsg, udplen, 0, (struct sockaddr *)&UDPreportdest, sizeof(UDPreportdest));
@@ -592,7 +619,7 @@ void L4DisconnectEvent(TRANSPORTENTRY * L4, char * Direction, char * Reason)
 
 		udplen = sprintf(UDPMsg, "{\"@type\": \"CircuitDownEvent\", \"node\": \"%s\", \"id\": %d, \"direction\": \"%s\","
 			"\"service\": %d, \"remote\": \"%s\", \"local\": \"%s\", \"segsSent\": %d, \"segsRcvd\": %d, \"segsResent\": %d, \"segsQueued\": %d, \"reason\": \"%s\"}",
-			NODECALLLOPPED, UDPSeq++, Direction, 0, remotecall, ourcall,L4->segsSent, L4->segsRcvd, L4->segsResent, Count, Reason);
+			NODECALLLOPPED, L4->apiSeq, Direction, 0, remotecall, ourcall,L4->segsSent, L4->segsRcvd, L4->segsResent, Count, Reason);
 
 //		Debugprintf(UDPMsg);
 		sendto(NodeAPISocket, UDPMsg, udplen, 0, (struct sockaddr *)&UDPreportdest, sizeof(UDPreportdest));
@@ -608,11 +635,16 @@ void L4StatusSeport(TRANSPORTENTRY * L4)
 	char nodecall[16];
 	char circuitinfo[32];
 	int Count;
+	time_t Now = time(NULL);
+	int Service = L4->Service;
 
-	// CACK received
+
+
+	// Regular Status reports
 
 	if (NodeAPISocket)
 	{
+		L4->lastStatusSentTime = Now;
 		nodecall[ConvFromAX25(L4->L4TARGET.DEST->DEST_CALL, nodecall)] = 0;
 		remotecall[ConvFromAX25(L4->L4USER, remotecall)] = 0;
 		ourcall[ConvFromAX25(L4->L4MYCALL, ourcall)] = 0;
@@ -628,10 +660,15 @@ void L4StatusSeport(TRANSPORTENTRY * L4)
 			Count = CountFramesQueuedOnSession(L4->L4CROSSLINK);
 		else
 			Count = CountFramesQueuedOnSession(L4);
-		
-		udplen = sprintf(UDPMsg, "{\"@type\": \"CircuitStatus\", \"node\": \"%s\", \"id\": %d, \"direction\": \"outgoing\","
-			"\"service\": %d, \"remote\": %s, \"local\": \"%s\", \"segsSent\": %d, \"segsRcvd\": %d, \"segsResent\": %d, \"segsQueued\": %d}",
-			NODECALLLOPPED, UDPSeq++, 0, remotecall, ourcall,L4->segsSent, L4->segsRcvd, L4->segsResent, Count);
+
+		if (Service == -1)
+			udplen = sprintf(UDPMsg, "{\"@type\": \"CircuitStatus\", \"node\": \"%s\", \"id\": %d, \"direction\": \"%s\","
+			"\"upForSecs\": %d,\"remote\": \"%s\", \"local\": \"%s\", \"segsSent\": %d, \"segsRcvd\": %d, \"segsResent\": %d, \"segsQueued\": %d}",
+			NODECALLLOPPED, L4->apiSeq, L4->Direction, Now - L4->ConnectTime, remotecall, ourcall,L4->segsSent, L4->segsRcvd, L4->segsResent, Count);
+		else
+			udplen = sprintf(UDPMsg, "{\"@type\": \"CircuitStatus\", \"node\": \"%s\", \"id\": %d, \"direction\": \"%s\","
+			"\"upForSecs\": %d, \"service\": %d, \"remote\": \"%s\", \"local\": \"%s\", \"segsSent\": %d, \"segsRcvd\": %d, \"segsResent\": %d, \"segsQueued\": %d}",
+			NODECALLLOPPED, L4->apiSeq, L4->Direction, Now - L4->ConnectTime, Service, remotecall, ourcall,L4->segsSent, L4->segsRcvd, L4->segsResent, Count);
 
 //		Debugprintf(UDPMsg);
 		sendto(NodeAPISocket, UDPMsg, udplen, 0, (struct sockaddr *)&UDPreportdest, sizeof(UDPreportdest));
@@ -713,7 +750,12 @@ void APIL2Trace(struct _MESSAGE * Message, char * Dirn)
 	int UFlag = 0;
 	int NS;
 	int NR;
+	struct PORTCONTROL * PORT = GetPortTableEntryFromPortNum(Message->PORT);
+	time_t Now = time(NULL);
 
+
+	if (PORT == 0)
+		return;
 
 	if ((Message->ORIGIN[6] & 1) == 0)	// Digis
 		return;
@@ -733,7 +775,6 @@ void APIL2Trace(struct _MESSAGE * Message, char * Dirn)
 
 	if ((Message->ORIGIN[6] & 1) == 0)	// Digis - ignore for now
 		return;
-
 
 	if ((Message->DEST[6] & 0x80) == 0 && (Message->ORIGIN[6] & 0x80) == 0)
 		strcpy(CR, "V1");
@@ -857,9 +898,9 @@ void APIL2Trace(struct _MESSAGE * Message, char * Dirn)
 	// Common to all frame types
 
 	udplen = snprintf(UDPMsg, 2048, 
-		"{\"@type\": \"L2Trace\", \"dirn\": \"%s\", \"reportFrom\": \"%s\", \"port\": \"%d\", \"srce\": \"%s\", \"dest\": \"%s\", \"ctrl\": %d,"
+		"{\"@type\": \"L2Trace\", \"serial\": %d, \"time\": %d, \"dirn\": \"%s\", \"isRF\": %s, \"reportFrom\": \"%s\", \"port\": \"%d\", \"srce\": \"%s\", \"dest\": \"%s\", \"ctrl\": %d,"
 		"\"l2Type\": \"%s\", \"modulo\": 8, \"cr\": \"%s\"",
-	  Dirn, NODECALLLOPPED, Message->PORT, srcecall, destcall, Message->CTL, Type, CR);
+		UDPSeq++, (int)Now, Dirn, (PORT->isRF)?"true":"false", NODECALLLOPPED, Message->PORT, srcecall, destcall, Message->CTL, Type, CR);
 
 	if (UIFlag)
 	{
@@ -917,6 +958,48 @@ void APIL2Trace(struct _MESSAGE * Message, char * Dirn)
 }
 
 
+ //"@type" = @L3Trace, reportFrom, time, dirn, 
+
+void NetromTCPTrace(struct _MESSAGE * Message, char * Dirn)
+{
+	char UDPMsg[2048];	
+	int udplen;
+	time_t Now = time(NULL);
+	int iLen = Message->LENGTH - (15 + MSGHDDRLEN);
+	int isRF = 0;
+
+
+	udplen = snprintf(UDPMsg, 2048, 
+		"{\"@type\": \"L3Trace\", \"serial\": %d, \"time\": %d, \"dirn\": \"%s\", \"isRF\": %s, \"reportFrom\": \"%s\", \"port\": %d",
+		UDPSeq++, (int)Now, Dirn, (isRF)?"true":"false", NODECALLLOPPED, Message->PORT);
+
+
+	udplen += snprintf(&UDPMsg[udplen], 2048 - udplen,
+		", \"ilen\": %d, \"pid\": %d, \"ptcl\": \"%s\"",
+		iLen, Message->PID, PIDtoText(Message->PID));
+
+	if (Message->PID == NETROM_PID)
+	{
+		int n = decodeNETROMIFrame(Message->L2DATA, iLen, &UDPMsg[udplen], 2048 - udplen);
+
+		if (n == 0)
+			return;				// Can't decode so don't trace anything;
+
+		udplen += n;
+	}
+
+
+
+	UDPMsg[udplen++] = '}';
+	UDPMsg[udplen] = 0;
+//	Debugprintf(UDPMsg);
+	sendto(NodeAPISocket, UDPMsg, udplen, 0, (struct sockaddr *)&UDPreportdest, sizeof(UDPreportdest));
+
+}
+
+
+
+
 int decodeNETROMUIMsg(unsigned char * Msg, int iLen, char * Buffer, int BufferLen)
 {
 	int Len = 0;
@@ -943,7 +1026,7 @@ int decodeNETROMUIMsg(unsigned char * Msg, int iLen, char * Buffer, int BufferLe
 
 	Msg += 7;			// to first field
 
-	Len = snprintf(Buffer, BufferLen, ", \"l3Type\": \"Routing info\", \"type\": \"NODES\", \"nodes\": [");
+	Len = snprintf(Buffer, BufferLen, ", \"l3Type\": \"Routing info\", \"type\": \"NODES\", \"fromAlias\": \"%s\", \"nodes\": [", Alias);
 
 	iLen -= 7;					//Header, mnemonic and signature length
 

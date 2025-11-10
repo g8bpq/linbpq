@@ -38,6 +38,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include "cheaders.h"
 #include "tncinfo.h"
 #include "mqtt.h"
+#include "kiss.h"
 
 VOID L2Routine(struct PORTCONTROL * PORT, PMESSAGE Buffer);
 VOID ProcessIframe(struct _LINKTABLE * LINK, PDATAMESSAGE Buffer);
@@ -1017,6 +1018,7 @@ BOOL Start()
 		PORT->INP3ONLY = PortRec->INP3ONLY;
 		PORT->ALLOWINP3 = PortRec->AllowINP3;
 		PORT->ENABLEINP3 = PortRec->EnableINP3;
+		PORT->isRF = PortRec->isRF;
 
 		PORT->PORTWINDOW = (UCHAR)PortRec->MAXFRAME;
 
@@ -2768,6 +2770,7 @@ VOID INITIALISEPORTS()
 {
 	char INITMSG[80];
 	struct PORTCONTROL * PORT = PORTTABLE;
+	struct PORTCONTROL * SAVEPORT;
 	
 	while (PORT)
 	{
@@ -2775,7 +2778,68 @@ VOID INITIALISEPORTS()
 		WritetoConsoleLocal(INITMSG);
 
 		PORT->PORTINITCODE(PORT);
-		PORT = PORT->PORTPOINTER;
+		SAVEPORT=PORT;
+
+		// See if it is an RF port
+
+		if (PORT->isRF == -1)			// Not set
+		{
+			// Try to determine if RF
+
+			if (PORT->PORTTYPE == 0)
+			{
+				struct KISSINFO * KISS = (struct KISSINFO *)PORT;
+				NPASYINFO Port;
+
+				if (KISS->FIRSTPORT && KISS->FIRSTPORT != KISS)
+				{
+					// Not first port on device
+
+					PORT = (struct PORTCONTROL *)KISS->FIRSTPORT;
+				}
+
+				Port = KISSInfo[PORT->PORTNUMBER];
+
+				if (Port)
+				{
+					// KISS like
+
+					if (PORT->PORTIPADDR.s_addr || PORT->KISSSLAVE)
+					{
+						// KISS over UDP or TCP
+
+						if (PORT->KISSTCP)
+							PORT->isRF = 1;				// Assume TCP is RF (software modem)
+						else
+							PORT->isRF = 0;				// Assuem UDP is Internet
+					}
+					else
+						PORT->isRF = 1;		// Serial port
+				}		
+			}
+			else if (PORT->PORTTYPE == 14)		// Loopback 
+				PORT->isRF = 0;
+
+			else if (PORT->PORTTYPE == 16)		// External
+			{
+				if (PORT->PROTOCOL == 10)		// 'HF' Port
+				{
+					struct TNCINFO * TNC = TNCInfo[PORT->PORTNUMBER];
+
+					if (TNC && TNC->Hardware == H_TELNET)
+						PORT->isRF = 0;
+					else
+						PORT->isRF = 1;		// ARDOP etc
+				}
+				else
+				{
+					// External but not HF - AXIP, BPQETHER VKISS, ??
+
+					PORT->isRF = 0;
+				}
+			}
+		}
+		PORT = SAVEPORT->PORTPOINTER;
 	}
 }
 

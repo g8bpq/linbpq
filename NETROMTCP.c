@@ -59,6 +59,9 @@ BOOL FindNeighbour(UCHAR * Call, int Port, struct ROUTE ** REQROUTE);
 VOID NETROMMSG(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG);
 int BPQTRACE(MESSAGE * Msg, BOOL TOAPRS);
 VOID L3LINKCLOSED(struct _LINKTABLE * LINK, int Reason);
+void NetromTCPTrace(struct _MESSAGE * Message, char * Dirn);
+
+extern SOCKET NodeAPISocket;
 
 struct NRTCPMsg
 {
@@ -210,8 +213,11 @@ int NETROMOpenConnection(struct ROUTE * Route)
 {
 	struct NRTCPSTRUCT * Info;
 	struct ConnectionInfo * sockptr;
+	char farCall[10];
 
-	Debugprintf("Opening NRTCP Connection");
+	farCall[ConvFromAX25(Route->NEIGHBOUR_CALL, farCall)] = 0;
+
+	Debugprintf("Opening NRTCP Connection to %s", farCall);
 
 	if (Route->TCPSession)
 	{
@@ -232,7 +238,7 @@ int NETROMOpenConnection(struct ROUTE * Route)
 			return 0;
 
 		Info = Route->TCPSession = NRTCPInfo[sockptr->Number];
-		memcpy(Info->Call, MYNETROMCALL, 10);
+		memcpy(Info->Call, farCall, 10);
 		Route->NEIGHBOUR_LINK = Info->LINK;
 
 		Info->Route = Route;
@@ -455,6 +461,7 @@ checkLen:
 
 	if (memcmp(Info->Call, Msg->Call, 10) != 0)
 	{
+		Debugprintf("Mismatch");
 		// something wrong - maybe connection reused
 	}
 
@@ -491,6 +498,10 @@ checkLen:
 		time(&Buffer->Timestamp);
 
 		BPQTRACE(Buffer, FALSE);
+		
+		if(NodeAPISocket)
+			NetromTCPTrace(Buffer, "rcvd");
+
 		ReleaseBuffer(Buffer);
 	}
 
@@ -535,7 +546,7 @@ VOID TCPNETROMSend(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Frame)
 	{
 		Buffer->CHAIN = 0;
 		Buffer->CTL = 0;
-		Buffer->PORT = Route->NEIGHBOUR_PORT | 128;		// TX Flag
+		Buffer->PORT = Route->NEIGHBOUR_PORT;
 
 		ConvToAX25(Route->TCPSession->Call, Buffer->DEST);
 		ConvToAX25(MYNETROMCALL, Buffer->ORIGIN);
@@ -546,7 +557,13 @@ VOID TCPNETROMSend(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Frame)
 		Buffer->LENGTH = DataLen + 15 + MSGHDDRLEN;
 		time(&Buffer->Timestamp);
 
+		if(NodeAPISocket)
+			NetromTCPTrace(Buffer, "sent");
+
+		Buffer->PORT = Route->NEIGHBOUR_PORT | 128;		// TX Flag
 		BPQTRACE(Buffer, FALSE);
+
+
 		ReleaseBuffer(Buffer);
 	}
 
