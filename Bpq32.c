@@ -1300,6 +1300,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix FRMR caused by sending SREJ when no frames outstanding (8)
 //	Fix some issues with NetromX connects and Route Selection when running INP3 and NODES routing (9)
 //	Fix connecting to a netrom node with c p node command (10)
+//	Add validation of INP3 RTT messages and various INP3 fixes (12)
+//	Change NetromX connect syntax to Service@Node to fix passing commands to local applications (12)
 
 
 #define CKernel
@@ -1540,7 +1542,6 @@ extern char ReportDest[7];
 
 extern UCHAR ConfigDirectory[260];
 
-extern uint64_t INP3timeLoadedMS;
 
 VOID __cdecl Debugprintf(const char * format, ...);
 VOID __cdecl Consoleprintf(const char * format, ...);
@@ -2480,8 +2481,6 @@ FirstInit()
 		GetModuleFileNameExPtr = (FARPROCX)GetProcAddress(ExtDriver,"GetModuleFileNameExA");
 		EnumProcessesPtr = (FARPROCX)GetProcAddress(ExtDriver,"EnumProcesses");
 	}
-
-	INP3timeLoadedMS = GetTickCount();
 
 	srand(time(NULL));
 	

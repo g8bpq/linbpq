@@ -838,13 +838,14 @@ BOOL cATTACHTOBBS(TRANSPORTENTRY * Session, UINT Mask, int Paclen, int * AnySess
 	return FALSE;
 }
 
-void ConnecttoService(TRANSPORTENTRY * Session, char * Bufferptr, int ServiceIndex, char * Node, int Stay)
+void ConnecttoService(TRANSPORTENTRY * Session, char * Bufferptr, int Service, char * Node, int Stay)
 {
 	struct DEST_LIST * Dest = DESTS;
 	int n = MAXDESTS;
 	int gotDest = 0;
 	unsigned char axcall[7];
-	int Service = -1;
+	char cmdName[80];
+	int i;
 
 	// Make Sure Node is Known
 
@@ -889,9 +890,20 @@ void ConnecttoService(TRANSPORTENTRY * Session, char * Bufferptr, int ServiceInd
 
 	Session->STAYFLAG = Stay;
 
-	Service = SERVICES[ServiceIndex].ServiceNo;
+	// Get command name if a named command
 
-	Bufferptr = Cmdprintf(Session, Bufferptr, "Connecting to Service %s on Node %s \r", SERVICES[ServiceIndex].ServiceName, Node);
+	sprintf(cmdName, "%d", Service);	// default to number
+
+	for (i = 0; i < NUMBEROFSSERVICES; i++)
+	{
+		if (SERVICES[i].ServiceNo == Service)
+		{
+			strcpy(cmdName, SERVICES[i].ServiceName);
+			break;
+		}
+	}
+
+	Bufferptr = Cmdprintf(Session, Bufferptr, "Connecting to Service %s on Node %s \r", cmdName, Node);
 
 	DoNetromConnect(Session, Bufferptr, Dest, 0, Service);
 
@@ -930,7 +942,7 @@ int checkifService(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, s
 	{
 		if (strcmp(APPName, SERVICES[i].ServiceName) == 0)
 		{
-			ConnecttoService(Session, Bufferptr, i, ptr, Stay);
+			ConnecttoService(Session, Bufferptr, SERVICES[i].ServiceNo, ptr, Stay);
 			return 1;
 		}
 	}
@@ -948,7 +960,6 @@ VOID APPLCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct 
 	char * ptr1, *ptr2;
 	int n = 12;
 	BOOL Stay = FALSE;
-	char * ptr, *Context;
 
 	//	Copy Appl and Null Terminate
 
@@ -967,14 +978,17 @@ VOID APPLCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct 
 		return;
 	}
 
-	ptr = strtok_s(CmdTail, " ", &Context);
 
-	// ptr is first param. Context is rest of string;
+	if (CmdTail[0] == 'S')
+		Stay = TRUE;
 
+	// could be Node for NETROMX connect or S flag
+		
+	// We now use service@node, so can't get here
+
+/*
 	if (ptr)
 	{
-		// could be Node for NETROMX connect or S flag
-		
 		int i;
 		
 		if (strlen(ptr) > 1)
@@ -983,6 +997,8 @@ VOID APPLCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct 
 				Session->STAYFLAG = Stay;
 
 			// See if APPL is one of Paula's service
+
+
 			
 			for (i = 0; i < NUMBEROFSSERVICES; i++)
 			{
@@ -1003,7 +1019,7 @@ VOID APPLCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct 
 		else if (ptr[0] == 'S')
 			Session->STAYFLAG = Stay;
 	}
-		
+*/		
 	memcpy(Session->APPL, CMD->String, 12);
 
 	//	SEE IF THERE IS AN ALIAS DEFINDED FOR THIS COMMAND
@@ -2572,6 +2588,56 @@ VOID CMDC00(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct C
 		return;
 	}
 
+	// See if NETROMX connect c service@node
+
+	if (strchr(ptr, '@'))
+	{
+		// We now use service@node, unlike xr
+
+		char * Context1;
+		
+		char * Cmd = strtok_s(ptr, "@", &Context1);
+		char * Node = strtok_s(NULL, " ", &Context1);
+		int i;
+		int Stay = 0;
+
+		if (Context1 && Context1[0] == 'S')
+			Session->STAYFLAG = Stay;
+				
+		for (i = 0; i < NUMBEROFSSERVICES; i++)
+		{
+			if (strcmp(Cmd, SERVICES[i].ServiceName) == 0)
+			{
+				if (Node)
+				{
+					ConnecttoService(Session, Bufferptr, SERVICES[i].ServiceNo, Node, Stay);
+					return;
+				}
+			}
+		}
+
+		// May be numeric service
+
+		for (i = 0; i < strlen(Cmd); i++)
+		{
+			if (!isdigit(Cmd[i]))
+				break;
+		}
+
+		if (i == strlen(Cmd))
+		{
+			if (Node)
+			{
+				ConnecttoService(Session, Bufferptr, atoi(Cmd), Node, Stay);
+				return;
+			}
+		}
+
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Invalid NetromX command\r");
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
 	Port = atoi(ptr);
 	
 	if (Port)
@@ -2671,7 +2737,6 @@ NoPort:
 
 	//	SEE IF CALL TO ANY OF OUR HOST SESSIONS - UNLESS DIGIS SPECIFIED
 
-//	if (axcalls[7] == 0 && axcalls[9])
 	if (axcalls[7] == 0)
 	{
 		//	If this connect is as a result of a command alias, don't check appls or we will loop
@@ -2723,33 +2788,7 @@ NoPort:
 		}
 	}
 
-	// if no digis see if connect to known node.
-	
-	// But now could have a single numeric param as a service number (Paula's Netromx)
-	// cmdCopy is command tail (after call)
-
-	// Make sure field is numeric
-
-	if (cmdCopy[0] != ' ')
-	{
-		i = 0;
-
-		while (cmdCopy[i] >= '0' && cmdCopy[i]<= '9')
-			i++;
-
-		if (i && cmdCopy[i] != ' ')			// have an all digit param = probably a service
-			goto Downlink;
-		else
-		{
-			if (i > 0)			// Some digits
-			{
-				haveService = 1;
-				Service = atoi(cmdCopy);
-			}
-		}
-	}
-
-	if (axcalls[7] == 0 || haveService)
+	if (axcalls[7] == 0)
 	{
 		//	SEE IF CALL TO ANOTHER NODE 
 
@@ -2792,9 +2831,6 @@ Downlink:
 		//	L2 NEEDS PORT NUMBER
 
 		Bufferptr = Cmdprintf(Session, Bufferptr, "Downlink connect needs port number - C P CALLSIGN\r");
-
-		// Send Port List
-
 		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 		return;
 	}
@@ -5082,6 +5118,7 @@ VOID DoTheCommand(TRANSPORTENTRY * Session)
 	int n;
 	int i, Service = -1;
 	char * Cmd, *Node, *Context;
+	int Stay = 0;
 
 	ptr1 = &COMMANDBUFFER[0];		//
 
@@ -5176,28 +5213,47 @@ VOID DoTheCommand(TRANSPORTENTRY * Session)
 
 	// See if a NETROMX Service
 
-	Cmd = strtok_s(ptr1, " ", &Context);
-	Node = strtok_s(NULL, " ", &Context);
-		
-	for (i = 0; i < NUMBEROFSSERVICES; i++)
+	// We now use service@node, unlike xr
+
+	if (strchr(ptr1, '@'))
 	{
-		if (strcmp(Cmd, SERVICES[i].ServiceName) == 0)
+		Cmd = strtok_s(ptr1, "@", &Context);
+		Node = strtok_s(NULL, " ", &Context);
+
+		if (Cmd && Node)
 		{
-			int Stay = 0;
-			
 			if (Context && Context[0] == 'S')
 				Session->STAYFLAG = Stay;
 
-			if (Node)
+			for (i = 0; i < NUMBEROFSSERVICES; i++)
 			{
-				ConnecttoService(Session, ReplyPointer, i, Node, Stay);
+				if (strcmp(Cmd, SERVICES[i].ServiceName) == 0)
+				{
+					ConnecttoService(Session, ReplyPointer, SERVICES[i].ServiceNo, Node, Stay);
+					return;
+				}
+			}
+
+			// May be numeric service
+
+			for (i = 0; i < strlen(Cmd); i++)
+			{
+				if (!isdigit(Cmd[i]))
+					break;
+			}
+
+			if (i == strlen(Cmd))
+			{
+				ConnecttoService(Session, ReplyPointer, atoi(Cmd), Node, Stay);
 				return;
 			}
-		
-			// Connecting to service on local node - msy be possible sometime
 		}
-	}
 
+		ReplyPointer = Cmdprintf(Session, ReplyPointer, "Invalid NetromX command\r");
+		SendCommandReply(Session, REPLYBUFFER, (int)(ReplyPointer - (char *)REPLYBUFFER));
+		return;
+
+	}
 	Session->BADCOMMANDS++;
 
 	if (Session->BADCOMMANDS > 6)			// TOO MANY ERRORS
@@ -5214,19 +5270,19 @@ VOID DoTheCommand(TRANSPORTENTRY * Session)
 	ptr1 += CMDERRLEN;
 
 	SendCommandReply(Session, Buffer, (int)(ptr1 - (char *)Buffer));
-}
+	}
 
 
-VOID StatsTimer()
-{
-	struct PORTCONTROL * PORT = PORTTABLE;
-	uint64_t sum, sum2;
-
-	// Interval is 60 secs
-
-	while(PORT)
+	VOID StatsTimer()
 	{
-		int index = PORT->StatsPointer++;
+		struct PORTCONTROL * PORT = PORTTABLE;
+		uint64_t sum, sum2;
+
+		// Interval is 60 secs
+
+		while(PORT)
+		{
+			int index = PORT->StatsPointer++;
 
 		if (index == 1439)
 			PORT->StatsPointer = 0;		// Cyclic through 24 hours (1440 Mins)

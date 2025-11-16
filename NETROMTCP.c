@@ -110,7 +110,7 @@ struct ConnectionInfo * AllocateNRTCPRec()
 			sockptr->SocketActive = TRUE;
 			sockptr->ConnectTime = sockptr->LastSendTime = time(NULL);
 
-			Debugprintf("NRTCP Allocated %d", i);
+//			Debugprintf("NRTCP Allocated %d", i);
 			return sockptr;
 		}
 	}
@@ -217,7 +217,7 @@ int NETROMOpenConnection(struct ROUTE * Route)
 
 	farCall[ConvFromAX25(Route->NEIGHBOUR_CALL, farCall)] = 0;
 
-	Debugprintf("Opening NRTCP Connection to %s", farCall);
+//	Debugprintf("Opening NRTCP Connection to %s", farCall);
 
 	if (Route->TCPSession)
 	{
@@ -366,14 +366,14 @@ void NETROMConnectionAccepted(struct ConnectionInfo * sockptr)
 	// Not sure we can do much here until first message arrives with callsign
 
 	sockptr->Connected = TRUE;
-	Debugprintf("NRTCP Connection Accepted");
+//	Debugprintf("NRTCP Connection Accepted");
 }
 
 void NETROMConnected(struct ConnectionInfo * sockptr, SOCKET sock, struct NRTCPSTRUCT * Info)
 {
 	// Connection Complete
 
-	Debugprintf("NRTCP Connected");
+//	Debugprintf("NRTCP Connected");
 
 	sockptr->Connecting = FALSE;
 	sockptr->Connected = TRUE;
@@ -428,7 +428,7 @@ checkLen:
 
 		// This must be an incoming connection as Call is set before calling so need to find route record and set things up.
 
-		Debugprintf("New NRTCP Connection from %s", Msg->Call);
+//		Debugprintf("New NRTCP Connection from %s", Msg->Call);
 
 		memcpy(Info->Call, Msg->Call, 10);
 
@@ -461,8 +461,13 @@ checkLen:
 
 	if (memcmp(Info->Call, Msg->Call, 10) != 0)
 	{
-		Debugprintf("Mismatch");
-		// something wrong - maybe connection reused
+		Debugprintf("NRTCP Mismatch - closing connection");
+	
+		closesocket(sockptr->socket);
+		sockptr->SocketActive = FALSE;
+		memset(sockptr, 0, sizeof(struct ConnectionInfo)); 
+		Info->Call[0] = 0;
+		return 0;
 	}
 
 	// Format as if come from an ax.25 link
@@ -593,6 +598,7 @@ void NETROMConnectionLost(struct ConnectionInfo * sockptr)
 			Route->TCPSession = 0;
 
 		Info->Call[0] = 0;
+		Info->LINK->L2STATE = 0;
 	}
 
 	sockptr->SocketActive = FALSE;

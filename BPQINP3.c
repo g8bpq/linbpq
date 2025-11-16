@@ -35,8 +35,6 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include <fcntl.h>					 
 //#include "vmm.h"
 
-uint64_t INP3timeLoadedMS = 0;
-
 extern int DEBUGINP3;
 
 VOID SendNegativeInfo();
@@ -64,11 +62,16 @@ static VOID SendNetFrame(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Frame)
 
 typedef struct _RTTMSG
 {
-	UCHAR ID[7];
-	UCHAR TXTIME[11];
-	UCHAR SMOOTHEDRTT[11];
-	UCHAR LASTRTT[11];
-	UCHAR POINTER[11];
+	UCHAR ID[6];
+	UCHAR Space1;
+	UCHAR TXTIME[10];
+	UCHAR Space2;
+	UCHAR SMOOTHEDRTT[10];
+	UCHAR Space3;
+	UCHAR LASTRTT[10];
+	UCHAR Space4;
+	UCHAR RTTID[10];
+	UCHAR Space5;
 	UCHAR ALIAS[7];
 	UCHAR VERSION[12];
 	UCHAR SWVERSION[9];
@@ -109,6 +112,8 @@ extern int MaxHops;
 extern int RTTInterval;			// 4 Minutes
 int RTTRetries = 2;
 int RTTTimeout = 6;				// 1 Min (Horizon is 1 min)
+
+uint32_t RTTID = 1;
 
 VOID InitialiseRTT()
 {
@@ -161,10 +166,11 @@ VOID DeleteINP3Routes(struct ROUTE * Route)
 	Route->BCTimer = 0;
 	Route->Status = 0;
 	Route->Timeout = 0;
+	Route->NeighbourSRTT = 0;
 
 	Dest--;
 
-	// Delete any Dest entries via this Route
+	// Delete any Dest entries via this Route 
 
 	for (i=0; i < MAXDESTS; i++)
 	{
@@ -340,8 +346,8 @@ VOID TellINP3LinkSetupFailed(struct ROUTE * Route)
 
 VOID ProcessRTTReply(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Buff)
 {
-	int RTT;
-	unsigned int OrigTime;
+	uint32_t RTT;
+	uint32_t OrigTime;
 
 	char Normcall[10];
 
@@ -349,10 +355,10 @@ VOID ProcessRTTReply(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Buff)
 
 	Route->Timeout = 0;			// Got Response
 	
-	sscanf(&Buff->L4DATA[6], "%d", &OrigTime);
-	RTT = (int)((GetTickCount() - INP3timeLoadedMS) / 10 - (OrigTime));		// We work internally in mS
+	sscanf(&Buff->L4DATA[6], "%u", &OrigTime);
+	RTT = GetTickCountINP3() - OrigTime;		// We work internally in mS
 
-	if (RTT > 60000)
+	if (RTT > 60000 || RTT < 0)
 		return;					// Ignore if more than 60 secs (why ??)
 
 	Route->RTT = RTT;
@@ -890,8 +896,8 @@ VOID UpdateRoute(struct DEST_LIST * Dest, struct INP3_DEST_ROUTE_ENTRY * ROUTEPT
 
 VOID ProcessRTTMsg(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Buff, int Len, int Port)
 {
-	int OtherRTT;
-	int Dummy;
+	uint32_t OtherRTT;
+	uint32_t Dummy;
 	char * ptr;
 	struct _RTTMSG * RTTMsg = (struct _RTTMSG *)&Buff->L4DATA[0];
 	char Normcall[10];
@@ -920,18 +926,28 @@ VOID ProcessRTTMsg(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Buff, int Len
 		return;						// We don't want to use INP3
 	}
 
-	// Extract other end's SRTT
+	// Basic Validation - look for spaces in the right place
 
-	// Get SWVERSION to see if other end is old (Buggy) BPQ
-
-	if (memcmp(RTTMsg->SWVERSION, "BPQ32001 ", 9) == 0)
-		Route->OldBPQ = 1;
+	if ((RTTMsg->Space1 | RTTMsg->Space2 | RTTMsg->Space3 | RTTMsg->Space4 | RTTMsg->Space5) != ' ')
+	{
+		Debugprintf("Corrupt INP3 RTT Message %s", &Buff->L4DATA[0]);
+	}
 	else
-		Route->OldBPQ = 0;
+	{
+		// Extract other end's SRTT
 
-	sscanf(&Buff->L4DATA[6], "%d %d", &Dummy, &OtherRTT);
+		// Get SWVERSION to see if other end is old (Buggy) BPQ
 
-	Route->NeighbourSRTT = OtherRTT;
+		if (memcmp(RTTMsg->SWVERSION, "BPQ32001 ", 9) == 0)
+			Route->OldBPQ = 1;
+		else
+			Route->OldBPQ = 0;
+
+		sscanf(&Buff->L4DATA[6], "%u %u", &Dummy, &OtherRTT);
+
+		if (OtherRTT < 60000)		// Don't save suspect values
+			Route->NeighbourSRTT = OtherRTT;
+	}
 
 	// Look for $M and $H (MAXRTT MAXHOPS)
 
@@ -944,6 +960,8 @@ VOID ProcessRTTMsg(struct ROUTE * Route, struct _L3MESSAGEBUFFER * Buff, int Len
 
 	if (ptr)
 		Route->RemoteMAXHOPS = atoi(ptr + 2);
+
+
 
 	// Echo Back to sender
 
@@ -965,7 +983,8 @@ VOID SendRTTMsg(struct ROUTE * Route)
 	char Stamp[50];
 	char Normcall[10];
 	unsigned char temp[256];
-	uint64_t sendTime;
+	uint32_t sendTime;
+	int n;
 
 	Normcall[ConvFromAX25(Route->NEIGHBOUR_CALL, Normcall)] = 0;
 
@@ -985,14 +1004,21 @@ VOID SendRTTMsg(struct ROUTE * Route)
 	Msg->L4TXNO = 0;
 	Msg->L4FLAGS = L4INFO;
 
-	// The timestamp can possibly exceed 10 digits. INP3 only works on differece between send and received, so base can be reset safely.
+	// Windows GetTickCount wraps every 54 days or so. INP3 doesn't care, so long as the edge
+	// case where timer wraps between sending msg and getting response is ignored 
+	// For platform independence use GetTickCountINP3() and map as appropriate
 
-	sendTime = ((uint64_t)GetTickCount() - INP3timeLoadedMS) / 10;	// 10mS units
+	sendTime = GetTickCountINP3();	// 10mS units
 
-	if (sendTime > 9999999999)
-		sendTime = INP3timeLoadedMS = 0;
+	sprintf(Stamp, "%10u %10d %10d %10d ", sendTime, Route->SRTT, Route->RTT, RTTID++);
 
-	sprintf(Stamp, "%10llu %10d %10d %10d ", sendTime, Route->SRTT, Route->RTT, 0);
+	n = strlen(Stamp);
+
+	if (n != 44)
+	{
+		Debugprintf("Trying to send corrupt RTT message %s", Stamp);
+		return;
+	}
 	
 	memcpy(RTTMsg.TXTIME, Stamp, 44);
 
@@ -1209,6 +1235,7 @@ int SendRIPTimer()
 				}
 
 				L2SETUPCROSSLINKEX(Route, 2);		// Only try SABM twice
+				Route->NeighbourSRTT = 0;			// just in case!
 
 				Route->LastConnectAttempt = REALTIMETICKS;
 				

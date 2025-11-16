@@ -25,6 +25,8 @@ Stuff to make compiling on WINDOWS and LINUX easier
 
 #ifdef WIN32
 
+#include <windows.h>
+
 typedef unsigned int       uint32_t;
 
 #define pthread_t uint32_t
@@ -41,6 +43,7 @@ int pthread_equal(pthread_t T1, pthread_t T2)
 #include <syslog.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include <stdint.h>
 
 #define BOOL int
 
@@ -188,3 +191,27 @@ void closesocket(int sock)
 }
 
 #endif
+
+#ifdef WIN32
+
+uint32_t GetTickCountINP3()
+{
+	// Returns system uptime in 10 mS, lower 20 bits only
+
+	return (GetTickCount() / 10) & 0xfffff;
+}
+#else
+
+uint64_t GetTickCount();
+
+uint32_t GetTickCountINP3()
+{
+	uint64_t Ticks = GetTickCount();
+
+	// Returns system uptime in 10 mS, lower 20 bits only
+
+	return (Ticks / 10) & 0xfffff;
+}
+
+#endif
+

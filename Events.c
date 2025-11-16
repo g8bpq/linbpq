@@ -944,9 +944,9 @@ void APIL2Trace(struct _MESSAGE * Message, char * Dirn)
 		// supervisory
 
 		if (PF[0])
-			udplen += snprintf(&UDPMsg[udplen], 2048 - udplen, ", \"pf\": \"%s\", \"rseq\": %d, \"tseq\": %d", PF, NR, NS);
+			udplen += snprintf(&UDPMsg[udplen], 2048 - udplen, ", \"pf\": \"%s\", \"rseq\": %d", PF, NR);
 		else
-			udplen += snprintf(&UDPMsg[udplen], 2048 - udplen, ", \"rseq\": %d, \"tseq\": %d", NR, NS);
+			udplen += snprintf(&UDPMsg[udplen], 2048 - udplen, ", \"rseq\": %d", NR);
 	}
 
 

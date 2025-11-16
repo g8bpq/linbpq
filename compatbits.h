@@ -24,6 +24,7 @@ Stuff to make compiling on WINDOWS and LINUX easier
 
 #define strtoll _strtoi64
 
+
 #ifdef _WIN64
 #include "stdint.h"
 #else
@@ -219,7 +220,7 @@ typedef struct tagRECT
 
 #endif
 
-
+uint32_t GetTickCountINP3();		
 
 #ifdef LINBPQ
 
