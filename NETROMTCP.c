@@ -244,6 +244,7 @@ int NETROMOpenConnection(struct ROUTE * Route)
 		Info->Route = Route;
 		Info->LINK->NEIGHBOUR = Route;
 		Info->LINK->LINKPORT = GetPortTableEntryFromPortNum(Route->NEIGHBOUR_PORT);
+		memcpy(Route->NEIGHBOUR_LINK->LINKCALL, Route->NEIGHBOUR_CALL, 7);
 	}
 
 	return NETROMTCPConnect(Route, sockptr);
@@ -443,7 +444,8 @@ checkLen:
 			Info->LINK->LINKPORT = GetPortTableEntryFromPortNum(portNo);
 			Route->TCPSession = Info;
 			Info->LINK->L2STATE = 5;
-		
+			memcpy(Route->NEIGHBOUR_LINK->LINKCALL, axCall, 7);
+
 			if (Info->Route->INP3Node)
 				SendRTTMsg(Info->Route);
 		}

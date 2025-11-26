@@ -3256,9 +3256,9 @@ static VOID ADSBConnect(void * unused)
 	{
 		err=WSAGetLastError();
 #ifdef LINBPQ
-   		printf("Connect Failed for ADSB socket - error code = %d\n", err);
+ //  		printf("Connect Failed for ADSB socket - error code = %d\n", err);
 #else
-   		Debugprintf("Connect Failed for ADSB socket - error code = %d", err);
+ //  		Debugprintf("Connect Failed for ADSB socket - error code = %d", err);
 #endif		
 		closesocket(TCPSock);
 		ADSBConnected = FALSE;

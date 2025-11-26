@@ -866,7 +866,6 @@ int main(int argc, char * argv[])
 
 	 srand(time(NULL));
 
-
 	 // look for optarg format parameters
 
 	 {

@@ -882,10 +882,11 @@ BOOL Start()
 
 	PREFERINP3ROUTES = cfg->C_PREFERINP3ROUTES;
 
-	if (cfg->C_DEBUGINP3)
-		DEBUGINP3 = 0;
+	DEBUGINP3 = cfg->C_DEBUGINP3;
 
 	EnableOARCAPI = cfg->C_OARCAPI;
+
+	MONTOFILEFLAG = cfg->C_MONTOFILE;
 
 	if (cfg->C_OnlyVer2point0)
 		SUPPORT2point2 = 0;
@@ -2398,7 +2399,7 @@ L2Packet:
 			if (MQTT && PORT->PROTOCOL == 0)
 				MQTTKISSRX(Buffer);
 
-			if(NodeAPISocket &&PORT->PROTOCOL == 0)
+			if(NodeAPISocket && PORT->PROTOCOL == 0)
 				APIL2Trace(Message, "rcvd");
 			
 			// Bridge if requested

@@ -1292,6 +1292,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Improvments to INP3 (4, 5)
 //	Add Node API /api/tcpqueues (5)
 //	Add sending link events to OARC API (disabled by default) (6)
+//	Add option to write monitor output to a file (6)
 //	Fix possible program error in Telnet_Connected (7)
 //	Close links when program is closed down (7)
 //	Fix possible problem with deleting routes when using both NODES and INP3 routing on same link (7)
@@ -1302,6 +1303,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix connecting to a netrom node with c p node command (10)
 //	Add validation of INP3 RTT messages and various INP3 fixes (12)
 //	Change NetromX connect syntax to Service@Node to fix passing commands to local applications (12)
+//	Add config file option to enable writing monitor data to a file at startup (13)
+
 
 
 #define CKernel
@@ -2821,7 +2824,13 @@ BOOL APIENTRY DllMain(HANDLE hInst, DWORD ul_reason_being_called, LPVOID lpReser
 			MessageBox(NULL,"NODES Table .c and .asm mismatch - fix and rebuild", "BPQ32", MB_OK);
 			return 0;
 		}
-	
+
+		if (sizeof(struct NR_DEST_ROUTE_ENTRY) != sizeof(struct INP3_DEST_ROUTE_ENTRY))
+		{
+			MessageBox(NULL,"Route Entry mismatch - fix and rebuild", "BPQ32", MB_OK);
+			return 0;
+		}
+
 		GetSemaphore(&Semaphore, 4);
 
 		BPQHOSTVECPTR = &BPQHOSTVECTOR[0];
@@ -4219,13 +4228,12 @@ int APIENTRY Restart()
 
 	hProc =  OpenProcess(PROCESS_TERMINATE | PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, TimerInst);
 
-		if (hProc)
-		{
-			TerminateProcess(hProc, 0);
-			CloseHandle(hProc);
-		}
+	if (hProc)
+	{
+		TerminateProcess(hProc, 0);
+		CloseHandle(hProc);
+	}
 
-	
 	return 0;
 }
 

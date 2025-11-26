@@ -489,9 +489,11 @@ typedef struct NR_DEST_ROUTE_ENTRY
 typedef struct INP3_DEST_ROUTE_ENTRY
 {
 	struct ROUTE * ROUT_NEIGHBOUR;	// POINTER TO NEXT NODE IN PATH
-	USHORT LastRTT;					// Last Value Reported
-	USHORT RTT;						// Current	
-	USHORT SRTT;					// Smoothed RTT
+	USHORT LastTT;					// Last Value Reported. This is our value, not the one actually sent (which includes Neighbour TT)
+	USHORT LastNeighbourTT;			// Saved from last report so we can calulate what we actually sent
+
+	USHORT STT;						// Current time to dest	from here (was called RTT but is one way not round trip.
+									// Is actually a smoothed value as is calculated from smoother link times)
 	UCHAR Hops;
 } *PDEST_ROUTE_ENTRY;
 

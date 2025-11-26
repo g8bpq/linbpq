@@ -3306,7 +3306,7 @@ char * DoOneNode(TRANSPORTENTRY * Session, char * Bufferptr, struct DEST_LIST * 
 
 		if (Neighbour)
 		{
-			double srtt = Route->SRTT/100.0;
+			double srtt = Route->STT/100.0;
 
 			len = ConvFromAX25(Neighbour->NEIGHBOUR_CALL, Normcall);
 			Normcall[len] = 0;
@@ -3326,7 +3326,7 @@ int DoViaEntry(struct DEST_LIST * Dest, int n, char * line, int cursor)
 	char Portcall[10];
 	int len;
 
-	if (Dest->NRROUTE[n].ROUT_NEIGHBOUR != 0 && Dest->NRROUTE[n].ROUT_NEIGHBOUR->INP3Node == 0)
+	if (Dest->NRROUTE[n].ROUT_NEIGHBOUR != 0)
 	{
 		len=ConvFromAX25(Dest->NRROUTE[n].ROUT_NEIGHBOUR->NEIGHBOUR_CALL, Portcall);
 		Portcall[len]=0;
@@ -3355,7 +3355,7 @@ int DoINP3ViaEntry(struct DEST_LIST * Dest, int n, char * line, int cursor)
 
 	if (Dest->INP3ROUTE[n].ROUT_NEIGHBOUR != 0)
 	{
-		srtt = Dest->INP3ROUTE[n].SRTT/100.0;
+		srtt = Dest->INP3ROUTE[n].STT/100.0;
 
 		len=ConvFromAX25(Dest->INP3ROUTE[n].ROUT_NEIGHBOUR->NEIGHBOUR_CALL, Portcall);
 		Portcall[len]=0;

@@ -443,110 +443,6 @@ HANDLE hMapFile;
 
 static int LogAge = 14;
 
-#ifdef WIN32
-
-int DeleteAPRSLogFiles()
-{
-   WIN32_FIND_DATA ffd;
-
-   char szDir[MAX_PATH];
-   char File[MAX_PATH];
-   HANDLE hFind = INVALID_HANDLE_VALUE;
-   DWORD dwError=0;
-   LARGE_INTEGER ft;
-   time_t now = time(NULL);
-   int Age;
-
-   // Prepare string for use with FindFile functions.  First, copy the
-   // string to a buffer, then append '\*' to the directory name.
-
-   strcpy(szDir, GetLogDirectory());
-   strcat(szDir, "/logs/APRS*.log");
-
-   // Find the first file in the directory.
-
-   hFind = FindFirstFile(szDir, &ffd);
-
-   if (INVALID_HANDLE_VALUE == hFind) 
-      return dwError;
-
-   // Walk directory
-
-   do
-   {
-      if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-      {
-         OutputDebugString(ffd.cFileName);
-      }
-      else
-      {
-         ft.HighPart = ffd.ftCreationTime.dwHighDateTime;
-         ft.LowPart = ffd.ftCreationTime.dwLowDateTime;
-
-		 ft.QuadPart -=  116444736000000000;
-		 ft.QuadPart /= 10000000;
-
-		 Age = (int)((now - ft.LowPart) / 86400); 
-
-		 if (Age > LogAge)
-		 {
-			 sprintf(File, "%s/logs/%s%c", GetLogDirectory(), ffd.cFileName, 0);
-			 Debugprintf("Deleting %s", File);
-			 DeleteFile(File);
-		 }
-      }
-   }
-   while (FindNextFile(hFind, &ffd) != 0);
- 
-   FindClose(hFind);
-   return dwError;
-}
-
-#else
-
-#include <dirent.h>
-
-int APRSFilter(const struct dirent * dir)
-{
-	return (memcmp(dir->d_name, "APRS", 4) == 0  && strstr(dir->d_name, ".log"));
-}
-
-int DeleteAPRSLogFiles()
-{
-	struct dirent **namelist;
-    int n;
-	struct stat STAT;
-	time_t now = time(NULL);
-	int Age = 0, res;
-	char FN[256];
-     	
-    n = scandir("logs", &namelist, APRSFilter, alphasort);
-
-	if (n < 0) 
-		perror("scandir");
-	else  
-	{ 
-		while(n--)
-		{
-			sprintf(FN, "logs/%s", namelist[n]->d_name);
-			if (stat(FN, &STAT) == 0)
-			{
-				Age = (now - STAT.st_mtime) / 86400;
-				
-				if (Age > LogAge)
-				{
-					Debugprintf("Deleting  %s\n", FN);
-					unlink(FN);
-				}
-			}
-			free(namelist[n]);
-		}
-		free(namelist);
-    }
-	return 0;
-}
-#endif
-
 int APRSWriteLog(char * msg)
 {
 	FILE *file;
@@ -645,8 +541,6 @@ Dll BOOL APIENTRY Init_APRS()
 	MAXHEARDENTRIES = 0;
 	MobileBeaconInterval = 0;
 	BeaconInterval = 0;
-
-	DeleteAPRSLogFiles();
 
 	memset(MHTABLE, 0, sizeof(MHTABLE));
 

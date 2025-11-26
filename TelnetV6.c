@@ -56,6 +56,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 extern UCHAR LogDirectory[];
 
+extern int MONTOFILEFLAG;
  
 static char ClassName[]="TELNETSERVER";
 static char WindowTitle[] = "Telnet Server";
@@ -177,77 +178,74 @@ void NETROMConnectionLost(struct ConnectionInfo * sockptr);
 void NETROMConnectionAccepted(struct ConnectionInfo * sockptr);
 struct ConnectionInfo * AllocateNRTCPRec();
 
-static int LogAge = 13;
+static int LogAge = 10;
 
-
-#ifdef WIN32
-
-int DeleteLogFile(char * Log);
+int DeleteLogFile(char * Log, int KeepDays);
 
 void DeleteTelnetLogFiles()
 {
-	DeleteLogFile("/logs/Telnet*.log");
-	DeleteLogFile("/logs/CMSAccess_*.log");
-	DeleteLogFile("/logs/ConnectLog_*.log");
+	DeleteLogFile("Telnet", 14);
+	DeleteLogFile("CMSAccess_", 14);
+	DeleteLogFile("ConnectLog_",14);
+	DeleteLogFile("APRS_", 14);
+	DeleteLogFile("PacketLog_",MONTOFILEFLAG);
 }
 
-int DeleteLogFile(char * Log)
-{
+#ifdef WIN32
 
-	
+int DeleteLogFile(char * Log, int KeepDays)
+{
 	WIN32_FIND_DATA ffd;
 
-   char szDir[MAX_PATH];
-   char File[MAX_PATH];
-   HANDLE hFind = INVALID_HANDLE_VALUE;
-   DWORD dwError=0;
-   LARGE_INTEGER ft;
-   time_t now = time(NULL);
-   int Age;
+	char szDir[MAX_PATH];
+	char File[MAX_PATH];
+	HANDLE hFind = INVALID_HANDLE_VALUE;
+	DWORD dwError=0;
+	LARGE_INTEGER ft;
+	time_t now = time(NULL);
+	int Age;
 
-   // Prepare string for use with FindFile functions.  First, copy the
-   // string to a buffer, then append '\*' to the directory name.
 
-   strcpy(szDir, GetLogDirectory());
-   strcat(szDir, Log);
+	strcpy(szDir, GetLogDirectory());
+	strcat(szDir, "/Logs/");
+	strcat(szDir, Log);
+	strcat(szDir, "*.log");
 
-   // Find the first file in the directory.
+	// Find the first file in the directory.
 
-   hFind = FindFirstFile(szDir, &ffd);
+	hFind = FindFirstFile(szDir, &ffd);
 
-   if (INVALID_HANDLE_VALUE == hFind) 
-      return dwError;
+	if (INVALID_HANDLE_VALUE == hFind) 
+		return dwError;
 
-   // List all the files in the directory with some info about them.
+	do
+	{
+		if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+		{
+			OutputDebugString(ffd.cFileName);
+		}
+		else
+		{
+			ft.HighPart = ffd.ftCreationTime.dwHighDateTime;
+			ft.LowPart = ffd.ftCreationTime.dwLowDateTime;
 
-   do
-   {
-      if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-      {
-         OutputDebugString(ffd.cFileName);
-      }
-      else
-      {
-         ft.HighPart = ffd.ftCreationTime.dwHighDateTime;
-         ft.LowPart = ffd.ftCreationTime.dwLowDateTime;
+			ft.QuadPart -=  116444736000000000;
+			ft.QuadPart /= 10000000;
 
-		 ft.QuadPart -=  116444736000000000;
-		 ft.QuadPart /= 10000000;
+			Age = (int)((now - ft.LowPart) / 86400); 
 
-		 Age = (int)((now - ft.LowPart) / 86400); 
-
-		 if (Age > LogAge)
+			if (Age > KeepDays)
 		 {
 			 sprintf(File, "%s/logs/%s%c", GetLogDirectory(), ffd.cFileName, 0);
 			 Debugprintf("Deleting %s", File);
 			 DeleteFile(File);
 		 }
-      }
-   }
-   while (FindNextFile(hFind, &ffd) != 0);
+		}
+	}
+	while (FindNextFile(hFind, &ffd) != 0);
 
-   FindClose(hFind);
-   return dwError;
+	FindClose(hFind);
+	return dwError;
 }
 
 #else
@@ -256,22 +254,19 @@ int DeleteLogFile(char * Log)
 
 int TelFilter(const struct dirent * dir)
 {
-	return (memcmp(dir->d_name, "CMSAccess", 9) == 0
-		|| memcmp(dir->d_name, "Telnet", 6) == 0
-		|| memcmp(dir->d_name, "ConnectLog", 6) == 0)
-		&& strstr(dir->d_name, ".log");
+	return strstr(dir->d_name, ".log") != 0;
 }
 
-int DeleteTelnetLogFiles()
+int DeleteLogFile(char * Log, int KeepDays)
 {
 	struct dirent **namelist;
-    int n;
+	int n;
 	struct stat STAT;
 	time_t now = time(NULL);
 	int Age = 0, res;
 	char FN[256];
-     	
-    n = scandir("logs", &namelist, TelFilter, alphasort);
+
+	n = scandir("logs", &namelist, TelFilter, alphasort);
 
 	if (n < 0) 
 		perror("scandir");
@@ -279,21 +274,25 @@ int DeleteTelnetLogFiles()
 	{ 
 		while(n--)
 		{
-			sprintf(FN, "logs/%s", namelist[n]->d_name);
-			if (stat(FN, &STAT) == 0)
+			if (memcmp(namelist[n]->d_name, Log, strlen(Log)) == 0)	
 			{
-				Age = (now - STAT.st_mtime) / 86400;
-				
-				if (Age > LogAge)
+				sprintf(FN, "logs/%s", namelist[n]->d_name);
+
+				if (stat(FN, &STAT) == 0)
 				{
-					Debugprintf("Deleting  %s\n", FN);
-					unlink(FN);
+					Age = (now - STAT.st_mtime) / 86400;
+
+					if (Age > KeepDays)
+					{
+						Debugprintf("Deleting  %s", FN);
+						unlink(FN);
+					}
 				}
 			}
 			free(namelist[n]);
 		}
 		free(namelist);
-    }
+	}
 	return 0;
 }
 #endif
@@ -320,7 +319,7 @@ void BuffertoNode(struct ConnectionInfo * sockptr, char * MsgPtr, int InputLen)
 	sockptr->InputLen = 0;
 
 	return;
-	}
+}
 
 BOOL SendAndCheck(struct ConnectionInfo * sockptr, unsigned char * MsgPtr, int len, int flags)
 {
@@ -331,7 +330,7 @@ BOOL SendAndCheck(struct ConnectionInfo * sockptr, unsigned char * MsgPtr, int l
 		return TRUE;			// OK
 
 	err = WSAGetLastError();
-				
+
 	Debugprintf("TCP Send Failed - Sent %d should be %d err %d - requeue data", sent, len, err);
 
 	if (err == 10035 || err == 115 || err == 36)		//EWOULDBLOCK
@@ -1194,6 +1193,7 @@ static size_t ExtProc(int fn, int port, PDATAMESSAGE buff)
 
 		TNC = TNCInfo[n];
 		TNC->Port = n;
+		TNC->PortRecord = PortRecord;
 		TNC->PortRecord->PORTCONTROL.HWType = TNC->Hardware = H_TELNET;
 		TNC->RIG = &TNC->DummyRig;			// Not using Rig control, so use Dummy
 
@@ -1445,7 +1445,7 @@ void * TelnetExtInit(EXTPORTDATA * PortEntry)
 	}
 */
 
-	DeleteTelnetLogFiles();
+	DeleteTelnetLogFiles(LogAge);
 
 	initUTF8();
 

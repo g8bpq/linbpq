@@ -76,6 +76,7 @@ char * FormatMH(PMHSTRUC MH, char Format);
 void WriteConnectLog(char * fromCall, char * toCall, UCHAR * Mode);
 void SendDataToPktMap();
 void NETROMTCPResolve();
+VOID FindLostBuffers();
 
 extern BOOL LogAllConnects;
 extern BOOL M0LTEMap;
@@ -564,6 +565,15 @@ VOID * _GetBuff(char * File, int Line)
 		Msg->Process = (short)GetCurrentProcessId();
 		Msg->Linkptr = NULL;
 		Msg->Padding[0] = 0;		// Used for modem status info 
+	}
+	else if (QCOUNT != 0)
+	{
+		// Queue must be corrupt
+
+		Debugprintf("Fatal - Getbuff returned NULL and Q not empty - exit");
+		FindLostBuffers();
+		WriteMiniDump();
+		Restart();
 	}
 	else
 		Debugprintf("Warning - Getbuff returned NULL");

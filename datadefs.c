@@ -39,7 +39,7 @@ int DEBUGINP3 = 0;
 
 int EnableOARCAPI = 0;
 
-int RTTInterval = 24;		// 4 Minutes
+int RTTInterval = 30;		// 5 Minutes
 
 BOOL IPRequired = FALSE;
 BOOL PMRequired = FALSE;

@@ -620,7 +620,7 @@ VOID PROCROUTES(struct DEST_LIST * DEST, struct ROUTE * ROUTE, int Qual)
 	if (DEST->DEST_STATE & 0x80)			// BBS ENTRY
 		return;
 
-	for (Index = 0; Index < 4; Index++)
+	for (Index = 0; Index < 3; Index++)
 	{
 		if (DEST->NRROUTE[Index].ROUT_NEIGHBOUR == ROUTE)
 		{
@@ -691,6 +691,7 @@ UpdatateThisEntry:
 	//	TEST AND SEE IF ANYTHING NASTY HAPPENS
 	//	IT DID - THIS IS ALSO CALLED BY CHECKL3TABLES. TRY RESETING
 	//	OBS, BUT NOT QUALITY 
+
 
 	if ((DEST->NRROUTE[Index].ROUT_OBSCOUNT & 0x80) == 0)
 		DEST->NRROUTE[Index].ROUT_OBSCOUNT = OBSINIT;	// SET OBSOLESCENCE COUNT
@@ -1432,7 +1433,8 @@ VOID L3TRYNEXTDEST(struct ROUTE * ROUTE)
 					{
 						// not Locked
 
-						DEST->NRROUTE[ActiveRoute].ROUT_OBSCOUNT--;
+						if (ActiveRoute < 3)				// Not INP3 Route
+							DEST->NRROUTE[ActiveRoute].ROUT_OBSCOUNT--;
 
 						// if ROUTE HAS EXPIRED - WE SHOULD CLEAR IT, AND MOVE OTHERS (IF ANY) UP
 					}
@@ -1563,7 +1565,10 @@ struct DEST_LIST * CHECKL3TABLES(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * Msg
 	if (DEST->DEST_ROUTE)
 	{
 		int Index = DEST->DEST_ROUTE -1;
-		
+
+		if (Index > 2)				// INP3 Route
+			return DEST;
+
 		if (DEST->NRROUTE[Index].ROUT_OBSCOUNT & 0x80)		// Locked:
 			return DEST;
 
@@ -1591,6 +1596,9 @@ VOID REFRESHROUTE(TRANSPORTENTRY * Session)
 		return;					// NONE ACTIVE???
 
 	Index--;
+
+	if (Index > 2)				// INP3 Route
+		return;
 
 	if (DEST->NRROUTE[Index].ROUT_OBSCOUNT & 0x80)
 		return;					// Locked

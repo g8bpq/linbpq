@@ -187,6 +187,7 @@ struct CONFIGTABLE
 	int C_OnlyVer2point0;
 	int C_DEBUGINP3;
 	int C_OARCAPI;
+	int C_MONTOFILE;
 
 
 //#define ApplOffset 80000			// Applications offset in config buffer
