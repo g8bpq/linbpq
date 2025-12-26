@@ -441,8 +441,6 @@ HANDLE hMapFile;
 
 // Logging
 
-static int LogAge = 14;
-
 int APRSWriteLog(char * msg)
 {
 	FILE *file;

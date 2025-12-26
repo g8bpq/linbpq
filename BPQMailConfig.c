@@ -731,7 +731,7 @@ VOID WINAPI OnSelChanged(HWND hwndDlg)
 		SetDlgItemInt(pHdr->hwndDisplay, IDC_MAXMSG, MaxMsgno, FALSE);
 		SetDlgItemInt(pHdr->hwndDisplay, IDC_BIDLIFETIME, BidLifetime, FALSE);
 		SetDlgItemInt(pHdr->hwndDisplay, IDC_USERLIFETIME, UserLifetime, FALSE);
-		SetDlgItemInt(pHdr->hwndDisplay, IDC_LOGLIFETIME, LogAge, FALSE);
+		SetDlgItemInt(pHdr->hwndDisplay, IDC_LOGLIFETIME, BBSLogAge, FALSE);
 		SetDlgItemInt(pHdr->hwndDisplay, IDC_MAINTINTERVAL, MaintInterval, FALSE);
 		sprintf(Time, "%04d", MaintTime);
 		SetDlgItemText(pHdr->hwndDisplay, IDC_MAINTTIME, Time);
@@ -1979,7 +1979,7 @@ VOID SaveMAINTConfigFromDialog()
 	if (MaxMsgno > 99000) MaxMsgno = 99000;
 
 	BidLifetime = GetDlgItemInt(hwndDisplay, IDC_BIDLIFETIME, &OK1, FALSE);
-	LogAge = GetDlgItemInt(hwndDisplay, IDC_LOGLIFETIME, &OK1, FALSE);
+	BBSLogAge = GetDlgItemInt(hwndDisplay, IDC_LOGLIFETIME, &OK1, FALSE);
 	UserLifetime = GetDlgItemInt(hwndDisplay, IDC_USERLIFETIME, &OK1, FALSE);
 	MaintInterval = GetDlgItemInt(hwndDisplay, IDC_MAINTINTERVAL, &OK1, FALSE);
 	MaintTime = GetDlgItemInt(hwndDisplay, IDC_MAINTTIME, &OK1, FALSE);
@@ -2657,7 +2657,7 @@ BOOL GetConfigFromRegistry()
 
 			Vallen=4;
 			RegQueryValueEx(hKey,"LogLifetime",0,			
-			(ULONG *)&Type,(UCHAR *)&LogAge,(ULONG *)&Vallen);
+			(ULONG *)&Type,(UCHAR *)&BBSLogAge,(ULONG *)&Vallen);
 
 			Vallen=4;
 			retCode += RegQueryValueEx(hKey,"BidLifetime",0,			

@@ -1591,7 +1591,7 @@ extern RECT DebugRect;
 extern HWND hMonitor;
 //extern HWND hConsole;
 //extern RECT ConsoleRect;
-extern int LogAge;
+extern int BBSLogAge;
 extern BOOL DeletetoRecycleBin;
 extern BOOL SuppressMaintEmail;
 extern BOOL SaveRegDuringMaint;

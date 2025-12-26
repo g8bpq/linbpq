@@ -1396,23 +1396,23 @@ int SetupNodeMenu(char * Buff, int LOCAL)
 	char SigninBit[] = "<td><a href=/Node/Signon.html>SYSOP Signin</a></td>";
 
 	char NodeTail[] = 
-		"<td><a href=/Node/EditCfg.html>Edit Config</a></td>"
-		"<td><div onmouseover=myShow() class='dropdown'>"
-		"<button class=\"dropbtn\">View Logs</button>"
-		"<div id=\"myDropdown\" class=\"dropdown-content\">"
-		"<form id = doDate form action='/node/ShowLog.html'><label>"
-		"Select Date: <input type='date' name='date' id=e>"
-		"<script>"
-		"document.getElementById('e').value = new Date().toISOString().substring(0, 10);"
-		"</script></label>"
-		"<input type=submit class='btn' name='BBS' value='BBS Log'></br>"
-		"<input type=submit class='btn' name='Debug' value='BBS Debug Log'></br>"
-		"<input type=submit class='btn' name='Telnet' value='Telnet Log'></br>"
-		"<input type=submit class='btn' name='CMS' value='CMS Log'></br>"
-		"<input type=submit class='btn' name='Chat' value='Chat Log'></br>"
-		"</form></div>"
-		"</div>"		
-		"</td></tr></table>";
+		"<td><a href=/Node/EditCfg.html>Edit Config</a></td>\
+		<td><div onmouseover=myShow() class='dropdown'>\
+		<button class=\"dropbtn\">View Logs</button>\
+		<div id=\"myDropdown\" class=\"dropdown-content\">\
+		<form id = doDate form action='/node/ShowLog.html'><label>\
+		Select Date: <input type='date' name='date' id=e>\
+		<script>\
+		document.getElementById('e').value = new Date().toISOString().substring(0, 10);\
+		</script></label>\
+		<input type=submit class='btn' name='BBS' value='BBS Log'></br>\
+		<input type=submit class='btn' name='Debug' value='BBS Debug Log'></br>\
+		<input type=submit class='btn' name='Telnet' value='Telnet Log'></br>\
+		<input type=submit class='btn' name='CMS' value='CMS Log'></br>\
+		<input type=submit class='btn' name='Chat' value='Chat Log'></br>\
+		</form></div>\
+		</div>\
+		</td></tr></table>";
 
 
 	Len = sprintf(Buff, NodeMenuHeader, Mycall);
@@ -1566,10 +1566,9 @@ VOID SaveConfigFile(SOCKET sock , char * MsgPtr, char * Rest, int LOCAL)
 		}
 
 		ReplyLen = sprintf(Reply, "<html><script>alert(\"%s\");window.close();</script></html>", Mess);
-		HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen + (int)strlen(Tail));
+		HeaderLen = sprintf(Header, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n", ReplyLen);
 		send(sock, Header, HeaderLen, 0);
 		send(sock, Reply, ReplyLen, 0);
-		send(sock, Tail, (int)strlen(Tail), 0);
 	}
 	return;
 }

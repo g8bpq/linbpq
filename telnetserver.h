@@ -66,6 +66,7 @@ struct ConnectionInfo
 	char Signon[100];			// User/Pass/Appl for Outgoing Connects
 	BOOL Keepalive;				// For HOST (esp CCC) Keepalives 
 	time_t LastSendTime;
+	time_t LastReceiveTime;
 	BOOL NoCallsign;			// Don't Send Callsign to host if no Signon
 	UCHAR * ResendBuffer;		// Used if send() returns EWOULDBLOCK
 	int	ResendLen;				// Len to resend

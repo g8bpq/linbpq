@@ -30,7 +30,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 char * APIENTRY GetBPQDirectory();
 
-int LogAge = 7;
+int BBSLogAge = 7;
 
 BOOL DeletetoRecycleBin = FALSE;
 BOOL SuppressMaintEmail = FALSE;
@@ -61,7 +61,7 @@ struct Override ** LTFROM;
 struct Override ** LTTO;
 struct Override ** LTAT;
 
-int DeleteLogFiles();
+int DeleteBBSLogFiles();
 
 VOID SendNonDeliveryMessage(struct MsgInfo * OldMsg, BOOL Forwarded, int Age);
 int CreateWPMessage();
@@ -281,7 +281,7 @@ VOID DoHouseKeeping(BOOL Manual)
 
 	UpdateWP();
 
-	DeleteLogFiles();
+	DeleteBBSLogFiles();
 
 	RemoveKilledMessages();
 	ExpireMessages();
@@ -799,7 +799,7 @@ VOID MailHousekeepingResults()
 
 extern UCHAR LogDirectory[260];
 
-int DeleteLogFiles()
+int DeleteBBSLogFiles()
 {
    WIN32_FIND_DATA ffd;
 
@@ -848,7 +848,7 @@ int DeleteLogFiles()
 
 		 Age = (int)((now - ft.LowPart) / 86400); 
 
-		 if (Age > LogAge)
+		 if (Age > BBSLogAge)
 		 {
 			 sprintf(File, "%s/logs/%s%c", GetLogDirectory(), ffd.cFileName, 0);
 			 if (DeletetoRecycleBin)
@@ -875,7 +875,7 @@ int Filter(const struct dirent * dir)
 	return memcmp(dir->d_name, "log", 3) == 0 && strstr(dir->d_name, ".txt");
 }
 
-int DeleteLogFiles()
+int DeleteBBSLogFiles()
 {
 	struct dirent **namelist;
     int n;
@@ -897,7 +897,7 @@ int DeleteLogFiles()
 			{
 				Age = (now - STAT.st_mtime) / 86400;
 				
-				if (Age > LogAge)
+				if (Age > BBSLogAge)
 				{
 					printf("Deleting  %s\n", FN);
 					unlink(FN);

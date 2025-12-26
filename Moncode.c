@@ -1020,8 +1020,7 @@ void WritePacketLogThread(void * param)
 	int MsgLen;
 	MESSAGE * MSG;
 	MESSAGE * Q;
-	char buffer[512];
-
+	char buffer[2048];
 
 	while(1)
 	{
@@ -1074,6 +1073,8 @@ void WritePacketLogThread(void * param)
 			IntSetTraceOptionsEx(MMASK, 1, 1, 0);
 			MsgLen = IntDecodeFrame(MSG, buffer, MSG->Timestamp, 0xffffffffffffffff, FALSE, FALSE);
 			IntSetTraceOptionsEx(MMASK, SaveMTX, SaveMCOM, SaveMUI);
+
+			buffer[MsgLen++] = 0x0a;		// Add lf
 
 			fwrite(buffer , 1, MsgLen, Handle);
 

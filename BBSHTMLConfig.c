@@ -1456,7 +1456,7 @@ VOID SaveHousekeeping(struct HTTPConnectionInfo * Session, char * MsgPtr, char *
 		GetParam(input, "MaxAge=", Temp);
 		MaxAge = atoi(Temp);
 		GetParam(input, "LogLife=", Temp);
-		LogAge = atoi(Temp);
+		BBSLogAge = atoi(Temp);
 		GetParam(input, "UserLife=", Temp);
 		UserLifetime= atoi(Temp);
 
@@ -2666,7 +2666,7 @@ VOID SendHouseKeeping(char * Reply, int * ReplyLen, char * Key)
 
 		*ReplyLen = sprintf(Reply, HousekeepingTemplate, 
 			 BBSName, Key, Key, Key, Key, Key, Key, Key, Key, Key,
-			MaintTime, MaintInterval, MaxMsgno, BidLifetime, LogAge, UserLifetime,
+			MaintTime, MaintInterval, MaxMsgno, BidLifetime, BBSLogAge, UserLifetime,
 			(DeletetoRecycleBin) ? CHKD  : UNC,
 			(SendNonDeliveryMsgs) ? CHKD  : UNC,
 			(SuppressMaintEmail) ? CHKD  : UNC,

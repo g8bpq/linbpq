@@ -71,6 +71,7 @@ int CompareAlias(const void *a, const void *b);
 int CompareRoutes(const void * a, const void * b);
 void SendVARANetromNodes(struct TNCINFO * TNC, MESSAGE *Buffer);
 VOID DoNetromConnect(TRANSPORTENTRY * Session, char * Bufferptr, struct DEST_LIST * Dest, BOOL Spy, int Service);
+VOID sendAlltoOneNeigbour(struct ROUTE * Route);
 
 extern VOID KISSTX(struct KISSINFO * KISS, PMESSAGE Buffer);
 
@@ -84,6 +85,7 @@ UCHAR SAVEDAPPLFLAGS = 0;
 UCHAR ALIASINVOKED = 0;
 
 extern int MONTOFILEFLAG;
+extern int RIFInterval;
 
 VOID * CMDPTR = 0;
 
@@ -357,6 +359,36 @@ VOID POLLNODES(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struc
 						
 	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
 }
+
+VOID SENDRIF(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
+{
+	struct ROUTE * Route;
+	int Portnum = atoi(CmdTail);
+	unsigned char axCall[7];
+
+	char * Call = strlop(CmdTail, ' ');
+
+	if (Call && Portnum)
+	{
+		ConvToAX25(Call, axCall);
+
+		if (FindNeighbour(axCall, Portnum, &Route))
+		{
+			sendAlltoOneNeigbour(Route);
+			
+			strcpy(Bufferptr, OKMSG);
+			Bufferptr += (int)strlen(OKMSG);
+						
+			SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+			return;
+		}
+	}
+	
+	Bufferptr = Cmdprintf(Session, Bufferptr, "Route not found\r");			
+	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+	return;
+}
+
 VOID SENDNODES(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
 	int Portnum = atoi(CmdTail);
@@ -1910,8 +1942,12 @@ char *  DisplayRoute(TRANSPORTENTRY * Session, char * Bufferptr, struct ROUTE * 
 			double srtt = Routes->SRTT/100.0;
 			double nsrtt = Routes->NeighbourSRTT/100.0;
 
-			Bufferptr = Cmdprintf(Session, Bufferptr, " %4.2fs %4.2fs", srtt, nsrtt);
+			Bufferptr = Cmdprintf(Session, Bufferptr, " %4.2fs %4.2fs %X", srtt, nsrtt, Routes->Status);
 		}
+
+		if (Routes->TCPPort)
+			Bufferptr = Cmdprintf(Session, Bufferptr, " %d", Routes->localport);
+
 
 		Bufferptr = Cmdprintf(Session, Bufferptr, "\r");
 	}
@@ -4629,6 +4665,7 @@ struct CMDX COMMANDS[] =
 	"RESTARTTNC  ",10,&RESTARTTNC,0,
 	"POLLNODES   ",8, &POLLNODES,0,
 	"SENDNODES   ",8, &SENDNODES,0,
+	"SENDRIF     ",7, &SENDRIF,0,
 	"EXTRESTART  ",10, EXTPORTVAL, offsetof(EXTPORTDATA, EXTRESTART),
 	"TXDELAY     ",3, PORTVAL, offsetof(PORTCONTROLX, PORTTXDELAY),
 	"MAXFRAME    ",3, PORTVAL, offsetof(PORTCONTROLX, PORTWINDOW),
@@ -4686,6 +4723,7 @@ struct CMDX COMMANDS[] =
 	"L4WINDOW    ",6,SWITCHVAL,(size_t)&L4DEFAULTWINDOW,
 	"BTINTERVAL  ",5,SWITCHVAL,(size_t)&BTINTERVAL,
 	"DEBUGINP3   ",8,SWITCHVAL,(size_t)&DEBUGINP3,
+	"RIFINTERVAL ",11,SWITCHVALW,(size_t)&RIFInterval,
 	"MAXHOPS     ",7,SWITCHVAL,(size_t)&MaxHops,
 	"PREFERINP3  ",10,SWITCHVAL,(size_t)&PREFERINP3ROUTES,
 	"MAXRTT      ",6,SWITCHVALW,(size_t)&MAXRTT,

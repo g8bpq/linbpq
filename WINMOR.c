@@ -2929,7 +2929,7 @@ BOOL RestartTNC(struct TNCINFO * TNC)
 		SOCKET sock = socket(AF_INET,SOCK_DGRAM,0);
 		struct sockaddr_in destaddr;
 
-		Debugprintf("trying to restart TNC %s", TNC->ProgramPath);
+//		Debugprintf("trying to restart TNC %s", TNC->ProgramPath);
 
 		if (sock == INVALID_SOCKET)
 			return 0;
@@ -2952,7 +2952,7 @@ BOOL RestartTNC(struct TNCINFO * TNC)
 
 		n = sendto(sock, TNC->ProgramPath, (int)strlen(TNC->ProgramPath), 0, (struct sockaddr *)&destaddr, sizeof(destaddr));
 	
-		Debugprintf("Restart TNC - sendto returned %d", n);
+//		Debugprintf("Restart TNC - sendto returned %d", n);
 
 		Sleep(100);
 		closesocket(sock);

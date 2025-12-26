@@ -97,6 +97,7 @@ struct ROUTECONFIG
 	int farQual;
 	int inp3;
 	int nokeepalives;
+	int noV2point2;
 	char * tcphost;
 	int tcpport;
 };
@@ -188,6 +189,8 @@ struct CONFIGTABLE
 	int C_DEBUGINP3;
 	int C_OARCAPI;
 	int C_MONTOFILE;
+	int C_RIFInterval;
+
 
 
 //#define ApplOffset 80000			// Applications offset in config buffer

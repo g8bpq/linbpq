@@ -387,6 +387,12 @@ int processRHCPOpen(struct ConnectionInfo * sockptr, SOCKET Socket, char * Msg, 
 	if (_stricmp(pfam, "ax25") != 0)
 		return sprintf(ReplyBuffer, "{\"type\": \"openReply\", \"id\": %d, \"handle\": %d, \"errCode\": 12, \"errText\": \"Bad parameter\"}", ID, 0);
 
+	if (strlen(Local) > 10)
+		return sprintf(ReplyBuffer, "{\"type\": \"openReply\", \"id\": %d, \"handle\": %d, \"errCode\": 6, \"errText\": \"%s\"}", ID, 0, ErrCodes[6]);
+
+	if (strlen(Remote) > 10)
+		return sprintf(ReplyBuffer, "{\"type\": \"openReply\", \"id\": %d, \"handle\": %d, \"errCode\": 7, \"errText\": \"%s\"}", ID, 0, ErrCodes[7]);
+
 	if (_stricmp(Mode, "stream") == 0)
 	{
 		{

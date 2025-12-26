@@ -178,17 +178,16 @@ void NETROMConnectionLost(struct ConnectionInfo * sockptr);
 void NETROMConnectionAccepted(struct ConnectionInfo * sockptr);
 struct ConnectionInfo * AllocateNRTCPRec();
 
-static int LogAge = 10;
-
 int DeleteLogFile(char * Log, int KeepDays);
 
-void DeleteTelnetLogFiles()
+void DeleteLogFiles(int Age)
 {
-	DeleteLogFile("Telnet", 14);
-	DeleteLogFile("CMSAccess_", 14);
-	DeleteLogFile("ConnectLog_",14);
-	DeleteLogFile("APRS_", 14);
-	DeleteLogFile("PacketLog_",MONTOFILEFLAG);
+	DeleteLogFile("Telnet", Age);
+	DeleteLogFile("CMSAccess_", Age);
+	DeleteLogFile("ConnectLog_",Age);
+	DeleteLogFile("APRS_", Age);
+	if (MONTOFILEFLAG)
+		DeleteLogFile("PacketLog_", MONTOFILEFLAG);
 }
 
 #ifdef WIN32
@@ -235,11 +234,11 @@ int DeleteLogFile(char * Log, int KeepDays)
 			Age = (int)((now - ft.LowPart) / 86400); 
 
 			if (Age > KeepDays)
-		 {
-			 sprintf(File, "%s/logs/%s%c", GetLogDirectory(), ffd.cFileName, 0);
-			 Debugprintf("Deleting %s", File);
-			 DeleteFile(File);
-		 }
+			{
+				sprintf(File, "%s/logs/%s%c", GetLogDirectory(), ffd.cFileName, 0);
+				Debugprintf("Deleting %s", File);
+				DeleteFile(File);
+			}
 		}
 	}
 	while (FindNextFile(hFind, &ffd) != 0);
@@ -1444,8 +1443,6 @@ void * TelnetExtInit(EXTPORTDATA * PortEntry)
 	}
 	}
 */
-
-	DeleteTelnetLogFiles(LogAge);
 
 	initUTF8();
 

@@ -58,6 +58,7 @@ VOID L2SENDCOMMAND(struct _LINKTABLE * LINK, int CMD);
 void WritePacketLogThread(void * param);
 void hookNodeStarted();
 void hookNodeRunning();
+void DeleteLogFiles(int Age);
 void APIL2Trace(struct _MESSAGE * Message, char * Dirn);
 
 #include "configstructs.h"
@@ -71,10 +72,14 @@ extern int nodeStartedSent;
 extern SOCKADDR_IN UDPreportdest;
 extern char NodeAPIServer[80];
 extern int NodeAPIPort;
+extern int RIFInterval;
 
 time_t LastNodeStatus = 0;
 
 int nodeStatusTimer = 20 * 60;		// 20 mins
+
+	
+int LogAge = 10;
 
 struct PORTCONFIG * PortRec;
 
@@ -675,6 +680,7 @@ BOOL Start()
 	struct CMDX * CMD;
 	int PortSlot = 1;
 	uintptr_t int3;
+	int index = 0;						// Entry No. in ROUTES
 
 	unsigned char * ptr2 = 0, * ptr3, * ptr4;
 	USHORT * CWPTR;
@@ -844,6 +850,10 @@ BOOL Start()
 	MAXLINKS = cfg->C_MAXLINKS;
 	MAXDESTS = cfg->C_MAXDESTS;
 	MAXNEIGHBOURS = cfg->C_MAXNEIGHBOURS;
+	
+	if (MAXNEIGHBOURS == 0)
+		MAXNEIGHBOURS = 1;
+
 	MAXCIRCUITS = cfg->C_MAXCIRCUITS;
 	HIDENODES = cfg->C_HIDENODES;
 
@@ -887,6 +897,8 @@ BOOL Start()
 	EnableOARCAPI = cfg->C_OARCAPI;
 
 	MONTOFILEFLAG = cfg->C_MONTOFILE;
+
+	RIFInterval = cfg->C_RIFInterval;
 
 	if (cfg->C_OnlyVer2point0)
 		SUPPORT2point2 = 0;
@@ -1362,6 +1374,7 @@ BOOL Start()
 		char * VIA;
 		char axcall[8];
 		
+
 		ConvToAX25(Rcfg->call, ROUTE->NEIGHBOUR_CALL);
 
 		// if VIA convert digis
@@ -1406,6 +1419,9 @@ BOOL Start()
 			ROUTE->NoKeepAlive = 0;			// Cant have INP3 and NOKEEPALIVES
 		}
 
+		if (Rcfg->noV2point2)
+			ROUTE->noV2point2 = 1;
+
 		ROUTE->NBOUR_MAXFRAME = Rcfg->pwind & 0x3f;
 
 		FRACK = Rcfg->pfrack;
@@ -1423,6 +1439,8 @@ BOOL Start()
 			ROUTE->TCPAddress = (struct addrinfo *)zalloc(sizeof(struct addrinfo));
 			ROUTE->TCPAddress->ai_addr = (struct sockaddr *) zalloc(sizeof(struct sockaddr));
 		}
+
+		ROUTE->recNum = index++;
 		
 		Rcfg++;
 		ROUTE++;
@@ -1583,6 +1601,11 @@ BOOL Start()
 	if (AUTOSAVEMH)
 		ReadMH();			// Only if AutoSave configured
 
+	// Tidy Log Files
+	
+	DeleteLogFiles(LogAge);
+
+
 	//	set up stream number in BPQHOSTVECTOR
 
 	for (i = 0; i < 64; i++)
@@ -1657,14 +1680,19 @@ BOOL FindNeighbour(UCHAR * Call, int Port, struct ROUTE ** REQROUTE)
 {
 	struct ROUTE * ROUTE = NEIGHBOURS;
 	struct ROUTE * FIRSTSPARE = NULL;
-	int n = MAXNEIGHBOURS;
 	char Normcall[10];
+	int n;
 
-	while (n--)
+	for (n = 0;  n < MAXNEIGHBOURS; n++)
 	{
 		if (ROUTE->NEIGHBOUR_CALL[0] == 0)		// Spare
+		{
 			if (FIRSTSPARE == NULL)
+			{
 				FIRSTSPARE = ROUTE;
+				ROUTE->recNum = n;
+			}
+		}
 
 		if (ROUTE->NEIGHBOUR_PORT != Port)
 		{
@@ -1672,7 +1700,6 @@ BOOL FindNeighbour(UCHAR * Call, int Port, struct ROUTE ** REQROUTE)
 			continue;
 		}
 
-			
 		Normcall[ConvFromAX25(ROUTE->NEIGHBOUR_CALL, Normcall)] = 0;
 
 		if (CompareCalls(ROUTE->NEIGHBOUR_CALL, Call))
@@ -1686,6 +1713,7 @@ BOOL FindNeighbour(UCHAR * Call, int Port, struct ROUTE ** REQROUTE)
 	//	ENTRY NOT FOUND - FIRSTSPARE HAS FIRST FREE ENTRY, OR ZERO IF TABLE FULL
 
 	*REQROUTE = FIRSTSPARE;
+
 	return FALSE;
 }
 

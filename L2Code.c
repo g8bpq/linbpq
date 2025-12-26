@@ -20,6 +20,9 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //
 //	C replacement for L2Code.asm
 //
+
+#define FRMRHACK
+
 #define Kernel
 
 #define _CRT_SECURE_NO_DEPRECATE 
@@ -1215,7 +1218,18 @@ VOID L2LINKACTIVE(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE *
 			LINK->L2STATE = 2;
 			LINK->Ver2point2 = FALSE;
 			LINK->L2TIMER = 1;		// Use retry to send SABM
-	
+			LINK->L2RETRIES--;		// Make sure at least one is sent
+
+			// if an L3 link mark neighbour as not V2.2
+
+			if (LINK->LINKTYPE == 3)
+			{	
+				struct ROUTE * ROUTE = LINK->NEIGHBOUR;			// TO NEIGHBOUR
+				
+				if (ROUTE)
+					ROUTE->noV2point2 = 1;
+			}
+
 			ReleaseBuffer(Buffer);
 			return;
 		}
@@ -1901,7 +1915,7 @@ BOOL InternalL2SETUPCROSSLINK(PROUTE ROUTE, int Retries)
 	else
 		LINK->LINKWINDOW = PORT->PORTWINDOW;
 
-	if (SUPPORT2point2)
+	if (SUPPORT2point2 && (ROUTE->noV2point2 == 0))
 		LINK->L2STATE = 1;		// Send XID
 	else
 		LINK->L2STATE = 2;
@@ -2156,7 +2170,27 @@ VOID L2_PROCESS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * B
 
 	//	FRAME REJECT RECEIVED - LOG IT AND RESET LINK
 
-		RESET2(LINK);
+//#ifdef FRMRHACK
+		
+		// Treat as DM and break link
+
+		Debugprintf("BPQ32 FRMR received, disconnecting link");
+		
+		InformPartner(LINK, LINKLOST);		// SEND DISC TO OTHER END
+		L2SENDCOMMAND(LINK, DM);
+
+		CLEAROUTLINK(LINK);
+	
+		if (PORT->TNC && PORT->TNC->Hardware == H_KISSHF)
+			DetachKISSHF(PORT);
+
+		PORT->L2FRMRRX++;
+
+		return;
+
+//#endif
+
+/*		RESET2(LINK);
 	
 		LINK->L2STATE = 2;				// INITIALISING
 		LINK->L2ACKREQ = 0;				// DONT SEND ANYTHING ELSE
@@ -2166,7 +2200,7 @@ VOID L2_PROCESS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * B
 
 		L2SENDCOMMAND(LINK, SABM | PFBIT);
 		return;
-
+*/
 	default:
 			
 		//	ANY OTHER - IGNORE
@@ -3828,6 +3862,13 @@ VOID SENDFRMR(struct _LINKTABLE * LINK)
 	struct PORTCONTROL * PORT;
 	MESSAGE * Buffer;
 	UCHAR * ptr;
+
+#ifdef FRMRHACK					// Ignore any frames with invalid n(r). If spurious error retry should fix it. If not link will retry out and reset
+
+	if (LINK->SDREJF & SDNRER)
+		return;
+
+#endif
 
 	Buffer = SETUPL2MESSAGE(LINK, FRMR);
 

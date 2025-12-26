@@ -310,7 +310,9 @@ static char *keywords[] =
 "LogL4Connects", "LogAllConnects", "SAVEMH", "ENABLEADIFLOG", "ENABLEEVENTS", "SAVEAPRSMSGS", 
 "EnableM0LTEMap", "MQTT", "MQTT_HOST", "MQTT_PORT", "MQTT_USER", "MQTT_PASS",
 "L4Compress", "L4CompMaxframe", "L4CompPaclen", "L2Compress", "L2CompMaxframe",
-"L2CompPaclen", "PREFERINP3ROUTES", "OnlyVer2point0", "DEBUGINP3", "ENABLEOARCAPI", "MONTOFILE"
+"L2CompPaclen", "PREFERINP3ROUTES", "OnlyVer2point0", "DEBUGINP3", "ENABLEOARCAPI", "MONTOFILE",
+"RIFInterval"
+
 };           /* parameter keywords */
 
 static void * offset[] =
@@ -334,7 +336,8 @@ static void * offset[] =
 &xxcfg.C_LogL4Connects, &xxcfg.C_LogAllConnects, &xxcfg.C_SaveMH, &xxcfg.C_ADIF, &xxcfg.C_EVENTS, &xxcfg.C_SaveAPRSMsgs,
 &xxcfg.C_M0LTEMap, &xxcfg.C_MQTT, &xxcfg.C_MQTT_HOST, &xxcfg.C_MQTT_PORT, &xxcfg.C_MQTT_USER, &xxcfg.C_MQTT_PASS,
 &xxcfg.C_L4Compress, &xxcfg.C_L4CompMaxframe, &xxcfg.C_L4CompPaclen, &xxcfg.C_L2Compress, &xxcfg.C_L2CompMaxframe, 
-&xxcfg.C_L2CompPaclen, &xxcfg.C_PREFERINP3ROUTES, &xxcfg.C_OnlyVer2point0,  &xxcfg.C_DEBUGINP3, &xxcfg.C_OARCAPI, &xxcfg.C_MONTOFILE};		/* offset for corresponding data in config file */
+&xxcfg.C_L2CompPaclen, &xxcfg.C_PREFERINP3ROUTES, &xxcfg.C_OnlyVer2point0,  &xxcfg.C_DEBUGINP3, &xxcfg.C_OARCAPI, &xxcfg.C_MONTOFILE,
+&xxcfg.C_RIFInterval};		/* offset for corresponding data in config file */
 
 static int routine[] = 
 {
@@ -357,7 +360,8 @@ static int routine[] =
 2, 2, 1, 2, 2, 2,
 2, 2, 0, 1, 20, 20,
 1, 1, 1, 1, 1, 
-1, 1, 1, 1, 1, 1};			// Routine to process param
+1, 1, 1, 1, 1, 1,
+1};			// Routine to process param
 
 int PARAMLIM = sizeof(routine)/sizeof(int);
 //int NUMBEROFKEYWORDS = sizeof(routine)/sizeof(int);
@@ -620,8 +624,7 @@ BOOL ProcessConfig()
 	paramok[78]=1;			// ENABLEADIFLOG optional
 	paramok[79]=1;			// EnableEvents optional
 	paramok[80]=1;			// SaveAPRSMsgs optional
-	paramok[79]=1;			// SaveAPRSMsgs optional
-	paramok[80]=1;			// EnableM0LTEMap optional
+	paramok[81]=1;			// EnableM0LTEMap optional
 	paramok[82]=1;			// MQTT Params
 	paramok[83]=1;			// MQTT Params
 	paramok[84]=1;			// MQTT Params
@@ -638,6 +641,7 @@ BOOL ProcessConfig()
 	paramok[95]=1;			// DEBUGINP3
 	paramok[96]=1;			// EnableOARCAPI
 	paramok[97]=1;			// MONTOFILE
+	paramok[98]=1;			// RIFInterval
 
 
 	for (i=0; i < PARAMLIM; i++)
@@ -1679,7 +1683,15 @@ int routes(int i)
 					char * val = strtok_s(NULL, " ,=", &context);
 
 					if (val)
-						Route->farQual = atoi(val);
+						Route->nokeepalives = atoi(val);
+				}
+
+				else if (strcmp(ptr, "NOV2.2") == 0)
+				{
+					char * val = strtok_s(NULL, " ,=", &context);
+
+					if (val)
+						Route->noV2point2 = atoi(val);
 				}
 
 

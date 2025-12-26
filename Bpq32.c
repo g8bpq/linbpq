@@ -1304,6 +1304,10 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add validation of INP3 RTT messages and various INP3 fixes (12)
 //	Change NetromX connect syntax to Service@Node to fix passing commands to local applications (12)
 //	Add config file option to enable writing monitor data to a file at startup (13)
+//	Add option to use V2.0 on a route (14)
+//	Don't reset NS on RR R(F) following I(P) just on RR poll following timeout. Can get problems with delayed RR R(F) (reverted) (14)
+//	Ignore packets that would cause an FRMR and respond to FRMR with DM (14)
+//	Add option to send periodic INP3 RIF refresh (15)
 
 
 

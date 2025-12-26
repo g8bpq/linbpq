@@ -9939,8 +9939,8 @@ VOID SaveConfig(char * ConfigName)
 	SaveIntValue(group, "MaxMsgno", MaxMsgno);
 	SaveIntValue(group, "BidLifetime", BidLifetime);
 	SaveIntValue(group, "MaxAge", MaxAge);
-	SaveIntValue(group, "LogLifetime", LogAge);
-	SaveIntValue(group, "LogLifetime", LogAge);
+	SaveIntValue(group, "LogLifetime", BBSLogAge);
+	SaveIntValue(group, "LogLifetime", BBSLogAge);
 	SaveIntValue(group, "MaintInterval", MaintInterval);
 	SaveIntValue(group, "UserLifetime", UserLifetime);
 	SaveIntValue(group, "MaintTime", MaintTime);
@@ -10601,7 +10601,7 @@ BOOL GetConfig(char * ConfigName)
 		 LastHouseKeepingTime = GetIntValue(group, "LastHouseKeepingTime");
 		 LastTrafficTime = GetIntValue(group, "LastTrafficTime");
 		 MaxMsgno = GetIntValue(group, "MaxMsgno");
-		 LogAge = GetIntValue(group, "LogLifetime");
+		 BBSLogAge = GetIntValue(group, "LogLifetime");
 		 BidLifetime = GetIntValue(group, "BidLifetime");
 		 MaxAge = GetIntValue(group, "MaxAge");
 		 if (MaxAge == 0)
