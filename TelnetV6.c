@@ -5764,11 +5764,10 @@ int Telnet_Connected(struct TNCINFO * TNC, struct ConnectionInfo * sockptr, SOCK
 			}
 			else
 			{
-				struct _TRANSPORTENTRY * CROSSLINK = TNC->PortRecord->ATTACHEDSESSIONS[Stream]->L4CROSSLINK;
+				struct _TRANSPORTENTRY * STREAM = TNC->PortRecord->ATTACHEDSESSIONS[Stream];
 
-				if (CROSSLINK && CROSSLINK->APPL[0])
-					buffptr->Len = sprintf(&buffptr->Data[0], "*** Connected to %s\r",
-						TNC->PortRecord->ATTACHEDSESSIONS[Stream]->L4CROSSLINK->APPL);
+				if (STREAM && STREAM->L4CROSSLINK && STREAM->L4CROSSLINK->APPL[0])
+					buffptr->Len = sprintf(&buffptr->Data[0], "*** Connected to %s\r", STREAM->L4CROSSLINK->APPL);
 				else
 					buffptr->Len = sprintf(&buffptr->Data[0], "*** Connected to APPL\r");
 

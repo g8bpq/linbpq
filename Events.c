@@ -752,7 +752,13 @@ void APIL2Trace(struct _MESSAGE * Message, char * Dirn)
 	int NR;
 	struct PORTCONTROL * PORT = GetPortTableEntryFromPortNum(Message->PORT);
 	time_t Now = time(NULL);
-
+#ifdef LINBPQ
+	struct timespec ts;
+#else
+	FILETIME SystemTimeAsFileTime;
+	ULARGE_INTEGER FT64;
+#endif
+	double NowMs;
 
 	if (PORT == 0)
 		return;
@@ -775,6 +781,20 @@ void APIL2Trace(struct _MESSAGE * Message, char * Dirn)
 
 	if ((Message->ORIGIN[6] & 1) == 0)	// Digis - ignore for now
 		return;
+
+#ifdef LINBPQ
+
+	if (clock_gettime(CLOCK_REALTIME, &ts) == -1)
+		NowMs = Now;
+	else
+		NowMs = ts.tv_sec + ts.tv_nsec / 1000000000.0;
+#else
+	GetSystemTimeAsFileTime(&SystemTimeAsFileTime);
+	// FILETIME is 100 nS interval since 1601 - subtract 116444736000000000 to get 100 nS intervels since  1970 (Unix Time)
+	FT64.HighPart = SystemTimeAsFileTime.dwHighDateTime;
+	FT64.LowPart = SystemTimeAsFileTime.dwLowDateTime;
+	NowMs = (FT64.QuadPart - 116444736000000000) / 10000000.0;
+#endif
 
 	if ((Message->DEST[6] & 0x80) == 0 && (Message->ORIGIN[6] & 0x80) == 0)
 		strcpy(CR, "V1");
@@ -898,9 +918,9 @@ void APIL2Trace(struct _MESSAGE * Message, char * Dirn)
 	// Common to all frame types
 
 	udplen = snprintf(UDPMsg, 2048, 
-		"{\"@type\": \"L2Trace\", \"serial\": %d, \"time\": %d, \"dirn\": \"%s\", \"isRF\": %s, \"reportFrom\": \"%s\", \"port\": \"%d\", \"srce\": \"%s\", \"dest\": \"%s\", \"ctrl\": %d,"
+		"{\"@type\": \"L2Trace\", \"serial\": %d, \"time\": %.3f, \"dirn\": \"%s\", \"isRF\": %s, \"reportFrom\": \"%s\", \"port\": \"%d\", \"srce\": \"%s\", \"dest\": \"%s\", \"ctrl\": %d,"
 		"\"l2Type\": \"%s\", \"modulo\": 8, \"cr\": \"%s\"",
-		UDPSeq++, (int)Now, Dirn, (PORT->isRF)?"true":"false", NODECALLLOPPED, Message->PORT, srcecall, destcall, Message->CTL, Type, CR);
+		UDPSeq++, NowMs, Dirn, (PORT->isRF)?"true":"false", NODECALLLOPPED, Message->PORT, srcecall, destcall, Message->CTL, Type, CR);
 
 	if (UIFlag)
 	{
@@ -949,12 +969,10 @@ void APIL2Trace(struct _MESSAGE * Message, char * Dirn)
 			udplen += snprintf(&UDPMsg[udplen], 2048 - udplen, ", \"rseq\": %d", NR);
 	}
 
-
 	UDPMsg[udplen++] = '}';
 	UDPMsg[udplen] = 0;
-//	Debugprintf(UDPMsg);
+	Debugprintf(UDPMsg);
 	sendto(NodeAPISocket, UDPMsg, udplen, 0, (struct sockaddr *)&UDPreportdest, sizeof(UDPreportdest));
-
 }
 
 

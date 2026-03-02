@@ -274,7 +274,7 @@ VOID ProcessMBLLine(CIRCUIT * conn, struct UserInfo * user, UCHAR* Buffer, int l
 		QueueMsg(conn, MsgPtr, MsgLen);
 
 		if (user->ForwardingInfo->SendCTRLZ)
-			nodeprintf(conn, "\rx1a");
+			nodeprintf(conn, "\r\x1a");
 		else
 			nodeprintf(conn, "\r/ex\r");
 

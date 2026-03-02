@@ -42,7 +42,7 @@ static int GetJSONInt(char * _REPLYBUFFER, char * Name);
 struct RHPSessionInfo
 {  
 	struct ConnectionInfo * sockptr;
-	SOCKET Socket;				// Websocks Socket
+	SOCKET Socket;			// Websocks Socket
     int BPQStream;
 	int Handle;				// RHP session ID
 	int Seq;
@@ -51,14 +51,8 @@ struct RHPSessionInfo
     BOOL Connecting;		// Set while waiting for connection to complete
     BOOL Listening; 
 	BOOL Connected;
+	BOOL Closing;
 	int Busy;
-};
-
-struct RHPConnectionInfo
-{
-    SOCKET socket;
-	struct RHPSessionInfo ** RHPSessions;
-	int NumberofRHPSessions;
 };
 
 // Struct passed by beginhread
@@ -71,10 +65,6 @@ struct RHPParamBlock
 	struct ConnectionInfo * sockptr;
 };
 
-
-
-//struct RHPConnectionInfo ** RHPSockets = NULL;
-//int NumberofRHPConnections = 0;
 
 struct RHPSessionInfo ** RHPSessions;
 int NumberofRHPSessions;
@@ -589,9 +579,9 @@ int processRHCPClose(SOCKET Socket, char * Msg, char * ReplyBuffer)
 	Disconnect(RHPSession->BPQStream);
 	RHPSession->Connected = 0;
 	RHPSession->Connecting = 0;
+	RHPSession->Closing = 1;
 
-	DeallocateStream(RHPSession->BPQStream);
-	RHPSession->BPQStream = 0;
+	// Stream is deallocated in disconnect event handler
 
 	return sprintf(ReplyBuffer, "{\"id\": %d, \"type\": \"closeReply\", \"handle\": %d, \"errcode\": 0, \"errtext\": \"Ok\"}", ID, Handle);
 }
@@ -633,6 +623,9 @@ void RHPPoll()
 		RHPSession = RHPSessions[n];
 		Stream = RHPSession->BPQStream;
 
+		if (Stream == 0)
+			continue;
+
 		// See if connected state has changed
 
 		SessionState(Stream, &state, &change);
@@ -660,12 +653,16 @@ void RHPPoll()
 			}
 			else
 			{
-				// Disconnected. Send Close to client
+				// Disconnected. Send Close to client unless we initiated close
 
-				RHPMsg = malloc(256);
-				Len = sprintf(&RHPMsg[10], "{\"type\": \"close\", \"seqno\": %d, \"handle\": %d}", RHPSession->Seq++, RHPSession->Handle);
-				SendWebSockMessage(RHPSession->Socket, RHPMsg, Len);
+				if (RHPSession->Closing == 0)
+				{
+					RHPMsg = malloc(256);
+					Len = sprintf(&RHPMsg[10], "{\"type\": \"close\", \"seqno\": %d, \"handle\": %d}", RHPSession->Seq++, RHPSession->Handle);
+					SendWebSockMessage(RHPSession->Socket, RHPMsg, Len);
+				}
 
+				RHPSession->Closing = 0;
 				RHPSession->Connected = 0;
 				RHPSession->Connecting = 0;
 
@@ -801,5 +798,36 @@ static int GetJSONInt(char * _REPLYBUFFER, char * Name)
 
 	return atoi(ptr1);
 }
+
+VOID SendCommandReply(TRANSPORTENTRY * Session, struct DATAMESSAGE * Buffer, int Len);
+char * __cdecl Cmdprintf(TRANSPORTENTRY * Session, char * Bufferptr, const char * format, ...);
+
+extern struct DATAMESSAGE * REPLYBUFFER;
+
+VOID RHPCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
+{
+	int n;
+	struct RHPSessionInfo * RHP;
+
+	Bufferptr = Cmdprintf(Session, Bufferptr, "\r|Stream|Local    |Remote   |Handle| Seq |Busy|\r");
+	
+	for (n = 0; n < NumberofRHPSessions; n++)
+	{
+		RHP = RHPSessions[n];
+
+		if (RHP->BPQStream == 0)
+			continue;
+
+		Bufferptr = Cmdprintf(Session, Bufferptr, "|  %2d  |%-9s|%-9s| %3d  |%5d| %2d |\r", RHP->BPQStream, RHP->Local, RHP->Remote, RHP->Handle, RHP->Seq, RHP->Busy);
+	}
+
+	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+	return;
+}
+
+
+
+
+
 
 

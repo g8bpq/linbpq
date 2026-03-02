@@ -1308,6 +1308,13 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Don't reset NS on RR R(F) following I(P) just on RR poll following timeout. Can get problems with delayed RR R(F) (reverted) (14)
 //	Ignore packets that would cause an FRMR and respond to FRMR with DM (14)
 //	Add option to send periodic INP3 RIF refresh (15)
+//  Add RHP and STREAMS nodes commands (16)
+//	Fix possible crash in telnet connected to application processing (16)
+//	Fix NodeAPI /tcpqueues output for local telnet sessions (16)
+//	Fix handling of disconnects when using RHP (17) 
+//	Fix propagating unreachable in INP3 (18)
+//	Add STOPROUTE command (22)
+
 
 
 
@@ -1528,6 +1535,7 @@ VOID PMClose();
 VOID MySetWindowText(HWND hWnd, char * Msg);
 BOOL CreateMonitorWindow(char * MonSize);
 VOID FormatTime3(char * Time, time_t cTime);
+void * zalloc(int len);
 
 char EXCEPTMSG[80] = "";
 
@@ -2563,7 +2571,7 @@ FirstInit()
 	return 0;
 }
 
-Check_Timer()
+int Check_Timer()
 {
 	if (Closing)
 		return 0;
@@ -3900,7 +3908,10 @@ BOOL UpdateNodesForApp(int Appl)
 
 		NUMBEROFNODES++;
 		APPL->NODEPOINTER = DEST;
-		
+
+		if (DEST->RouteLastTT == 0)
+			DEST->RouteLastTT = (uint16_t *)zalloc(MAXNEIGHBOURS * sizeof(uint16_t));
+
 		memmove (DEST->DEST_CALL,APPL->APPLCALL,13);
 
 		DEST->DEST_STATE=0x80;	// SPECIAL ENTRY

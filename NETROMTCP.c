@@ -481,8 +481,15 @@ checkLen:
 			memcpy(Route->NEIGHBOUR_LINK->LINKCALL, axCall, 7);
 			Route->localport = htons(sockptr->sin.sin_port);
 
-			Debugprintf("New NRTCP Connection from %s port %d", Msg->Call, Route->localport);
-
+			if(Route->Stopped)
+			{
+				Debugprintf("Neighbour %s port %d Route stopped - closing connection", Msg->Call, portNo);
+				closesocket(sockptr->socket);
+				sockptr->SocketActive = FALSE;
+				memset(sockptr, 0, sizeof(struct ConnectionInfo)); 
+				Info->Call[0] = 0;
+				return 0;
+			}
 
 			if (Info->Route->INP3Node)
 				SendRTTMsg(Info->Route);
@@ -675,6 +682,11 @@ void NETROMConnectionLost(struct ConnectionInfo * sockptr)
 
 		if (Route)
 		{
+			if (sockptr->Connecting)
+				TellINP3LinkSetupFailed(Route);
+			else
+				TellINP3LinkGone(Route);
+
 			Route->NEIGHBOUR_LINK = 0;
 			Route->TCPSession = 0;
 			Route->localport = 0;

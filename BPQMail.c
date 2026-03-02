@@ -1118,7 +1118,7 @@
 //	Fix recently introduced crash when "Don't allow new users" is set (81)
 //	Skip comments before TIMES at start of Connect Script (83)
 
-//  6.0.25.1  ?? 
+//  6.0.25.1   Sept 2025
 
 //	Add FBB reject.sys style filters (3)
 //	Improve Webmail on 64 bit builds
@@ -1156,6 +1156,10 @@
 //	Fix using OpenBCM on other than Telnet connections (75)
 //	Fix sending + in Webmail (80)
 //	Fix forwarding problem when using Web interface to change message routing (73)
+
+// 6.0.26.x
+
+//	Fix forwarding to/from AEA TNC mailbox (22)
 
 #include "bpqmail.h"
 #include "winstdint.h"

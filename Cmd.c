@@ -72,6 +72,7 @@ int CompareRoutes(const void * a, const void * b);
 void SendVARANetromNodes(struct TNCINFO * TNC, MESSAGE *Buffer);
 VOID DoNetromConnect(TRANSPORTENTRY * Session, char * Bufferptr, struct DEST_LIST * Dest, BOOL Spy, int Service);
 VOID sendAlltoOneNeigbour(struct ROUTE * Route);
+VOID CMDSTREAMS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
 
 extern VOID KISSTX(struct KISSINFO * KISS, PMESSAGE Buffer);
 
@@ -171,6 +172,8 @@ VOID STOPCMS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct 
 VOID STARTCMS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
 VOID STOPPORT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
 VOID STARTPORT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID STOPROUTE(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
+VOID STARTROUTE(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
 VOID FINDBUFFS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
 VOID WL2KSYSOP(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
 VOID AXRESOLVER(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
@@ -189,7 +192,7 @@ VOID HELPCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct 
 VOID UZ7HOCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * UserCMD);
 VOID QTSMCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * UserCMD);
 void hookL2SessionAttempt(int Port, char * fromCall, char * toCall, struct _LINKTABLE * LINK);
-
+VOID RHPCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD);
 
 /* Paula's NetROMX includes a service number in a CREQX message which allows a node to host lots of applications without
    filling the Nodes table with SSID's
@@ -4692,6 +4695,8 @@ struct CMDX COMMANDS[] =
 	"STARTPORT   ",5,STARTPORT,0,
 	"STOPCMS     ",7,STOPCMS,0,
 	"STARTCMS    ",8,STARTCMS,0,
+	"STOPROUTE   ",9,STOPROUTE,0,
+	"STARTROUTE  ",10,STARTROUTE,0,
 
 	"FINDBUFFS   ",4,FINDBUFFS,0,
 	"KISS        ",4,KISSCMD,0,
@@ -4781,6 +4786,8 @@ struct CMDX COMMANDS[] =
 	"ROUTES      ",1,CMDR00,0,
 	"STATS       ",1,CMDSTATS,0,
 	"USERS       ",1,CMDS00,0,
+	"STREAMS     ",6,CMDSTREAMS,0,
+	"RHP         ",3,RHPCMD,0,
 	"UNPROTO     ",2,UNPROTOCMD,0,
 	"?           ",1,CMDQUERY,0,
 	"DUMP        ",4,DUMPCMD,0,
@@ -5992,6 +5999,132 @@ VOID STARTPORT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struc
 	return;
 }
 
+BOOL FindNeighbour(UCHAR * Call, int Port, struct ROUTE ** REQROUTE);
+VOID DecayNETROMRoutes(struct ROUTE * Route);
+VOID DeleteINP3Routes(struct ROUTE * Route);
+void NETROMCloseTCP(struct ROUTE * Route);
+
+VOID STOPROUTE(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
+{
+	char _REPLYBUFFER[1000] = "";
+	char * ptr, * Context, * Call;
+	int portno;
+	unsigned char Neighbour[7];
+	struct ROUTE * Route;
+
+	// STOPROUTE PORT CALL
+
+	// Get port number and call 
+
+	ptr = strtok_s(CmdTail, " ", &Context);
+	Call = strtok_s(NULL, " \r", &Context);
+
+	if (ptr && Call && Call[0])
+	{
+		portno = atoi (ptr);
+		ConvToAX25(Call, Neighbour);
+	}
+	else
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Invalid Params - Should be STOPROUTE PORT CALL\r");
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
+	if (FindNeighbour(Neighbour, portno, &Route) == 0)
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Route not found\r");
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
+	if (Route->NEIGHBOUR_LINK == 0 || Route->NEIGHBOUR_LINK->LINKPORT == 0)
+	{
+		// Not active
+
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Route not active\r");
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
+	Route->Stopped = 1;
+	DecayNETROMRoutes(Route);
+	DeleteINP3Routes(Route);
+
+	Route->Status = 0;	// Down
+
+	// close the link
+
+	if (Route->TCPPort == 0)	// NetromTCP doesn't have a real link
+	{
+		Route->NEIGHBOUR_LINK->KILLTIMER = 0;
+		Route->NEIGHBOUR_LINK->L2TIMER = 1;		// TO FORCE DISC
+		Route->NEIGHBOUR_LINK->L2STATE = 4;		// DISCONNECTING
+	}
+	else
+	{
+		// but we should reset the TCP connection
+
+		NETROMCloseTCP(Route);
+	}
+
+
+	Route->BCTimer = 999999;		// Wait a while before retrying
+
+	Bufferptr = Cmdprintf(Session, Bufferptr, "Route Closed\r");
+	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+	return;
+}
+
+VOID STARTROUTE(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
+{
+	char _REPLYBUFFER[1000] = "";
+	char * ptr, * Context, * Call;
+	int portno;
+	unsigned char Neighbour[7];
+	struct ROUTE * Route;
+
+	// STARTROUTE PORT CALL
+
+	// Get port number and call 
+
+	ptr = strtok_s(CmdTail, " ", &Context);
+	Call = strtok_s(NULL, " \r", &Context);
+
+	if (ptr && Call && Call[0])
+	{
+		portno = atoi (ptr);
+		ConvToAX25(Call, Neighbour);
+	}
+	else
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Invalid Params - Should be STARTROUTE PORT CALL\r");
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
+	if (FindNeighbour(Neighbour, portno, &Route) == 0)
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Route not found\r");
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
+	if (Route->Stopped == 0)
+	{
+		Bufferptr = Cmdprintf(Session, Bufferptr, "Route not stopped\r");
+		SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+		return;
+	}
+
+	Route->Stopped = 0;
+	Route->BCTimer = 0;	
+
+	Bufferptr = Cmdprintf(Session, Bufferptr, "Route Enabled\r");
+	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+	return;
+}
+
 
 
 int ASYSEND(struct PORTCONTROL * PortVector, char * buffer, int count);
@@ -6359,11 +6492,149 @@ VOID QTSMCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct 
 	return;
 }
 
+DllExport int APIENTRY Get_APPLMASK(int Stream);
+DllExport int APIENTRY GetStreamPID(int Stream);
+DllExport int APIENTRY GetApplFlags(int Stream);
+DllExport int APIENTRY GetApplNum(int Stream);
+DllExport int APIENTRY GetApplMask(int Stream);
+DllExport BOOL APIENTRY GetAllocationState(int Stream);
+int Check_Timer();
+
+DllExport int APIENTRY GetCallsignNoSem(int stream, char * callsign)
+{
+	//	Returns call connected on stream (BPQHOST function 8 (part)).
+
+	BPQVECSTRUC * SESS;
+	TRANSPORTENTRY * L4;
+	TRANSPORTENTRY * Partner;
+	UCHAR  Call[11] = "SWITCH    ";
+	UCHAR * AXCall = NULL;
+	Check_Timer();
+
+	stream--;						// API uses 1 - 64
+
+	if (stream < 0 || stream > 63)
+		return 0;
+
+	SESS = &BPQHOSTVECTOR[stream];
+	L4 = SESS->HOSTSESSION;
+
+	if (L4 == 0)
+	{
+		return 0;
+	}
+
+	Partner = L4->L4CROSSLINK;
+
+	if (Partner)
+	{
+		//	CONNECTED OUT - GET TARGET SESSION
+
+		if (Partner->L4CIRCUITTYPE & BPQHOST)
+		{
+			AXCall = &Partner->L4USER[0];
+		}
+		else if (Partner->L4CIRCUITTYPE & L2LINK)
+		{
+			struct _LINKTABLE * LINK = Partner->L4TARGET.LINK;
+
+			if (LINK)
+				AXCall = LINK->LINKCALL;
+
+			if (Partner->L4CIRCUITTYPE & UPLINK)
+			{
+				// IF UPLINK, SHOULD USE SESSION CALL, IN CASE *** LINKED HAS BEEN USED
+
+				AXCall = &Partner->L4USER[0];
+			}
+		}
+		else if (Partner->L4CIRCUITTYPE & PACTOR)
+		{
+			//	PACTOR Type - Frames are queued on the Port Entry
+
+			EXTPORTDATA * EXTPORT = Partner->L4TARGET.EXTPORT;
+
+			if (EXTPORT)
+				AXCall = &EXTPORT->ATTACHEDSESSIONS[Partner->KAMSESSION]->L4USER[0];
+
+		}
+		else
+		{
+			//	MUST BE NODE SESSION
+
+			//	ANOTHER NODE
+
+			//	IF THE HOST IS THE UPLINKING STATION, WE NEED THE TARGET CALL
+
+			if (L4->L4CIRCUITTYPE & UPLINK)
+			{
+				struct DEST_LIST *DEST = Partner->L4TARGET.DEST;
+
+				if (DEST)
+					AXCall = &DEST->DEST_CALL[0];
+			}
+			else
+				AXCall = Partner->L4USER;
+		}
+		if (AXCall)
+			ConvFromAX25(AXCall, Call);
+	}
+
+	memcpy(callsign, Call, 10);
+	return 0;
+}
 
 
+VOID CMDSTREAMS(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
+{
+	int i;
+	char callsign[12] = "";
+	char flag[3];
+	UINT Mask, MaskCopy;
+	int Flags;
+	int AppNumber;
+	int OneBits;
+	Bufferptr = Cmdprintf(Session, Bufferptr, "\r|   | RX | TX | MON |App|Flg| Callsign |    Program    |\r");
 
+	for (i=1; i <=BPQHOSTSTREAMS; i++)
+	{		
+		callsign[0]=0;
 
+		if (GetAllocationState(i) == 0)
+			continue;
 
+		strcpy(flag,"*");
+
+		GetCallsignNoSem(i,callsign);
+
+		Mask = MaskCopy = Get_APPLMASK(i);
+
+		// if only one bit set, convert to number
+
+		AppNumber = 0;
+		OneBits = 0;
+
+		while (MaskCopy)
+		{
+			if (MaskCopy & 1)
+				OneBits++;
+
+			AppNumber++;
+			MaskCopy = MaskCopy >> 1;
+		}
+
+		Flags=GetApplFlags(i);
+
+		if (OneBits > 1)
+			Bufferptr = Cmdprintf(Session, Bufferptr, "|%2d%s|%4d|%4d|%5d|%3x|%3x|%10s|%-15s|\r", i, flag, RXCount(i), TXCount(i), MONCount(i), Mask, Flags, callsign, BPQHOSTVECTOR[i-1].PgmName);
+		else
+			Bufferptr = Cmdprintf(Session, Bufferptr, "|%2d%s|%4d|%4d|%5d|%3d|%3x|%10s|%-15s|\r",i, flag, RXCount(i), TXCount(i), MONCount(i), AppNumber, Flags, callsign, BPQHOSTVECTOR[i-1].PgmName);
+
+	}
+
+	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+	return;
+}
 
 
 

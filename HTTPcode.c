@@ -4319,7 +4319,7 @@ int StatusProc(char * Buff)
 	Len += sprintf(&Buff[Len], "<th>&nbsp;MON&nbsp;</th><th>&nbsp;App&nbsp;</th><th>&nbsp;Flg&nbsp;</th>");
 	Len += sprintf(&Buff[Len], "<th>Callsign&nbsp;&nbsp;</th><th width=200px>Program</th></tr><tr>");
 
-	for (i=1;i<65; i++)
+	for (i=1; i <=BPQHOSTSTREAMS; i++)
 	{		
 		callsign[0]=0;
 

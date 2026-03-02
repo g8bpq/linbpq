@@ -5797,11 +5797,17 @@ VOID ProcessMsgTitle(ConnectionInfo * conn, struct UserInfo * user, char* Buffer
 VOID ProcessMsgLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int msglen)
 {
 	char * ptr2 = NULL;
+	int Index = 0;
+	int MsgHasCtrlZ = 0;
+	char * ptr;
 
-	if (((msglen < 3) && (Buffer[0] == 0x1a)) || ((msglen == 4) && (_memicmp(Buffer, "/ex", 3) == 0)))
+	// AEA TNC sends 2f 45 1a 3e 0d  (/ E <ctrl/z> > <cr>) if the original message was input using /ex as terminator
+
+
+
+	if (((msglen < 4) && (Buffer[0] == 0x1a)) || ((msglen == 4) && (_memicmp(Buffer, "/ex", 3)) == 0) || memcmp(Buffer, "/E\0x1a>\0x0d", 5) || memcmp(Buffer, "/e\0x1a>\0x0d", 5))
 	{
-		int Index = 0;
-			
+gotCtrlZ:			
 		if (conn->TempMsg->type == 'P')
 			Index = PMSG;
 		else if (conn->TempMsg->type == 'B')
@@ -6112,6 +6118,19 @@ VOID ProcessMsgLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int ms
 
 	}
 
+	// AEA TNC dosn't always send ctrl/z at start of packet.
+
+	Buffer[msglen] = 0;
+
+	ptr = strchr(Buffer, 26);		//Ctrl/Z
+
+	if (ptr)
+	{
+		MsgHasCtrlZ =1;
+		*(ptr) = 13;			// replace with CR
+	}
+
+
 	Buffer[msglen++] = 0x0a;
 
 	if ((conn->TempMsg->length + msglen) > conn->MailBufferSize)
@@ -6131,6 +6150,10 @@ VOID ProcessMsgLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int ms
 	memcpy(&conn->MailBuffer[conn->TempMsg->length], Buffer, msglen);
 
 	conn->TempMsg->length += msglen;
+
+	if (MsgHasCtrlZ)
+		goto gotCtrlZ;
+
 }
 
 VOID CreateMessageFromBuffer(CIRCUIT * conn)
@@ -8134,7 +8157,7 @@ BOOL ConnecttoBBS (struct UserInfo * user)
 			ConnectUsingAppl(conn->BPQStream, BBSApplMask);
 			FreeSemaphore(&ConSemaphore);
 
-			// If we are sending to a dump pms we may need to connect using the message sender's callsign.
+			// If we are sending to a dumb pms we may need to connect using the message sender's callsign.
 			// But we wont know until we run the connect script, which is a bit late to change call. Could add
 			// flag to forwarding config, but easier to look for SETCALLTOSENDER in the connect script.
 
@@ -8868,6 +8891,41 @@ CheckForSID:
 		return FALSE;
 	}
 
+/*	if (memcmp(Buffer, "[AEA-", 4) == 0 || memcmp(Buffer, "[AEA PK", 7) == 0 || (conn->BBSFlags & TEXTFORWARDING))
+	{
+		// PK232. Don't send a SID, and switch to Text Mode
+
+		conn->BBSFlags |= (BBS | TEXTFORWARDING);
+		conn->Flags |= SENDTITLE;
+
+		// Send Message. There is no mechanism for reverse forwarding
+
+		if (FindMessagestoForward(conn) && conn->FwdMsg)
+		{
+			struct MsgInfo * Msg;
+
+			// Send S line and wait for response - SB WANT @ USA < W8AAA $1029_N0XYZ 
+
+			Msg = conn->FwdMsg;
+
+			if ((conn->BBSFlags & SETCALLTOSENDER))
+				nodeprintf(conn, "S%c %s @ %s \r", Msg->type, Msg->to,
+				(Msg->via[0]) ? Msg->via : conn->UserPointer->Call);
+			else
+				nodeprintf(conn, "S%c %s @ %s < %s $%s\r", Msg->type, Msg->to,
+				(Msg->via[0]) ? Msg->via : conn->UserPointer->Call, 
+				Msg->from, Msg->bid);
+		}
+		else
+		{
+			conn->BBSFlags &= ~RunningConnectScript;	// so it doesn't get reentered
+			Disconnect(conn->BPQStream);
+			return FALSE;
+		}
+
+		return TRUE;
+	}
+*/
 
 	if (Buffer[0] == '[' && Buffer[len-2] == ']')		// SID
 	{
@@ -8910,7 +8968,9 @@ CheckForSID:
 		conn->BBSFlags &= ~RunningConnectScript;
 		ForwardingInfo->LastReverseForward = time(NULL);
 
-		if (memcmp(Buffer, "[AEA PK", 7) == 0 || (conn->BBSFlags & TEXTFORWARDING))
+
+		// I don't think this is needed any more but will leave in for now
+/*		if (memcmp(Buffer, "[AEA-", 4) == 0 || memcmp(Buffer, "(AEA PK", 7) == 0 || (conn->BBSFlags & TEXTFORWARDING))
 		{
 			// PK232. Don't send a SID, and switch to Text Mode
 
@@ -8944,7 +9004,7 @@ CheckForSID:
 			
 			return TRUE;
 		}
-
+*/
 		if (strcmp(conn->Callsign, "RMS") == 0 || conn->SendWL2KFW)
 		{
 			// Build a ;FW: line with all calls with PollRMS Set

@@ -175,8 +175,8 @@ VOID CHOSTAPI(ULONG * pEAX, ULONG * pEBX, ULONG * pECX, ULONG * pEDX, VOID ** pE
 	Stream = (EAX & 0xFF);
 	n = Stream - 1;				// API Numbers Streams 1-64 
 
-	if (n < 0 || n > 63)
-		n = 64;
+	if (n < 0 || n > BPQHOSTSTREAMS - 1)
+		n = BPQHOSTSTREAMS;
 
 	HostVec = &BPQHOSTVECTOR[n];
 	Session = HostVec->HOSTSESSION;

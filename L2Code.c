@@ -779,7 +779,7 @@ VOID L2FORUS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buff
 		}
 	}
 
-	//	IF CALL REQUEST IS FROM A LOCKED NODE WITH QUALITY ZERO, IGNORE IT
+	//	IF CALL REQUEST IS FROM A LOCKED NODE WITH QUALITY ZERO or Stopped, IGNORE IT
 
 	if (FindNeighbour(Buffer->ORIGIN, PORT->PORTNUMBER, &ROUTE))
 	{
@@ -787,7 +787,7 @@ VOID L2FORUS(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buff
 
 		NO_CTEXT = 1;
 		
-		if (ROUTE->NEIGHBOUR_FLAG && ROUTE->NEIGHBOUR_QUAL == 0)		// Locked, qual 0
+		if (ROUTE->Stopped || (ROUTE->NEIGHBOUR_FLAG && ROUTE->NEIGHBOUR_QUAL == 0))		// Stopped or Locked, qual 0
 		{
 			ReleaseBuffer(Buffer);
 			return;
@@ -1359,7 +1359,6 @@ VOID L2SABM(struct _LINKTABLE * LINK, struct PORTCONTROL * PORT, MESSAGE * Buffe
 			AttachKISSHF(PORT, Buffer);
 
 		// if it is an INP3 connection tell INP3 it is up
-
 
 		if (FindNeighbour(LINK->LINKCALL, PORT->PORTNUMBER, &ROUTE))
 		{

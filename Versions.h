@@ -10,17 +10,17 @@
 
 #endif
 
-#define KVers 6,0,25,15
-#define KVerstring "6.0.25.15\0"
+#define KVers 6,0,25,22
+#define KVerstring "6.0.25.22\0"
 
 
 #ifdef CKernel
 
 #define Vers KVers
 #define Verstring KVerstring
-#define Datestring "December 2025"
+#define Datestring "February 2026"
 #define VerComments "G8BPQ Packet Switch (C Version)" KVerstring
-#define VerCopyright "Copyright © 2001-2025 John Wiseman G8BPQ\0"
+#define VerCopyright "Copyright © 2001-2026 John Wiseman G8BPQ\0"
 #define VerDesc "BPQ32 Switch\0"
 #define VerProduct "BPQ32"
 
@@ -31,7 +31,7 @@
 #define Vers 1,0,16,2
 #define Verstring "1.0.16.2\0"
 #define VerComments "Internet Terminal for G8BPQ Packet Switch\0"
-#define VerCopyright "Copyright © 2011-2025 John Wiseman G8BPQ\0"
+#define VerCopyright "Copyright © 2011-2026 John Wiseman G8BPQ\0"
 #define VerDesc "Simple TCP Terminal Program for G8BPQ Switch\0"
 #define VerProduct "BPQTermTCP"
 
@@ -42,7 +42,7 @@
 #define Vers 2,2,5,2
 #define Verstring "2.2.5.2\0"
 #define VerComments "Simple Terminal for G8BPQ Packet Switch\0"
-#define VerCopyright "Copyright © 1999-2025 John Wiseman G8BPQ\0"
+#define VerCopyright "Copyright © 1999-2026 John Wiseman G8BPQ\0"
 #define VerDesc "Simple Terminal Program for G8BPQ Switch\0"
 #define VerProduct "BPQTerminal"
 
@@ -53,7 +53,7 @@
 #define Vers 2,2,0,3
 #define Verstring "2.2.0.3\0"
 #define VerComments "MDI Terminal for G8BPQ Packet Switch\0"
-#define VerCopyright "Copyright © 1999-2025 John Wiseman G8BPQ\0"
+#define VerCopyright "Copyright © 1999-2026 John Wiseman G8BPQ\0"
 #define VerDesc "MDI Terminal Program for G8BPQ Switch\0"
 
 #endif
@@ -63,7 +63,7 @@
 #define Vers KVers
 #define Verstring KVerstring
 #define VerComments "Mail server for G8BPQ Packet Switch\0"
-#define VerCopyright "Copyright © 2009-2025 John Wiseman G8BPQ\0"
+#define VerCopyright "Copyright © 2009-2026 John Wiseman G8BPQ\0"
 #define VerDesc "Mail server for G8BPQ's 32 Bit Switch\0"
 #define VerProduct "BPQMail"
 
@@ -98,7 +98,7 @@
 #define Vers 0,1,0,0
 #define Verstring "0.1.0.0\0"
 #define VerComments "Password Generation Utility for G8BPQ Packet Switch\0"
-#define VerCopyright "Copyright © 2011-2025 John Wiseman G8BPQ\0"
+#define VerCopyright "Copyright © 2011-2026 John Wiseman G8BPQ\0"
 #define VerDesc "Password Generation Utility for G8BPQ Switch\0"
 
 #endif
@@ -108,7 +108,7 @@
 #define Vers KVers
 #define Verstring KVerstring
 #define VerComments  "APRS Client for G8BPQ Switch\0"
-#define VerCopyright "Copyright © 2012-2025 John Wiseman G8BPQ\0"
+#define VerCopyright "Copyright © 2012-2026 John Wiseman G8BPQ\0"
 #define VerDesc "APRS Client for G8BPQ Switch\0"
 #define VerProduct "BPQAPRS"
 
@@ -119,7 +119,7 @@
 #define Vers KVers
 #define Verstring KVerstring
 #define VerComments "Chat server for G8BPQ Packet Switch\0"
-#define VerCopyright "Copyright © 2009-2025 John Wiseman G8BPQ\0"
+#define VerCopyright "Copyright © 2009-2026 John Wiseman G8BPQ\0"
 #define VerDesc "Chat server for G8BPQ's 32 Bit Switch\0"
 #define VerProduct "BPQChat"
 

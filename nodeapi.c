@@ -943,10 +943,14 @@ int sendPortQState(char * response, char * token, char * param, int Local)
 			}
 			else if (Sess1->L4CIRCUITTYPE & PACTOR)
 			{
-				//	PACTOR Type - Frames are queued on the Port Entry
+				//	PACTOR Type
 
 				struct PORTCONTROL * PORT = Sess1->L4TARGET.PORT;
-				strcpy(Type, "HFLINK");
+
+				if (PORT && PORT->Hardware == H_TELNET)
+					strcpy(Type, "TELNET");
+				else
+					strcpy(Type, "HFLINK");
 
 				if (PORT)
 					radioport = PORT->PORTNUMBER;

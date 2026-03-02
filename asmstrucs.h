@@ -261,6 +261,7 @@ typedef struct ROUTE
 	int localport;						// for consistancy check
 	int recNum;				// This entry's index it Routes table
 	int noV2point2;			// Set to force V2.0 connect. Can be set in config or dynamically learned
+	int Stopped;			// Set by STOPROUTE command 
 
 } *PROUTE;
 
@@ -481,7 +482,6 @@ typedef struct _APPLCALLS
 typedef struct NR_DEST_ROUTE_ENTRY
 {
 	struct ROUTE * ROUT_NEIGHBOUR;	// POINTER TO NEXT NODE IN PATH
-	uint16_t * Dummy;				// Padding so records are same length
 	UCHAR ROUT_QUALITY;				// QUALITY
 	UCHAR ROUT_OBSCOUNT;
 	UCHAR ROUT_LOCKED;
@@ -490,7 +490,6 @@ typedef struct NR_DEST_ROUTE_ENTRY
 typedef struct INP3_DEST_ROUTE_ENTRY
 {
 	struct ROUTE * ROUT_NEIGHBOUR;	// POINTER TO NEXT NODE IN PATH
-	uint16_t * RouteLastTT;			// Last time sent should be saved for each neighbour. Area is mallod'ed as needed
 	USHORT STT;						// Current time to dest	from here (was called RTT but is one way not round trip.
 									// Is actually a smoothed value as is calculated from smoothed link times)
 	UCHAR Hops;
@@ -517,7 +516,9 @@ typedef struct DEST_LIST
 	void * DEST_Q;				// QUEUE OF FRAMES FOR THIS DESTINATION
 
 	int DEST_RTT;				// SMOOTHED ROUND TRIP TIMER
-	int DEST_COUNT;				//  FRAMES SENT
+	int DEST_COUNT;				// FRAMES SENT
+
+	uint16_t * RouteLastTT;		// Last time sent should be saved for each neighbour. Area is mallod'ed as needed
 
 } dest_list;
 
