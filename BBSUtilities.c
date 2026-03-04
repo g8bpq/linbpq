@@ -5805,7 +5805,7 @@ VOID ProcessMsgLine(CIRCUIT * conn, struct UserInfo * user, char* Buffer, int ms
 
 
 
-	if (((msglen < 4) && (Buffer[0] == 0x1a)) || ((msglen == 4) && (_memicmp(Buffer, "/ex", 3)) == 0) || memcmp(Buffer, "/E\0x1a>\0x0d", 5) || memcmp(Buffer, "/e\0x1a>\0x0d", 5))
+	if (((msglen < 4) && (Buffer[0] == 0x1a))  || ((msglen == 4 && _memicmp(Buffer, "/ex", 3) == 0)) || memcmp(Buffer, "/E\0x1a>\0x0d", 5) == 0 || memcmp(Buffer, "/e\0x1a>\0x0d", 5) == 0)
 	{
 gotCtrlZ:			
 		if (conn->TempMsg->type == 'P')

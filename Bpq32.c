@@ -1313,8 +1313,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Fix NodeAPI /tcpqueues output for local telnet sessions (16)
 //	Fix handling of disconnects when using RHP (17) 
 //	Fix propagating unreachable in INP3 (18)
-//	Add STOPROUTE command (22)
-
+//	Add STOPROUTE and STARTROUTE commands (21)
 
 
 
