@@ -36,6 +36,7 @@
 #include <malloc.h>	
 #include <memory.h>
 #include <Psapi.h>
+#include "bpq32.h"
 
 #define BPQICON 400
 
@@ -70,17 +71,6 @@ int addrlen = sizeof(struct sockaddr_in);
 
 BOOL MinimizetoTray=FALSE;
 
-VOID __cdecl Debugprintf(const char * format, ...)
-{
-	char Mess[10000];
-	va_list(arglist);
-	va_start(arglist, format);
-	vsprintf(Mess, format, arglist);
-	strcat(Mess, "\r\n");
-	OutputDebugString(Mess);
-
-	return;
-}
 
 char * strlop(char * buf, char delim)
 {
@@ -527,7 +517,7 @@ HANDLE OpenCOMPort(char * pPort, int speed, BOOL SetDTR, BOOL SetRTS, BOOL Quiet
 	else
 	{
 		sprintf(buf,"%s Setup Failed %d ", pPort, GetLastError());
-		OutputDebugString(buf);
+		Debugprintf(buf);
 		CloseHandle(fd);
 		return 0;
 	}

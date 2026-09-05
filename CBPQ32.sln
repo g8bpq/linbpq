@@ -1,0 +1,50 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual C++ Express 2005
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BPQWinAPP", "BPQWinAPP.vcproj", "{005A91EA-3A00-4FB4-ADD9-EB78DBFA2B81}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinmorControl", "WinmorControl.vcproj", "{005A91EA-3A00-4FB4-ADD9-EB78DBFA2B82}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BPQMail", "BPQMail.vcproj", "{3766AA10-C777-4ED8-A83D-F1452DE9B665}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LinBPQ", "MailNode.vcproj", "{3766AA10-C777-4ED8-A83D-F1452DE9B666}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CBPQ32", "CBPQ32.vcproj", "{8EFA1E59-8654-4A23-8102-AA77A074D57C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BPQChat", "BPQChat.vcproj", "{2BDD2C8A-2B4A-496C-A2EA-6B49AA0670B1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{005A91EA-3A00-4FB4-ADD9-EB78DBFA2B81}.Debug|Win32.ActiveCfg = Debug|Win32
+		{005A91EA-3A00-4FB4-ADD9-EB78DBFA2B81}.Debug|Win32.Build.0 = Debug|Win32
+		{005A91EA-3A00-4FB4-ADD9-EB78DBFA2B81}.Release|Win32.ActiveCfg = Release|Win32
+		{005A91EA-3A00-4FB4-ADD9-EB78DBFA2B81}.Release|Win32.Build.0 = Release|Win32
+		{005A91EA-3A00-4FB4-ADD9-EB78DBFA2B82}.Debug|Win32.ActiveCfg = Debug|Win32
+		{005A91EA-3A00-4FB4-ADD9-EB78DBFA2B82}.Debug|Win32.Build.0 = Debug|Win32
+		{005A91EA-3A00-4FB4-ADD9-EB78DBFA2B82}.Release|Win32.ActiveCfg = Release|Win32
+		{005A91EA-3A00-4FB4-ADD9-EB78DBFA2B82}.Release|Win32.Build.0 = Release|Win32
+		{3766AA10-C777-4ED8-A83D-F1452DE9B665}.Debug|Win32.ActiveCfg = Debug|Win32
+		{3766AA10-C777-4ED8-A83D-F1452DE9B665}.Debug|Win32.Build.0 = Debug|Win32
+		{3766AA10-C777-4ED8-A83D-F1452DE9B665}.Release|Win32.ActiveCfg = Release|Win32
+		{3766AA10-C777-4ED8-A83D-F1452DE9B665}.Release|Win32.Build.0 = Release|Win32
+		{3766AA10-C777-4ED8-A83D-F1452DE9B666}.Debug|Win32.ActiveCfg = Debug|Win32
+		{3766AA10-C777-4ED8-A83D-F1452DE9B666}.Debug|Win32.Build.0 = Debug|Win32
+		{3766AA10-C777-4ED8-A83D-F1452DE9B666}.Release|Win32.ActiveCfg = Release|Win32
+		{3766AA10-C777-4ED8-A83D-F1452DE9B666}.Release|Win32.Build.0 = Release|Win32
+		{8EFA1E59-8654-4A23-8102-AA77A074D57C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8EFA1E59-8654-4A23-8102-AA77A074D57C}.Debug|Win32.Build.0 = Debug|Win32
+		{8EFA1E59-8654-4A23-8102-AA77A074D57C}.Release|Win32.ActiveCfg = Release|Win32
+		{8EFA1E59-8654-4A23-8102-AA77A074D57C}.Release|Win32.Build.0 = Release|Win32
+		{2BDD2C8A-2B4A-496C-A2EA-6B49AA0670B1}.Debug|Win32.ActiveCfg = Debug|Win32
+		{2BDD2C8A-2B4A-496C-A2EA-6B49AA0670B1}.Debug|Win32.Build.0 = Debug|Win32
+		{2BDD2C8A-2B4A-496C-A2EA-6B49AA0670B1}.Release|Win32.ActiveCfg = Release|Win32
+		{2BDD2C8A-2B4A-496C-A2EA-6B49AA0670B1}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

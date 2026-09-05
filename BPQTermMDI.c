@@ -112,18 +112,6 @@ VOID __cdecl Debugprintf(const char * format, ...);
 
 HKEY REGTREE = HKEY_LOCAL_MACHINE;		// Default
 
-VOID __cdecl Debugprintf(const char * format, ...)
-{
-	char Mess[1000];
-	va_list(arglist);int Len;
-
-	va_start(arglist, format);
-	Len = vsprintf_s(Mess, sizeof(Mess), format, arglist);
-	va_end(arglist);
-	strcat(Mess, "\r\n");
-	OutputDebugString(Mess);
-	return;
-}
 #else
 extern HKEY REGTREE;
 extern int OffsetH, OffsetW;

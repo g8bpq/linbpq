@@ -444,7 +444,7 @@ END
 //
 // Generated from the TEXTINCLUDE 3 resource.
 //
-#include "..\StdVer.inc"
+#include "StdVer.inc"
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED

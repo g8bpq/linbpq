@@ -36,7 +36,7 @@ END
 
 #define BPQICON 2
 
-BPQICON             ICON    DISCARDABLE     "..\\bpqicon.ico"
+BPQICON             ICON    DISCARDABLE     "bpqicon.ico"
 
 #ifdef MAILCHAT
 

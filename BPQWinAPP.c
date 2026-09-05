@@ -51,19 +51,6 @@ LRESULT CALLBACK About(HWND, UINT, WPARAM, LPARAM);
 HWND FrameWnd;
 int TimerHandle = 0;
 
-
-VOID __cdecl Debugprintf(const char * format, ...)
-{
-	char Mess[8192];
-	va_list(arglist);int Len;
-
-	va_start(arglist, format);
-	Len = vsprintf_s(Mess, sizeof(Mess), format, arglist);
-	strcat_s(Mess, 999, "\r\n");
-	OutputDebugString(Mess);
-	return;
-}
-
 VOID WriteMiniDump()
 {
 #ifdef WIN32
@@ -93,7 +80,98 @@ VOID WriteMiniDump()
 #endif
 }
 
+SYMBOL_INFO  * symbol;
+HANDLE         process;
 
+void printStack(void)
+{
+#ifdef WIN32
+//#ifdef _DEBUG					// So we can use on 98/2K
+
+    unsigned int   i;
+    void         * stack[ 100 ];
+    unsigned short frames;
+
+	DWORD  dwDisplacement;
+	IMAGEHLP_LINE64 line;
+	char * fptr;
+	Debugprintf("Stack Backtrace");
+
+     process = GetCurrentProcess();
+
+	 SymSetOptions(SYMOPT_LOAD_LINES);
+     SymInitialize( process, NULL, TRUE );
+
+     frames = RtlCaptureStackBackTrace(0, 60, stack, NULL );
+
+     for( i = 0; i < frames; i++ )
+     {
+		 SymGetLineFromAddr64(process, (DWORD64)stack[i], &dwDisplacement, &line);
+         SymFromAddr( process, ( DWORD64 )( stack[ i ] ), 0, symbol );
+
+		fptr = line.FileName + (int)strlen(line.FileName);	// remove path
+		while (*fptr != '\\' && *fptr != '/')
+			fptr--;
+		
+		fptr++;
+
+
+		Debugprintf( "%i: %s - %s Line %d Addr %p", frames - i - 1, symbol->Name, fptr, line.LineNumber, symbol->Address );
+	}
+
+	free(symbol);
+
+//#endif
+#endif
+}
+
+int filter(unsigned int code, struct _EXCEPTION_POINTERS *ep)
+{
+    Debugprintf("in filter.");
+	   printStack();
+    if (code == EXCEPTION_ACCESS_VIOLATION)
+    {
+        Debugprintf("caught AV as expected.");
+        return EXCEPTION_EXECUTE_HANDLER;
+    }
+    else
+    {
+        Debugprintf("didn't catch AV, unexpected.");
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+}
+
+
+
+LONG WINAPI UnhandledExcepFilter(PEXCEPTION_POINTERS pExcepPointers)
+{
+	DWORD  dwDisplacement;
+	IMAGEHLP_LINE64 line;
+	char * fptr;
+
+	if(pExcepPointers->ExceptionRecord->ExceptionCode == DBG_PRINTEXCEPTION_C)
+		 return EXCEPTION_CONTINUE_EXECUTION;
+
+	SymFromAddr( process, ((DWORD)pExcepPointers->ExceptionRecord->ExceptionAddress), 0, symbol );
+
+	Debugprintf("Program error trapped\r\n");
+
+	SymGetLineFromAddr64(process, (DWORD)pExcepPointers->ExceptionRecord->ExceptionAddress, &dwDisplacement, &line);
+	fptr = line.FileName + (int)strlen(line.FileName);	// remove path
+	while (*fptr != '\\' && *fptr != '/')
+		fptr--;
+		
+	fptr++;
+
+	Debugprintf("In Procedure %s - %s Line %d Addr %p\r\n", symbol->Name, fptr, line.LineNumber, symbol->Address );
+	printStack();
+
+	MessageBox(NULL,"Program Error - program closing. See Debug Log for details","BPQ32",MB_ICONSTOP);
+	RealCloseAllPrograms();
+	Sleep(1000);
+	CloseDebugLog();
+    exit(0);
+}
 
 //
 //  FUNCTION: WinMain(HANDLE, HANDLE, LPSTR, int)
@@ -109,9 +187,19 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 {
 	MSG msg;
 	int Running = 1;
-	struct _EXCEPTION_POINTERS exinfo;
 
 	Debugprintf("BPQ32.exe %s Entered", lpCmdLine);
+
+	 process = GetCurrentProcess();
+
+	 SymSetOptions(SYMOPT_LOAD_LINES);
+     SymInitialize( process, NULL, TRUE );
+
+	 symbol = ( SYMBOL_INFO * )calloc( sizeof( SYMBOL_INFO ) + 256 * sizeof( char ), 1 );
+     symbol->MaxNameLen = 255;
+     symbol->SizeOfStruct = sizeof( SYMBOL_INFO );
+
+	AddVectoredExceptionHandler(1, UnhandledExcepFilter);
 
 	if (_stricmp(lpCmdLine, "Wait") == 0)				// If AutoRestart then Delay 5 Secs				
 		Sleep(5000);
@@ -125,7 +213,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	// Main message loop:
 
-	__try 
+//	__try 
 	{
 		while(Running)
 		{
@@ -144,16 +232,17 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		}
 	}
 	
-	#define EXCEPTMSG "BPQ32.exe Main Loop"
-	#include "StdExcept.c"
-	}
+//	#define EXCEPTMSG "BPQ32.exe Main Loop"
+//	#include "StdExcept.c"
+//	}
 
 	Debugprintf("BPQ32.exe exiting %d", msg.message);
 
 	KillTimer(NULL,TimerHandle);
 
 	CloseBPQ32();				// Close Ext Drivers if last bpq32 process
-
+	CloseDebugLog();
+	
 	return (msg.wParam);
 }
 

@@ -270,6 +270,13 @@ char * APIENTRY GetLOC();
 
 uint64_t APIENTRY GetPortFrequency(int PortNo, char * FreqString);
 
+VOID APIENTRY RealCloseAllPrograms();
+VOID APIENTRY CloseAllPrograms();
+
+VOID __cdecl Debugprintf(const char * format, ...);
+VOID APIENTRY OpenDebugLog();
+VOID APIENTRY CloseDebugLog();
+
 #else
 
 struct PORTCONTROL * (FAR WINAPI *  GetPortTableEntryFromPortNum) (int portnum);

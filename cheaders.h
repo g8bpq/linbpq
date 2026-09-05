@@ -148,7 +148,7 @@ char * SetupNodeHeader(struct DATAMESSAGE * Buffer);
 VOID L4CONNECTFAILED(TRANSPORTENTRY * L4);
 int CountFramesQueuedOnSession(TRANSPORTENTRY * Session);
 VOID CLEARSESSIONENTRY(TRANSPORTENTRY * Session);
-VOID __cdecl Debugprintf(const char * format, ...);
+Dll VOID __cdecl Debugprintf(const char * format, ...);
 
 int APIENTRY Restart();
 int APIENTRY Reboot();

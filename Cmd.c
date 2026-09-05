@@ -468,6 +468,11 @@ VOID RIGRECONFIG(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, str
 
 VOID REBOOT(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * CMD)
 {
+	  char * ptr = 0;
+
+	 *(ptr) = 0;
+
+
 	if (Reboot())
 	{
 		strcpy(Bufferptr, REBOOTOK);

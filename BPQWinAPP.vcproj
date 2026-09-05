@@ -16,7 +16,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="C:\Dev\Msdev200\$(SolutionName)\$(ProjectName)\$(ConfigurationName)"
+			OutputDirectory="C:\Dev\Msdev2005\$(SolutionName)\$(ProjectName)\$(ConfigurationName)"
 			IntermediateDirectory="C:\Dev\Msdev2005\Intermed\$(SolutionName)\$(ProjectName)\$(ConfigurationName)"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
@@ -72,7 +72,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\lib\bpq32.lib DbgHelp.lib"
+				AdditionalDependencies="Win32bits\bpq32.lib DbgHelp.lib"
 				OutputFile="c:\DevProgs\bpq32\bpq32.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"

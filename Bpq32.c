@@ -1351,7 +1351,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 
 #include "time.h"
 #include "stdio.h"
-#include <fcntl.h>		
+#include <fcntl.h>	
 
 #include "compatbits.h"
 #include "AsmStrucs.h"
@@ -1434,8 +1434,6 @@ void * HSMODEMExtInit(EXTPORTDATA * PortEntry);
 void * FreeDataExtInit(EXTPORTDATA * PortEntry);
 void * SIXPACKExtInit(EXTPORTDATA * PortEntry);
 
-VOID RealCloseAllPrograms();
-
 extern char * ConfigBuffer;	// Config Area
 VOID REMOVENODE(dest_list * DEST);
 DllExport int ConvFromAX25(unsigned char * incall,unsigned char * outcall);
@@ -1448,6 +1446,7 @@ void initADSB();
 int CloseAllSessions();
 int CloseAllLinks();
 void NETROMTCPResolve();
+DllExport VOID APIENTRY CloseDebugLog();
 
 extern BOOL ADIFLogEnabled;
 
@@ -1580,8 +1579,8 @@ extern char ReportDest[7];
 
 extern UCHAR ConfigDirectory[260];
 
+DllExport VOID __cdecl Debugprintf(const char * format, ...);
 
-VOID __cdecl Debugprintf(const char * format, ...);
 VOID __cdecl Consoleprintf(const char * format, ...);
 
 DllExport int APIENTRY CloseBPQ32();
@@ -1849,8 +1848,7 @@ void LoadToolHelperRoutines()
 	if (ExtDriver == NULL)
 	{
 		err=GetLastError();
-		sprintf(msg,"BPQ32 Error loading kernel32.dll - Error code %d\n", err);
-		OutputDebugString(msg);
+		Debugprintf("BPQ32 Error loading kernel32.dll - Error code %d", err);
 		return;
 	}
 
@@ -1861,8 +1859,7 @@ void LoadToolHelperRoutines()
 	if (CreateToolHelp32SnapShotPtr == 0)
 	{
 		err=GetLastError();
-		sprintf(msg,"BPQ32 Error getting CreateToolhelp32Snapshot entry point - Error code %d\n", err);
-		OutputDebugString(msg);
+		Debugprintf("BPQ32 Error getting CreateToolhelp32Snapshot entry point - Error code %d\n", err);
 		return;
 	}
 }
@@ -1881,8 +1878,8 @@ BOOL GetProcess(int ProcessID, char * Program)
   hProcessSnap = (HANDLE)CreateToolHelp32SnapShotPtr(TH32CS_SNAPPROCESS, 0);
   if( hProcessSnap == INVALID_HANDLE_VALUE )
   {
-    OutputDebugString( "CreateToolhelp32Snapshot (of processes) Failed\n" );
-    return( FALSE );
+	  Debugprintf("CreateToolhelp32Snapshot (of processes) Failed\n" );
+	  return( FALSE );
   }
 
   // Set the size of the structure before using it.
@@ -1892,7 +1889,7 @@ BOOL GetProcess(int ProcessID, char * Program)
   // and exit if unsuccessful
   if( !Process32Firstptr( hProcessSnap, &pe32 ) )
   {
-    OutputDebugString( "Process32First Failed\n" );  // Show cause of failure
+    Debugprintf( "Process32First Failed" );  // Show cause of failure
     CloseHandle( hProcessSnap );     // Must clean up the snapshot object!
     return( FALSE );
   }
@@ -1940,7 +1937,7 @@ BOOL IsProcess(int ProcessID)
 
   if( hProcessSnap == INVALID_HANDLE_VALUE )
   {
-    OutputDebugString( "CreateToolhelp32Snapshot (of processes) Failed\n" );
+    Debugprintf( "CreateToolhelp32Snapshot (of processes) Failed" );
     return(TRUE);		// Don't know, so assume ok
   }
 
@@ -1948,7 +1945,7 @@ BOOL IsProcess(int ProcessID)
 
    if( !Process32Firstptr( hProcessSnap, &pe32 ) )
   {
-    OutputDebugString( "Process32First Failed\n" );  // Show cause of failure
+    Debugprintf( "Process32First Failed" );  // Show cause of failure
     CloseHandle( hProcessSnap );     // Must clean up the snapshot object!
     return(TRUE);		// Don't know, so assume ok
    }
@@ -2013,8 +2010,8 @@ VOID CheckforLostProcesses()
 		{
 			// Process has died - Treat as a detach
 
-			sprintf(Log,"BPQ32 Process %d Died\n", ProcessID);
-			OutputDebugString(Log);
+			sprintf(Log,"BPQ32 Process %d Died", ProcessID);
+			Debugprintf(Log);
 
 			// Remove Tray Icon Entry
 
@@ -2023,8 +2020,7 @@ VOID CheckforLostProcesses()
 				if (PIDArray[i] == ProcessID)
 				{
 					hWndArray[i] = 0;
-					sprintf(Log,"BPQ32 Removing Tray Item %s\n", PopupText[i]);
-					OutputDebugString(Log);
+					Debugprintf(Log,"BPQ32 Removing Tray Item %s", PopupText[i]);
 					DeleteMenu(trayMenu,TRAYBASEID+i,MF_BYCOMMAND);
 				}
 			}
@@ -2033,7 +2029,7 @@ VOID CheckforLostProcesses()
 
 			if (Semaphore.Flag == 1 && ProcessID == Semaphore.SemProcessID)
 			{
-				OutputDebugString("BPQ32 Process was holding Semaphore - attempting recovery\r\n");
+				Debugprintf("BPQ32 Process was holding Semaphore - attempting recovery");
 				Debugprintf("Last Sem Call %d %x %x %x %x %x %x", SemHeldByAPI,
 					Sem_eax, Sem_ebx, Sem_ecx, Sem_edx, Sem_esi, Sem_edi); 
 
@@ -2055,7 +2051,7 @@ VOID CheckforLostProcesses()
 				TimerHandle=0;
 				TimerInst=0xffffffff;
 //				Tell_Sessions();
-				OutputDebugString("BPQ32 Process was running timer \n");
+				Debugprintf("BPQ32 Process was running timer");
 			
 				if (MinimizetoTray)
 					Shell_NotifyIcon(NIM_DELETE,&niData);
@@ -2095,7 +2091,7 @@ VOID MonitorTimerThread(int x)
 
 			if (Semaphore.Flag == 1 && TimerInst == Semaphore.SemProcessID)
 			{
-				OutputDebugString("BPQ32 Process was holding Semaphore - attempting recovery\r\n");
+				Debugprintf("BPQ32 Process was holding Semaphore - attempting recovery");
 				Debugprintf("Last Sem Call %d %x %x %x %x %x %x", SemHeldByAPI,
 					Sem_eax, Sem_ebx, Sem_ecx, Sem_edx, Sem_esi, Sem_edi); 
 				Semaphore.Flag = 0;
@@ -2116,7 +2112,7 @@ VOID MonitorTimerThread(int x)
 
 			if (Closing == FALSE && AttachingProcess == FALSE)
 			{
-				OutputDebugString("BPQ32 Reloading BPQ32.exe\n");
+				Debugprintf("BPQ32 Reloading BPQ32.exe");
 				StartBPQ32();
 			}
 
@@ -2194,7 +2190,7 @@ void Semaphored100msCode()
 			SetupBPQDirectory();
 
 			WritetoConsole("Reconfiguring ...\n\n");
-			OutputDebugString("BPQ32 Reconfiguring ...\n");	
+			Debugprintf("BPQ32 Reconfiguring ...");	
 
 			GetWindowRect(FrameWnd, &FRect);
 
@@ -2304,7 +2300,7 @@ void Semaphored100msCode()
 			AGWActive = AGWAPIInit();
 			GetSemaphore(&Semaphore, 0);
 
-			OutputDebugString("BPQ32 Reconfiguration Complete\n");	
+			Debugprintf("BPQ32 Reconfiguration Complete");	
 		}
 	}
 
@@ -2340,7 +2336,7 @@ void Semaphored100msCode()
 	}
 }
 
-
+DllExport VOID APIENTRY RealCloseAllPrograms();
 
 
 VOID UnSemaphored100msCode()
@@ -2522,7 +2518,7 @@ FirstInit()
 	if (ADIFLogEnabled)
 		ADIFWriteFreqList();
 
-	OutputDebugString("BPQ32 Port Initialisation Complete\n");
+	Debugprintf("BPQ32 Port Initialisation Complete");
 
 	if (needAIS)
 		initAIS();
@@ -2609,7 +2605,7 @@ int Check_Timer()
 		}
 
 		GetSemaphore(&Semaphore, 3);
-		OutputDebugString("BPQ32 Reinitialising External Ports and Attaching Timer\n");
+		Debugprintf("BPQ32 Reinitialising External Ports and Attaching Timer");
 
 		if (!ProcessConfig())
 		{
@@ -2925,7 +2921,7 @@ BOOL APIENTRY DllMain(HANDLE hInst, DWORD ul_reason_being_called, LPVOID lpReser
 
 			if (Mutex != NULL)
 			{
-				OutputDebugString("Another BPQ32.dll is loaded\n");
+				Debugprintf("Another BPQ32.dll is loaded");
 				i=MessageBox(NULL,"BPQ32 DLL already loaded from another directory\nIf you REALLY want this, hit OK, else hit Cancel","BPQ32",MB_OKCANCEL);
 				FreeSemaphore(&Semaphore);
 
@@ -2999,7 +2995,7 @@ BOOL APIENTRY DllMain(HANDLE hInst, DWORD ul_reason_being_called, LPVOID lpReser
 
 				if (Mutex != NULL)
 				{
-					OutputDebugString("Another BPQ32.dll is loaded\n");
+					Debugprintf("Another BPQ32.dll is loaded");
 					MessageBox(NULL,"BPQ32 DLL already loaded from another directory","BPQ32",MB_ICONSTOP);
 					FreeSemaphore(&Semaphore);
 					return (0);
@@ -3059,15 +3055,15 @@ SkipInit:
 
 		_beginthread(MonitorTimerThread,0,0);
 
-		FreeSemaphore(&Semaphore);
-
 		AttachedPIDList[AttachedProcesses++] = GetCurrentProcessId();
 
 		if (_stricmp(pgm,"bpq32.exe") == 0 &&  AttachingProcess == 1) AttachingProcess = 0;
 
 		GetProcess(GetCurrentProcessId(),pgm);
-		n=sprintf(buf,"BPQ32 DLL Attach complete - Program %s - %d Process(es) Attached\n",pgm,AttachedProcesses);
-		OutputDebugString(buf);
+		Debugprintf("BPQ32 DLL Attach complete - Program %s - %d Process(es) Attached\n",pgm,AttachedProcesses);
+
+		FreeSemaphore(&Semaphore);
+
 
 		// Set up local variables
 		
@@ -3126,8 +3122,6 @@ SkipInit:
 			{
 				char Log[80];
 				hWndArray[i] = 0;
-				sprintf(Log,"BPQ32 Removing Tray Item %s\n", PopupText[i]);
-				OutputDebugString(Log);
 				DeleteMenu(trayMenu,TRAYBASEID+i,MF_BYCOMMAND);
 			}
 		}
@@ -3151,7 +3145,7 @@ SkipInit:
 		{
 			PEXTPORTDATA PORTVEC=(PEXTPORTDATA)PORTTABLE;
 	
-			OutputDebugString("BPQ32 Process with Timer closing\n");
+			Debugprintf("BPQ32 Process with Timer closing\n");
 
 			// Call Port Close Routines
 			
@@ -3197,7 +3191,7 @@ SkipInit:
 
 			if (AttachedProcesses && Closing == FALSE && AttachingProcess == 0)		// Other processes 
 			{
-				OutputDebugString("BPQ32 Reloading BPQ32.exe\n");
+				Debugprintf("BPQ32 Reloading BPQ32.exe\n");
 				StartBPQ32();
 			}
 		}
@@ -3246,8 +3240,7 @@ SkipInit:
 		}
 
 		GetProcess(GetCurrentProcessId(),pgm);
-		n=sprintf(buf,"BPQ32 DLL Detach complete - Program %s - %d Process(es) Attached\n",pgm,AttachedProcesses);
-		OutputDebugString(buf);
+		Debugprintf("BPQ32 DLL Detach complete - Program %s - %d Process(es) Attached\n",pgm,AttachedProcesses);
 
 		return 1;
 	}
@@ -3294,7 +3287,7 @@ DllExport int APIENTRY CloseBPQ32()
 
 	if (Semaphore.Flag == 1 && ProcessID == Semaphore.SemProcessID)
 	{
-		OutputDebugString("BPQ32 Process holding Semaphore called CloseBPQ32 - attempting recovery\r\n");
+		Debugprintf("BPQ32 Process holding Semaphore called CloseBPQ32 - attempting recovery\r\n");
 		Debugprintf("Last Sem Call %d %x %x %x %x %x %x", SemHeldByAPI,
 			Sem_eax, Sem_ebx, Sem_ecx, Sem_edx, Sem_esi, Sem_edi); 
 
@@ -3304,7 +3297,7 @@ DllExport int APIENTRY CloseBPQ32()
 
 	if (TimerInst == ProcessID)
 	{	
-		OutputDebugString("BPQ32 Process with Timer called CloseBPQ32\n");
+		Debugprintf("BPQ32 Process with Timer called CloseBPQ32\n");
 
 		if (MinimizetoTray)
 			Shell_NotifyIcon(NIM_DELETE,&niData);
@@ -3345,7 +3338,7 @@ DllExport int APIENTRY CloseBPQ32()
 
 		if (AttachedProcesses > 1 && Closing == FALSE && AttachingProcess == 0)		// Other processes 
 		{
-			OutputDebugString("BPQ32 Reloading BPQ32.exe\n");
+			Debugprintf("BPQ32 Reloading BPQ32.exe\n");
 			StartBPQ32();
 		}
 	}
@@ -3514,11 +3507,11 @@ if (_winver < 0x0600)
 
 	sprintf(msg,"BPQ32 Ver %s Loaded from: %s by %s\n", VersionString, DLLName, pgm);
 	WritetoConsole(msg);
-	OutputDebugString(msg);
+	Debugprintf(msg);
 	FormatTime3(Time, NOW);
 	sprintf(msg,"Loaded %s\n", Time);
 	WritetoConsole(msg);
-	OutputDebugString(msg);
+	Debugprintf(msg);
 
 #pragma warning(push)
 #pragma warning(disable : 4996)
@@ -3535,12 +3528,12 @@ if (_winver < 0x0600)
 #pragma warning(pop)
 
  	WritetoConsole(msg);
-	OutputDebugString(msg);
+	Debugprintf(msg);
 	
 	i=sprintf(msg,"BPQ32 Using config from: %s\n\n",BPQDirectory);
  	WritetoConsole(&msg[6]);
 	msg[i-1]=0;
-	OutputDebugString(msg);
+	Debugprintf(msg);
 
 	// Don't write the Version Key if loaded by regsvr32.exe (Installer is running with Admin rights,
 	//	so will write the wrong tree on )
@@ -3600,10 +3593,8 @@ HANDLE OpenConfigFile(char *fn)
 	GetFileTime(handle, NULL, NULL, &LastWriteTime);
 	FileTimeToSystemTime(&LastWriteTime, &Time);
 
-	sprintf(Msg,"BPQ32 Config File %s Created %.2d:%.2d %d/%.2d/%.2d\n", Value,
+	Debugprintf("BPQ32 Config File %s Created %.2d:%.2d %d/%.2d/%.2d\n", Value,
 				Time.wHour, Time.wMinute, Time.wYear, Time.wMonth, Time.wDay);
-
-	OutputDebugString(Msg);
 
 	return(handle);
 }
@@ -5609,7 +5600,7 @@ int WritetoConsoleSupport(char * buff)
 
 DllExport VOID APIENTRY  BPQOutputDebugString(char * String)
 {
-	OutputDebugString(String);
+	Debugprintf(String);
 	return;
  }
 
@@ -5676,7 +5667,7 @@ BOOLEAN CheckifBPQ32isLoaded()
 	{	
 		if (AttachingProcess == 0)			// Already starting BPQ32
 		{
-			OutputDebugString("BPQ32 No other bpq32 programs running - Loading BPQ32.exe\n");
+			Debugprintf("BPQ32 No other bpq32 programs running - Loading BPQ32.exe");
 			StartBPQ32();
 		}
 		return FALSE;
@@ -5773,7 +5764,7 @@ BOOLEAN StartBPQ32()
 		strcat(Errbuff,Value);
 		strcat(Errbuff," failed ");
 		strcat(Errbuff,buff);
-		OutputDebugString(Errbuff);
+		Debugprintf(Errbuff);
 		AttachingProcess = 0;
 		return FALSE;		
 	}
@@ -5831,19 +5822,6 @@ DllExport VOID * APIENTRY GetBuff()
 }
 
 
-VOID __cdecl Debugprintf(const char * format, ...)
-{
-	char Mess[10000];
-	va_list(arglist);
-
-	va_start(arglist, format);
-	vsprintf(Mess, format, arglist);
-	va_end(arglist);
-	strcat(Mess, "\r\n");
-	OutputDebugString(Mess);
-
-	return;
-}
 
 unsigned short int compute_crc(unsigned char *buf, int txlen);
 
@@ -6106,7 +6084,7 @@ DllExport VOID APIENTRY CloseAllPrograms()
 	ShowWindow(hwndClosing, SW_SHOW); 
 }
 
-VOID RealCloseAllPrograms()
+DllExport VOID APIENTRY RealCloseAllPrograms()
 {
 	hookNodeClosing("Shutdown");
 	Sleep(500);

@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\CKernel;..\CommonSource;..\CInclude"
+				AdditionalIncludeDirectories="Win32bits;..\BPQSource"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;LINBPQ;_USE_32BIT_TIME_T;NOMQTT"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -61,7 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="kernel32.lib WS2_32.Lib ..\lib\libconfigd.lib DbgHelp.lib setupapi.lib miniupnpc.lib zlibstat.lib"
+				AdditionalDependencies="kernel32.lib WS2_32.Lib Win32bits\libconfigd.lib DbgHelp.lib setupapi.lib miniupnpc.lib zlibstat.lib"
 				OutputFile="c:\LINBPQ\$(ProjectName).exe"
 				LinkIncremental="2"
 				IgnoreDefaultLibraryNames=""
@@ -123,7 +123,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\CKernel;..\CommonSource;..\CInclude"
+				AdditionalIncludeDirectories="Win32bits;..\BPQSource"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;LINBPQ;_USE_32BIT_TIME_T;NOMQTT"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
@@ -142,7 +142,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="kernel32.lib WS2_32.Lib ..\lib\libconfig.lib DbgHelp.lib Setupapi.lib miniupnpc.lib zlibstat.lib"
+				AdditionalDependencies="kernel32.lib WS2_32.Lib Win32bits\libconfig.lib DbgHelp.lib Setupapi.lib miniupnpc.lib zlibstat.lib"
 				OutputFile="c:\devprogs\bpq32\LinBPQ.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
@@ -188,19 +188,19 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\CommonSource\adif.c"
+				RelativePath="..\BPQSource\adif.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\AEAPactor.c"
+				RelativePath="..\BPQSource\AEAPactor.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\AGWAPI.c"
+				RelativePath="..\BPQSource\AGWAPI.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\AGWMoncode.c"
+				RelativePath="..\BPQSource\AGWMoncode.c"
 				>
 			</File>
 			<File
@@ -208,11 +208,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\Alloc.c"
+				RelativePath="..\BPQSource\Alloc.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\APRSCode.c"
+				RelativePath="..\BPQSource\APRSCode.c"
 				>
 			</File>
 			<File
@@ -224,7 +224,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\ARDOP.c"
+				RelativePath="..\BPQSource\ARDOP.c"
 				>
 			</File>
 			<File
@@ -232,11 +232,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\BBSHTMLConfig.c"
+				RelativePath="..\BPQSource\BBSHTMLConfig.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\BBSUtilities.c"
+				RelativePath="..\BPQSource\BBSUtilities.c"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -257,63 +257,63 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\CommonSource\bpqaxip.c"
+				RelativePath="..\BPQSource\bpqaxip.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\bpqether.c"
+				RelativePath="..\BPQSource\bpqether.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\bpqhdlc.c"
+				RelativePath="..\BPQSource\bpqhdlc.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\BPQINP3.c"
+				RelativePath="..\BPQSource\BPQINP3.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\BPQNRR.c"
+				RelativePath="..\BPQSource\BPQNRR.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\BPQtoAGW.c"
+				RelativePath="..\BPQSource\BPQtoAGW.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\bpqvkiss.c"
+				RelativePath="..\BPQSource\bpqvkiss.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\ChatHTMLConfig.c"
+				RelativePath="..\BPQSource\ChatHTMLConfig.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\cMain.c"
+				RelativePath="..\BPQSource\cMain.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\Cmd.c"
+				RelativePath="..\BPQSource\Cmd.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\CMSAuth.c"
+				RelativePath="..\BPQSource\CMSAuth.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\CommonCode.c"
+				RelativePath="..\BPQSource\CommonCode.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\compatbits.c"
+				RelativePath="..\BPQSource\compatbits.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\config.c"
+				RelativePath="..\BPQSource\config.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\datadefs.c"
+				RelativePath="..\BPQSource\datadefs.c"
 				>
 			</File>
 			<File
@@ -325,11 +325,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\FBBRoutines.c"
+				RelativePath="..\BPQSource\FBBRoutines.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\FLDigi.c"
+				RelativePath="..\BPQSource\FLDigi.c"
 				>
 			</File>
 			<File
@@ -341,23 +341,23 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\HALDriver.c"
+				RelativePath="..\BPQSource\HALDriver.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\HanksRT.c"
+				RelativePath="..\BPQSource\HanksRT.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\HFCommon.c"
+				RelativePath="..\BPQSource\HFCommon.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\hid.c"
+				RelativePath="..\BPQSource\hid.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\Housekeeping.c"
+				RelativePath="..\BPQSource\Housekeeping.c"
 				>
 			</File>
 			<File
@@ -365,63 +365,63 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\HTMLCommonCode.c"
+				RelativePath="..\BPQSource\HTMLCommonCode.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\HTTPcode.c"
+				RelativePath="..\BPQSource\HTTPcode.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\IPCode.c"
+				RelativePath="..\BPQSource\IPCode.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\KAMPactor.c"
+				RelativePath="..\BPQSource\KAMPactor.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\kiss.c"
+				RelativePath="..\BPQSource\kiss.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\KISSHF.c"
+				RelativePath="..\BPQSource\KISSHF.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\L2Code.c"
+				RelativePath="..\BPQSource\L2Code.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\L3Code.c"
+				RelativePath="..\BPQSource\L3Code.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\L4Code.c"
+				RelativePath="..\BPQSource\L4Code.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\LinBPQ.c"
+				RelativePath="..\BPQSource\LinBPQ.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\LzFind.c"
+				RelativePath="..\BPQSource\LzFind.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\lzhuf32.c"
+				RelativePath="..\BPQSource\lzhuf32.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\LzmaDec.c"
+				RelativePath="..\BPQSource\LzmaDec.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\LzmaEnc.c"
+				RelativePath="..\BPQSource\LzmaEnc.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\LzmaLib.c"
+				RelativePath="..\BPQSource\LzmaLib.c"
 				>
 			</File>
 			<File
@@ -429,31 +429,31 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\MailCommands.c"
+				RelativePath="..\BPQSource\MailCommands.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\MailDataDefs.c"
+				RelativePath="..\BPQSource\MailDataDefs.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\MailRouting.c"
+				RelativePath="..\BPQSource\MailRouting.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\MailTCP.c"
+				RelativePath="..\BPQSource\MailTCP.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\MBLRoutines.c"
+				RelativePath="..\BPQSource\MBLRoutines.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\md5.c"
+				RelativePath="..\BPQSource\md5.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\Moncode.c"
+				RelativePath="..\BPQSource\Moncode.c"
 				>
 			</File>
 			<File
@@ -461,11 +461,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\Multicast.c"
+				RelativePath="..\BPQSource\Multicast.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\MULTIPSK.c"
+				RelativePath="..\BPQSource\MULTIPSK.c"
 				>
 			</File>
 			<File
@@ -473,7 +473,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\NNTPRoutines.c"
+				RelativePath="..\BPQSource\NNTPRoutines.c"
 				>
 			</File>
 			<File
@@ -481,7 +481,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\pibits.c"
+				RelativePath="..\BPQSource\pibits.c"
 				>
 			</File>
 			<File
@@ -561,39 +561,39 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\RigControl.c"
+				RelativePath="..\BPQSource\RigControl.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\SCSPactor.c"
+				RelativePath="..\BPQSource\SCSPactor.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\SCSTrackeMulti.c"
+				RelativePath="..\BPQSource\SCSTrackeMulti.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\SCSTracker.c"
+				RelativePath="..\BPQSource\SCSTracker.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\SerialPort.c"
+				RelativePath="..\BPQSource\SerialPort.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\TelnetV6.c"
+				RelativePath="..\BPQSource\TelnetV6.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\TNCCode.c"
+				RelativePath="..\BPQSource\TNCCode.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\TNCEmulators.c"
+				RelativePath="..\BPQSource\TNCEmulators.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\UIRoutines.c"
+				RelativePath="..\BPQSource\UIRoutines.c"
 				>
 			</File>
 			<File
@@ -601,27 +601,27 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\utf8Routines.c"
+				RelativePath="..\BPQSource\utf8Routines.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\UZ7HODrv.c"
+				RelativePath="..\BPQSource\UZ7HODrv.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\V4.c"
+				RelativePath="..\BPQSource\V4.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\VARA.c"
+				RelativePath="..\BPQSource\VARA.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\WebMail.c"
+				RelativePath="..\BPQSource\WebMail.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\WINMOR.c"
+				RelativePath="..\BPQSource\WINMOR.c"
 				>
 			</File>
 			<File
@@ -629,7 +629,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\WPRoutines.c"
+				RelativePath="..\BPQSource\WPRoutines.c"
 				>
 			</File>
 		</Filter>

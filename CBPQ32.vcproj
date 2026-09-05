@@ -20,7 +20,7 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="C:\Dev\Msdev2005\$(SolutionName)\$(ProjectName)\$(ConfigurationName)"
+			OutputDirectory="Win32bits"
 			IntermediateDirectory="C:\Dev\Msdev2005\Intermed\$(SolutionName)\$(ProjectName)\$(ConfigurationName)"
 			ConfigurationType="2"
 			CharacterSet="0"
@@ -49,7 +49,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\CInclude;..\CommonSource;..\CKernel"
+				AdditionalIncludeDirectories="..\BPQSource\Win32bits;..\BPQSource"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;BPQ32_EXPORTS;MDIKERNEL;_USE_32BIT_TIME_T;BPQ32;NOMQTT"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -74,12 +74,12 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions=" /section:_BPQDATA,srw"
-				AdditionalDependencies="WS2_32.Lib winmm.lib DbgHelp.lib comctl32.lib Iphlpapi.lib setupapi.lib ..\lib\libconfigd.lib miniupnpc.lib zlibstat.lib"
+				AdditionalDependencies="WS2_32.Lib winmm.lib DbgHelp.lib comctl32.lib Iphlpapi.lib setupapi.lib Win32bits\libconfigd.lib miniupnpc.lib zlibstat.lib"
 				OutputFile="c:\DevProgs\BPQ32\bpq32.dll"
 				LinkIncremental="2"
 				IgnoreAllDefaultLibraries="false"
 				IgnoreDefaultLibraryNames="LIBCMTD.lib"
-				ModuleDefinitionFile="..\CommonSource\bpq32.def"
+				ModuleDefinitionFile="..\BPQSource\bpq32.def"
 				GenerateDebugInformation="true"
 				GenerateMapFile="true"
 				MapFileName="c:\DevProgs\BPQ32\bpqdev.map"
@@ -90,7 +90,7 @@
 				EnableCOMDATFolding="1"
 				EntryPointSymbol=""
 				BaseAddress="0x42000000"
-				ImportLibrary="..\lib\bpq32.lib"
+				ImportLibrary="Win32bits\bpq32.lib"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -122,7 +122,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="C:\Dev\Msdev2005\$(SolutionName)\$(ProjectName)\$(ConfigurationName)"
+			OutputDirectory="Win32bits"
 			IntermediateDirectory="C:\Dev\Msdev2005\Intermed\$(SolutionName)\$(ProjectName)\$(ConfigurationName)"
 			ConfigurationType="2"
 			CharacterSet="0"
@@ -158,7 +158,7 @@
 				AdditionalOptions="/D &quot;MDIKERNEL&quot;"
 				Optimization="0"
 				WholeProgramOptimization="false"
-				AdditionalIncludeDirectories="..\CInclude;..\CommonSource;..\CKernel"
+				AdditionalIncludeDirectories="..\BPQSource\Win32bits;..\BPQSource"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;BPQ32_EXPORTS;MDIKERNEL;_USE_32BIT_TIME_T;NOMQTT"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
@@ -180,11 +180,11 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions=" /section:_BPQDATA,srw"
-				AdditionalDependencies="WS2_32.Lib winmm.lib comctl32.lib setupapi.lib ..\lib\libconfig.lib miniupnpc.lib zlibstat.lib DbgHelp.lib"
-				OutputFile="C:\DevProgs\BPQ32\bpq32.dll"
+				AdditionalDependencies="WS2_32.Lib winmm.lib comctl32.lib setupapi.lib Win32bits\libconfig.lib miniupnpc.lib zlibstat.lib DbgHelp.lib"
+				OutputFile="c:\DevProgs\BPQ32\bpq32.dll"
 				LinkIncremental="1"
 				IgnoreDefaultLibraryNames=""
-				ModuleDefinitionFile="..\CommonSource\bpq32.def"
+				ModuleDefinitionFile="..\BPQSource\bpq32.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="c:\DevProgs\BPQ32\bpq32.pdb"
 				GenerateMapFile="true"
@@ -239,19 +239,19 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\adif.c"
+				RelativePath="..\BPQSource\adif.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\AEAPactor.c"
+				RelativePath="..\BPQSource\AEAPactor.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\AGWAPI.c"
+				RelativePath="..\BPQSource\AGWAPI.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\AGWMoncode.c"
+				RelativePath="..\BPQSource\AGWMoncode.c"
 				>
 			</File>
 			<File
@@ -259,7 +259,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\APRSCode.c"
+				RelativePath="..\BPQSource\APRSCode.c"
 				>
 			</File>
 			<File
@@ -271,11 +271,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\ARDOP.c"
+				RelativePath="..\BPQSource\ARDOP.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\asmDOSAPI.asm"
+				RelativePath="..\BPQSource\asmDOSAPI.asm"
 				>
 			</File>
 			<File
@@ -283,27 +283,27 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\Bpq32.c"
+				RelativePath="..\BPQSource\Bpq32.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\bpqaxip.c"
+				RelativePath="..\BPQSource\bpqaxip.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\bpqether.c"
+				RelativePath="..\BPQSource\bpqether.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\bpqhdlc.c"
+				RelativePath="..\BPQSource\bpqhdlc.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\BPQINP3.c"
+				RelativePath="..\BPQSource\BPQINP3.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\BPQNRR.c"
+				RelativePath="..\BPQSource\BPQNRR.c"
 				>
 			</File>
 			<File
@@ -311,31 +311,19 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\BPQtoAGW.c"
+				RelativePath="..\BPQSource\BPQtoAGW.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\bpqvkiss.c"
+				RelativePath="..\BPQSource\bpqvkiss.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\cMain.c"
+				RelativePath="..\BPQSource\cMain.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\Cmd.c"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AssemblerOutput="0"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\CommonSource\CMSAuth.c"
+				RelativePath="..\BPQSource\Cmd.c"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -347,23 +335,35 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\CommonSource\CommonCode.c"
+				RelativePath="..\BPQSource\CMSAuth.c"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AssemblerOutput="0"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\BPQSource\CommonCode.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\compatbits.c"
+				RelativePath="..\BPQSource\compatbits.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\config.c"
+				RelativePath="..\BPQSource\config.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\datadefs.c"
+				RelativePath="..\BPQSource\datadefs.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\DOSAPI.c"
+				RelativePath="..\BPQSource\DOSAPI.c"
 				>
 			</File>
 			<File
@@ -375,7 +375,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\FLDigi.c"
+				RelativePath="..\BPQSource\FLDigi.c"
 				>
 			</File>
 			<File
@@ -383,15 +383,15 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\HALDriver.c"
+				RelativePath="..\BPQSource\HALDriver.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\HFCommon.c"
+				RelativePath="..\BPQSource\HFCommon.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\hid.c"
+				RelativePath="..\BPQSource\hid.c"
 				>
 			</File>
 			<File
@@ -399,43 +399,43 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\HTTPcode.c"
+				RelativePath="..\BPQSource\HTTPcode.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\IPCode.c"
+				RelativePath="..\BPQSource\IPCode.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\KAMPactor.c"
+				RelativePath="..\BPQSource\KAMPactor.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\kiss.c"
+				RelativePath="..\BPQSource\kiss.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\KISSHF.c"
+				RelativePath="..\BPQSource\KISSHF.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\L2Code.c"
+				RelativePath="..\BPQSource\L2Code.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\L3Code.c"
+				RelativePath="..\BPQSource\L3Code.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\L4Code.c"
+				RelativePath="..\BPQSource\L4Code.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\md5.c"
+				RelativePath="..\BPQSource\md5.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\Moncode.c"
+				RelativePath="..\BPQSource\Moncode.c"
 				>
 			</File>
 			<File
@@ -451,7 +451,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\CommonSource\MULTIPSK.c"
+				RelativePath="..\BPQSource\MULTIPSK.c"
 				>
 			</File>
 			<File
@@ -523,7 +523,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\PortMapper.c"
+				RelativePath="..\BPQSource\PortMapper.c"
 				>
 			</File>
 			<File
@@ -531,39 +531,39 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\RigControl.c"
+				RelativePath="..\BPQSource\RigControl.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\SCSPactor.c"
+				RelativePath="..\BPQSource\SCSPactor.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\SCSTrackeMulti.c"
+				RelativePath="..\BPQSource\SCSTrackeMulti.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\SCSTracker.c"
+				RelativePath="..\BPQSource\SCSTracker.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\SerialPort.c"
+				RelativePath="..\BPQSource\SerialPort.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\TelnetV6.c"
+				RelativePath="..\BPQSource\TelnetV6.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\TNCCode.c"
+				RelativePath="..\BPQSource\TNCCode.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\TNCEmulators.c"
+				RelativePath="..\BPQSource\TNCEmulators.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\UIARQ.c"
+				RelativePath="..\BPQSource\UIARQ.c"
 				>
 			</File>
 			<File
@@ -571,27 +571,27 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\utf8Routines.c"
+				RelativePath="..\BPQSource\utf8Routines.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\UZ7HODrv.c"
+				RelativePath="..\BPQSource\UZ7HODrv.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\V4.c"
+				RelativePath="..\BPQSource\V4.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\VARA.c"
+				RelativePath="..\BPQSource\VARA.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\WINMOR.c"
+				RelativePath="..\BPQSource\WINMOR.c"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\WinRPR.c"
+				RelativePath="..\BPQSource\WinRPR.c"
 				>
 			</File>
 		</Filter>
@@ -601,11 +601,11 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath="..\CommonSource\asmstrucs.h"
+				RelativePath="..\BPQSource\asmstrucs.h"
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\bpq32.def"
+				RelativePath="..\BPQSource\bpq32.def"
 				>
 			</File>
 			<File
@@ -613,7 +613,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\compatbits.h"
+				RelativePath="..\BPQSource\compatbits.h"
 				>
 			</File>
 			<File
@@ -625,7 +625,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\CommonSource\Versions.h"
+				RelativePath="..\BPQSource\Versions.h"
 				>
 			</File>
 		</Filter>
@@ -635,7 +635,7 @@
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
 			<File
-				RelativePath="..\CommonSource\KernelScript1.rc"
+				RelativePath="..\BPQSource\KernelScript1.rc"
 				>
 			</File>
 		</Filter>

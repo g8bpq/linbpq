@@ -363,7 +363,6 @@ int HDLCINIT(HDLCDATA * PORTVEC)
 	else
 	{
 		Init98(PORTVEC);
-		OutputDebugString("HDLC Win98 Return from Init98\n");
 		return 0;
 	}
 
@@ -376,8 +375,6 @@ int Init98(HDLCDATA * PORTVEC)
 
 	Win98 = TRUE;
 	
-	OutputDebugString("Init HDLC 98\n");
-
 	//
 	//	Open HDLC Driver, send send config params
 	//
@@ -394,32 +391,14 @@ int Init98(HDLCDATA * PORTVEC)
 		if (hDevice == INVALID_HANDLE_VALUE)
 		{
 			hDevice=0;
-
-			err=GetLastError();
-	
-			sprintf(msg,"Error loading Driver \\\\.\\BPQHDLC.VXD - Error code %d\n",err);
-			OutputDebugString(msg);
-			
-			MessageBox(NULL,msg,"BPQ32",MB_ICONSTOP);
-
 			WritetoConsole("Initialisation Failed");
 
 			return (FALSE);
 		}
 
-//		OutputDebugString("Calling GetVersion\n");
-
-//		fResult = DeviceIoControl(
-//			hDevice,          // device handle
-//			10,//DIOC_GETVERSION,  // control code
-//			NULL,0,// input parameters
-//			bOutput, 4, &cb,  // output parameters
-//			0);
-
 		srand( (unsigned)time( NULL ) );  //Prime random no generator	
 	}
 
-	OutputDebugString("Calling Initialize\n");
 
 	//
 	//	Initialize Driver for this card and channel
@@ -436,9 +415,6 @@ int Init98(HDLCDATA * PORTVEC)
 	memcpy(&PORTVEC->DRIVERPORTTABLE,bOutput,4);
 
 	Debugprintf("BPQ32 HDLC Driver Table ADDR %X", PORTVEC->DRIVERPORTTABLE);
-
-	OutputDebugString("Initialize Returned\n");
-
 	return (TRUE);
 		
 }
@@ -607,8 +583,7 @@ int Init2K(HDLCDATA * PORTVEC)
 
 			err=GetLastError();
 	
-			sprintf(msg,"Error Opening Driver \\device\\BPQHDLC - Error code %d\n", err);
-			OutputDebugString(msg);
+			Debugprintf("Error Opening Driver \\device\\BPQHDLC - Error code %d", err);
 
 			WritetoConsole(msg);
 

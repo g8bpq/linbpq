@@ -633,7 +633,7 @@ int AGWConnected(struct BPQConnectionInfo * Con, int Stream)
 	
 	// Not listening ??
 
-	OutputDebugString("Inbound Connection on Outgoing Stream");
+	Debugprintf("Inbound Connection on Outgoing Stream");
 
 	SendMsg(Stream, "AGWtoBPQ - Inbound Connection on Outgoing Stream\r", 49);
 	Sleep (500);

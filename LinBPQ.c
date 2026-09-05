@@ -29,6 +29,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #else
 #include <iconv.h>
 #include <errno.h>
+
 #ifndef MACBPQ
 #ifndef FREEBSD
 #include <sys/prctl.h>
@@ -384,26 +385,88 @@ BOOL CtrlHandler(DWORD fdwCtrlType)
 
 #include <execinfo.h>
 #include <signal.h>
+#include <backtrace.h>
+
+static struct backtrace_state *state;
+static char ** lines;
+static char * line;
+
+
+// Callback to print a niely formatted bsack tracre
+
+static int full_callback (void *data, uintptr_t pc, const char *pathname, int line_number, const char *function) 
+{
+  if (pathname == NULL || function == NULL || line_number == 0)
+	  Debugprintf(line);
+  else
+  {
+    const char *filename = rindex(pathname, '/');
+    if (filename) filename++; else filename = pathname;
+    Debugprintf("%s  %s:%d -- %s", line, filename, line_number, function);
+  }
+  return 0;
+};
+
+static void error_callback (void *data, const char *message, int error_number)
+{
+	if (error_number == -1) 
+	{
+		fprintf(stderr, "If you want backtraces, you have to compile with -g\n\n");
+		_Exit(1);
+	} 
+	else
+	{
+	  fprintf(stderr, "Backtrace error %d: %s\n", error_number, message);
+	}
+};
 
 // Linux Signal Handlers
+
+VOID __cdecl DebugprintNOLF(const char * format, ...);
+
 static void segvhandler(int sig)
 {
-    void *array[10];
+    void *array[50];
+
     size_t size;
-    char msg[] = "\nSIGSEGV Received\n";
+    char msg[] = "\nSIGSEGV Received\n\nBacktrace\n\n";
+    char msg2[] = "\nThere should be a better Backtrace in the Debug Log with source filenames and line numbers\n\n";
+	int n;
 
-    write(STDERR_FILENO, msg, strlen(msg));
+	// Write the basic backtrace() first as this is meant to be signal safe
 
-    // get void*'s for all entries on the stack
-    size = backtrace(array, 10);
-
-    // print out all the frames to stderr
-
-    backtrace_symbols_fd(array, size, STDERR_FILENO);
+	// Then try a libbacktrace(), which gives source info may use non-signal safe functions so may not work
 
     write(STDOUT_FILENO, msg, strlen(msg));
-    backtrace_symbols_fd(array, size, STDOUT_FILENO);
 
+    // get void*'s for all entries on the stack
+    
+	size = backtrace(array, 50);
+
+	// normal print
+	
+	backtrace_symbols_fd(array, size, STDOUT_FILENO);
+
+//	if source info for the address is available we want to print it but otherwise print the old style back trace.
+
+	printf("\n");
+	printf("\n");
+
+    write(STDOUT_FILENO, msg2, strlen(msg2));
+
+	// backtrace_symbols produces an array of the old style records but isn't signal safe.
+	// Easiest probably to always print that and add source info if possible
+
+	lines = backtrace_symbols(array, size);
+
+	Debugprintf(msg);
+
+	for (n = 0; n < size; n++)
+	{
+		line = lines[n];
+		backtrace_pcinfo(state, (uintptr_t)array[n], full_callback, error_callback, NULL);
+	}
+	 
 	hookNodeClosing("sigsegv");
 	Sleep(500);
 
@@ -426,6 +489,12 @@ static void abrthandler(int sig)
 
     write(STDOUT_FILENO, msg, strlen(msg));
     backtrace_symbols_fd(array, size, STDOUT_FILENO);
+
+	printf("\n");
+	printf("\n");
+	backtrace_print(state, 0, stdout);
+
+	backtrace_print(state, 0, stderr);
 
 	hookNodeClosing("sigabrt");
 	Sleep(500);
@@ -672,6 +741,7 @@ void ConTermInput(char * Msg)
 	if (!ConTerm.CONNECTED)
 		SessionControl(ConTerm.BPQStream, 1, 0);
 
+
 	ConTerm.StackIndex = 0;
 
 	// Stack it
@@ -709,8 +779,18 @@ void ConTermPoll()
 		{
 			// Connected
 
+			BPQVECSTRUC * SESS;
+			TRANSPORTENTRY * L4;
+
 			ConTerm.CONNECTED = TRUE;
 			ConTerm.SlowTimer = 0;
+
+			SESS = &BPQHOSTVECTOR[ConTerm.BPQStream - 1];
+			if (SESS)
+			{
+				L4 = SESS->HOSTSESSION;
+				L4->Secure_Session = 1;
+			}
 		}
 		else
 		{
@@ -896,8 +976,6 @@ void Semaphored100msCode()
 		//			SetupBPQDirectory();
 
 		WritetoConsoleLocal("Reconfiguring ...\n\n");
-		OutputDebugString("BPQ32 Reconfiguring ...\n");
-
 
 		for (i=0;i<NUMBEROFPORTS;i++)
 		{
@@ -983,7 +1061,7 @@ void Semaphored100msCode()
 		AGWActive = AGWAPIInit();
 		GetSemaphore(&Semaphore, 2);
 
-		OutputDebugString("BPQ32 Reconfiguration Complete\n");
+		WritetoConsoleLocal("BPQ32 Reconfiguration Complete\n");
 	}
 }
 
@@ -1075,6 +1153,10 @@ void UnSemaphored100msCode()
 		Slowtimer = 0;
 }
 
+#ifndef WIN32
+
+
+#endif
 
 int main(int argc, char * argv[])
 {
@@ -1105,6 +1187,8 @@ int main(int argc, char * argv[])
 	}
 
 #else
+
+	state = backtrace_create_state(argv[0], 0, error_callback, NULL);
 
 	signal(SIGSEGV, segvhandler);
 	signal(SIGABRT, abrthandler);

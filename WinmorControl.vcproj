@@ -72,7 +72,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="WS2_32.Lib Psapi.lib"
+				AdditionalDependencies="WS2_32.Lib Psapi.lib Win32bits\bpq32.lib"
 				OutputFile="c:\DevProgs\bpq32\WinmorControl.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
@@ -169,7 +169,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="WS2_32.Lib Psapi.lib"
+				AdditionalDependencies="WS2_32.Lib Psapi.lib Win32bits\bpq32.lib"
 				OutputFile="c:\DevProgs\bpq32\WinmorControl.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"

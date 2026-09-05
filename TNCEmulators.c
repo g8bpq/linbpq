@@ -3403,29 +3403,11 @@ NOTDATA:
 	if (TNC->DEDTXBUFFER[0] == 1)
 	{
 		// recovering
-
-//		if (!TNC->Recovering)
-//		{
-//			sprintf(msg, "Port %d DED Recovery started\n", TNC->ComPort);
-//			OutputDebugString(msg);
-//			TNC->Recovering = TRUE;
-//		}
 	}
 	else
 	{
 		// Not recovery
-				
-//		if (TNC->Recovering)
-//		{
-//			sprintf(msg, "Port %d DED Recovery completed\n", TNC->ComPort);
-//			OutputDebugString(msg);
-//			TNC->Recovering = FALSE;
-//		}
-
 	}
-
-//	sprintf(msg,"DED CMD: Port %d  CMD %c MSGCHANNEL %d\n", TNC->ComPort, TNC->TONODEBUFFER[0], MSGCHANNEL);
-//	OutputDebugString(msg);
 
 	if (_memicmp(TNC->DEDTXBUFFER, "QRES", 4 == 0))
 		return SendHostOK(TNC);
@@ -3809,31 +3791,7 @@ REALCALL:
 
 HOSTDATAPACKET:
 
-//	}
-//	{
-//		UCHAR msg[100];
-
-//	sprintf(msg,"Host Data Packet: Port %d\n", TNC->ComPort);
-//	OutputDebugString(msg);
-//	}
-//	
-
-
 //	IF WE ALREADY HAVE DATA QUEUED, ADD THIS IT QUEUE
-
-//	if (Channel->Chan_TXQ)
-//	{
-
-//		//	COPY MESSAGE TO A CHAIN OF BUFFERS
-
-//		if (QCOUNT < 10)
-//			goto CANTSEND;		// NO SPACE - RETURN ERROR (?)
-
-//QUEUEFRAME:
-
-//	C_Q_ADD(Channel->Chan_TXQ, COPYMSGTOBUFFERS());		// RETURNS EDI = FIRST (OR ONLY) FRAGMENT
-
-//	return SendHostOK(TNC);
 
 	//	MAKE SURE NODE ISNT BUSY
 

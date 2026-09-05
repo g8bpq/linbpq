@@ -89,6 +89,113 @@ extern int PoolBuilt;
 
 extern int EnableOARCAPI;
 
+DllExport UCHAR * APIENTRY GetLogDirectory();
+
+
+FILE * DebugHandle = NULL;
+
+DllExport VOID APIENTRY OpenDebugLog()
+{
+	time_t T;
+	struct tm * tm;
+	char FN[256];
+
+	T = time(NULL);
+	tm = gmtime(&T);	
+
+	if (DebugHandle == 0)
+	{
+		sprintf(FN,"%s/logs/NodeDebuglog_%02d%02d%02d.log", GetLogDirectory(), tm->tm_year - 100, tm->tm_mon + 1, tm->tm_mday);
+		DebugHandle = fopen(FN, "ab");
+	}
+}
+
+DllExport VOID APIENTRY CloseDebugLog()
+{
+	if (DebugHandle)
+		fclose(DebugHandle);
+	DebugHandle = 0;
+}
+
+
+DllExport VOID __cdecl Debugprintf(const char * format, ...)
+{
+	char Mess[8192];
+	time_t T;
+	struct tm * tm;
+	int Len;
+	char LogMsg[256];
+
+	va_list(arglist);
+
+	va_start(arglist, format);
+	Len = vsnprintf(Mess, sizeof(Mess), format, arglist);
+
+	T = time(NULL);
+	tm = gmtime(&T);	
+
+	if (DebugHandle == 0)
+	{
+		char FN[256];
+
+		sprintf(FN,"%s/logs/NodeDebuglog_%02d%02d%02d.log", GetLogDirectory(), tm->tm_year - 100, tm->tm_mon + 1, tm->tm_mday);
+		DebugHandle = fopen(FN, "ab");
+
+		if (DebugHandle == 0)
+			return;
+	}
+
+
+	Len = sprintf(LogMsg, "%02d:%02d:%02d ", tm->tm_hour, tm->tm_min, tm->tm_sec);
+	fwrite(LogMsg, Len, 1, DebugHandle);
+
+	if (DebugHandle == 0)
+		return;
+
+	fwrite(Mess, strlen(Mess), 1, DebugHandle);
+	fwrite("\r\n", 2, 1, DebugHandle);
+
+	return;
+}
+
+DllExport VOID __cdecl DebugprintNOLF(const char * format, ...)
+{
+	char Mess[8192];
+	time_t T;
+	struct tm * tm;
+	int Len;
+	char LogMsg[256];
+
+	va_list(arglist);
+
+	va_start(arglist, format);
+	Len = vsnprintf(Mess, sizeof(Mess), format, arglist);
+
+	T = time(NULL);
+	tm = gmtime(&T);	
+
+	if (DebugHandle == 0)
+	{
+		char FN[256];
+
+		sprintf(FN,"%s/logs/NodeDebuglog_%02d%02d%02d.log", GetLogDirectory(), tm->tm_year - 100, tm->tm_mon + 1, tm->tm_mday);
+		DebugHandle = fopen(FN, "ab");
+
+		if (DebugHandle == 0)
+			return;
+	}
+
+
+	Len = sprintf(LogMsg, "%02d:%02d:%02d ", tm->tm_hour, tm->tm_min, tm->tm_sec);
+	fwrite(LogMsg, Len, 1, DebugHandle);
+
+	if (DebugHandle == 0)
+		return;
+
+	fwrite(Mess, strlen(Mess), 1, DebugHandle);
+	return;
+}
+
 //	Read/Write length field in a buffer header
 
 //	Needed for Big/LittleEndian and ARM5 (unaligned operation problem) portability
@@ -2477,7 +2584,6 @@ HANDLE OpenCOMPort(char * pPort, int speed, BOOL SetDTR, BOOL SetRTS, BOOL Quiet
 		sprintf(buf,"%s Setup Failed %d ", pPort, GetLastError());
 
 		WritetoConsoleLocal(buf);
-		OutputDebugString(buf);
 		CloseHandle(fd);
 		return 0;
 	}
@@ -3803,13 +3909,13 @@ void printStack(void)
 #ifdef WIN32
 #ifdef _DEBUG					// So we can use on 98/2K
 
-     unsigned int   i;
-     void         * stack[ 100 ];
-     unsigned short frames;
-     SYMBOL_INFO  * symbol;
-     HANDLE         process;
+    unsigned int   i;
+    void         * stack[ 100 ];
+    unsigned short frames;
+    SYMBOL_INFO  * symbol;
+    HANDLE         process;
 
-	 Debugprintf("Stack Backtrace");
+	Debugprintf("Stack Backtrace");
 
      process = GetCurrentProcess();
 
@@ -3825,9 +3931,9 @@ void printStack(void)
          SymFromAddr( process, ( DWORD64 )( stack[ i ] ), 0, symbol );
 
          Debugprintf( "%i: %s - %p", frames - i - 1, symbol->Name, symbol->Address );
-     }
+	}
 
-     free(symbol);
+	free(symbol);
 
 #endif
 #endif

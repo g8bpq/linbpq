@@ -836,7 +836,6 @@ int DeleteBBSLogFiles()
    {
       if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
       {
-         OutputDebugString(ffd.cFileName);
       }
       else
       {

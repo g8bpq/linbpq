@@ -1534,7 +1534,7 @@ TNCRunning:
    			sprintf(Msg, "Connect Failed for WinRPR socket - error code = %d Port %d\n",
 				WSAGetLastError(), htons(TNC->destaddr.sin_port));
 	
-			WritetoConsoleLocal(Msg);
+		//	WritetoConsoleLocal(Msg);
 			sprintf(TNC->WEB_COMMSSTATE, "Connection to TNC failed");
 			MySetWindowText(TNC, TNC->xIDC_COMMSSTATE, TNC->WEB_COMMSSTATE);
 

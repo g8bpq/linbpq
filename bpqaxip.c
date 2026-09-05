@@ -400,9 +400,7 @@ static size_t ExtProc(int fn, int port, PMESSAGE buff)
 					
 						if (len > MAXDATA)
 						{
-							sprintf(errmsg,"BPQAXIP Invalid Msg Len=%d Source=%s",len,inet_ntoa(RXaddr.rxaddr.sin_addr));
-							OutputDebugString(errmsg);
-							DumpFrameInHex(&rxbuff[20], len);
+							Debugprintf(errmsg,"BPQAXIP Invalid Msg Len=%d Source=%s",len,inet_ntoa(RXaddr.rxaddr.sin_addr));
 							return 0;
 						}
 
@@ -458,8 +456,7 @@ static size_t ExtProc(int fn, int port, PMESSAGE buff)
 					//	CRC Error
 					//
 						
-					sprintf(errmsg,"BPQAXIP Invalid CRC=%d Source=%s",crc,inet_ntoa(RXaddr.rxaddr.sin_addr));
-						OutputDebugString(errmsg);
+					Debugprintf(errmsg,"BPQAXIP Invalid CRC=%d Source=%s",crc,inet_ntoa(RXaddr.rxaddr.sin_addr));
 
 					return (0);
 				}
@@ -503,9 +500,7 @@ static size_t ExtProc(int fn, int port, PMESSAGE buff)
 
 					if (len > MAXDATA)
 					{
-						sprintf(errmsg,"BPQAXIP Invalid Msg Len=%d Source=%s Port %d",len,inet_ntoa(RXaddr.rxaddr.sin_addr),PORT->udpport[i]);
-						OutputDebugString(errmsg);
-						DumpFrameInHex(&rxbuff[0], len);
+						Debugprintf(errmsg,"BPQAXIP Invalid Msg Len=%d Source=%s Port %d",len,inet_ntoa(RXaddr.rxaddr.sin_addr),PORT->udpport[i]);
 						return 0;
 					}
 
@@ -2731,24 +2726,6 @@ int Update_MH_KeepAlive(struct AXIPPORTINFO * PORT, struct in_addr ipad, char pr
 }
 
 
-int DumpFrameInHex(unsigned char * msg, int len)
-{
-	char errmsg[100];
-	int i=0;
-
-	for (i=0;i<len;i+=16)
-	{
-		sprintf(errmsg,"%04x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x ",
-			i, msg[i], msg[i+1],msg[i+2],msg[i+3],msg[i+4],msg[i+5],msg[i+6],msg[i+7],
-			msg[i+8],msg[i+9],msg[i+10],msg[i+11],msg[i+12],msg[i+13],msg[i+14],msg[i+15]);
-	
- 			OutputDebugString(errmsg);
-	}
-
-	return 0;
-}
-
-
 int GetMessageFromBuffer(struct AXIPPORTINFO * PORT, char * Buffer)
 {
 	struct arp_table_entry * sockptr;
@@ -3052,7 +3029,6 @@ VOID TCPConnectThread(void * Param)
 				//
 
 				arp->TCPState = TCPConnected;
-				OutputDebugString("AXTCP Connected\r\n");
 				ioctl (arp->TCPSock, FIONBIO, &param);
 				Alerted = 0;
 			}
@@ -3065,10 +3041,8 @@ VOID TCPConnectThread(void * Param)
 
 				if (Alerted == 0)
 				{
-					i = sprintf(Msg, "Connect Failed for AX/TCP port %d  - error code = %d\n", htons(arp->destaddr.sin_port), err);
-					WritetoConsole(Msg);
-					OutputDebugString(Msg);
-					 Alerted = 1;
+					Debugprintf("Connect Failed for AX/TCP port %d  - error code = %d", htons(arp->destaddr.sin_port), err);
+					Alerted = 1;
 				}
 				closesocket(arp->TCPSock);
 				arp->TCPSock = 0;

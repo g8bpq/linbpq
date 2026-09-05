@@ -60,6 +60,7 @@ void hookNodeStarted();
 void hookNodeRunning();
 void DeleteLogFiles(int Age);
 void APIL2Trace(struct _MESSAGE * Message, char * Dirn);
+DllExport VOID APIENTRY CloseDebugLog();
 
 #include "configstructs.h"
 
@@ -2253,6 +2254,7 @@ int TIMERINTERRUPT()
 	{
 		lastMinuteSecs = NOW;
 
+		CloseDebugLog();
 		L3MinuteTimerProc();
 
 		if (needAIS)

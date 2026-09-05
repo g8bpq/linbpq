@@ -344,8 +344,8 @@ END
 //
 // Generated from the TEXTINCLUDE 3 resource.
 //
-#include "..\CommonSource\Versions.h"
-#include "..\StdVer.inc"
+#include "Versions.h"
+#include "StdVer.inc"
 
 
 /////////////////////////////////////////////////////////////////////////////

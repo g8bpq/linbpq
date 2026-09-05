@@ -179,11 +179,6 @@ int Sleep(int ms)
 	return 0;
 }
 
-VOID OutputDebugString(char * string)
-{
-	syslog(LOG_DEBUG, "%s", string);
-}
-
 void closesocket(int sock)
 {
 	if (sock)

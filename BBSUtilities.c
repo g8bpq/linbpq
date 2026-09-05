@@ -489,30 +489,6 @@ BOOL CheckForTooManyErrors(ConnectionInfo * conn)
 	return FALSE;
 }
 
-
-
-
-
-VOID __cdecl Debugprintf(const char * format, ...)
-{
-	char Mess[16384];
-	va_list(arglist);
-	int Len;
-
-	va_start(arglist, format);
-	Len = vsprintf(Mess, format, arglist);
-	va_end(arglist);
-#ifndef LINBPQ
-	WriteLogLine(NULL, '!',Mess, Len, LOG_DEBUG_X);
-#endif
-	//	#ifdef _DEBUG 
-	strcat(Mess, "\r\n");
-	OutputDebugString(Mess);
-
-//	#endif
-	return;
-}
-
 VOID __cdecl Logprintf(int LogMode, CIRCUIT * conn, int InOut, const char * format, ...)
 {
 	char Mess[1000];
@@ -521,7 +497,11 @@ VOID __cdecl Logprintf(int LogMode, CIRCUIT * conn, int InOut, const char * form
 	va_start(arglist, format);
 	Len = vsprintf(Mess, format, arglist);
 	va_end(arglist);
-	WriteLogLine(conn, InOut, Mess, Len, LogMode);
+
+	if (LogMode == LOG_DEBUG_X)
+		Debugprintf(Mess);
+	else
+		WriteLogLine(conn, InOut, Mess, Len, LogMode);
 
 	return;
 }
@@ -13486,7 +13466,6 @@ int DeleteRedundantMessages()
    {
       if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
       {
-         OutputDebugString(ffd.cFileName);
       }
       else
       {
@@ -15549,7 +15528,6 @@ int ReformatSyncMessage(CIRCUIT * conn)
 
 	conn->MailBuffer[conn->TempMsg->length] = 0;
 
-//	OutputDebugString(conn->MailBuffer);
 	memcpy(xml, conn->MailBuffer, conn->SyncXMLLen);
 	xml[conn->SyncXMLLen] = 0;
 

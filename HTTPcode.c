@@ -1754,6 +1754,7 @@ int SetupNodeMenu(char * Buff, int LOCAL)
 		<script>\
 		document.getElementById('e').value = new Date().toISOString().substring(0, 10);\
 		</script></label>\
+		<input type=submit class='btn' name='NodeDebug' value='Node Debug Log'></br>\
 		<input type=submit class='btn' name='BBS' value='BBS Log'></br>\
 		<input type=submit class='btn' name='Debug' value='BBS Debug Log'></br>\
 		<input type=submit class='btn' name='Telnet' value='Telnet Log'></br>\
@@ -3610,6 +3611,7 @@ doHeader:
 					strcat(inputname, "/logs/");
 				}
 
+
 				if (strstr(Context, "CMS"))
 				{
 					sprintf(Name, "CMSAccess_%04d%02d%02d.log",
@@ -3636,6 +3638,13 @@ doHeader:
 						tm->tm_year - 100, tm->tm_mon+1, tm->tm_mday);
 				}
 
+				if (strstr(Context, "NodeDebug"))
+				{
+					sprintf(Name, "NodeDebugLog_%02d%02d%02d.log",
+						tm->tm_year - 100, tm->tm_mon+1, tm->tm_mday);
+
+					CloseDebugLog();
+				}
 				strcat(inputname, Name);
 
 				if (stat(inputname, &STAT) == -1)

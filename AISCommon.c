@@ -1312,9 +1312,7 @@ int DecodeVDM(char *msg)
 		V_WidthC = val[44];
 		V_WidthD = val[45];
 
-		//		sprintf(TraceMsg,"%s  %d %d %d %d %d  LenA %d LenB %d\n", V_Name, val[41], val[42], val[43], val[44], val[45], V_LenA, V_LenB);
-		//		OutputDebugString(TraceMsg);
-
+	
 		//'    Type of Fix            4   274 char 46 bits 0-3
 
 		FixType = val[46] >>2;

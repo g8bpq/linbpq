@@ -42,7 +42,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\CInclude;..\CommonSource;..\BPQChat"
+				AdditionalIncludeDirectories="Win32bits;..\BPQSource"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USE_32BIT_TIME_T"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -65,7 +65,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\lib\bpq32.lib wsock32.lib comctl32.lib winmm.lib ..\lib\libconfig.lib DbgHelp.lib"
+				AdditionalDependencies="Win32bits\bpq32.lib wsock32.lib comctl32.lib winmm.lib Win32bits\libconfig.lib DbgHelp.lib"
 				OutputFile="c:\DevProgs\bpq32\BPQChat.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
@@ -130,7 +130,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				WholeProgramOptimization="false"
-				AdditionalIncludeDirectories="..\CInclude;..\CommonSource;..\BPQChat"
+				AdditionalIncludeDirectories="Win32bits;..\BPQSource"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USE_32BIT_TIME_T"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
@@ -152,7 +152,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\lib\bpq32.lib wsock32.lib comctl32.lib winmm.lib ..\lib\libconfig.lib DbgHelp.lib"
+				AdditionalDependencies="Win32bits\bpq32.lib wsock32.lib comctl32.lib Win32bits\libconfig.lib DbgHelp.lib"
 				OutputFile="c:\DevProgs\bpq32\BPQChat.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="false"

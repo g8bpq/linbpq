@@ -238,9 +238,6 @@ VOID md5(char *arg, unsigned char * checksum);
 
 int APIENTRY SendRaw(int port, char * msg, int len);
 
-
-VOID OutputDebugString(char * string);
-
 #endif
 
 #ifdef APIENTRY

@@ -918,7 +918,7 @@ int BPQTRACE(MESSAGE * Msg, BOOL TOAPRS);
 
 
 static int ProcessLine(char * buf, int Port);
-VOID __cdecl Debugprintf(const char * format, ...);
+Dll VOID __cdecl Debugprintf(const char * format, ...);
 VOID __cdecl Consoleprintf(const char * format, ...);
 
 extern BOOL MinimizetoTray;
