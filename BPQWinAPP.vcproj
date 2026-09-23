@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="BPQWinAPP"
+	Name="BPQ32.EXE"
 	ProjectGUID="{005A91EA-3A00-4FB4-ADD9-EB78DBFA2B81}"
 	RootNamespace="BPQWinAPP"
 	>
@@ -143,8 +143,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="2"
-				InlineFunctionExpansion="1"
+				Optimization="1"
+				InlineFunctionExpansion="0"
 				AdditionalIncludeDirectories="C:\Users\johnw\OneDrive\Dev\Source\bpq32\Commonsource"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS"
 				StringPooling="true"
@@ -156,6 +156,7 @@
 				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
+				DebugInformationFormat="4"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -170,11 +171,12 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\lib\bpq32.lib DbgHelp.lib"
+				AdditionalDependencies="Win32bits\bpq32.lib DbgHelp.lib"
 				OutputFile="c:\DevProgs\bpq32\bpq32.exe"
-				LinkIncremental="1"
+				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				ProgramDatabaseFile=".\Release/bpq32.pdb"
+				GenerateDebugInformation="true"
+				ProgramDatabaseFile="c:\DevProgs\bpq32\bpq32app.pdb"
 				GenerateMapFile="true"
 				MapFileName="c:\DevProgs\bpq32\bpq32app.map"
 				SubSystem="2"
@@ -218,6 +220,14 @@
 			<File
 				RelativePath=".\BPQWinAPP.c"
 				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="0"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\BPQWinAPP.rc"

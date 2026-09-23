@@ -1,4 +1,6 @@
 *.ncb
 *.suo
+*.bsc
 *.user
 .svn/*
+.vs/*

@@ -1006,7 +1006,7 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 	if (Msg == NULL)
 	{
 		ptr += sprintf(ptr, "Message %d not found\r\n", Number);
-		return sprintf(Reply, WebMailTemplate, BBSName, User->Call, Key, Key, Key, Key, Key, Key, Key, Message);
+		return sprintf(Reply, WebMailTemplate, BBSName, User->Call, Key, Key, Key, Key, Key, Key, Key, Key, Key, Key, Message);
 	}
 
 	// New Display so free any old values
@@ -1019,7 +1019,7 @@ int ViewWebMailMessage(struct HTTPConnectionInfo * Session, char * Reply, int Nu
 	if (!CheckUserMsg(Msg, User->Call, User->flags & F_SYSOP))
 	{
 		ptr += sprintf(ptr, "Message %d not for you\r", Number);
-		return sprintf(Reply, WebMailTemplate, BBSName, User->Call, Key, Key, Key, Key, Key, Key, Key, Message);
+		return sprintf(Reply, WebMailTemplate, BBSName, User->Call, Key, Key, Key, Key, Key, Key, Key, Key, Key, Key, Message);
 	}
 
 	if (_stricmp(Msg->to, "RMS") == 0)

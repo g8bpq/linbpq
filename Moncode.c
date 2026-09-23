@@ -34,6 +34,8 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 #include "cheaders.h"
 #include "tncinfo.h"
 
+extern char NCMPTypes[6][28];
+
 //	MSGFLAG contains CMD/RESPONSE BITS
 
 #define	CMDBIT	4		// CURRENT MESSAGE IS A COMMAND
@@ -869,7 +871,7 @@ char * DISPLAY_NETROM(MESSAGE * ADJBUFFER, UCHAR * Output, int MsgLen)
 
 		if (Index == 0x0F)			// NCMP	
 		{
-			Output += sprintf((char *)Output, " NCMP %x %x Type %x Code %x", Index, ID, TXNO, RXNO);
+			Output += sprintf((char *)Output, " NCMP Type %s Code %x", NCMPTypes[TXNO & 15], RXNO);
 			
 			MsgLen = MsgLen - (19 + sizeof(void *));
 

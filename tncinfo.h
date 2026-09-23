@@ -193,6 +193,7 @@ struct TCPINFO
 	HWND hCMSWnd;
 
 	int SecureTelnet;
+	int noWebSocks;
 	int ReportRelayTraffic;			// Send WL2K Reports for Relay Traffic
 
 	char * WebTermCSS;				// css override for web terminal

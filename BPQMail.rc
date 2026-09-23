@@ -16,7 +16,7 @@
 #include "AFXRES.h"
 #undef APSTUDIO_HIDDEN_SYMBOLS
 #define MAILCHAT
-#include "..\CommonSource\Versions.h"
+#include "Versions.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS

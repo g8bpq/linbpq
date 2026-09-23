@@ -99,13 +99,43 @@ int sessionStatusInterval = 300;		// 5 mins
 
 extern APPLCALLS * APPL;
 
+void SendNCMPDestunreachable(L3MESSAGEBUFFER * L3MSG, int Code)
+{
+	// Return NCMP Dest Unreachable TTL Exceeded
+
+	struct DEST_LIST * DEST = 0;
+
+	UCHAR ORIG[28];
+
+	memcpy(ORIG, L3MSG->L3SRCE, 28);			// First 28 bytes of unrouteable message
+	L3MSG->L3TTL = L3LIVES;
+	L3MSG->LENGTH = MSGHDDRLEN + 21 + 28;		// Include PID 20 L3/4 Header 28 Orig Datagram
+	memcpy(L3MSG->L3DEST, L3MSG->L3SRCE, 7);
+	memcpy(L3MSG->L3SRCE, MYCALL, 7);
+	L3MSG->L4INDEX = 0x0f;	
+	L3MSG->L4ID = 0x00;
+	L3MSG->L4TXNO = 5;				// Unreachable
+	L3MSG->L4RXNO = Code;			
+	L3MSG->L4FLAGS = 0;
+	memcpy(L3MSG->L4DATA, ORIG, 28);			// PID + L3 Header
+
+	if (FindDestination(L3MSG->L3DEST, &DEST))
+	{
+		C_Q_ADD(&DEST->DEST_Q, (UINT *)L3MSG);
+		return;
+	}
+
+	ReleaseBuffer(L3MSG);
+	return;
+}
+
+	
 VOID NETROMMSG(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG)
 {
 	//	MAKE SURE PID IS 0CF - IN CASE SOMEONE IS SENDING L2 STUFF ON WHAT 
 	//	WE THINK IS A _NODE-_NODE LINK
 
-	struct DEST_LIST * DEST;
-
+	struct DEST_LIST * DEST = 0;
 	int n;
 
 	if (L3MSG->L3PID != 0xCF)
@@ -188,7 +218,9 @@ VOID NETROMMSG(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG)
 	
 	if (L3MSG->L3TTL == 0)
 	{
-		ReleaseBuffer(L3MSG);
+		// Return NCMP Dest Unreachable TTL Exceeded (5)
+
+		SendNCMPDestunreachable(L3MSG, 5);
 		return;
 	}
 
@@ -226,9 +258,13 @@ VOID NETROMMSG(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG)
 
 	if (FindDestination(L3MSG->L3DEST, &DEST) == 0)
 	{
-		ReleaseBuffer(L3MSG);			// CANT FIND DESTINATION
+		// Return NCMP Dest Unreachable Host Ubknown (0)
+
+		SendNCMPDestunreachable(L3MSG, 0);
 		return;
 	}
+
+
 
 	//	IF MESSAGE ORIGINTED HERE, THERE MUST BE A ROUTING LOOP - 
 	//   THERE IS LITTLE POINT SENDING IT OVER THE SAME ROUTE AGAIN,
@@ -2862,13 +2898,214 @@ Type  Purpose
 4    Routing Information Unicast 
 5    Destination Unreachable
 
+ 0 Host Unknown The router does not know the destination
+ node.
+
+ 1 Host Unreachable The destination node is known, but there
+ are no viable routes at this time, due to
+obsolescence or link failure.
+ 2 Net Unreachable The number of hops to the target system is
+ more than the remaining Time To Live.
+ 3 Proto Unreachable The destination host does not know how to
+ handle the requested protocol.
+
+ 4 Service Unreach The requested service is not implemented at
+ the destination host.
+
+ 5 TTL Exceeded The datagram could not be routed any
+ further because the Layer 3 Time to Live
+has reached zero.
+
+ 6 Frag Required The datagram is too large for the outgoing
+ link, and the link does not support
+fragmentation.
+ 7 Source Quench The datagram could not be handled at this
+ time due to insufficient resources. This
+situation is temporary. Upon receipt of
+this message, the sender should reduce the
+sending rate.
 */
+
+char NCMPTypes[6][28] = {
+	"Probe Request", 
+	"Probe Reply",
+	"Echo Request",
+	"Echo Reply",
+	"Routing Information Unicast",
+	"Destination Unreachable"};
+
+char Reasons[8][24] = {
+	"Host Unknown",
+	"Host Unreachable",
+	"Net Unreachable",
+	"Proto Unreachabl", 
+	"Service Unreachable",
+	"TTL Exceeded",
+	"Fragmentation Required",
+	"Source Quench"};
 
 void ProcessNCMPMsg(L3MESSAGEBUFFER * L3MSG)
 {
+	struct DEST_LIST * DEST;
+	L3MESSAGEBUFFER OLDMSG; 
+	TRANSPORTENTRY * L4;
+	TRANSPORTENTRY * Partner;
+	char Nodename[20];
+	int n;
+	struct DATAMESSAGE * Msg;
+	UCHAR * ptr1;
+	uint16_t NOW = (uint16_t)GetTickCount() & 0xffff;
+	uint16_t RTT;
+	int Hops;
+
 	switch(L3MSG->L4TXNO & 15)
 	{
 	case 0:
+
+		n = 1;
+		break;
+
+	case 1:
+
+		n = 1;
+		break;
+
+	case 2:			// Echo
+
+		// Return an Echo Response
+
+		L3MSG->L4TXNO = 3;
+
+		L3SWAPADDRESSES(L3MSG);
+
+		// L3RXNO has originator's TTL
+
+		// We return the TTL from the originating message in L3RXNO
+
+		L3MSG->L4RXNO = L3MSG->L3TTL;
+
+		L3MSG->L3TTL = L3LIVES;
+
+		if (FindDestination(L3MSG->L3DEST, &DEST))
+		{
+			C_Q_ADD(&DEST->DEST_Q, (UINT *)L3MSG);
+			return;
+		}
+		break;
+
+	case 3:			// Echo Reply
+
+		RTT = NOW - ((L3MSG->L4DATA[2] << 8) + L3MSG->L4DATA[3]);
+		Hops = L3LIVES + 1 - L3MSG->L4RXNO;
+
+		L4 = L4TABLE + 	(L3MSG->L4DATA[0] << + 8) + L3MSG->L4DATA[1];
+
+		Nodename[DecodeNodeName(L3MSG->L3SRCE, Nodename)] = 0;		// null terminate
+
+		Msg = (PDATAMESSAGE)L3MSG;				// reuse input buffer
+
+		Msg->PID = 0xf0;
+		ptr1 = SetupNodeHeader(Msg);
+
+		ptr1 += sprintf(ptr1, "Echo reply from %s: rtt %d msec, %d hop(s)\r", Nodename, RTT, Hops);
+
+		Msg->LENGTH = (int)(ptr1 - (UCHAR *)Msg);
+
+		C_Q_ADD(&L4->L4TX_Q, Msg);
+
+		PostDataAvailable(L4);
+		return;
+
+
+	case 4:			// Routing info 
+
+		break;
+
+	case 5:			// Destination Unreachable
+
+		//	Most useful in response to a connect request to tell user of a problem
+		//	Maybe also on an established session, perhaps to select another route or tell user
+
+		// Pick out the unrouted datagram (in the INFO field) Should be 28 bytes. Use an L3MESSAGEBUFFER struct
+
+		memcpy(OLDMSG.L3SRCE, L3MSG->L4DATA, 28);
+
+		// if the original message is an NCMP Probe or Echo, processs Unreachables
+
+		if (OLDMSG.L4INDEX == 15 && OLDMSG.L4ID ==0 && OLDMSG.L4TXNO == 2)
+		{
+			// Process like Ping Response but with different message
+
+			L4 = L4TABLE + 	(OLDMSG.L4DATA[0] << + 8) + OLDMSG.L4DATA[1];
+
+			Nodename[DecodeNodeName(L3MSG->L3SRCE, Nodename)] = 0;		// null terminate
+	
+			Msg = (PDATAMESSAGE)L3MSG;				// reuse input buffer
+
+			Msg->PID = 0xf0;
+			ptr1 = SetupNodeHeader(Msg);
+
+			ptr1 += sprintf(ptr1, "Destination Unreachable(%s) returned from %s to Echo Request\r", Reasons[L3MSG->L4RXNO], Nodename);
+
+			Msg->LENGTH = (int)(ptr1 - (UCHAR *)Msg);
+
+			C_Q_ADD(&L4->L4TX_Q, Msg);
+
+			PostDataAvailable(L4);
+			return;
+		}
+		// Find the connection
+
+		n = MAXCIRCUITS;
+		L4 = L4TABLE;
+
+		while (n--)
+		{
+		//	if ((L4->L4USER[0] && L4->FARID == OLDMSG.L4RXNO && L4->FARINDEX == OLDMSG.L4TXNO) ||	// Paula returns session in RX/TXNO, I sent in ID/INDEX
+			if 	(L4->L4USER[0] && L4->CIRCUITID == OLDMSG.L4ID && L4->CIRCUITINDEX == OLDMSG.L4INDEX)
+			{
+				//  Check calls as well
+
+				if (memcmp(L4->L4TARGET.DEST->DEST_CALL, &OLDMSG.L3DEST, 7) == 0)
+				{
+					if ((OLDMSG.L4FLAGS & 15) != L4CREQ)	// for now only on Connect Request
+					{
+						ReleaseBuffer(L3MSG);
+						return;
+					}
+					
+					Partner = L4->L4CROSSLINK;
+					DEST = L4->L4TARGET.DEST;
+
+					CLEARSESSIONENTRY(L4);
+
+					if (Partner)
+						Partner->L4CROSSLINK = NULL;	// CLEAR CROSSLINK
+
+					if (Partner == 0)
+					{
+						ReleaseBuffer(L3MSG);
+						return;
+					}
+
+					Nodename[DecodeNodeName(L3MSG->L3SRCE, Nodename)] = 0;		// null terminate
+
+					Msg = (PDATAMESSAGE)L3MSG;				// reuse input buffer
+
+					Msg->PID = 0xf0;
+					ptr1 = SetupNodeHeader(Msg);
+					ptr1 += sprintf(ptr1, "Destination Unreachable(%s) from %s\r", Reasons[L3MSG->L4RXNO], Nodename);
+
+					Msg->LENGTH = (int)(ptr1 - (UCHAR *)Msg);
+
+					C_Q_ADD(&Partner->L4TX_Q, Msg);
+
+					PostDataAvailable(Partner);
+					return;
+				}
+			}
+			L4++;
+		}
 		break;
 	}
 
@@ -2876,3 +3113,50 @@ void ProcessNCMPMsg(L3MESSAGEBUFFER * L3MSG)
 	return;
 }
 
+VOID SendNRPing(struct DEST_LIST * DEST, TRANSPORTENTRY * Session)
+{	
+	L3MESSAGEBUFFER * Msg = GetBuff();
+	int SessID;
+	uint16_t NOW = (uint16_t)GetTickCount() & 0xffff;
+
+	if (Msg == NULL)
+		return;
+
+	SessID = (Session - L4TABLE);			// Save Session Pointer for reply
+
+	Msg->Port = 0;
+	Msg->L3PID = NRPID;
+
+	memcpy(Msg->L3DEST, DEST->DEST_CALL, 7);
+	memcpy(Msg->L3SRCE, MYCALL, 7);
+/*
+	-----------------------------------------------------------
+ | 0F | 00 | Type=2 | TTL | 00 | ID | Seq | Optional payload |
+ -----------------------------------------------------------
+ "TTL" is the initial Layer 3 TTL
+ "ID" is a unique 16 bit identifier, sent high octet first,
+ allowing the originator to match responses with the requests.
+ "Seq" is a 16 bit sequence number, sent high octet first.
+ Usually carries a timestamp, allowing the RTT to be computed.
+ 		if (L3MSG->L4ID == 0x00 && L3MSG->L4INDEX == 0x0f)			// Paula's NCMP
+
+*/		
+
+	Msg->L3TTL = L3LIVES;
+	Msg->L4INDEX = 0x0f;
+	Msg->L4ID = 0;
+	Msg->L4TXNO = 2;
+	Msg->L4RXNO = L3LIVES;
+	Msg->L4FLAGS = 0;
+	Msg->L4DATA[0] = SessID >> 8;
+	Msg->L4DATA[1] = SessID & 0xff;
+	Msg->L4DATA[2] = NOW >> 8;
+	Msg->L4DATA[3] = NOW & 0xff;
+		
+	Msg->LENGTH = 25 + MSGHDDRLEN;
+
+	C_Q_ADD(&DEST->DEST_Q, Msg);
+}
+
+	
+	

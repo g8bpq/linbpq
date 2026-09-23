@@ -2470,10 +2470,9 @@ DllExport BOOL APIENTRY Rig_Init()
 			if (RIG->NumberofBands)
 				CheckTimeBands(RIG);		// Set initial timeband
 
-#ifdef WIN32
 			if (RIG->PTTCATPort[0])			// Serial port RTS to CAT 
 				_beginthread(PTTCATThread,0,RIG);
-#endif
+
 			if (RIG->HAMLIBPORT)
 			{
 				// Open listening socket
@@ -3217,6 +3216,14 @@ int GetPermissionToChange(struct RIGPORTINFO * PORT, struct RIGINFO *RIG)
 	int i = 0;
 
 	// Get Permission to change
+
+	if (RIG->PTTTimer)		// Dont allow change if PTT ia active
+	{
+		if (RIG->RIG_DEBUG)
+			Debugprintf("GetPermissionToChange - Blocked by active PTT");
+
+		return 0;
+	}
 
 	if (RIG->RIG_DEBUG)
 		Debugprintf("GetPermissionToChange - WaitingForPermission = %d",  RIG->WaitingForPermission);
@@ -6075,6 +6082,8 @@ CheckOtherParams:
 
 			ptr = strtok_s(NULL, " \t\n\r", &Context);
 
+#ifdef WIN32
+
 			while (memcmp(ptr, "COM", 3) == 0)
 			{
 				char * tncport = strlop(ptr, '/');
@@ -6092,6 +6101,14 @@ CheckOtherParams:
 				if (ptr == NULL)
 					break;
 			}
+
+#else
+			
+			strcpy(RIG->PTTCATPort[0], _strlwr(ptr));
+			ptr = strtok_s(NULL, " \t\n\r", &Context);
+
+#endif
+
 			if (ptr == NULL)
 				break;
 			else 
@@ -7710,6 +7727,56 @@ WaitAgain:
 			}
 		}	
 */
+#else
+
+// Linux Version. Use with tty0tty Kernel Module. Only supports one device for now
+
+VOID PTTCATThread(void * Param)
+{
+	struct RIGINFO * RIG = 	(struct RIGINFO *)Param;
+	EndPTTCATThread = FALSE;
+
+	Debugprintf("RigControl Opening %s for RTS PTT\n", RIG->PTTCATPort[0]);
+
+	int fd = open(RIG->PTTCATPort[0], O_RDWR | O_NOCTTY);
+    if (fd < 0)
+	{
+		perror("Error opening serial port");
+		return;
+    }
+
+    while (1)
+	{
+        // 2. Block until the CTS line changes status
+        // The hardware interrupt wakes the driver, which wakes this ioctl
+        if (ioctl(fd, TIOCMIWAIT, TIOCM_CTS) < 0)
+		{
+            perror("ioctl TIOCMIWAIT failed");
+            close(fd);
+            return;
+        }
+
+        // 3. Determine if it went HIGH or LOW
+        int status;
+        ioctl(fd, TIOCMGET, &status);
+
+        if (status & TIOCM_CTS) 
+		{
+			Rig_PTTEx(RIG, TRUE, RIG->PTTCATTNC[0]);
+        }
+		else 
+		{
+			Rig_PTTEx(RIG, FALSE, RIG->PTTCATTNC[0]);
+        }
+    }
+
+    close(fd);
+	EndPTTCATThread = FALSE; 
+	return;
+
+}
+
+
 #endif
 
 // HAMLIB Support Code

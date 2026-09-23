@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="CBPQ32"
+	Name="BPQ32.DLL"
 	ProjectGUID="{8EFA1E59-8654-4A23-8102-AA77A074D57C}"
 	RootNamespace="CBPQ32"
 	Keyword="Win32Proj"

@@ -4326,6 +4326,45 @@ VOID NRRCMD(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct C
 	return;
 }
 
+VOID SendNRPing(struct DEST_LIST * DEST, TRANSPORTENTRY * Session);
+
+VOID NRPING(TRANSPORTENTRY * Session, char * Bufferptr, char * CmdTail, struct CMDX * UserCMD)
+{
+	//	Send Paula's NCMP PING command = Netrom Ping
+
+	char * ptr, *Context;
+	struct DEST_LIST * Dest = DESTS;
+	int count = MAXDESTS;
+
+	ptr = strtok_s(CmdTail, " ", &Context);
+
+	if (ptr)
+	{	
+		UCHAR AXCall[8];
+		int count;
+
+		ConvToAX25(ptr, AXCall);
+		strcat(ptr, "      ");
+
+		for (count = 0; count < MAXDESTS; count++)
+		{
+			if (memcmp(Dest->DEST_ALIAS, ptr, 6) == 0 || CompareCalls(Dest->DEST_CALL, AXCall))
+			{
+				SendNRPing(Dest, Session);
+				memcpy(Bufferptr, OKMSG, 3);
+				Bufferptr += 3;
+				SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+	
+				return;
+			}
+			Dest++;
+		}
+	}
+	Bufferptr = Cmdprintf(Session, Bufferptr, "Not found\r");
+	SendCommandReply(Session, REPLYBUFFER, (int)(Bufferptr - (char *)REPLYBUFFER));
+	return;
+}
+
 int CHECKINTERLOCK(struct PORTCONTROL * OURPORT)
 {
 	//	See if any Interlocked ports are Busy
@@ -4884,6 +4923,7 @@ struct CMDX COMMANDS[] =
 	"AXMHEARD    ",3,AXMHEARD,0,
 	"TELSTATUS   ",3,SHOWTELNET,0,
 	"NRR         ",1,NRRCMD,0,
+	"NPING       ",1,NRPING,0,
 	"PING        ",2,PING,0,
 	"AGWSTATUS   ",3,SHOWAGW,0,
 	"ARP         ",3,SHOWARP,0,

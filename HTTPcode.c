@@ -885,7 +885,7 @@ VOID HTTPTimer()
 						OutBuffer = &Msg[0];
 					}
 
-					// If secure session enable an hidden controls
+					// If secure session enable any hidden controls
 
 					if (sock->WebSecure)
 					{
@@ -2026,7 +2026,7 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 
 		strcpy(URL, MsgPtr);
 
-		WebSock = strstr(MsgPtr, "Upgrade: websocket");
+		WebSock = stristr(MsgPtr, "Upgrade: websocket");
 		
 		encPtr = stristr(MsgPtr, "Accept-Encoding:");
 
@@ -2035,7 +2035,7 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 		else
 			Encoding[0] = 0;
 
-		ptr = strstr(MsgPtr, "BPQSessionCookie=N");
+		ptr = stristr(MsgPtr, "BPQSessionCookie=N");
 
 		if (ptr)
 		{
@@ -2080,7 +2080,7 @@ int InnerProcessHTTPMessage(struct ConnectionInfo * conn)
 //				"Sec-WebSocket-Protocol: chat\r\n"
 				"\r\n";
 
-			ptr = strstr(MsgPtr, "Sec-WebSocket-Key:");
+			ptr = stristr(MsgPtr, "Sec-WebSocket-Key:");
 
 			if (ptr)
 			{
@@ -3398,18 +3398,18 @@ doHeader:
 					" if (\"WebSocket\" in window)"
 					" {"
 					"   // Let us open a web socket. Get address from URL\r\n"
-	
+
 					"  var proto = (window.location.protocol === 'https:') ? 'wss://' : 'ws://';\r\n"
 					"  ws = new WebSocket(proto + window.location.host + '/RIGCTL');\r\n"
-					
+
 					"   ws.onopen = function() {\r\n"
-			
+
 					"   // Web Socket is connected\r\n"
 
 					"	const div = document.getElementById('div');\r\n"
 					"	div.innerHTML = 'Websock Connected'\r\n"
 					"    };\r\n"
-					
+
 					"   ws.onmessage = function (evt)"
 					"   {"
 					"     var received_msg = evt.data;\r\n"
@@ -3442,7 +3442,7 @@ doHeader:
 					"<div id = 'div'>Waiting for data...</div>\r\n"
 					"</body></html>\r\n";
 
-		
+
 				char NoRigCtl[] =
 					"<html><meta http-equiv=expires content=0>\r\n"
 					"<head><title>Rigcontrol</title></head>\r\n"
@@ -3459,72 +3459,87 @@ doHeader:
 
 			else if (_stricmp(NodeURL, "/Node/DevicePage") == 0)
 			{
-				char Part1[] =
-					"<html><meta http-equiv=expires content=0>\r\n"
-					"<head><title>Device</title></head>\r\n"
-					"<script type = \"text/javascript\">\r\n"
-					"var ws;"
+				if (TCP->noWebSocks == 0)
+				{
+					char Part1[] =
+						"<html><meta http-equiv=expires content=0>\r\n"
+						"<head><title>Device</title></head>\r\n"
+						"<script type = \"text/javascript\">\r\n"
+						"var ws;"
 
-					"function Action(data){\r\n"
-					"req = new XMLHttpRequest();\r\n"
-					"req.open('POST', 'PortAction?%d', true);\r\n"
-					"req.send(data);alert(data + ' Sent');}\r\n"
-	
-					"function freqOffset(data){\r\n"
-					"req = new XMLHttpRequest();\r\n"
-					"req.open('POST', 'freqOffset?%d', true);\r\n"
-					"req.send(data);}\r\n"
-	
-					"function OpenWebSocket()"
-					"{"
-					" if (\"WebSocket\" in window)"
-					" {"
-					"   // open a web socket. Get address from URL\r\n"
-	
-					"   var proto = (window.location.protocol === 'https:') ? 'wss://' : 'ws://';\r\n"
-					"   ws = new WebSocket(proto + window.location.host + '/DEVICE%d');\r\n"
-					"   ws.onopen = function() {\r\n"
-			
-					"   // Web Socket is connected\r\n"
+						"function Action(data){\r\n"
+						"req = new XMLHttpRequest();\r\n"
+						"req.open('POST', 'PortAction?%d', true);\r\n"
+						"req.send(data);alert(data + ' Sent');}\r\n"
 
-					"	const div = document.getElementById('div');\r\n"
-					"	div.innerHTML = 'Websock Connected'\r\n};\r\n"
-					
-					" ws.onmessage = function (evt)"
-					" {"
-					"  var received_msg = evt.data;\r\n"
-					"  const div = document.getElementById('div');\r\n"
-					"  div.innerHTML = received_msg\r\n"
-					"  const text = document.getElementById('textarea');\r\n"
-					"  text.scrollTop = text.scrollHeight;\r\n"
-					" };\r\n"
+						"function freqOffset(data){\r\n"
+						"req = new XMLHttpRequest();\r\n"
+						"req.open('POST', 'freqOffset?%d', true);\r\n"
+						"req.send(data);}\r\n"
 
-					" ws.onclose = function()"
-					" {"
+						"function OpenWebSocket()"
+						"{"
+						" if (\"WebSocket\" in window)"
+						" {"
+						"   // open a web socket. Get address from URL\r\n"
 
-					"  // websocket is closed.\r\n"
-					"  const div = document.getElementById('div');\r\n"
-					"  div.innerHTML = 'Websock Connection Lost'\r\n"
-					"  };"
-					" }"
-					" else"
-					" {"
-					"  // The browser doesn't support WebSocket\r\n"
-					"	const div = document.getElementById('div');\r\n"
-					"	div.innerHTML = 'WebSocket not supported by your Browser - Device Page not availible'\r\n"
-					" }"
-					"}"
-					"</script>\r\n"
-					"</head>\r\n"
-					"<body height: 600px; onload=OpenWebSocket()>\r\n"
-					"<div id = 'div'>Waiting for data...</div>\r\n"
-					"</body></html>\r\n";
+						"   var proto = (window.location.protocol === 'https:') ? 'wss://' : 'ws://';\r\n"
+						"   ws = new WebSocket(proto + window.location.host + '/DEVICE%d');\r\n"
+						"   ws.onopen = function() {\r\n"
 
-				int Port = atoi(Context);
-				int xxx;
+						"   // Web Socket is connected\r\n"
 
-				ReplyLen = sprintf(_REPLYBUFFER, Part1, Port, Port, Port);
-				xxx = ReplyLen;
+						"	const div = document.getElementById('div');\r\n"
+						"	div.innerHTML = 'Websock Connected'\r\n};\r\n"
+
+						" ws.onmessage = function (evt)"
+						" {"
+						"  var received_msg = evt.data;\r\n"
+						"  const div = document.getElementById('div');\r\n"
+						"  div.innerHTML = received_msg\r\n"
+						"  const text = document.getElementById('textarea');\r\n"
+						"  text.scrollTop = text.scrollHeight;\r\n"
+						" };\r\n"
+
+						" ws.onclose = function()"
+						" {"
+
+						"  // websocket is closed.\r\n"
+						"  const div = document.getElementById('div');\r\n"
+						"  div.innerHTML = 'Websock Connection Lost'\r\n"
+						"  };"
+						" }"
+						" else"
+						" {"
+						"  // The browser doesn't support WebSocket\r\n"
+						"	const div = document.getElementById('div');\r\n"
+						"	div.innerHTML = 'WebSocket not supported by your Browser - Device Page not availible'\r\n"
+						" }"
+						"}"
+						"</script>\r\n"
+						"</head>\r\n"
+						"<body height: 600px; onload=OpenWebSocket()>\r\n"
+						"<div id = 'div'>Waiting for data...</div>\r\n"
+						"</body></html>\r\n";
+
+					int Port = atoi(Context);
+					int xxx;
+
+					ReplyLen = sprintf(_REPLYBUFFER, Part1, Port, Port, Port);
+					xxx = ReplyLen;
+				}
+				else
+				{
+					int port = atoi(Context);
+
+					if (port > 0 && port <= MaxBPQPortNo)
+					{
+						struct TNCINFO * TNC = TNCInfo[port];
+
+						if (TNC && TNC->WebWindowProc)
+							ReplyLen = TNC->WebWindowProc(TNC, _REPLYBUFFER, LOCAL);
+					}
+				}
 			}
 
 			else if (_stricmp(NodeURL, "/Node/ShowLog.html") == 0)
@@ -4550,7 +4565,12 @@ CMDS60:
 			}}}
 			*/
 
-			else if (_stricmp(NodeURL, "/Node/Terminal.html") == 0)
+			else if (_stricmp(NodeURL, "/Node/WebSockTerm.html") == 0 && TCP->noWebSocks == 0)
+			{
+				ReplyLen = DoWebSockTerm(Session, conn, _REPLYBUFFER, LOCAL, COOKIE, Context, sock);
+			}
+
+			else if (_stricmp(NodeURL, "/Node/Terminal.html" ) == 0 || (_stricmp(NodeURL, "/Node/WebSockTerm.html") == 0 && TCP->noWebSocks))
 			{
 				if (COOKIE && Session)
 				{
@@ -4602,11 +4622,6 @@ CMDS60:
 				}
 				else
 					ReplyLen = sprintf(_REPLYBUFFER, TermSignon, Mycall, Mycall, Context, "");
-			}
-
-			else if (_stricmp(NodeURL, "/Node/WebSockTerm.html") == 0)
-			{
-				ReplyLen = DoWebSockTerm(Session, conn, _REPLYBUFFER, LOCAL, COOKIE, Context, sock);
 			}
 
 			else if (_stricmp(NodeURL, "/Node/Signon.html") == 0)
@@ -6150,6 +6165,8 @@ int DoWebSockTerm(struct HTTPConnectionInfo * Session, struct ConnectionInfo * c
 		"  var proto = (window.location.protocol === 'https:') ? 'wss://' : 'ws://';\r\n"
 		"  ws = new WebSocket(proto + window.location.host + '/WEBTERM?%s&%s&%s&%d');\r\n"
 
+//		"  alert(window.location.href);"
+//		"  alert(proto + window.location.host);"
 		"  ws.onopen = function()  // Web Socket is connected\r\n"
 		"  {\r\n"
 		"   const div = document.getElementById('div');\r\n"

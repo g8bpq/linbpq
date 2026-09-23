@@ -1,21 +1,23 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 9.00
-# Visual C++ Express 2005
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BPQWinAPP", "BPQWinAPP.vcproj", "{005A91EA-3A00-4FB4-ADD9-EB78DBFA2B81}"
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.10.12201.205 stable
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BPQ32.EXE", "BPQWinAPP.vcxproj", "{005A91EA-3A00-4FB4-ADD9-EB78DBFA2B81}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinmorControl", "WinmorControl.vcproj", "{005A91EA-3A00-4FB4-ADD9-EB78DBFA2B82}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinmorControl", "WinmorControl.vcxproj", "{005A91EA-3A00-4FB4-ADD9-EB78DBFA2B82}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BPQMail", "BPQMail.vcproj", "{3766AA10-C777-4ED8-A83D-F1452DE9B665}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BPQMail", "BPQMail.vcxproj", "{3766AA10-C777-4ED8-A83D-F1452DE9B665}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LinBPQ", "MailNode.vcproj", "{3766AA10-C777-4ED8-A83D-F1452DE9B666}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LinBPQ", "MailNode.vcxproj", "{3766AA10-C777-4ED8-A83D-F1452DE9B666}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CBPQ32", "CBPQ32.vcproj", "{8EFA1E59-8654-4A23-8102-AA77A074D57C}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BPQ32.DLL", "CBPQ32.vcxproj", "{8EFA1E59-8654-4A23-8102-AA77A074D57C}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BPQChat", "BPQChat.vcproj", "{2BDD2C8A-2B4A-496C-A2EA-6B49AA0670B1}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BPQChat", "BPQChat.vcxproj", "{2BDD2C8A-2B4A-496C-A2EA-6B49AA0670B1}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BPQTerminal", "BPQTerminal.vcproj", "{04F2B9AD-4369-49EA-82EC-3C701C97C6D8}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BPQTerminal", "BPQTerminal.vcxproj", "{04F2B9AD-4369-49EA-82EC-3C701C97C6D8}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BPQTermTCP", "BPQTermTCP.vcproj", "{99625C77-CABA-469A-A5A7-ECB4EE354225}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BPQTermTCP", "BPQTermTCP.vcxproj", "{99625C77-CABA-469A-A5A7-ECB4EE354225}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -75,5 +77,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FB815A29-A2DD-470A-B0AF-7188AA0F4C7F}
 	EndGlobalSection
 EndGlobal

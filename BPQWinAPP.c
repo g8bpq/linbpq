@@ -80,22 +80,26 @@ VOID WriteMiniDump()
 #endif
 }
 
-SYMBOL_INFO  * symbol;
+
 HANDLE         process;
 
-void printStack(void)
+void printStack()
 {
-#ifdef WIN32
-//#ifdef _DEBUG					// So we can use on 98/2K
-
-    unsigned int   i;
-    void         * stack[ 100 ];
+    unsigned int i, n;
+    void * stack[ 100 ];
     unsigned short frames;
 
 	DWORD  dwDisplacement;
 	IMAGEHLP_LINE64 line;
 	char * fptr;
-	Debugprintf("Stack Backtrace");
+
+	char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
+	PSYMBOL_INFO symbol = (PSYMBOL_INFO)buffer;
+
+	symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+	symbol->MaxNameLen = MAX_SYM_NAME;
+
+	Debugprintf("Stack Backtrace\r\n");
 
      process = GetCurrentProcess();
 
@@ -106,42 +110,24 @@ void printStack(void)
 
      for( i = 0; i < frames; i++ )
      {
-		 SymGetLineFromAddr64(process, (DWORD64)stack[i], &dwDisplacement, &line);
-         SymFromAddr( process, ( DWORD64 )( stack[ i ] ), 0, symbol );
+		 n = SymGetLineFromAddr64(process, (DWORD64)stack[i], &dwDisplacement, &line);
+         n = SymFromAddr( process, ( DWORD64 )( stack[ i ] ), 0, symbol );
 
-		fptr = line.FileName + (int)strlen(line.FileName);	// remove path
-		while (*fptr != '\\' && *fptr != '/')
-			fptr--;
-		
-		fptr++;
+		 if (line.FileName)
+		 {
+			 fptr = line.FileName + (int)strlen(line.FileName);	// remove path
+			 while (*fptr != '\\' && *fptr != '/')
+				 fptr--;
 
+			 fptr++;
 
-		Debugprintf( "%i: %s - %s Line %d Addr %p", frames - i - 1, symbol->Name, fptr, line.LineNumber, symbol->Address );
-	}
-
-	free(symbol);
-
-//#endif
-#endif
-}
-
-int filter(unsigned int code, struct _EXCEPTION_POINTERS *ep)
-{
-    Debugprintf("in filter.");
-	   printStack();
-    if (code == EXCEPTION_ACCESS_VIOLATION)
-    {
-        Debugprintf("caught AV as expected.");
-        return EXCEPTION_EXECUTE_HANDLER;
-    }
-    else
-    {
-        Debugprintf("didn't catch AV, unexpected.");
-        return EXCEPTION_CONTINUE_SEARCH;
-    }
+			 Debugprintf("%i: %s - %s Line %d Addr %p", frames - i - 1, symbol->Name, fptr, line.LineNumber, symbol->Address );
+		 }
+	 }
 }
 
 
+int inErrorhandling = 0;
 
 LONG WINAPI UnhandledExcepFilter(PEXCEPTION_POINTERS pExcepPointers)
 {
@@ -149,27 +135,58 @@ LONG WINAPI UnhandledExcepFilter(PEXCEPTION_POINTERS pExcepPointers)
 	IMAGEHLP_LINE64 line;
 	char * fptr;
 
+
+	time_t T;
+	struct tm * tm;
+
+	char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
+	PSYMBOL_INFO symbol = (PSYMBOL_INFO)buffer;
+
+	symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+	symbol->MaxNameLen = MAX_SYM_NAME;
+
+
+	T = time(NULL);
+	tm = gmtime(&T);	
+
+	if (inErrorhandling)
+	{
+		MessageBox(NULL,"Program Error in error handler - program closing. See Debug Log for details","BPQ32",MB_ICONSTOP);
+
+		exit(0);
+	}
+	
+	inErrorhandling = 1;
+		
 	if(pExcepPointers->ExceptionRecord->ExceptionCode == DBG_PRINTEXCEPTION_C)
 		 return EXCEPTION_CONTINUE_EXECUTION;
 
 	SymFromAddr( process, ((DWORD)pExcepPointers->ExceptionRecord->ExceptionAddress), 0, symbol );
 
-	Debugprintf("Program error trapped\r\n");
+	Debugprintf("\r\n\r\nProgram error trapped at %02d:%02d:%02d\r\n", tm->tm_hour, tm->tm_min, tm->tm_sec);
 
 	SymGetLineFromAddr64(process, (DWORD)pExcepPointers->ExceptionRecord->ExceptionAddress, &dwDisplacement, &line);
-	fptr = line.FileName + (int)strlen(line.FileName);	// remove path
-	while (*fptr != '\\' && *fptr != '/')
-		fptr--;
-		
-	fptr++;
 
-	Debugprintf("In Procedure %s - %s Line %d Addr %p\r\n", symbol->Name, fptr, line.LineNumber, symbol->Address );
+	if (line.FileName)
+	{
+		fptr = line.FileName + (int)strlen(line.FileName);	// remove path
+		while (*fptr != '\\' && *fptr != '/')
+			fptr--;
+		
+		fptr++;
+
+		Debugprintf("In Procedure %s - %s Line %d Addr %p\r\n", symbol->Name, fptr, line.LineNumber, symbol->Address );
+	}
+	
 	printStack();
+
+	CloseDebugLog();
+
 
 	MessageBox(NULL,"Program Error - program closing. See Debug Log for details","BPQ32",MB_ICONSTOP);
 	RealCloseAllPrograms();
 	Sleep(1000);
-	CloseDebugLog();
+
     exit(0);
 }
 
@@ -194,10 +211,6 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	 SymSetOptions(SYMOPT_LOAD_LINES);
      SymInitialize( process, NULL, TRUE );
-
-	 symbol = ( SYMBOL_INFO * )calloc( sizeof( SYMBOL_INFO ) + 256 * sizeof( char ), 1 );
-     symbol->MaxNameLen = 255;
-     symbol->SizeOfStruct = sizeof( SYMBOL_INFO );
 
 	AddVectoredExceptionHandler(1, UnhandledExcepFilter);
 

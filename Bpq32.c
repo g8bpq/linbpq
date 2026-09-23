@@ -1340,6 +1340,11 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	More fixes for timer problem introduced in v33 (38)
 //	Changes to INP3 poison reverse and alias reporting (39)
 //	L4 Connect Ack now sent via routing table (39)
+//	Debug info is now written to a log file rather than syslog (Linux) or Debugview (Windows) (40)
+//	Backtrace now includes source file info and is written to Debug log (40)
+//	Add Telnet Server config option "noWebSocks" to disable use of Websocks for Terminal and Driver windows (41)
+//	Log outpur from running disconnect script (41)
+//	Prevent Rigcontrol scan from changing frequency when PTT is active (41)
 
 #define CKernel
 
@@ -1723,7 +1728,7 @@ int VECTORLENGTH = sizeof (struct _BPQVECSTRUC);
 
 int FirstEntry = 1;
 BOOL CloseLast = TRUE;			// If the user started BPQ32.exe, don't close it when other programs close
-BOOL Closing = FALSE;			// Set if Close All called - prevents respawning bpq32.exe
+extern BOOL Closing = FALSE;			// Set if Close All called - prevents respawning bpq32.exe
 
 BOOL BPQ32_EXE;					// Set if Process is running BPQ32.exe. Not initialised.
 								// Used to Kill surplus BPQ32.exe processes
@@ -1841,7 +1846,6 @@ void LoadToolHelperRoutines()
 {
 	HINSTANCE ExtDriver=0;
 	int err;
-	char msg[100];
 
 	ExtDriver=LoadLibrary("kernel32.dll");
 
@@ -2125,6 +2129,10 @@ VOID MonitorTimerThread(int x)
 
 VOID WritetoTraceSupport(struct TNCINFO * TNC, char * Msg, int Len);
 
+VOID * _Q_REM_NP(VOID *PQ, char * File, int Line);
+
+#define Q_REM_NP(s) _Q_REM_NP(s, __FILE__, __LINE__)
+
 void Semaphored100msCode()
 {
 	// code that doesn't need to run every tick - run every 100 mS
@@ -2156,9 +2164,9 @@ void Semaphored100msCode()
 
 	while (WritetoConsoleQ)
 	{
-		UINT * Buffer = Q_REM(&WritetoConsoleQ);
+		UINT * Buffer = Q_REM_NP(&WritetoConsoleQ);
 		WritetoConsoleSupport((char *)&Buffer[2]);
-		RelBuff(Buffer);
+		free(Buffer);
 	}
 
 
@@ -2753,9 +2761,6 @@ Tell_Sessions()
 
 BOOL APIENTRY DllMain(HANDLE hInst, DWORD ul_reason_being_called, LPVOID lpReserved)
 {
-	DWORD n;
-	char buf[350];
-
 	int i;
 	unsigned int ProcessID;
 
@@ -3120,7 +3125,6 @@ SkipInit:
 		{
 			if (PIDArray[i] == ProcessID)
 			{
-				char Log[80];
 				hWndArray[i] = 0;
 				DeleteMenu(trayMenu,TRAYBASEID+i,MF_BYCOMMAND);
 			}
@@ -3567,8 +3571,6 @@ HANDLE OpenConfigFile(char *fn)
 	UCHAR Value[MAX_PATH];
 	FILETIME LastWriteTime;
 	SYSTEMTIME Time;
-	char Msg[256];
-
 
 	// If no directory, use current
 	if (BPQDirectory[0] == 0)
@@ -5546,24 +5548,23 @@ DllExport int APIENTRY WritetoConsole(char * buff)
 
 DllExport VOID * APIENTRY GetBuff();
 
+int C_Q_ADD_NP(VOID *PQ, VOID *PBUFF);
+
 int WritetoConsoleLocal(char * buff)
 {
 	int len=strlen(buff);
 	UINT * buffptr;
 
-	if (Semaphore.Flag == 0)
-		return WritetoConsoleSupport(buff);
-
-	buffptr = GetBuff();
+	buffptr = (UINT *)zalloc(512);
 	if (buffptr == 0)	// No buffers, so send direct
-		return WritetoConsoleSupport(buff);
+		return 0;
 
 	if (len > 300)
 		len = 300;
 
 	memcpy(&buffptr[2], buff, len + 1);
 	
-	C_Q_ADD(&WritetoConsoleQ, buffptr);
+	C_Q_ADD_NP(&WritetoConsoleQ, buffptr);
 
 	return 0;
 }
@@ -6337,7 +6338,6 @@ DllExport BOOL APIENTRY SaveReg(char * KeyIn, HANDLE hFile)
 						{
 							if (len > 76)
 							{
-								len += sprintf(&RegLine[len], "\\\r\n", RegLine);
 								strcat(RegLine, "\\\r\n");
 								WriteFile(hFile, RegLine, len, &written, NULL);
 								strcpy(RegLine, "  ");

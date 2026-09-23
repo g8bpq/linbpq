@@ -507,7 +507,7 @@ static size_t ExtProc(int fn, int port,  PDATAMESSAGE buff)
 					if (buffptr)
 					{
 						buffptr->Len = sprintf((UCHAR *)&buffptr->Data[0],
-							"MPSK} Error - Call missing from C command\r", STREAM->MyCall, STREAM->RemoteCall);
+							"MPSK} Error - Call missing from C command\r");
 
 						C_Q_ADD(&STREAM->PACTORtoBPQ_Q, buffptr);
 					}

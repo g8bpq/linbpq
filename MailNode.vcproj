@@ -123,13 +123,15 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				Optimization="0"
+				WholeProgramOptimization="false"
 				AdditionalIncludeDirectories="Win32bits;..\BPQSource"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;LINBPQ;_USE_32BIT_TIME_T;NOMQTT"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="false"
-				DebugInformationFormat="3"
+				DebugInformationFormat="4"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"

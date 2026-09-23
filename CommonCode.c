@@ -3829,6 +3829,7 @@ int __sync_lock_test_and_set(int * ptr, int val)
 
 #define GetSemaphore(Semaphore,ID) _GetSemaphore(Semaphore, ID, __FILE__, __LINE__)
 
+BOOL Closing;
 
 void _GetSemaphore(struct SEM * Semaphore, int ID, char * File, int Line)
 {
@@ -3843,7 +3844,7 @@ void _GetSemaphore(struct SEM * Semaphore, int ID, char * File, int Line)
 
 loop1:
 
-	while (Semaphore->Flag != 0)
+	while (Semaphore->Flag != 0 && Closing == 0)
 	{
 		Sleep(10);
 	}
@@ -3904,40 +3905,53 @@ USHORT WINAPI RtlCaptureStackBackTrace(
 */
 #endif
 
-void printStack(void)
+void printStack()
 {
-#ifdef WIN32
-#ifdef _DEBUG					// So we can use on 98/2K
-
-    unsigned int   i;
-    void         * stack[ 100 ];
+#ifdef BPQ32
+    unsigned int i, n;
+    void * stack[ 100 ];
     unsigned short frames;
-    SYMBOL_INFO  * symbol;
-    HANDLE         process;
 
-	Debugprintf("Stack Backtrace");
+	DWORD  dwDisplacement;
+	IMAGEHLP_LINE64 line;
+	char * fptr;
+	HANDLE         process;
+
+
+	char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
+	PSYMBOL_INFO symbol = (PSYMBOL_INFO)buffer;
+
+	symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+	symbol->MaxNameLen = MAX_SYM_NAME;
+
+	Debugprintf("Stack Backtrace\r\n");
 
      process = GetCurrentProcess();
 
+	 SymSetOptions(SYMOPT_LOAD_LINES);
      SymInitialize( process, NULL, TRUE );
 
-     frames               = RtlCaptureStackBackTrace( 0, 60, stack, NULL );
-     symbol               = ( SYMBOL_INFO * )calloc( sizeof( SYMBOL_INFO ) + 256 * sizeof( char ), 1 );
-     symbol->MaxNameLen   = 255;
-     symbol->SizeOfStruct = sizeof( SYMBOL_INFO );
+     frames = RtlCaptureStackBackTrace(0, 60, stack, NULL );
 
      for( i = 0; i < frames; i++ )
      {
-         SymFromAddr( process, ( DWORD64 )( stack[ i ] ), 0, symbol );
+		 n = SymGetLineFromAddr64(process, (DWORD64)stack[i], &dwDisplacement, &line);
+         n = SymFromAddr( process, ( DWORD64 )( stack[ i ] ), 0, symbol );
 
-         Debugprintf( "%i: %s - %p", frames - i - 1, symbol->Name, symbol->Address );
-	}
+		 if (line.FileName)
+		 {
+			 fptr = line.FileName + (int)strlen(line.FileName);	// remove path
+			 while (*fptr != '\\' && *fptr != '/')
+				 fptr--;
 
-	free(symbol);
+			 fptr++;
 
-#endif
+			 Debugprintf("%i: %s - %s Line %d Addr %p", frames - i - 1, symbol->Name, fptr, line.LineNumber, symbol->Address );
+		 }
+	 }
 #endif
 }
+
 
 pthread_t ResolveUpdateThreadId = 0;
 

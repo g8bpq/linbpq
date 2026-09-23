@@ -1168,6 +1168,7 @@
 //	Allow lower case SMTP/POP3 commands (39)
 //	Fix Webmail Send Reply with SMTP server messages (39)
 //	Fix paging in PG server (39)
+//	Fix crash in Webmail display message if message doesn't exist or isn't for you (41)
 
 
 #include "bpqmail.h"

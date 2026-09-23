@@ -1153,7 +1153,73 @@ void UnSemaphored100msCode()
 		Slowtimer = 0;
 }
 
-#ifndef WIN32
+#ifdef WIN32
+
+#include "DbgHelp.h"
+
+HANDLE         process;
+
+
+
+
+int inErrorhandling = 0;
+
+LONG WINAPI UnhandledExcepFilter(PEXCEPTION_POINTERS pExcepPointers)
+{
+	DWORD  dwDisplacement;
+	IMAGEHLP_LINE64 line;
+	char * fptr;
+
+
+	time_t T;
+	struct tm * tm;
+
+	char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
+	PSYMBOL_INFO symbol = (PSYMBOL_INFO)buffer;
+
+	symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+	symbol->MaxNameLen = MAX_SYM_NAME;
+
+
+	T = time(NULL);
+	tm = gmtime(&T);	
+
+	if (inErrorhandling)
+	{
+		MessageBox(NULL,"Program Error in error handler - program closing. See Debug Log for details","BPQ32",MB_ICONSTOP);
+
+		exit(0);
+	}
+	
+	inErrorhandling = 1;
+		
+	if(pExcepPointers->ExceptionRecord->ExceptionCode == DBG_PRINTEXCEPTION_C)
+		 return EXCEPTION_CONTINUE_EXECUTION;
+
+	SymFromAddr( process, ((DWORD)pExcepPointers->ExceptionRecord->ExceptionAddress), 0, symbol );
+
+	Debugprintf("\r\n\r\nProgram error trapped at %02d:%02d:%02d\r\n", tm->tm_hour, tm->tm_min, tm->tm_sec);
+
+	SymGetLineFromAddr64(process, (DWORD)pExcepPointers->ExceptionRecord->ExceptionAddress, &dwDisplacement, &line);
+
+	if (line.FileName)
+	{
+		fptr = line.FileName + (int)strlen(line.FileName);	// remove path
+		while (*fptr != '\\' && *fptr != '/')
+			fptr--;
+		
+		fptr++;
+
+		Debugprintf("In Procedure %s - %s Line %d Addr %p\r\n", symbol->Name, fptr, line.LineNumber, symbol->Address );
+	}
+	
+	printStack();
+
+	CloseDebugLog();
+	MessageBox(NULL,"Program Error - program closing. See Debug Log for details","BPQ32",MB_ICONSTOP);
+
+    exit(0);
+}
 
 
 #endif
@@ -1185,6 +1251,14 @@ int main(int argc, char * argv[])
 			DrawMenuBar(hWnd);
 		}
 	}
+
+	 process = GetCurrentProcess();
+
+	 SymSetOptions(SYMOPT_LOAD_LINES);
+     SymInitialize(process, NULL, TRUE );
+
+	AddVectoredExceptionHandler(1, UnhandledExcepFilter);
+
 
 #else
 

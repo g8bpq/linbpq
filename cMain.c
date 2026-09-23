@@ -517,6 +517,8 @@ Loop:
 							Session.CIRCUITINDEX = -1;
 							Buffer->LENGTH = sprintf(Buffer->L2DATA, "%s\r", TNC->DisconnectScript[n++]) + (sizeof(void *) + 4);
 							CommandHandler(&Session, Buffer);
+							strlop(Buffer->L2DATA, 13);
+							Debugprintf("Disconnect Script Output %s", Buffer->L2DATA); 
 						};
 					}
 				}

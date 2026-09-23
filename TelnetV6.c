@@ -532,6 +532,9 @@ int ProcessLine(char * buf, int Port)
 	else if (_stricmp(param,"SecureTelnet") == 0)
 		TCP->SecureTelnet = atoi(value);
 
+	else if (_stricmp(param,"noWebSocks") == 0)
+		TCP->noWebSocks = atoi(value);
+
 	else if (_stricmp(param,"CloseOnDisconnect") == 0)
 		TCP->DisconnectOnClose = atoi(value);
 
@@ -546,6 +549,8 @@ int ProcessLine(char * buf, int Port)
 	
 	else if (_stricmp(param,"HTTPPORT") == 0)
 		HTTPPort = TCP->HTTPPort = atoi(value);
+
+
 
 	else if (_stricmp(param,"NETROMPORT") == 0)
 		TCP->NETROMPort = atoi(value);

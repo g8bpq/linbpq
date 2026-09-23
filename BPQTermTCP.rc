@@ -1,0 +1,336 @@
+//Microsoft Developer Studio generated resource script.
+//
+#define TermTCP
+#include "bpqtermTCP.h"
+
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#define APSTUDIO_HIDDEN_SYMBOLS
+#include "afxres.h"
+#undef APSTUDIO_HIDDEN_SYMBOLS
+#include "winver.h"
+#define BPQBASE 1100
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ALERTDLG DIALOG DISCARDABLE  0, 0, 250, 121
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Alert Settings"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,62,100,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,137,100,50,14
+    LTEXT           "Alert After Interval",IDC_STATIC,7,9,65,9,
+                    SS_CENTERIMAGE
+    EDITTEXT        IDC_ALERTINTERVAL,83,8,29,13,ES_AUTOHSCROLL
+    CONTROL         "Beep",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON,7,27,33,15
+    CONTROL         "Play File",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,7,50,
+                    52,14
+    EDITTEXT        IDC_ALERTFILENAME,83,49,151,15,ES_AUTOHSCROLL
+    LTEXT           "Freq",IDC_STATIC,47,30,15,8
+    LTEXT           "Duration",IDC_STATIC,120,30,28,8
+    EDITTEXT        IDC_FREQ,83,28,29,13,ES_AUTOHSCROLL
+    EDITTEXT        IDC_DURATION,154,28,29,13,ES_AUTOHSCROLL
+    CONTROL         "Use Keyword File",IDC_USEKEYWORDS,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,73,71,10
+    EDITTEXT        IDC_ALERTKEYNAME,83,72,151,15,ES_AUTOHSCROLL
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_ALERTDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 243
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 114
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.K.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENG)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+BPQMAINWINDOW DIALOG DISCARDABLE  17, 25, 300, 300
+STYLE DS_3DLOOK | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | 
+    WS_THICKFRAME
+CAPTION "BPQTerminal Version 1.0.0"
+MENU MENU_1
+CLASS "BPQMAINWINDOW"
+FONT 8, "FixedSys"
+BEGIN
+    LISTBOX         116,5,6,290,134,LBS_MULTIPLESEL | LBS_OWNERDRAWFIXED | 
+                    LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | 
+                    WS_HSCROLL
+    EDITTEXT        118,5,280,440,15,ES_AUTOHSCROLL | ES_NOHIDESEL
+    CTEXT           "",119,0,145,300,5,SS_NOTIFY
+END
+
+IDD_CONFIG DIALOG DISCARDABLE  0, 0, 181, 129
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "TCP Host Config"
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "Host",IDC_STATIC,7,15,24,9
+    EDITTEXT        IDC_HOST,46,13,114,12,ES_AUTOHSCROLL
+    LTEXT           "Port",IDC_STATIC,7,32,24,9
+    EDITTEXT        IDC_PORT,46,30,53,12,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "User",IDC_STATIC,7,49,24,9
+    EDITTEXT        IDC_USER,46,47,89,12,ES_AUTOHSCROLL
+    LTEXT           "Password",IDC_STATIC,7,66,39,9
+    EDITTEXT        IDC_PASS,46,64,90,12,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "Save",IDOK,33,91,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,95,91,50,14
+END
+
+IDD_LISTEN DIALOG DISCARDABLE  0, 0, 181, 129
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "TCP Listen Config"
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "Port",IDC_STATIC,7,32,24,9
+    EDITTEXT        IDC_LISTENPORT,46,30,53,12,ES_AUTOHSCROLL | ES_NUMBER
+    DEFPUSHBUTTON   "Save",IDOK,33,91,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,95,91,50,14
+END
+
+
+IDD_FONT DIALOG DISCARDABLE  0, 0, 187, 206
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Font Setup"
+FONT 8, "MS Sans Serif"
+BEGIN
+    DEFPUSHBUTTON   "Save",IDOK,39,182,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,92,182,50,14
+    LTEXT           "Font Width",IDC_STATIC,7,166,41,9
+    EDITTEXT        IDC_FONTWIDTH,53,164,39,12,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_FONTSIZE,53,149,38,12,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Font Size",IDC_STATIC,7,151,44,9
+    LTEXT           "Interpret non-UTF8 input as",IDC_STATIC,7,10,96,11
+    CONTROL         "Auto",IDC_AUTO,"Button",BS_AUTORADIOBUTTON,15,25,31,10
+    CONTROL         "CP1251 (Cyrillic)",IDC_1251,"Button",BS_AUTORADIOBUTTON,
+                    15,40,67,10
+    CONTROL         "CP1252 (Western Europe)",IDC_1252,"Button",
+                    BS_AUTORADIOBUTTON,15,55,99,10
+    CONTROL         "CP437 (Windows Line Draw)",IDC_437,"Button",
+                    BS_AUTORADIOBUTTON,15,70,107,10
+    LTEXT           "Send as",IDC_STATIC,7,85,27,8
+    CONTROL         "UTF8",IDC_UTF8,"Button",BS_AUTORADIOBUTTON | WS_GROUP,
+                    15,100,34,10
+    CONTROL         "CP1251",IDC_Send1251,"Button",BS_AUTORADIOBUTTON,15,115,
+                    41,10
+    CONTROL         "CP1252",IDC_Send1252,"Button",BS_AUTORADIOBUTTON,15,130,
+                    41,10
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_CONFIG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 174
+        TOPMARGIN, 6
+        BOTTOMMARGIN, 122
+    END
+
+    IDD_FONT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 180
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 199
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "bpqtermTCP.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#define APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "#include ""..\\cinclude\\afxres.h""\r\n"
+    "#undef APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "#include ""winver.h""\r\n"
+    "#define BPQBASE 1100\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""..\\CommonSource\\Versions.h""\r\n"
+    "#include ""..\\StdVer.inc""\r\n"
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Cursor
+//
+
+IDC_DRAGSIZE            CURSOR  DISCARDABLE     "DragSize.cur"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+MENU_1 MENU DISCARDABLE 
+BEGIN
+    POPUP "Connect"
+    BEGIN
+        MENUITEM "Host 1",                      BPQCONNECT1
+        MENUITEM "Host 2",                      40102
+        MENUITEM "Host 3",                      40103
+        MENUITEM "Host 4",                      40104
+        MENUITEM "Host 5",                      40105
+        MENUITEM "Host 6",                      40106
+        MENUITEM "Host 7",                      40107
+        MENUITEM "Host 8",                      40108
+        MENUITEM "Host 9",                      40109
+        MENUITEM "Host 10",                     40110
+        MENUITEM "Host 11",                     40111
+        MENUITEM "Host 12",                     40112
+        MENUITEM "Host 13",                     40113
+        MENUITEM "Host 14",                     40114
+        MENUITEM "Host 15",                     40115
+        MENUITEM "Host 16",                     40116
+    END
+    MENUITEM "Disconnect",                  BPQDISCONNECT
+
+	POPUP "Listen"
+    BEGIN
+        MENUITEM "Enable",                      BPQENABLE
+        MENUITEM "Port",                        BPQPORT
+    END
+	
+	POPUP "Setup"
+    BEGIN
+        POPUP "TCP Hosts"
+        BEGIN
+            MENUITEM "Host 1",                      IDC_HOST1
+            MENUITEM "Host 2",                      40202
+            MENUITEM "Host 3",                      40203
+            MENUITEM "Host 4",                      40204
+            MENUITEM "Host 5",                      40205
+            MENUITEM "Host 6",                      40206
+            MENUITEM "Host 7",                      40207
+            MENUITEM "Host 8",                      40208
+            MENUITEM "Host 9",                      40209
+            MENUITEM "Host 10",                     40210
+            MENUITEM "Host 11",                     40211
+            MENUITEM "Host 12",                     40212
+            MENUITEM "Host 13",                     40213
+            MENUITEM "Host 14",                     40214
+            MENUITEM "Host 15",                     40215
+            MENUITEM "Host 16",                     40216
+        END
+        MENUITEM "Font Setup",                  ID_SETUP_FONT
+        MENUITEM "Enable Bells",                BPQBELLS
+        MENUITEM "Strip Linefeeds",             BPQStripLF
+        MENUITEM "Log Monitor",                 BPQLogMonitor
+        MENUITEM "Log Output",                  BPQLogOutput
+        MENUITEM "Chat Terminal Mode",          CHATTERM
+        MENUITEM "Alert Setup",                 ID_SETUP_ALERTSETUP
+    END
+    POPUP "Monitor"
+    BEGIN
+        MENUITEM "Monitor TX",                  BPQMTX
+        MENUITEM "Monitor Supervisory",         BPQMCOM
+        MENUITEM "Only monitor UI frames",      MUIONLY
+        MENUITEM "Monitor NODES",               BPQMNODES
+        MENUITEM "Enable Colour",               MONCOLOUR
+        MENUITEM "Add Port",                    MONITOR_ADDPORT
+    END
+    POPUP "Edit"
+    BEGIN
+        MENUITEM "Copy Monitor Window",         BPQCOPYMON
+        MENUITEM "Copy Output Window",          BPQCOPYOUT
+        MENUITEM "Clear Monitor Window",        BPQCLEARMON
+        MENUITEM "Clear Output Window",         BPQCLEAROUT
+    END
+    POPUP "YAPP"
+    BEGIN
+        MENUITEM "Send File",                   YAPPSEND
+        MENUITEM "Set Receive Directory",       YAPPDIR
+    END
+END
+
+#endif    // English (U.K.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#include "Versions.h"
+#include "StdVer.inc"
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
