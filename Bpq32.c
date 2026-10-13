@@ -1345,6 +1345,7 @@ along with LinBPQ/BPQ32.  If not, see http://www.gnu.org/licenses
 //	Add Telnet Server config option "noWebSocks" to disable use of Websocks for Terminal and Driver windows (41)
 //	Log outpur from running disconnect script (41)
 //	Prevent Rigcontrol scan from changing frequency when PTT is active (41)
+//	Fix possible race condition on kiss tcp port startup (42)
 
 #define CKernel
 
@@ -2138,38 +2139,40 @@ void Semaphored100msCode()
 	// code that doesn't need to run every tick - run every 100 mS
 	// Runs under semaphore
 
-	if (IPActive) Poll_IP();
-	if (PMActive) Poll_PM();
-	if (RigActive) Rig_Poll();
-	if (APRSActive)Poll_APRS();
-
-	if (NeedWebMailRefresh)
-		DoRefreshWebMailIndex();
-
-	CheckWL2KReportTimer();
-
-	while (WINMORTraceQ)
+	if (!Closing) 
 	{
-		UINT * Buffer = Q_REM(&WINMORTraceQ);
-		struct TNCINFO * TNC = (struct TNCINFO * )Buffer[1];
-		int Len = Buffer[2];
-		char * Msg = (char *)&Buffer[3];
+		if (IPActive) Poll_IP();
+		if (PMActive) Poll_PM();
+		if (RigActive) Rig_Poll();
+		if (APRSActive)Poll_APRS();
 
-		WritetoTraceSupport(TNC, Msg, Len);
-		RelBuff(Buffer);
+		if (NeedWebMailRefresh)
+			DoRefreshWebMailIndex();
+
+		CheckWL2KReportTimer();
+
+		while (WINMORTraceQ)
+		{
+			UINT * Buffer = Q_REM(&WINMORTraceQ);
+			struct TNCINFO * TNC = (struct TNCINFO * )Buffer[1];
+			int Len = Buffer[2];
+			char * Msg = (char *)&Buffer[3];
+
+			WritetoTraceSupport(TNC, Msg, Len);
+			RelBuff(Buffer);
+		}
+
+		if (SetWindowTextQ)
+			SetWindowTextSupport();
+
+		while (WritetoConsoleQ)
+		{
+			UINT * Buffer = Q_REM_NP(&WritetoConsoleQ);
+			WritetoConsoleSupport((char *)&Buffer[2]);
+			free(Buffer);
+		}
+
 	}
-
-	if (SetWindowTextQ)
-		SetWindowTextSupport();
-
-	while (WritetoConsoleQ)
-	{
-		UINT * Buffer = Q_REM_NP(&WritetoConsoleQ);
-		WritetoConsoleSupport((char *)&Buffer[2]);
-		free(Buffer);
-	}
-
-
 	if (trayMenu == NULL)
 		SetupTrayIcon();
 

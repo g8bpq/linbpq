@@ -258,7 +258,7 @@ VOID NETROMMSG(struct _LINKTABLE * LINK, L3MESSAGEBUFFER * L3MSG)
 
 	if (FindDestination(L3MSG->L3DEST, &DEST) == 0)
 	{
-		// Return NCMP Dest Unreachable Host Ubknown (0)
+		// Return NCMP Dest Unreachable Host Unknown (0)
 
 		SendNCMPDestunreachable(L3MSG, 0);
 		return;

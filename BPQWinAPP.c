@@ -31,6 +31,12 @@
 //#define DYNLOADBPQ		// Dynamically Load BPQ32.dll
 #include "bpq32.h"
 
+#define WinApp
+#include "Versions.h"
+
+#include "GetVersion.h"
+
+
 VOID APIENTRY SetFrameWnd(HWND hWnd);
 
 #define BPQICON 400
@@ -134,12 +140,13 @@ LONG WINAPI UnhandledExcepFilter(PEXCEPTION_POINTERS pExcepPointers)
 	DWORD  dwDisplacement;
 	IMAGEHLP_LINE64 line;
 	char * fptr;
+	DWORD ExceptionCode =  pExcepPointers->ExceptionRecord->ExceptionCode;
 
 
 	time_t T;
 	struct tm * tm;
 
-	char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
+	char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)] = "";
 	PSYMBOL_INFO symbol = (PSYMBOL_INFO)buffer;
 
 	symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
@@ -155,29 +162,49 @@ LONG WINAPI UnhandledExcepFilter(PEXCEPTION_POINTERS pExcepPointers)
 
 		exit(0);
 	}
+
+	switch (ExceptionCode)
+	{
 	
-	inErrorhandling = 1;
-		
-	if(pExcepPointers->ExceptionRecord->ExceptionCode == DBG_PRINTEXCEPTION_C)
+	case DBG_PRINTEXCEPTION_C:
 		 return EXCEPTION_CONTINUE_EXECUTION;
 
-	SymFromAddr( process, ((DWORD)pExcepPointers->ExceptionRecord->ExceptionAddress), 0, symbol );
+	case STATUS_INTEGER_DIVIDE_BY_ZERO:				
+	case STATUS_ACCESS_VIOLATION:
+	case STATUS_STACK_OVERFLOW:
+	case STATUS_FLOAT_DIVIDE_BY_ZERO:
 
-	Debugprintf("\r\n\r\nProgram error trapped at %02d:%02d:%02d\r\n", tm->tm_hour, tm->tm_min, tm->tm_sec);
+		break;
 
-	SymGetLineFromAddr64(process, (DWORD)pExcepPointers->ExceptionRecord->ExceptionAddress, &dwDisplacement, &line);
+	// ignore others
 
-	if (line.FileName)
-	{
-		fptr = line.FileName + (int)strlen(line.FileName);	// remove path
-		while (*fptr != '\\' && *fptr != '/')
-			fptr--;
-		
-		fptr++;
+	default:
 
-		Debugprintf("In Procedure %s - %s Line %d Addr %p\r\n", symbol->Name, fptr, line.LineNumber, symbol->Address );
+		 return EXCEPTION_CONTINUE_SEARCH;
 	}
-	
+
+	inErrorhandling = 1;
+
+	if (SymFromAddr(process, ((DWORD)pExcepPointers->ExceptionRecord->ExceptionAddress), 0, symbol))
+	{
+
+		Debugprintf("\r\n\r\nException %x trapped at %02d:%02d:%02d\r\n", ExceptionCode, tm->tm_hour, tm->tm_min, tm->tm_sec);
+
+		line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+
+		SymGetLineFromAddr64(process, (DWORD)pExcepPointers->ExceptionRecord->ExceptionAddress, &dwDisplacement, &line);
+
+		if (line.FileName)
+		{
+			fptr = line.FileName + (int)strlen(line.FileName);	// remove path
+			while (*fptr != '\\' && *fptr != '/')
+				fptr--;
+
+			fptr++;
+
+			Debugprintf("In Procedure %s - %s Line %d Addr %p\r\n", symbol->Name, fptr, line.LineNumber, symbol->Address );
+		}
+	}
 	printStack();
 
 	CloseDebugLog();
@@ -205,12 +232,14 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	MSG msg;
 	int Running = 1;
 
-	Debugprintf("BPQ32.exe %s Entered", lpCmdLine);
+	GetVersionInfo("bpq32.exe");
 
-	 process = GetCurrentProcess();
+	Debugprintf("BPQ32.exe %s Version %s", lpCmdLine, TextVerstring);
 
-	 SymSetOptions(SYMOPT_LOAD_LINES);
-     SymInitialize( process, NULL, TRUE );
+	process = GetCurrentProcess();
+
+	SymSetOptions(SYMOPT_LOAD_LINES);
+    SymInitialize( process, NULL, TRUE );
 
 	AddVectoredExceptionHandler(1, UnhandledExcepFilter);
 

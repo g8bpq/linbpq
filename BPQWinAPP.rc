@@ -30,8 +30,8 @@ BPQICON ICON DISCARDABLE  "bpqicon.ico"
 //
 // Version
 //
-#define TEXTVER "2. 0. 1. 2\0"
-#define BINVER 2, 0, 1, 2
+#define TEXTVER "6. 0. 26. 1\0"
+#define BINVER 6, 0, 26, 1
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION BINVER

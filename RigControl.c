@@ -8308,7 +8308,17 @@ void HLSetPTT(SOCKET Sock, struct RIGINFO * RIG, unsigned char * Msg, char sep)
 {
 	char Resp[80];
 	int Len;
-	int ptt = atoi(&Msg[1]);
+	int ptt;
+
+	// Might be T VFOA 2 or just T 2
+
+
+	if (strlen(Msg) > 6)
+		ptt = atoi(&Msg[6]);
+	else
+		ptt = atoi(&Msg[1]);
+
+	printf("%s %d %d\n", Msg, strlen(Msg), ptt);
 
 	if (ptt)
 		Rig_PTTEx(RIG, 1, NULL);

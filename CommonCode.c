@@ -4308,9 +4308,9 @@ VOID SendUIBeacon(int Port)
 		if (hFile == 0)
 			return;
 
-		Len = (int)fread(UIMessage, 1, 1024, hFile); 
-		
+		Len = (int)fread(UIMessage, 1, 1023, hFile);
 		fclose(hFile);
+		UIMessage[Len] = 0;
 
 	}
 	else
@@ -4736,8 +4736,10 @@ INT_PTR CALLBACK ChildDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM 
 		{
 			case IDC_FILE:
 
-			memset(&ofn, 0, sizeof (OPENFILENAME));
-			ofn.lStructSize = sizeof (OPENFILENAME);
+			memset(&ofn, 0, sizeof (ofn));
+
+
+			ofn.lStructSize = sizeof (ofn);
 			ofn.hwndOwner = hDlg;
 			ofn.lpstrFile = &FN[Port][0];
 			ofn.nMaxFile = 250;

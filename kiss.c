@@ -299,6 +299,9 @@ int	ASYINIT(int comport, int speed, struct PORTCONTROL * PortVector, char Channe
 
 		npKISSINFO->idComDev = fd;
 
+		npKISSINFO->Portvector = PortVector; 
+
+
 		if (PortVector->KISSFLAGS & PITNC)
 		{
 
@@ -353,6 +356,9 @@ int	ASYINIT(int comport, int speed, struct PORTCONTROL * PortVector, char Channe
 		npKISSINFO->destaddr.sin_family = AF_INET;
 		npKISSINFO->destaddr.sin_addr.s_addr = PortVector->PORTIPADDR.s_addr;		
 		npKISSINFO->destaddr.sin_port = htons(PortVector->IOBASE);
+
+		npKISSINFO->Portvector = PortVector; 
+
 
 		if (PortVector->KISSTCP)
 		{
@@ -435,11 +441,11 @@ int	ASYINIT(int comport, int speed, struct PORTCONTROL * PortVector, char Channe
 		npKISSINFO->MSGREADY=FALSE;
 		npKISSINFO->RXBPTR=&npKISSINFO->RXBUFFER[0]; 
 		npKISSINFO->RXMPTR=&npKISSINFO->RXMSG[0];
+		npKISSINFO->Portvector = PortVector; 
 
 		OpenConnection(PortVector);
 	}
 
-	npKISSINFO->Portvector = PortVector; 
 
 	WritetoConsoleLocal("\n");
 

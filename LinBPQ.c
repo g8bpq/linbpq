@@ -1169,6 +1169,7 @@ LONG WINAPI UnhandledExcepFilter(PEXCEPTION_POINTERS pExcepPointers)
 	DWORD  dwDisplacement;
 	IMAGEHLP_LINE64 line;
 	char * fptr;
+	DWORD ExceptionCode =  pExcepPointers->ExceptionRecord->ExceptionCode;
 
 
 	time_t T;
@@ -1190,29 +1191,52 @@ LONG WINAPI UnhandledExcepFilter(PEXCEPTION_POINTERS pExcepPointers)
 
 		exit(0);
 	}
+
+	switch (ExceptionCode)
+	{
+	
+	case DBG_PRINTEXCEPTION_C:
+		 return EXCEPTION_CONTINUE_EXECUTION;
+
+	case STATUS_INTEGER_DIVIDE_BY_ZERO:				
+	case STATUS_ACCESS_VIOLATION:
+	case STATUS_STACK_OVERFLOW:
+	case STATUS_FLOAT_DIVIDE_BY_ZERO:
+
+		break;
+
+	// ignore others
+
+	default:
+
+		 return EXCEPTION_CONTINUE_SEARCH;
+	}
 	
 	inErrorhandling = 1;
-		
-	if(pExcepPointers->ExceptionRecord->ExceptionCode == DBG_PRINTEXCEPTION_C)
-		 return EXCEPTION_CONTINUE_EXECUTION;
 
 	SymFromAddr( process, ((DWORD)pExcepPointers->ExceptionRecord->ExceptionAddress), 0, symbol );
 
 	Debugprintf("\r\n\r\nProgram error trapped at %02d:%02d:%02d\r\n", tm->tm_hour, tm->tm_min, tm->tm_sec);
 
-	SymGetLineFromAddr64(process, (DWORD)pExcepPointers->ExceptionRecord->ExceptionAddress, &dwDisplacement, &line);
-
-	if (line.FileName)
+	if (SymFromAddr(process, ((DWORD)pExcepPointers->ExceptionRecord->ExceptionAddress), 0, symbol))
 	{
-		fptr = line.FileName + (int)strlen(line.FileName);	// remove path
-		while (*fptr != '\\' && *fptr != '/')
-			fptr--;
-		
-		fptr++;
+		Debugprintf("\r\n\r\nException %x trapped at %02d:%02d:%02d\r\n", ExceptionCode, tm->tm_hour, tm->tm_min, tm->tm_sec);
 
-		Debugprintf("In Procedure %s - %s Line %d Addr %p\r\n", symbol->Name, fptr, line.LineNumber, symbol->Address );
-	}
-	
+		line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+
+		SymGetLineFromAddr64(process, (DWORD)pExcepPointers->ExceptionRecord->ExceptionAddress, &dwDisplacement, &line);
+
+		if (line.FileName)
+		{
+			fptr = line.FileName + (int)strlen(line.FileName);	// remove path
+			while (*fptr != '\\' && *fptr != '/')
+				fptr--;
+
+			fptr++;
+
+			Debugprintf("In Procedure %s - %s Line %d Addr %p\r\n", symbol->Name, fptr, line.LineNumber, symbol->Address );
+		}
+	}	
 	printStack();
 
 	CloseDebugLog();
